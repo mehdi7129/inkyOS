@@ -1,12 +1,13 @@
 PYTHON ?= python3
 
-.PHONY: help test fetch vm-start vm-stop inspect
+.PHONY: help test fetch vm-start vm-stop inspect prototype
 
 help:
 	@echo 'make test     : tests locaux, sans image ni VM'
 	@echo 'make fetch    : télécharger et vérifier la base officielle figée'
 	@echo 'make vm-start : démarrer la VM Linux isolée inkyos-build'
 	@echo 'make inspect  : vérifier le builder et inspecter la base en lecture seule'
+	@echo 'make prototype: assembler une image système expérimentale sans app ni flash'
 	@echo 'make vm-stop  : arrêter la VM de travail'
 
 test:
@@ -29,3 +30,6 @@ vm-stop:
 
 inspect: vm-start
 	bash scripts/inspect-base.sh
+
+prototype: test vm-start
+	bash scripts/build-prototype.sh

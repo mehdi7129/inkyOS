@@ -1,8 +1,9 @@
 # InkyOS — plan de réalisation de l'image
 
-Étude du **27 septembre 2026**, suivie d'un premier essai d'inspection réussi.
-La base officielle est téléchargée et vérifiée ; **aucune image InkyOS intégrée
-ni test SD**. Voir les [outils et résultats exécutés](DEVELOPMENT.md).
+Étude du **27 septembre 2026**, suivie d'une inspection puis d'un assemblage
+du prototype système. La base officielle et le delta `.deb` sont figés ;
+**aucune image avec l'application ni test SD**. Voir les
+[outils et résultats exécutés](DEVELOPMENT.md).
 Les acquis applicatifs restent ceux du [HANDOFF](HANDOFF.md) ; aucune release
 applicative finale n'est sélectionnée ici.
 
@@ -168,12 +169,13 @@ explicitement les groupes/udev `spi`, `i2c`, `gpio` et `inky-provisioning`.
 
 ## 4. Recette minimale proposée et preuves attendues
 
-Cette recette est une **séquence à implémenter**. L'acquisition de la base et
-son inspection sont exécutables avec `make inspect` et ont passé un essai réel
-dans la VM. La personnalisation et l'intégration applicative restent à faire.
-Les pins builder ci-dessus sont des références d'étude ; la base officielle
-est figée, tandis que delta APT/Python et asset app restent à fournir. Les
-adaptations de stages/export ne s'appliquent que si pi-gen devient nécessaire.
+Cette séquence est désormais exécutée jusqu'au **prototype système sans app**
+avec `make prototype` ; `make inspect` reste l'inspection de la base seule.
+Le delta APT est épinglé et installé offline. Payload/wheelhouse Python et
+qualification matérielle restent à fournir. Les pins builder ci-dessus sont
+des références d'étude ; les adaptations de stages/export ne s'appliquent que
+si pi-gen devient nécessaire. Les résultats et limites de reproductibilité
+sont consignés dans [DEVELOPMENT.md](DEVELOPMENT.md).
 
 | Étape | Travail prévu | Vérification avant la suite |
 |---|---|---|

@@ -43,9 +43,10 @@ Le [plan de réalisation](BUILD-PLAN.md) compare les builders upstream, propose
 la base et l'environnement, décrit une recette minimale et ses critères de
 qualification. Il sépare les propositions des décisions déjà validées.
 
-**Aucune image construite, aucun premier boot exécuté, aucun flash effectué.**
-L'étude et la préparation des contrats peuvent avancer maintenant. L'intégration
-d'une image complète attend une release applicative qualifiée et épinglée.
+À réception : aucune image construite, aucun premier boot ni flash effectué.
+Depuis, un prototype système a été assemblé (avancement ci-dessous).
+L'intégration d'une image complète attend une release applicative qualifiée
+et épinglée.
 
 ## Informations à obtenir pour l'exécution
 
@@ -65,8 +66,9 @@ comparaison des outils et la préparation de la recette.
 
 Le 27 septembre, l’opérateur demande de privilégier la simplicité et de réexaminer
 les décisions avant implémentation. Le remote privé `inkyOS`, branche
-`main` à `7b40c38…`, a été revérifié via Git et GitHub ; les nouveaux documents
-de cette session sont encore locaux, sans commit ni push.
+`main` à `7b40c38…`, a été revérifié via Git et GitHub. Depuis, l’opérateur a autorisé
+la poursuite, les tests et des pushes réguliers ; le socle a été poussé dans
+`853ed87`, puis premier boot/delta packages/contrats dans `324231b`.
 
 Le plan place désormais l'image officielle Lite datée + personnalisation offline
 comme première option à éprouver ; pi-gen reste le recours si les adaptations
@@ -91,3 +93,15 @@ La base contient déjà la majeure partie des dépendances système ; le delta
 comprend notamment `python3-dbus` et l'adaptation du premier boot cloud-init.
 Aucune intégration app, génération d'identité du cadre, modification du protocole
 ou qualification matérielle n'est déduite de ce résultat.
+
+## Prototype système assemblé
+
+Le premier `make prototype` réussit dans la VM : package ajouté offline,
+renommage du compte verrouillé, retrait des privilèges généraux, adaptation du
+boot, gate statique et vérification systemd. L'image reste sans application.
+Les rapports et limites sont suivis dans [DEVELOPMENT.md](DEVELOPMENT.md).
+
+Inky Studio a relu [APPLICATION-PAYLOAD.md](APPLICATION-PAYLOAD.md) et accepté
+la direction de packaging proposée ; aucun payload qualifié n'est encore livré.
+La session poursuit ses travaux iOS sans changement backend/protocole prévu.
+Les contrats première adoption/heure/pays et les essais SD dédiés restent ouverts.

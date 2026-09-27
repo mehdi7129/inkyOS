@@ -2,14 +2,16 @@
 
 Image Raspberry Pi dédiée aux cadres photo **Inky Studio**.
 
-**État : socle de développement opérationnel, 27 septembre 2026.** Une base
-officielle Lite est figée, téléchargée et inspectée en lecture seule dans une
-VM Linux ARM64. **Aucune image InkyOS avec l'app n'est encore construite,
-installable ou qualifiée sur SD.**
+**État : prototype système assemblé, 27 septembre 2026.** Une image officielle
+Lite ARM64 figée est personnalisée offline dans une VM dédiée. Premier boot
+système, compte applicatif verrouillé, services et prérequis matériels sont
+préparés et contrôlés. **Le prototype ne contient pas encore Inky Studio et
+n'est pas qualifié sur SD.**
 
 ```sh
 make test
 make inspect
+make prototype
 make vm-stop
 ```
 
@@ -33,8 +35,11 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Réception du relais](docs/RECEPTION.md) : périmètre pris en charge et points ouverts.
 - [Plan de réalisation de l'image](docs/BUILD-PLAN.md) : comparaison des builders, recette proposée et qualification.
 - [Développement sans SD](docs/DEVELOPMENT.md) : outils exécutables, environnement isolé et observations vérifiées.
+- [Delta système vérifié](docs/BASE-CUSTOMIZATION.md) : premier boot et croissance SD de la base exacte.
+- [Payload applicatif commun](docs/APPLICATION-PAYLOAD.md) : proposition relue avec Inky Studio, assets encore attendus.
+- [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
 
-## Avant d'implémenter l'image
+## Avant l'image complète
 
 Terminer la qualification Bluetooth iPhone/Raspberry dans le projet Inky Studio,
 figer une release compatible et identifier exactement le panneau. Le premier

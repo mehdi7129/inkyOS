@@ -1,105 +1,127 @@
 # Développer InkyOS sans carte SD
 
-Le premier outil livré télécharge une base officielle figée et l'inspecte dans
-une VM Linux isolée. **Il ne construit pas encore une image InkyOS avec l'app.**
-Aucun accès au Raspberry Pi, à une SD ou à un autre disque physique n'est requis.
+Un **prototype système sans Inky Studio** est assemblé depuis une base officielle
+Lite ARM64 figée. Aucun accès au Pi, à sa SD personnelle ou à un disque physique.
+Le premier assemblage a réussi le 27 septembre 2026 ; aucune qualification SD.
 
-## Utilisation
+## Utilisation sur Mac Apple Silicon
 
-Sur le Mac Apple Silicon, avec Python 3.9+ et Lima 2.0+ :
+Prérequis : Python 3.9+ côté Mac, Lima 2.0+ et Git. Le Python Linux du builder
+est 3.13. Les tests locaux ne nécessitent aucune dépendance Python externe.
 
 ```sh
 make test
-make inspect
+make inspect       # facultatif : base seule en lecture seule
+make prototype     # tests, VM, entrées vérifiées, assemblage, export
 make vm-stop
 ```
 
-`make inspect` crée ou démarre `inkyos-build`, télécharge la base si nécessaire,
-vérifie les hashes puis inspecte une copie dans Linux. Les rapports sont écrits
-dans un nouveau dossier `build/inspection.XXXXXXXX/` à chaque exécution :
+Chaque build crée `build/prototype.XXXXXXXX/inkyos-system-prototype.img` et ses
+rapports. Aucun target ne flashe ni ne publie l'image. `cache/` et `build/` sont
+exclus de Git. Le premier passage télécharge environ 516 Mio pour la base Pi,
+plus Debian et les outils du builder. Chaque image décompressée fait 2,85 Gio.
+Prévoir la source, les exports conservés et une copie transitoire dans la VM.
+La VM utilise 2 CPU, 3 Gio RAM et un disque sparse de 16 Gio maximum. Sa copie
+est retirée après export réussi ; les runs échoués restent pour diagnostic.
 
-- `builder.json` : versions des outils et contrôles loop/FAT/ext4/chroot ARM64 ;
-- `base.json` : OS, packages, unités, comptes verrouillés et état générique.
+## Entrées et isolation
 
-Pour télécharger seulement : `make fetch`. Pour démarrer/arrêter uniquement la
-VM : `make vm-start` / `make vm-stop`. Aucun de ces targets ne flashe une carte.
+| Entrée | Référence |
+|---|---|
+| Base Pi | [base-image.lock.json](../config/base-image.lock.json) : image du 15/09/2026, hashes/tailles archive/image, inventaire officiel et SBOM. |
+| Delta OS | [system-packages.lock.json](../config/system-packages.lock.json) : python3-dbus 1.4.0-1 ARM64, 96064 octets. Hash authentifié par InRelease Debian signé puis Packages.xz ; dépendances déjà présentes. |
+| Builder | [lima.yaml](../infra/lima.yaml) : Debian 13 ARM64 du 12/07/2026, SHA-512, ressources limitées. |
+| Recette | Liste explicite de scripts/overlay/locks, hashes, commit Git et indicateur d'arbre modifié dans recipe-inputs.json. |
 
-Le premier passage télécharge environ 516 Mio pour l'image Pi compressée, plus
-la base Debian et les packages de la VM. L'image Pi décompressée fait environ
-2,85 Gio ; une copie transitoire supplémentaire existe dans la VM pendant
-l'inspection. Son disque sparse a une capacité maximale configurée de 16 Gio,
-avec 3 Gio de RAM et 2 CPU. `cache/` et `build/` sont exclus de Git.
+Aucun home partagé, transfert d'agent SSH, containerd ou Rosetta. Seul le SSH
+local de contrôle Lima reste forwardé. Les identités VM ne sont pas recopiées.
+Le build vérifie le marqueur builder, accepte seulement une image régulière
+dans son dossier dédié et rehash la base avant toute mutation. Aucun archivage
+récursif du dépôt ou du home ; les entrées sont explicitement listées.
 
-## Entrées et séparation des systèmes
+L'installation dpkg est privée de réseau, dans des namespaces mount/network/UTS.
+Le chroot reçoit un /dev temporaire limité à null/zero/random/urandom et un
+policy-rc.d qui bloque les démarrages. Aucun backend ni service cible lancé.
+Les caches sont rehashés ; un fichier corrompu est refusé, jamais écrasé.
+Les preuves Debian brutes restent dans cache/packages/provenance/.
 
-| Composant | Source versionnée | Rôle |
-|---|---|---|
-| Base Pi | [base-image.lock.json](../config/base-image.lock.json) | Image Raspberry Pi OS Lite du 15/09/2026, hashes/tailles compressés et décompressés ; références `.info`/SBOM. |
-| Hôte Linux | [lima.yaml](../infra/lima.yaml) | Debian 13 ARM64 du 12/07/2026, digest SHA-512, ressources et outils. |
-| Acquisition | [fetch-base.py](../scripts/fetch-base.py) | Téléchargement temporaire, bornes, contrôle puis publication ; cache rehashé avant utilisation. |
-| Contrôle hôte | [check-builder.sh](../scripts/check-builder.sh) | Montages et chroot sur de petits fichiers temporaires fabriqués dans la VM. |
-| Inspection | [inspect-image.sh](../scripts/inspect-image.sh) et [inspect-rootfs.py](../scripts/inspect-rootfs.py) | Lecture statique, sans chroot ni exécution de l'image Pi. |
+Les packages **du builder** sont résolus au provisionnement et inventoriés,
+pas tous figés : limite reconnue de l'environnement. Aucun apt upgrade de
+l'image cible. Modifier lima.yaml ne réécrit pas une VM déjà créée.
 
-La VM possède son propre OS et ses propres identités de développement. Son
-rootfs n'est jamais copié dans l'image Pi. Aucun home du Mac n'est monté ; seuls
-scripts, lock et image officielle sont transférés explicitement. Containerd,
-Rosetta et forwarding de services sont désactivés ; la connexion locale de
-contrôle SSH de Lima reste nécessaire.
+## Delta système
 
-Les packages des outils de la VM sont installés depuis Debian au provisionnement,
-puis inventoriés dans le rapport : leur résolution initiale n'est pas encore
-figée. Cette limite concerne l'environnement de développement ; aucun `apt
-upgrade` n'est lancé sur l'image cible. La modification de `infra/lima.yaml` ne
-réécrit pas automatiquement la configuration d'une VM déjà créée.
+- pi devient inky, mêmes UID/GID 1000, home déplacé, login/password verrouillés,
+  groupes supplémentaires limités à spi/i2c/gpio, sans sudo/netdev/subuid/subgid.
+- Cloud-init, les wizards userconfig/systemd-firstboot, SSH, génération de clés,
+  interrupteur FAT SSH et attente NetworkManager-wait-online neutralisés.
+- Aucun profil Wi-Fi ni pays préchargé. WirelessEnabled activé, états rfkill
+  Bluetooth génériques de la base conservés. Cela ne valide pas les radios ni
+  le futur ordre pays/scan/connexion, qui reste un contrat applicatif.
+- SPI/I²C, i2c-dev et spi0-0cs configurés selon l'installation actuelle ;
+  fonctionnement à qualifier sur le panneau physique.
+- Premier boot : hostname individuel tiré de getrandom bloquant, état atomique
+  avant fichiers hostname/hosts et hostname kernel. Reboot stable ; corruption
+  bloquante. NM/Avahi/Bluetooth exigent le succès de cette initialisation.
+- machine-id=uninitialized, initramfs, resize, fstab et unités de croissance
+  upstream conservés ; hashes avant/après contrôlés. Voir
+  [BASE-CUSTOMIZATION.md](BASE-CUSTOMIZATION.md).
 
-## Contrôles effectivement réalisés le 27 septembre 2026
+Le hostname avant boot reste générique. Aucune identité app, clé, QR, photo,
+base de données ou association créée au build. Payload, venv, helper/polkit/CLI
+viendront de la release commune [APPLICATION-PAYLOAD.md](APPLICATION-PAYLOAD.md).
 
-- VM Debian ARM64 démarrée sur le Mac ; loop read-only, montages FAT/ext4 et
-  chroot ARM64 natif passent avec des fixtures temporaires.
-- Archive officielle et image décompressée téléchargées ; tailles et SHA-256
-  correspondent au lock, y compris après copie dans la VM.
-- Base montée en lecture seule, ext4 avec `noload` ; aucune unit de l'image
-  démarrée. Démontage et libération des loop devices vérifiés après inspection.
-- 633 packages installés, userland ARM64, kernel Pi `6.18.50` et firmware
-  `1:1.20260907-1` inventoriés. Cette combinaison diffère du banc personnel.
-- NetworkManager `1.52.1-1+rpt4`, BlueZ `5.82-1.1+rpt2`, Avahi `0.8-16`, Python
-  et venv `3.13.5-1` présents. `python3-dbus`, requis par le helper, absent.
-- `machine-id` à `uninitialized`, aucune host key SSH présente, comptes recensés
-  verrouillés et répertoire des profils Wi-Fi vide ; aucune random seed dans
-  les deux emplacements vérifiés.
+## Rapports par build
 
-Ces observations valident la faisabilité de l'inspection sur le Mac et l'intérêt
-d'une personnalisation limitée de Lite. Elles ne prouvent ni le premier boot Pi,
-ni l'unicité après clonage, ni le driver écran, ni le Bluetooth réel.
+| Rapport | Portée |
+|---|---|
+| builder.json | Versions et capacité loop/FAT/ext4/chroot ARM64 sur fixtures. |
+| firstboot-smoke.json | Vraies API getrandom/sethostname dans une UTS séparée, deux racines jetables, stabilité et hostname builder inchangé. |
+| qualification-static.json | Comptes, fichiers, identités absentes, packages, masks et configuration. |
+| systemd-verify.txt | Syntaxe/graphe des units, sans démarrage. |
+| boot-preserved.sha256 | Kernel/initramfs/cmdline/fstab/grow identiques avant/après. |
+| fsck-ext4.txt, fsck-fat.txt | Contrôle sans réparation des filesystems démontés. |
+| filesystem-manifest.json | Tous fichiers hashés, modes/owners/liens, sans timestamps. |
+| image-inspection.json | Inspection finale readonly, packages et hash image. |
+| manifest.json, SHA256SUMS | Recette, hashes des rapports/image et transfert au Mac vérifié. |
 
-## Adaptations à réaliser ensuite
+Le manifeste intégral est réservé à ces images génériques, jamais à une SD
+personnelle. Les gates de secrets ciblent les chemins connus : ils ne sont pas
+un certificat exhaustif d'absence de secrets.
 
-La base contient cloud-init, `userconf-pi` et des fichiers de provisioning
-génériques dans la partition boot. Le rapport signale leur présence, sans
-supposer qu'ils contiennent des données personnelles. Un fichier d'état existe
-aussi sous `/var/lib/NetworkManager` ; il doit être identifié avant de choisir
-ce qui est conservé ou réinitialisé.
+## Résultats et reproductibilité
 
-Le prochain stage offline devra :
+Premier prototype : 61 gates statiques réussis, import dbus dans Python cible,
+dpkg --audit vide, systemd-analyze verify sans erreur ni avertissement, export
+hashé. **634 packages**, contre 633 dans la base. Kernel 6.18.50, firmware
+1:1.20260907-1, NM 1.52.1-1+rpt4, BlueZ 5.82-1.1+rpt2 et Python 3.13.5-1
+restent ceux de la base. Le smoke Linux séparé passe ses 13 contrôles.
 
-1. Figer le petit delta de packages, notamment `python3-dbus`, en vérifiant ses
-   dépendances contre l'inventaire cible.
-2. Adapter explicitement le premier boot de cette image exacte, créer le compte
-   applicatif verrouillé et ses permissions, puis configurer SPI/I²C. Conserver
-   un seul responsable du provisioning et du display.
-3. Intégrer le payload Inky Studio commun lorsque la release et son packaging
-   offline sont qualifiés. Le contrat heure/adoption sans LAN reste côté app.
-4. Produire une image de test et ses contrôles avant toute qualification sur
-   SD dédiée. La SD personnelle reste intacte.
+Les tests couvrent cache corrompu, chemins dangereux, absence de données
+sensibles dans les rapports, état firstboot invalide et dix points de coupure
+simulée. Une exception ne reproduit pas une panne électrique de SD. La CI
+GitHub teste les fixtures et la syntaxe shell, sans build privilégié ni matériel ;
+actions officielles épinglées et permissions de lecture seules.
 
-## Limites des rapports
+Pour deux builds du même commit propre :
 
-L'inspecteur ne sérialise pas de password, clé, ID machine, SSID ou contenu de
-données applicatives. Il refuse de suivre les symlinks de l'image ; certains
-faits sont donc marqués absents ou non inspectables. Les modes/owners affichés
-sur la partition FAT proviennent du montage, pas de permissions Unix stockées.
+```sh
+python3 scripts/compare-builds.py build/prototype.PREMIER build/prototype.SECOND --output build/comparison.json
+```
 
-Une unit présente ou liée dans un target n'est pas nécessairement fonctionnelle,
-et ce relevé ne couvre pas tous les masks, presets et dépendances. Le contrôle
-des chemins sensibles est ciblé, pas un certificat d'absence exhaustive de
-secrets. Une base inspectée reste **non qualifiée matériellement**.
+La comparaison exige mêmes entrées et même contenu complet, modes/owners/liens
+inclus, sans exceptions de chemins. L'égalité des hashes d'image est rapportée
+séparément. Timestamps, allocations et journal ext4/FAT ne sont pas comparés
+par le manifeste de contenu : son égalité ne signifie pas bit-for-bit.
+
+## Ce qui manque pour l'image finale
+
+1. Release Inky Studio qualifiée, payload/lock transitif/wheelhouse ARM64 épinglés
+   et intégration commune des units/CLI/helper.
+2. Contrats première adoption sans LAN, heure/TLS hors réseau, pays Wi-Fi,
+   récupération physique. Aucun contournement implémenté ici.
+3. SD dédiée, Pi/panneau identifié et vrais essais boot/resize/radios/GPIO,
+   mémoire, coupures, adoption et rollback selon [SD-QUALIFICATION.md](SD-QUALIFICATION.md).
+
+Aucun boot du kernel Pi, service en fonctionnement, écran, Wi-Fi ou Bluetooth
+physique n'est qualifié par ces contrôles. La SD personnelle reste intacte.
