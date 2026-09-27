@@ -158,6 +158,14 @@ classique et la future image doivent conserver la même application et les même
 contrats, sans présenter le premier démarrage Bluetooth entièrement hors ligne
 comme déjà livré.
 
+Complément du relais InkyOS du 27 septembre : la comparaison ARM64 utilise
+[`pi-gen` au SHA `74d08a337bd29da289b9aedbe5b48c79fb2e5a03`](https://github.com/RPi-Distro/pi-gen/tree/74d08a337bd29da289b9aedbe5b48c79fb2e5a03),
+résolu depuis `arm64`. Le SHA `6a0419c1…` du tableau est celui de `master`
+(32 bits). Le [plan de réalisation](BUILD-PLAN.md) détaille cette piste et
+`rpi-image-gen`. Après seconde lecture demandée par l’opérateur, il prévoit d'éprouver
+d'abord une image officielle Lite datée et personnalisée offline ; pi-gen reste
+un recours. Aucune de ces bases n'est construite ou qualifiée ici.
+
 ## 7. Informations encore nécessaires avant une matrice de compatibilité
 
 - Identifier physiquement le panneau du cadre et relever sa variante EEPROM ;

@@ -2,9 +2,19 @@
 
 Image Raspberry Pi dédiée aux cadres photo **Inky Studio**.
 
-**État : préparation du projet, 27 septembre 2026. Aucune image SD n'est encore
-construite, installable ou qualifiée.** Le dépôt contient le périmètre, les
-sources officielles et le dossier de transmission pour la prochaine session.
+**État : socle de développement opérationnel, 27 septembre 2026.** Une base
+officielle Lite est figée, téléchargée et inspectée en lecture seule dans une
+VM Linux ARM64. **Aucune image InkyOS avec l'app n'est encore construite,
+installable ou qualifiée sur SD.**
+
+```sh
+make test
+make inspect
+make vm-stop
+```
+
+Voir [le guide de développement et les résultats](docs/DEVELOPMENT.md) pour les
+prérequis, rapports, limites et prochaines adaptations.
 
 ## Deux façons d'installer son cadre
 
@@ -20,6 +30,9 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 
 - [Transmission à la session InkyOS](docs/HANDOFF.md) : état réel, contrats, étapes et critères de validation.
 - [Matériel et sources officielles](docs/HARDWARE-SOURCES.md) : Pimoroni, Raspberry Pi, NetworkManager, BlueZ et builders.
+- [Réception du relais](docs/RECEPTION.md) : périmètre pris en charge et points ouverts.
+- [Plan de réalisation de l'image](docs/BUILD-PLAN.md) : comparaison des builders, recette proposée et qualification.
+- [Développement sans SD](docs/DEVELOPMENT.md) : outils exécutables, environnement isolé et observations vérifiées.
 
 ## Avant d'implémenter l'image
 

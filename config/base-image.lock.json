@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "status": "experimental-not-hardware-qualified",
+  "verified_at": "2026-09-27",
+  "image": {
+    "filename": "2026-09-15-raspios-trixie-arm64-lite.img.xz",
+    "url": "https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2026-09-15/2026-09-15-raspios-trixie-arm64-lite.img.xz",
+    "sha256": "cdf4f3bfac35ae947b46e4e767f935453810549779ac3290e05a6754aee627e5",
+    "size_bytes": 541414936,
+    "extracted_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+    "extracted_size_bytes": 3061841920,
+    "release_date": "2026-09-15",
+    "arch": "arm64",
+    "os": "Raspberry Pi OS Lite",
+    "debian_release": "trixie",
+    "debian_version": "13",
+    "kernel_package_version": "1:6.18.50-1+rpt1",
+    "firmware_package_version": "1:1.20260907-1",
+    "upstream_builder": "pi-gen",
+    "upstream_builder_commit": "2c235fa703cacb65e0fe0b2ab2fcb23d44dfd268",
+    "upstream_stage": "stage2",
+    "init_format": "cloudinit-rpi"
+  },
+  "sources": {
+    "download_page": "https://www.raspberrypi.com/software/operating-systems/",
+    "archive_directory": "https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2026-09-15/",
+    "archive_sha256": "https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2026-09-15/2026-09-15-raspios-trixie-arm64-lite.img.xz.sha256",
+    "imager_catalog": "https://downloads.raspberrypi.com/os_list_imagingutility_v4.json",
+    "size_and_extracted_hash_source": "imager_catalog entry matching the exact dated image URL",
+    "kernel_firmware_builder_source": "package_info"
+  },
+  "package_info": {
+    "url": "https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2026-09-15/2026-09-15-raspios-trixie-arm64-lite.info",
+    "size_bytes": 86232,
+    "sha256": "886c9d2f522b4dccf69bb8b6670b3b8859e2547a9500988bd4af83d2d190eba8",
+    "hash_provenance": "computed from the official metadata response on verified_at"
+  },
+  "sbom": {
+    "url": "https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2026-09-15/2026-09-15-raspios-trixie-arm64-lite.sbom.xz",
+    "format": "SPDX-2.3 JSON, XZ compressed",
+    "size_bytes": 5336900,
+    "sha256": "266284353c1ae6187df36088f4004fdcf0e3122e8aa5e0c54e4573608ebf3859",
+    "hash_provenance": "computed from the official metadata response on verified_at"
+  },
+  "notes": [
+    "Image integrity is checked on every fetch by fetch-base.py; this lock records upstream expected hashes, not a hardware qualification.",
+    "This base differs from the personal frame kernel 6.12.75 and has not been qualified on any SD or hardware.",
+    "The website SBOM link observed on verified_at pointed to an older image; this SBOM was located and read in the exact dated archive directory.",
+    "No application release, credentials, personal configuration or hardware qualification is implied by this base lock."
+  ]
+}

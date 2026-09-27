@@ -168,7 +168,9 @@ Dossier préparé localement et dans ce dépôt. L'autre fenêtre Cursor peut le
 sans accès aux archives personnelles de cette session. Aucun formulaire ANSSI,
 coordonnée privée, mot de passe ou secret réseau n'est nécessaire à ce travail.
 
-La transmission automatique à une session indépendante nommée « inkyOS » n'a
-pas été vérifiée ; créer ce dépôt ne prouve pas qu'un message lui a été envoyé.
-Une fois la base applicative qualifiée, mettre à jour l'état ci-dessus, puis
-transmettre ces documents et le commit de release au destinataire identifié.
+La transmission à la session InkyOS a été effectuée et reçue le **27 septembre
+2026**. Un accusé a été envoyé à la session Inky Studio, qui a répondu par le
+canal inter-session ; voir [la réception et les points ouverts](RECEPTION.md).
+Cette réception ne qualifie pas l'application ou l'image. Une fois la base
+applicative qualifiée, mettre à jour l'état ci-dessus et transmettre le commit,
+les artefacts de release et les preuves de tests.
