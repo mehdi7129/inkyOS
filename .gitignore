@@ -1,0 +1,30 @@
+# System and editor files
+.DS_Store
+.idea/
+.vscode/
+# Image build outputs and caches
+build/
+output/
+cache/
+.cache/
+*.img
+*.img.xz
+*.img.gz
+*.qcow2
+*.iso
+*.raw
+*.vhdx
+*.log
+# Local credentials and provisioning data
+.env
+.env.*
+!.env.example
+secrets/
+private/
+*.key
+*.p12
+*.pfx
+*.mobileprovision
+# Python tooling
+__pycache__/
+.venv/
