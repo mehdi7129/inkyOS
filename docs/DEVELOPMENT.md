@@ -184,6 +184,13 @@ aucun fichier de la recette système.
 
 ## Ce qui manque pour l'image finale
 
+L'[audit Python](PYTHON-COMPATIBILITY.md) vérifie les métadonnées des dépendances
+du source applicatif transmis, sans installer ni exécuter l'app. Le runtime
+générique et Hatchling se résolvent en wheels compatibles ; l'extra Pi complet
+requiert encore des wheels natives pour `RPi.GPIO` et `spidev`. Leur absence
+sur PyPI ne démontre pas une incompatibilité runtime. L'inventaire expérimental
+n'est ni un lock de release ni une qualification matérielle.
+
 1. Release Inky Studio qualifiée, payload/lock transitif/wheelhouse ARM64 épinglés
    et intégration commune des units/CLI/helper.
 2. Contrats première adoption sans LAN, heure/TLS hors réseau, pays Wi-Fi,

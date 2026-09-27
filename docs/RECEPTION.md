@@ -124,3 +124,8 @@ exécution de l'app. Inky Studio a précisé les références des contrats : HTT
 n'a pas de version globale, BLE et helper sont v1. Les références exigent le
 commit complet du payload et un chemin source canonique ; les aliases mobiles
 et commits incohérents sont refusés. Aucun payload qualifié n'a été livré.
+
+L'[audit Python ARM64](PYTHON-COMPATIBILITY.md) a identifié les wheels natives
+`RPi.GPIO` et `spidev` à produire pour la release commune. Résultat transmis à
+Inky Studio, sans modification du source applicatif. Les résolutions partielles
+et métadonnées PyPI ne constituent pas un lock qualifié.

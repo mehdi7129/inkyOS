@@ -80,6 +80,13 @@ La session Inky Studio a relu cette proposition le 27 septembre : direction
 acceptée pour poursuivre le prototype, sous réserve des points ci-dessus.
 Cette revue ne constitue ni livraison d'assets ni qualification.
 
+L'[audit de disponibilité des wheels](PYTHON-COMPATIBILITY.md) précise le travail
+restant : `RPi.GPIO` et la transitive `spidev` nécessitent une production native
+ARM64/Python 3.13 dans la release commune. Aucun remplacement de dépendance,
+changement d'architecture ou recours implicite aux packages système n'est décidé.
+Les versions et hashes publiés relevés restent un inventaire de recherche,
+sans téléchargement ni vérification des octets des wheels.
+
 ## Contrôle d'entrée exécutable
 
 `scripts/verify-application.py` vérifie maintenant les **octets locaux** du
