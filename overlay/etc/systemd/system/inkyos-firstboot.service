@@ -1,0 +1,17 @@
+[Unit]
+Description=Initialize and reconcile the unique InkyOS system hostname
+After=local-fs.target systemd-random-seed.service
+Before=NetworkManager.service avahi-daemon.service bluetooth.service inky-studio.service
+RequiresMountsFor=/etc /var/lib/inkyos
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/lib/inkyos/firstboot.py
+RemainAfterExit=yes
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

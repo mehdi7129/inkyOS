@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "status": "experimental-not-hardware-qualified",
+  "verified_at": "2026-09-27",
+  "base_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+  "debian_release": "trixie",
+  "architecture": "arm64",
+  "packages": [
+    {
+      "name": "python3-dbus",
+      "version": "1.4.0-1",
+      "architecture": "arm64",
+      "source_package": "dbus-python",
+      "filename": "python3-dbus_1.4.0-1_arm64.deb",
+      "url": "https://deb.debian.org/debian/pool/main/d/dbus-python/python3-dbus_1.4.0-1_arm64.deb",
+      "sha256": "fe98d700adc6239a01ffa7441bb554a78b43bf7be4edf026a8be279266dde919",
+      "size_bytes": 96064,
+      "depends": "python3 (<< 3.14), python3 (>= 3.13~), python3:any, libc6 (>= 2.17), libdbus-1-3 (>= 1.10), libglib2.0-0t64 (>= 2.16.0)",
+      "recommends": "python3-gi",
+      "suggests": "python-dbus-doc",
+      "required_dependencies_in_base": [
+        {"name": "python3", "version": "3.13.5-1", "architecture": "arm64", "constraints": ["<< 3.14", ">= 3.13~", "python3:any"]},
+        {"name": "libc6", "version": "2.41-12+rpt1+deb13u4", "architecture": "arm64", "constraints": [">= 2.17"]},
+        {"name": "libdbus-1-3", "version": "1.16.2-2", "architecture": "arm64", "constraints": [">= 1.10"]},
+        {"name": "libglib2.0-0t64", "version": "2.84.4-3~deb13u5", "architecture": "arm64", "constraints": [">= 2.16.0"]}
+      ]
+    }
+  ],
+  "provenance": {
+    "package_page": "https://packages.debian.org/trixie/python3-dbus",
+    "inspection_sha256": "4717cc50f8a1d042efab5ae510501e2d9ab72990923a5a89246ee391bfeca156",
+    "inspection_scope": "633 installed packages in the pinned base image; python3-dbus and python3-gi absent",
+    "dependency_version_checks": "All five versioned Depends constraints passed dpkg --compare-versions in the Debian build VM using the base inspection versions",
+    "helper_import_review": "inky-studio ae61df1c0f01408861ccb1210ec85986768d6784 scripts/inky-network-helper.py imports stdlib and dbus; no gi, GLib or dbus.mainloop use found. No helper runtime test performed.",
+    "inrelease": {
+      "url": "https://deb.debian.org/debian/dists/trixie/InRelease",
+      "sha256": "0584fba32e13e0ab8285fb16c27adea1ec03a73669c18702821094fd6ca86675",
+      "size_bytes": 140421,
+      "release_date": "Sat, 12 Sep 2026 07:55:41 UTC"
+    },
+    "packages_index": {
+      "url": "https://deb.debian.org/debian/dists/trixie/main/binary-arm64/Packages.xz",
+      "sha256": "be16b37b2f740f066ea93d35d56f04f94d63693e5a3eb421b052bf86fae75bcd",
+      "size_bytes": 9614192,
+      "verification": "SHA-256 and byte count matched the sqv-authenticated Release body before extracting the package stanza"
+    },
+    "signature_verification": {
+      "performed": true,
+      "tool": "sqv 1.3.0 (sequoia-openpgp 2.0.0, Nettle 3.10)",
+      "exit_code": 0,
+      "method": "sqv --keyring /usr/share/keyrings/debian-archive-keyring.pgp --output Release.verified --cleartext InRelease",
+      "valid_signer_fingerprints": [
+        "04B54C3CDCA79751B16BC6B5225629DF75B188BD",
+        "41587F7DB8C774BCCF131416762F67A0B2C39DE4",
+        "B8B80B5B623EAB6AD8775C45B7C5D7D6350947F8"
+      ],
+      "trust_anchor": "debian-archive-keyring 2025.1 installed in the Debian ARM64 build VM",
+      "keyring_sha256": "506b815cbb32d9b6066b4a2aa524071e071761e7e7f68c3ac74f3061ba852017"
+    }
+  },
+  "notes": [
+    "The package hash is authenticated through Debian InRelease -> Packages.xz -> package stanza. The .deb itself is not claimed to carry a separately verified signature.",
+    "fetch-packages.py checks the reviewed lock and downloaded/cache hashes; it does not re-resolve APT or reverify repository signatures on each fetch.",
+    "Repository metadata URLs can change. Verified InRelease, Packages.xz, authenticated Release body, stanza and verification output were preserved in cache/packages/provenance/<inrelease-sha256>/ for provenance replay; this cache is not part of Git.",
+    "Required dependencies are already present in the pinned base. Optional python3-gi and python-dbus-doc are not added automatically.",
+    "No package upgrade, image installation, application qualification or hardware test is implied by this lock."
+  ]
+}

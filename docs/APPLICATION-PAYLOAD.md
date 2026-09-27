@@ -1,0 +1,81 @@
+# Payload commun Inky Studio / InkyOS — proposition v1
+
+Proposition du 27 septembre 2026, à valider avec la session Inky Studio.
+**Aucun payload qualifié ni lock Python livré à cette date.** Le prototype
+système InkyOS reste donc sans backend. Ce contrat de packaging ne change
+aucune API HTTP/BLE et ne donne aucune qualification à `0.5.0-rc.2`.
+
+## Garder le layout existant
+
+La release conserve une seule archive applicative `.tar.gz` contenant
+`server/`, `client/dist/`, `shared/` et `scripts/`, construite depuis un commit
+complet et une UI déjà compilée. L'updater actuel choisit la première archive
+`.tar.gz` : ne pas ajouter un wheelhouse sous cette extension à la même release.
+Le packaging upstream doit vérifier le choix de l'asset, sans fork dans InkyOS.
+
+Ajouter séparément :
+
+- `inky-studio-manifest-v1.json` : release, commit Git complet, nom/taille/SHA-256
+  de chaque asset, environnement compatible et références de qualification ;
+- `inky-studio-python-arm64-cp313.zip` : wheelhouse ARM64/Python 3.13, dépendances
+  transitives runtime **et build editable** (dont `hatchling`), accompagnées des
+  licences ; roues `cp313`, `abi3` et `py3-none-any` compatibles admises ;
+- `requirements-arm64-cp313.lock` : versions exactes et hashes des wheels
+  réellement utilisées, sans URL mouvante ni compilation réseau implicite.
+
+Le manifeste décrit explicitement `schema_version: 1`, `application_version`,
+`source_commit`, `assets`, `compatibility` et `qualification`. `compatibility`
+contient architecture `arm64`, version Python mineure, base Debian minimale,
+version des contrats HTTP/BLE et du helper réseau. `qualification` référence
+des preuves versionnées et distingue tests logiciels et essais Pi/iPhone.
+Un champ disant seulement `qualified: true` n'est pas une preuve.
+
+Chaque entrée d'asset a un rôle (`application`, `wheelhouse`, `python_lock`),
+un nom de fichier simple, une taille strictement positive et un SHA-256. Le
+manifest est lui-même épinglé par SHA-256 dans le futur lock InkyOS. Tous les
+fichiers doivent appartenir à la même release/commit ; pas de fallback `main`.
+
+## Intégration offline proposée
+
+1. Télécharger les assets hors du stage d'assemblage puis vérifier tous les
+   hashes. Refuser traversal, chemins absolus, liens sortants et fichiers
+   spéciaux lors de l'extraction. N'importer aucun home ou état du Pi.
+2. Installer le payload à `/home/inky/inky-studio`, avec propriétaire `inky`
+   non-root et login verrouillé ; créer le venv à son emplacement final
+   `server/.venv`. L'updater actuel doit pouvoir modifier ces deux chemins.
+3. Installer les dépendances avec `pip --no-index --require-hashes` depuis le
+   wheelhouse, puis le projet editable avec `--no-deps --no-build-isolation`.
+   Le backend de build fait partie du lock. Aucune résolution Internet, aucun
+   Node/npm et aucune compilation différée au premier boot.
+4. Installer les units/CLI/helper/polkit issus de cette même release avec leurs
+   propriétaires appropriés. Le helper et les règles restent root-owned ;
+   seuls les droits sudo ciblés réellement utilisés sont accordés.
+5. Activer les units sans les démarrer. Le build ne lance ni backend, lifespan,
+   migration de données, génération TLS, QR, refresh écran ou enregistrement
+   BLE. Ces actions créeraient de l'état propre à un cadre.
+
+Le chemin des données demeure `/var/lib/inky-studio`, fixé de façon identique
+pour le service et la CLI. Le venv utilise le Python de l'image. Un payload
+CPython 3.11 ou construit seulement pour x86_64 n'est pas accepté pour cette
+base ARM64/Python 3.13. Le cache pip ou les packages du builder ne sont jamais
+une source implicite de dépendances.
+
+## Questions qui restent côté application
+
+| Contrat | Preuve attendue avant une image complète |
+|---|---|
+| Première adoption sans LAN | Déclencheur local autorisé, QR affiché par l'app, durée/consommation du secret, essais iPhone. |
+| Horloge sans Internet | Comportement TLS au premier boot sans RTC/heure valide et méthode de mise à l'heure authentifiée. |
+| Pays Wi-Fi | Transmission et validation du pays avant le scan/la connexion ; aucune valeur personnelle préchargée. |
+| Updater / rollback | Compatibilité du payload offline avec l'updater ; reprise cohérente application+venv+helper à vérifier ensemble, limites du rollback OS séparées. |
+| Packaging | Lock transitif, wheels ARM64, licences, tests sans réseau, manifest et assets immuables. |
+| Qualification finale | Release exacte, version iOS distribuée et résultats sur Pi/panneau identifié. |
+
+L'OS fournit uniquement les prérequis système et une identité hostname propre
+au premier boot. Il n'ouvre pas une fenêtre QR à la place du backend et ne
+contourne pas les contrôles de temps/TLS existants. La qualification SD attend
+une carte dédiée ; la SD personnelle reste hors de ce chantier.
+
+La session Inky Studio a relu cette proposition le 27 septembre : direction
+acceptée pour poursuivre le prototype, sous réserve des points ci-dessus.
+Cette revue ne constitue ni livraison d'assets ni qualification.
