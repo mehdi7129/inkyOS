@@ -99,9 +99,16 @@ restent ceux de la base. Le smoke Linux séparé passe ses 13 contrôles.
 
 Les tests couvrent cache corrompu, chemins dangereux, absence de données
 sensibles dans les rapports, état firstboot invalide et dix points de coupure
-simulée. Une exception ne reproduit pas une panne électrique de SD. La CI
-GitHub teste les fixtures et la syntaxe shell, sans build privilégié ni matériel ;
-actions officielles épinglées et permissions de lecture seules.
+simulée. Une exception ne reproduit pas une panne électrique de SD. **75 tests
+passent sur macOS et Linux ARM64/Python 3.13**, après correction des permissions
+explicites des fixtures qui dépendaient initialement du umask de l'hôte.
+
+La CI GitHub est configurée pour ces fixtures et la syntaxe shell, sans build
+privilégié ni matériel, avec actions officielles épinglées et permissions de
+lecture seules. Son premier job (`inkyOS/actions/runs/36336690630`)
+n'a toutefois pas démarré : GitHub signale un blocage de facturation/plafond
+du compte. Aucun réglage administratif lu ou modifié ; ne pas présenter cette
+CI comme verte.
 
 Pour deux builds du même commit propre :
 
@@ -111,8 +118,19 @@ python3 scripts/compare-builds.py build/prototype.PREMIER build/prototype.SECOND
 
 La comparaison exige mêmes entrées et même contenu complet, modes/owners/liens
 inclus, sans exceptions de chemins. L'égalité des hashes d'image est rapportée
-séparément. Timestamps, allocations et journal ext4/FAT ne sont pas comparés
-par le manifeste de contenu : son égalité ne signifie pas bit-for-bit.
+séparément. Timestamps, xattrs/ACL, topologie des hardlinks, allocations et
+journal ext4/FAT ne sont pas représentés par le manifeste : son égalité ne
+signifie pas bit-for-bit.
+
+Rejeu effectivement exécuté depuis **cf822c9, arbre propre** :
+`prototype.nFixei9f` et `prototype.Vb8fnc8L`. Mêmes entrées, mêmes **74 018
+entrées rootfs et 433 entrées boot**, aucune différence parmi les champs
+comparés. Les SHA-256 des images diffèrent : aucune reproductibilité binaire
+revendiquée. Chaque build passe 61 gates statiques, 13 contrôles smoke Linux,
+systemd sans sortie, conservation des dix fichiers boot/grow et fsck ext4/FAT
+sans réparation. Les exports ont été rehashés après transfert ; aucun loop
+device n'est resté attaché. Les preuves compactes sont versionnées dans
+[le relevé de validation](validation/2026-09-27-system-prototype.json).
 
 ## Ce qui manque pour l'image finale
 

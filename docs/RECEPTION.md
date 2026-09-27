@@ -105,3 +105,9 @@ Inky Studio a relu [APPLICATION-PAYLOAD.md](APPLICATION-PAYLOAD.md) et accepté
 la direction de packaging proposée ; aucun payload qualifié n'est encore livré.
 La session poursuit ses travaux iOS sans changement backend/protocole prévu.
 Les contrats première adoption/heure/pays et les essais SD dédiés restent ouverts.
+
+Deux builds propres de `cf822c9` ont ensuite donné un contenu comparé identique,
+avec hashes d'image différents. Les 75 tests passent sur Mac et Linux ARM64.
+Les [preuves](validation/2026-09-27-system-prototype.json) distinguent ces
+résultats de la qualification matérielle et signalent la CI GitHub non démarrée
+à cause d'une limite du compte. Aucun réglage administratif consulté ou modifié.

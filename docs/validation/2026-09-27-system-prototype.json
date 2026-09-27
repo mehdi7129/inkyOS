@@ -1,0 +1,131 @@
+{
+  "application": null,
+  "cleanup": {
+    "loop_devices_remaining": 0,
+    "personal_pi_or_sd_accessed": false
+  },
+  "comparison": {
+    "content_equal": true,
+    "direction": "left-to-right",
+    "filesystem_differences": {
+      "bootfs": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "rootfs": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      }
+    },
+    "image_byte_identical": false,
+    "inputs_equal": true,
+    "limits": [
+      "Comparison uses recorded manifests and image SHA-256; image files are not reread.",
+      "Timestamps and filesystem allocation/layout are not represented by the content manifest.",
+      "A differing image hash is reported separately and does not fail matching inputs/content."
+    ],
+    "path_exclusions": [],
+    "recipe_differences": {
+      "files": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "metadata": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      }
+    },
+    "schema_version": 1,
+    "scope": "recorded-build-inputs-and-content-without-timestamps",
+    "success": true
+  },
+  "date": "2026-09-27",
+  "github_actions": {
+    "note": "GitHub rejected the job before any step due to account billing/spending limit; no settings read or changed.",
+    "run_url": "inkyOS/actions/runs/36336690630",
+    "status": "not_started_account_limit"
+  },
+  "hardware_qualified": false,
+  "kind": "system-prototype",
+  "limits": [
+    "No Raspberry Pi boot or physical radio/display/SD test.",
+    "No application payload or initial offline adoption.",
+    "Content manifest does not include timestamps, xattrs/ACLs, or hardlink topology; image hashes differ.",
+    "Tests of interrupted writes use exceptions, not electrical power loss."
+  ],
+  "recipe_commit": "cf822c943bebce02db246f0554503514e2aa671d",
+  "runs": [
+    {
+      "filesystem_checks": "ext4 and FAT exit 0 without repair",
+      "filesystem_records": {
+        "bootfs": 433,
+        "rootfs": 74018
+      },
+      "image": {
+        "filename": "inkyos-system-prototype.img",
+        "sha256": "b14eff0eecf6f5543f5a8d1d566c17d24af89a5ca9eb22423772658dfa92a743",
+        "size_bytes": 3061841920
+      },
+      "linux_smoke_checks_passed": 13,
+      "local_build_directory": "build/prototype.nFixei9f",
+      "manifest_sha256": "780dfcf90ff7e88086aaca38bcd70d015f496ecd0b5c1c727f92fdb4dd587a21",
+      "reports_sha256": {
+        "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+        "builder.json": "18713e019872ec1195c99b146e0d303aae0ec4a1d09e2953686f249908070aee",
+        "filesystem-manifest.json": "215665deafa7fa96697081f3c0366d6671f3f295d2a0e4d7d59f42b3074c082e",
+        "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+        "fsck-ext4.txt": "22e616fba15c7f4a12a7a3d510c61a06471dd86479293895421b57cdc1b940e2",
+        "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+        "image-inspection.json": "ca954be63feec412c1b13517ed9eea90bf2bf29819096cea6812a12bf5b95f49",
+        "qualification-static.json": "26217d4de2b928f4ab1885b12ab2a1abb16ad3fe4004fa204717e55bc03d62a0",
+        "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "static_checks_passed": 61,
+      "systemd_verify_output_bytes": 0
+    },
+    {
+      "filesystem_checks": "ext4 and FAT exit 0 without repair",
+      "filesystem_records": {
+        "bootfs": 433,
+        "rootfs": 74018
+      },
+      "image": {
+        "filename": "inkyos-system-prototype.img",
+        "sha256": "d7b204c12fea649d5c014aa726162d2088f9137eca8e6022b537c64dcb7fa597",
+        "size_bytes": 3061841920
+      },
+      "linux_smoke_checks_passed": 13,
+      "local_build_directory": "build/prototype.Vb8fnc8L",
+      "manifest_sha256": "febef3796a0d05bfc93ee6c25084e8d3c593319c0f80015791f553613a1357fd",
+      "reports_sha256": {
+        "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+        "builder.json": "18713e019872ec1195c99b146e0d303aae0ec4a1d09e2953686f249908070aee",
+        "filesystem-manifest.json": "215665deafa7fa96697081f3c0366d6671f3f295d2a0e4d7d59f42b3074c082e",
+        "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+        "fsck-ext4.txt": "22e616fba15c7f4a12a7a3d510c61a06471dd86479293895421b57cdc1b940e2",
+        "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+        "image-inspection.json": "3170ca6f2ea68c26fa815c84290aeb1f2754d85dd1e3de5fe213fcf6c23c0804",
+        "qualification-static.json": "26217d4de2b928f4ab1885b12ab2a1abb16ad3fe4004fa204717e55bc03d62a0",
+        "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "static_checks_passed": 61,
+      "systemd_verify_output_bytes": 0
+    }
+  ],
+  "schema_version": 1,
+  "software_tests": {
+    "fixture_correction": "Explicit firstboot fixture directory/file permissions remove reliance on developer umask; image/runtime code unchanged.",
+    "linux_arm64_python313": {
+      "passed": true,
+      "tests": 75
+    },
+    "macos": {
+      "passed": true,
+      "tests": 75
+    }
+  }
+}

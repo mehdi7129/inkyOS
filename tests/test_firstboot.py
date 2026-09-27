@@ -31,11 +31,15 @@ class FirstBootTests(unittest.TestCase):
 
     def make_root(self, name):
         root = self.base / name
-        (root / "etc").mkdir(parents=True)
-        (root / "var/lib").mkdir(parents=True)
+        # Model the image permissions explicitly, independent of the builder's
+        # default umask (Lima's development user commonly uses 0002).
+        for directory in (root, root / "etc", root / "var", root / "var/lib"):
+            directory.mkdir(mode=0o755)
         (root / "etc/hostname").write_text("raspberrypi\n")
         (root / "etc/hosts").write_text("127.0.0.1 localhost\n::1 localhost ip6-localhost\n127.0.1.1 raspberrypi\n192.0.2.1 retained-host # retained comment\n")
         (root / "etc/machine-id").write_text("systemd-owned-sentinel\n")
+        for name in ("hostname", "hosts", "machine-id"):
+            (root / "etc" / name).chmod(0o644)
         return root
 
     def run_firstboot(self, root=None, entropy=None, checkpoint=None):
