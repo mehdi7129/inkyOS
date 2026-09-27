@@ -34,8 +34,9 @@ protocole demande une modification testée des deux côtés, pas un fork caché.
 
 ## État réel de départ
 
-- La version serveur du cadre est `0.5.0-rc.1` au relevé initial. Le candidat
-  `0.5.0-rc.2` est préparé depuis `ae61df1`, sans être une release publique.
+- Le backend `0.5.0-rc.2`, source `ae61df1`, est désormais déployé sur le cadre
+  de qualification. HTTP/HTTPS, auth obligatoire, détection du driver et
+  enregistrement BlueZ passent ; ce n’est pas encore une release publique.
 - L'app disponible dans TestFlight est `1.0.0 (3)`, sans Bluetooth. Le build 4
   Bluetooth a été traité par Apple mais attend la conformité chiffrement.
 - La PR #11 (`inky-studio/pull/11`) est draft.
