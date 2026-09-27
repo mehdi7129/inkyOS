@@ -1,9 +1,10 @@
 PYTHON ?= python3
 
-.PHONY: help test fetch vm-start vm-stop inspect prototype
+.PHONY: help test test-linux fetch vm-start vm-stop inspect prototype
 
 help:
 	@echo 'make test     : tests locaux, sans image ni VM'
+	@echo 'make test-linux: mêmes fixtures dans Linux ARM64, avec preuves et entrées hashées'
 	@echo 'make fetch    : télécharger et vérifier la base officielle figée'
 	@echo 'make vm-start : démarrer la VM Linux isolée inkyos-build'
 	@echo 'make inspect  : vérifier le builder et inspecter la base en lecture seule'
@@ -13,6 +14,9 @@ help:
 test:
 	$(PYTHON) -m unittest discover -s tests -v
 	@for script in scripts/*.sh; do bash -n "$$script" || exit; done
+
+test-linux: vm-start
+	bash scripts/test-linux.sh
 
 fetch:
 	$(PYTHON) scripts/fetch-base.py --extract build/base.img
@@ -31,5 +35,5 @@ vm-stop:
 inspect: vm-start
 	bash scripts/inspect-base.sh
 
-prototype: test vm-start
+prototype: test test-linux
 	bash scripts/build-prototype.sh

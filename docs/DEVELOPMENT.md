@@ -11,8 +11,9 @@ est 3.13. Les tests locaux ne nécessitent aucune dépendance Python externe.
 
 ```sh
 make test
+make test-linux     # fixtures Linux ARM64 + syntaxe shell, sans montage de l'image
 make inspect       # facultatif : base seule en lecture seule
-make prototype     # tests, VM, entrées vérifiées, assemblage, export
+make prototype     # tests Mac/Linux, entrées vérifiées, assemblage, export contrôlé
 make vm-stop
 ```
 
@@ -23,6 +24,12 @@ plus Debian et les outils du builder. Chaque image décompressée fait 2,85 Gio.
 Prévoir la source, les exports conservés et une copie transitoire dans la VM.
 La VM utilise 2 CPU, 3 Gio RAM et un disque sparse de 16 Gio maximum. Sa copie
 est retirée après export réussi ; les runs échoués restent pour diagnostic.
+
+`make test-linux` copie uniquement les scripts, tests, locks et l'overlay
+explicitement sélectionnés dans un dossier VM distinct. Il vérifie les hashes
+puis exécute les fixtures sans privilèges. Le dossier `build/linux-tests.*`
+conserve `inputs.json` (octets testés), `results.json` (Python + syntaxe shell)
+et `tests.txt` hashé. La CI GitHub reste un contrôle séparé.
 
 ## Entrées et isolation
 
@@ -81,13 +88,32 @@ viendront de la release commune [APPLICATION-PAYLOAD.md](APPLICATION-PAYLOAD.md)
 | systemd-verify.txt | Syntaxe/graphe des units, sans démarrage. |
 | boot-preserved.sha256 | Kernel/initramfs/cmdline/fstab/grow identiques avant/après. |
 | fsck-ext4.txt, fsck-fat.txt | Contrôle sans réparation des filesystems démontés. |
-| filesystem-manifest.json | Tous fichiers hashés, modes/owners/liens, sans timestamps. |
+| filesystem-manifest.json | Schema 2 : fichiers, modes/owners, racines, liens physiques, types spéciaux et xattrs/ACL/capabilities hashés ; sans timestamps. |
 | image-inspection.json | Inspection finale readonly, packages et hash image. |
 | manifest.json, SHA256SUMS | Recette, hashes des rapports/image et transfert au Mac vérifié. |
 
 Le manifeste intégral est réservé à ces images génériques, jamais à une SD
 personnelle. Les gates de secrets ciblent les chemins connus : ils ne sont pas
 un certificat exhaustif d'absence de secrets.
+
+La recette monte les partitions avec `noatime`, puis les remonte en lecture
+seule avant l'inventaire complet. Les lectures de contrôle ne doivent pas
+modifier les dates d'accès de la base. Le schema 2 distingue attributs inspectés
+(éventuellement liste vide), API/filesystem non pris en charge et erreur de
+permission (échec). Il n'assimile pas une ACL macOS à une ACL Linux.
+
+## Revalider un export déjà produit
+
+```sh
+python3 scripts/verify-artifacts.py build/prototype.EXEMPLE --output build/export-verification.json
+```
+
+Ce contrôle relit intégralement l'image et tous les rapports déclarés, vérifie
+tailles/hashes, recette, structure du manifeste et cohérence des gates PASS.
+Il ne monte rien et n'exécute aucun code de l'image. Le build l'appelle après
+l'export ; son rapport est écrit à côté du dossier, sous `build/prototype.*.integrity.json`.
+Un manifeste local non signé n'est pas une preuve d'authenticité : ces hashes
+détectent les incohérences, pas une falsification cohérente de tout le bundle.
 
 ## Résultats et reproductibilité
 
@@ -113,14 +139,18 @@ CI comme verte.
 Pour deux builds du même commit propre :
 
 ```sh
-python3 scripts/compare-builds.py build/prototype.PREMIER build/prototype.SECOND --output build/comparison.json
+python3 scripts/compare-builds.py build/prototype.PREMIER build/prototype.SECOND --verify-images --output build/comparison.json
 ```
 
-La comparaison exige mêmes entrées et même contenu complet, modes/owners/liens
-inclus, sans exceptions de chemins. L'égalité des hashes d'image est rapportée
-séparément. Timestamps, xattrs/ACL, topologie des hardlinks, allocations et
-journal ext4/FAT ne sont pas représentés par le manifeste : son égalité ne
-signifie pas bit-for-bit.
+La comparaison exige mêmes entrées et mêmes enregistrements, sans exceptions
+de chemins. Elle revalide les rapports avant de les comparer. `--verify-images`
+relit aussi les deux images ; sans cette option, l'égalité binaire reste
+inconnue (`image_byte_identical: null`), même si les hashes enregistrés sont
+égaux. Le schema 1 historique reste accepté avec ses limites ; mélanger schema
+1 et 2 est refusé, car leurs périmètres diffèrent. Les timestamps, allocations,
+flags internes et journal ext4/FAT restent hors du manifeste : son égalité ne
+signifie pas bit-for-bit. L'[analyse des octets](REPRODUCIBILITY.md) précise
+les causes mesurées sur les deux premiers builds.
 
 Rejeu effectivement exécuté depuis **cf822c9, arbre propre** :
 `prototype.nFixei9f` et `prototype.Vb8fnc8L`. Mêmes entrées, mêmes **74 018

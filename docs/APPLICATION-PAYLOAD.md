@@ -79,3 +79,43 @@ une carte dédiée ; la SD personnelle reste hors de ce chantier.
 La session Inky Studio a relu cette proposition le 27 septembre : direction
 acceptée pour poursuivre le prototype, sous réserve des points ci-dessus.
 Cette revue ne constitue ni livraison d'assets ni qualification.
+
+## Contrôle d'entrée exécutable
+
+`scripts/verify-application.py` vérifie maintenant les **octets locaux** du
+manifeste et des trois assets avant toute intégration. Le SHA-256 du manifeste
+doit provenir du lock/relevé relu, pas être recalculé automatiquement depuis un
+fichier inconnu pour le déclarer fiable.
+
+```sh
+python3 scripts/verify-application.py --manifest CHEMIN_MANIFESTE \
+  --sha256 SHA256_RELU --assets-dir DOSSIER_ASSETS --output NOUVEAU_RAPPORT.json
+```
+
+Le rapport doit rester hors du dossier des assets. Le contrôle est sans réseau,
+extraction ou exécution. Il exige un seul asset par rôle, des fichiers réguliers,
+tailles et hashes exacts, noms simples et extensions `.tar.gz`, `.zip`, `.lock`
+respectivement. Limites : manifeste 1 Mio, asset 1 Gio, ensemble 2 Gio.
+
+Précision du schéma v1 proposé, sans champ additionnel implicite :
+
+| Objet | Champs |
+|---|---|
+| Racine | `schema_version`, `application_version`, `source_commit`, `assets`, `compatibility`, `qualification` |
+| Asset | `role`, `filename`, `size_bytes`, `sha256` |
+| Compatibilité | `architecture: arm64`, `python_minor: 3.13`, `debian_release: trixie`, `http_contract`, `ble_contract`, `network_helper_contract` |
+| Qualification | `evidence`, liste de références |
+| Référence | `kind: software` ou `hardware`, `name`, `url` HTTPS sans credentials/query, `sha256` |
+
+Les références de contrats peuvent être des versions décidées upstream ou des
+références Git explicites ; le validateur n'invente pas de version de protocole.
+Les placeholders `pending`, `main`, `latest`, etc. sont refusés. Une liste de
+preuves vide reste représentable, mais le rapport signale les catégories
+absentes. Les URLs/preuves externes ne sont ni téléchargées ni qualifiées par
+ce contrôle.
+
+Un résultat `passed: true` signifie intégrité et compatibilité **déclarée**.
+L'origine réelle du source, la sûreté des archives, les tags des wheels,
+la fermeture des dépendances, l'installation offline et les essais matériels
+restent des contrôles ultérieurs. `integration_enabled` reste toujours `false`
+dans cette étape ; aucune option ne transforme ce rapport en qualification.

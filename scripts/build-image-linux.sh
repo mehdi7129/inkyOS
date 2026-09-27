@@ -64,9 +64,9 @@ done
 [[ $(lsblk -nr -o TYPE "$loop" | wc -l) == 3 ]] || exit 1
 [[ $(blkid -p -s TYPE -o value "${loop}p1") == vfat ]] || exit 1
 [[ $(blkid -p -s TYPE -o value "${loop}p2") == ext4 ]] || exit 1
-mount -t ext4 -o rw,nosuid,nodev "${loop}p2" root
+mount -t ext4 -o rw,noatime,nosuid,nodev "${loop}p2" root
 root_mounted=1
-mount -t vfat -o rw,nosuid,nodev,noexec "${loop}p1" boot
+mount -t vfat -o rw,noatime,nosuid,nodev,noexec "${loop}p1" boot
 boot_mounted=1
 sha256sum boot/cmdline.txt boot/initramfs8 boot/initramfs_2712 boot/kernel8.img boot/kernel_2712.img \
   root/etc/fstab root/usr/lib/systemd/system/rpi-resize.service \
@@ -116,10 +116,13 @@ python3 recipe/scripts/verify-prototype.py --rootfs "$work/root" --bootfs "$work
 sha256sum --check --strict boot-preserved.sha256
 umount root/dev
 dev_mounted=0
-python3 recipe/scripts/manifest-rootfs.py --rootfs "$work/root" --bootfs "$work/boot" \
-  --output "$work/filesystem-manifest.json"
 sync -f root
 sync -f boot
+# Freeze the prepared filesystems before the complete metadata inventory.
+mount -o remount,ro,noatime,nosuid,nodev root
+mount -o remount,ro,noatime,nosuid,nodev,noexec boot
+python3 recipe/scripts/manifest-rootfs.py --rootfs "$work/root" --bootfs "$work/boot" \
+  --output "$work/filesystem-manifest.json"
 umount boot
 boot_mounted=0
 umount root

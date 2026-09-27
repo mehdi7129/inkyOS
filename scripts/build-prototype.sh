@@ -15,9 +15,11 @@ python3 - "$run_dir" <<'PY'
 import hashlib,io,json,pathlib,subprocess,sys,tarfile
 files = ['config/base-image.lock.json','config/system-packages.lock.json',
          'scripts/build-prototype.sh','scripts/fetch-base.py','scripts/fetch-packages.py',
+         'scripts/run-unit-tests.py','scripts/test-linux.sh',
          'infra/lima.yaml','Makefile',
          'scripts/build-image-linux.sh','scripts/configure-rootfs.py',
          'scripts/verify-prototype.py','scripts/inspect-rootfs.py',
+         'scripts/verify-artifacts.py','scripts/compare-builds.py',
          'scripts/inspect-image.sh','scripts/check-builder.sh',
          'scripts/manifest-rootfs.py','scripts/smoke-firstboot-linux.sh',
          'overlay/usr/local/lib/inkyos/firstboot.py',
@@ -72,6 +74,7 @@ manifest={'schema_version':1,'kind':'system-prototype','hardware_qualified':Fals
 (out/'manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
 (out/'SHA256SUMS').write_text(h.hexdigest()+'  '+image.name+'\n')
 PY
+python3 scripts/verify-artifacts.py "$run_dir" --output "$run_dir.integrity.json"
 # Successful export only: preserve failed working copies for diagnosis.
 limactl shell --workdir=/tmp "$vm" rm -- "$guest_dir/prototype.img"
 echo "Prototype and evidence: $repo/$run_dir"
