@@ -111,3 +111,16 @@ avec hashes d'image différents. Les 75 tests passent sur Mac et Linux ARM64.
 Les [preuves](validation/2026-09-27-system-prototype.json) distinguent ces
 résultats de la qualification matérielle et signalent la CI GitHub non démarrée
 à cause d'une limite du compte. Aucun réglage administratif consulté ou modifié.
+
+Une seconde paire propre de `0157714` confirme l'égalité de contenu avec le
+manifeste schema 2 : xattrs/ACL, liens physiques et racines sont désormais
+inclus. Les images restent différentes octet pour octet ; l'audit des différences
+est consigné dans [REPRODUCIBILITY.md](REPRODUCIBILITY.md), les hashes dans la
+[preuve v2](validation/2026-09-27-system-prototype-v2.json). La suite compte
+maintenant 115 tests, avec résultats Mac et Linux ARM64 conservés.
+
+Le validateur d'entrée du futur payload est opérationnel sans intégration ni
+exécution de l'app. Inky Studio a précisé les références des contrats : HTTP
+n'a pas de version globale, BLE et helper sont v1. Les références exigent le
+commit complet du payload et un chemin source canonique ; les aliases mobiles
+et commits incohérents sont refusés. Aucun payload qualifié n'a été livré.

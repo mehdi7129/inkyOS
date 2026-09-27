@@ -348,7 +348,7 @@ Ordre de travail proposé :
 4. **Après preuves** : image compressée, SHA-256/provenance/licences, guide Imager,
    procédure de restauration et décision de distribution.
 
-Restent ouverts : hôte de build disponible, panneau/banc et SD de test,
+L'hôte de build Linux ARM64 est maintenant éprouvé. Restent ouverts : panneau/banc et SD de test,
 release app définitive, contrats listés en section 6. Aucun de ces éléments n'est
 implicitement remplacé par le Pi personnel ou par une valeur arbitraire.
 

@@ -1,0 +1,195 @@
+{
+  "application": null,
+  "authenticity_verified": false,
+  "clean_recipe_worktrees": true,
+  "comparison": {
+    "authenticity_verified": false,
+    "content_equal": true,
+    "declared_report_hashes_verified": true,
+    "direction": "left-to-right",
+    "extended_metadata_fully_inspected": true,
+    "filesystem_differences": {
+      "bootfs": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "rootfs": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      }
+    },
+    "filesystem_schema_version": 2,
+    "hardware_qualified": false,
+    "image_byte_identical": false,
+    "image_hashes_verified": true,
+    "inputs_equal": true,
+    "limits": [
+      "Every declared report hash, gate consistency and recipe-inputs.json is rechecked against the local unsigned manifest.",
+      "Image hashes were rechecked.",
+      "Filesystem records are compared, not regenerated from the images; no image is mounted or executed.",
+      "Timestamps and filesystem allocation/layout are outside the content manifest.",
+      "Schema 2 compares recorded xattrs and hardlink groups; unsupported xattrs remain unknown.",
+      "Different verified image hashes do not fail matching recorded recipe/filesystem content.",
+      "Integrity and record equality prove neither authenticity nor successful boot or hardware qualification."
+    ],
+    "path_exclusions": [],
+    "recipe_differences": {
+      "files": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "metadata": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      }
+    },
+    "recorded_image_hashes_equal": false,
+    "schema_version": 1,
+    "scope": "verified-export-reports-and-recorded-filesystem-content",
+    "success": true
+  },
+  "comparison_report_sha256": "c49371f0c203f5708fa15e65471498b04cc450db887a50eccb83cc5c1ad5f940",
+  "date": "2026-09-27",
+  "hardware_qualified": false,
+  "kind": "system-prototype",
+  "limits": [
+    "No Raspberry Pi kernel boot or physical radio/display/SD test.",
+    "No application payload or initial offline adoption.",
+    "Schema 2 compares content, modes, owners, links and xattrs; timestamps, filesystem flags, allocation and journal are outside that manifest.",
+    "Image hashes differ; no bit-for-bit reproducibility claimed.",
+    "Unsigned local manifests attest integrity, not independent authenticity.",
+    "Interrupted-write tests use exceptions, not electrical power loss.",
+    "GitHub Actions job did not start because of account billing/spending-limit block; Linux tests ran in the isolated local builder."
+  ],
+  "raw_image_audit": {
+    "different_ext4_blocks": 888,
+    "different_ext4_bytes": 1737660,
+    "inode_atime_and_checksum_only": 0,
+    "relocated_files_checked": 59,
+    "relocated_files_logically_identical": true,
+    "reports_sha256": {
+      "byte-comparison-noatime.json": "5ce1512fffe5e40203af9dd41b079b5633da2fe6d9eedacab0943b55ea7be2c2",
+      "ext4-classification-noatime.json": "eed39376b4e63f8aa94cd6050260a709295c6b29c81d1cefc056977e1ca3988f",
+      "summary-noatime.json": "600268d79e8acd86583b65b80b6da9e5831d37d72ccde28440dba1d82c0f5477"
+    }
+  },
+  "recipe_commit": "01577141b0a4e7e177ccb73a7060a16d30475d33",
+  "runs": [
+    {
+      "export_integrity_report_sha256": "53fe2d100af57ed1b0758ac32e4524cef815e43a90a72afc3592a2c6d69b37ef",
+      "filesystem_checks": "ext4 and FAT exit 0 without repair",
+      "filesystem_records": {
+        "bootfs": 434,
+        "rootfs": 74019
+      },
+      "hardlinked_records": 628,
+      "image": {
+        "filename": "inkyos-system-prototype.img",
+        "sha256": "5dbf220f12c9cd9fcde449aa3288358566e9b4f5e450e3dda9d803b30ef75371",
+        "size_bytes": 3061841920
+      },
+      "linux_smoke_checks_passed": 13,
+      "local_build_directory": "build/prototype.DT7ciqAq",
+      "manifest_sha256": "474967bd02d8cf6359a6b894fde899809989b2db137af19a53750b3f1a3a9ee4",
+      "records_with_xattrs": 1,
+      "reports_sha256": {
+        "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+        "builder.json": "18713e019872ec1195c99b146e0d303aae0ec4a1d09e2953686f249908070aee",
+        "filesystem-manifest.json": "7d1b82aec9d8dbe94f7a40314a470e68d80bfc3b129d9d8e3951744c2274766d",
+        "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+        "fsck-ext4.txt": "22e616fba15c7f4a12a7a3d510c61a06471dd86479293895421b57cdc1b940e2",
+        "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+        "image-inspection.json": "cf7f9e990d75f28f06d86edfe29c776f299cb8559bf7c838238748fb1d600b27",
+        "qualification-static.json": "26217d4de2b928f4ab1885b12ab2a1abb16ad3fe4004fa204717e55bc03d62a0",
+        "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "static_checks_passed": 61,
+      "systemd_verify_output_bytes": 0,
+      "xattrs_fully_inspected": true
+    },
+    {
+      "export_integrity_report_sha256": "53fe2d100af57ed1b0758ac32e4524cef815e43a90a72afc3592a2c6d69b37ef",
+      "filesystem_checks": "ext4 and FAT exit 0 without repair",
+      "filesystem_records": {
+        "bootfs": 434,
+        "rootfs": 74019
+      },
+      "hardlinked_records": 628,
+      "image": {
+        "filename": "inkyos-system-prototype.img",
+        "sha256": "2b2d0f6300db2a4ff924aa2310205400cb54f27af438ced292d75fcf703c29a1",
+        "size_bytes": 3061841920
+      },
+      "linux_smoke_checks_passed": 13,
+      "local_build_directory": "build/prototype.Pe2cY9Za",
+      "manifest_sha256": "a7485dbd28ba03ebe0fa4161179bf5e7e8dafc2d7677d6360655559be60e22c9",
+      "records_with_xattrs": 1,
+      "reports_sha256": {
+        "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+        "builder.json": "18713e019872ec1195c99b146e0d303aae0ec4a1d09e2953686f249908070aee",
+        "filesystem-manifest.json": "7d1b82aec9d8dbe94f7a40314a470e68d80bfc3b129d9d8e3951744c2274766d",
+        "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+        "fsck-ext4.txt": "22e616fba15c7f4a12a7a3d510c61a06471dd86479293895421b57cdc1b940e2",
+        "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+        "image-inspection.json": "8823c420a2e5d29ffee44b8bd8eb72015c9e2019816ab915c27996bb039a897b",
+        "qualification-static.json": "26217d4de2b928f4ab1885b12ab2a1abb16ad3fe4004fa204717e55bc03d62a0",
+        "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "static_checks_passed": 61,
+      "systemd_verify_output_bytes": 0,
+      "xattrs_fully_inspected": true
+    }
+  ],
+  "schema_version": 1,
+  "software_tests": {
+    "application_followup": {
+      "files": {
+        "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+        "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+        "tests/test_verify_application.py": "680e0b0545d5590d1ac8c6462b051e7d791ee5c46f3d60eea90a29f2630cb639"
+      },
+      "note": "The 115-test suite includes the immutable-contract-reference fix after the image build commit; system recipe unchanged. Root metadata fixtures ran earlier against the same manifest implementation."
+    },
+    "linux_arm64": {
+      "inputs_sha256": "0ab0cb966d86967fdd489f347615d0e48f47aa61550ee64b1983a27ff660b19b",
+      "inputs_source_commit": "01577141b0a4e7e177ccb73a7060a16d30475d33",
+      "inputs_worktree_dirty": true,
+      "results": {
+        "architecture": "aarch64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "ca284634e3cad7ac4d6e3b10cef635a5dc4763be3f145ac942e68f3745034282",
+        "passed": true,
+        "python": "3.13.5",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 7
+        },
+        "skipped": 1,
+        "system": "Linux",
+        "tests": 115
+      },
+      "results_sha256": "52b24fe70c2d16f381ff759af7e9ae177ed41ab6c4c169271104f91d6c81b0fd"
+    },
+    "macos": {
+      "log_sha256": "d56e1999c6d74e096645708ec9eeffc9294023ab5a8d760bbaabde29787b2ad2",
+      "passed": true,
+      "skipped": 3,
+      "tests": 115
+    },
+    "manifest_linux_root_fixtures": {
+      "log_sha256": "e3a73ed09061e8ca0c310de673dde7cbc619efead8c2181c47308da2bf561232",
+      "passed": true,
+      "skipped": 0,
+      "tests": 14
+    }
+  }
+}

@@ -125,9 +125,12 @@ restent ceux de la base. Le smoke Linux séparé passe ses 13 contrôles.
 
 Les tests couvrent cache corrompu, chemins dangereux, absence de données
 sensibles dans les rapports, état firstboot invalide et dix points de coupure
-simulée. Une exception ne reproduit pas une panne électrique de SD. **75 tests
-passent sur macOS et Linux ARM64/Python 3.13**, après correction des permissions
-explicites des fixtures qui dépendaient initialement du umask de l'hôte.
+simulée. Une exception ne reproduit pas une panne électrique de SD. La suite
+actuelle comprend **115 tests** : 112 exécutés et 3 skips sur macOS, 114 exécutés
+et 1 skip sur Linux ARM64/Python 3.13. Les skips concernent les API Linux et
+les privilèges de création de fichiers spéciaux. Les **14 fixtures du manifeste**
+ont aussi été exécutées avec privilèges dans Linux : toutes passent, sans skip,
+y compris les vrais xattrs/ACL et nœuds spéciaux jetables. Aucun accès matériel.
 
 La CI GitHub est configurée pour ces fixtures et la syntaxe shell, sans build
 privilégié ni matériel, avec actions officielles épinglées et permissions de
@@ -150,7 +153,7 @@ inconnue (`image_byte_identical: null`), même si les hashes enregistrés sont
 1 et 2 est refusé, car leurs périmètres diffèrent. Les timestamps, allocations,
 flags internes et journal ext4/FAT restent hors du manifeste : son égalité ne
 signifie pas bit-for-bit. L'[analyse des octets](REPRODUCIBILITY.md) précise
-les causes mesurées sur les deux premiers builds.
+les causes mesurées sur les deux paires de builds.
 
 Rejeu effectivement exécuté depuis **cf822c9, arbre propre** :
 `prototype.nFixei9f` et `prototype.Vb8fnc8L`. Mêmes entrées, mêmes **74 018
@@ -161,6 +164,23 @@ systemd sans sortie, conservation des dix fichiers boot/grow et fsck ext4/FAT
 sans réparation. Les exports ont été rehashés après transfert ; aucun loop
 device n'est resté attaché. Les preuves compactes sont versionnées dans
 [le relevé de validation](validation/2026-09-27-system-prototype.json).
+
+Deuxième paire depuis **0157714, arbre propre**, avec manifeste schema 2 :
+`prototype.DT7ciqAq` et `prototype.Pe2cY9Za`. Mêmes entrées, mêmes **74 019
+entrées rootfs et 434 entrées boot**, dont 628 entrées liées physiquement et
+une entrée portant des ACL. Les racines sont maintenant incluses. Tous les
+xattrs ont été inspectés ; aucune différence du contenu attesté. Les mêmes
+61 gates, 13 contrôles smoke, systemd, conservation boot/grow et fsck passent.
+L'export est revalidé et les deux images rehashées par le comparateur.
+
+La lecture `noatime` et l'inventaire readonly suppriment les 73 469 écarts
+limités aux dates d'accès de la première paire. Il reste 888 blocs ext4
+différents, contre 10 327 auparavant : timestamps, journal et allocations
+varient encore. **Aucune identité binaire revendiquée.** La nouvelle
+[preuve compacte](validation/2026-09-27-system-prototype-v2.json) conserve les
+hashes et distingue le commit des images de la correction suivante du
+validateur applicatif. Les 115 tests incluent cette correction ; elle ne change
+aucun fichier de la recette système.
 
 ## Ce qui manque pour l'image finale
 

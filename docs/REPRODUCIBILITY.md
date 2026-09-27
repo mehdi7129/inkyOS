@@ -133,3 +133,76 @@ exact de l'artefact choisi. La croissance Raspberry Pi, les identités créées
 au premier boot et la récupération doivent rester qualifiées séparément.
 Une exigence future d'égalité binaire demanderait un objectif et un budget
 propres ; elle ne justifie pas de recomposer la distribution à ce stade.
+
+## Annexe : deuxième paire après `noatime` et inventaire en lecture seule
+
+Nouvelle mesure du 27 septembre 2026, après export complet des deux builds du
+commit propre **`01577141b0a4e7e177ccb73a7060a16d30475d33`**. Les premières
+mesures ci-dessus restent historiques. La nouvelle recette utilise `noatime`
+dès les montages de personnalisation, puis remonte les filesystems en lecture
+seule avant l'inventaire. Elle produit aussi le manifeste filesystem schema 2.
+
+| Build | SHA-256 recalculé intégralement, conforme au manifeste |
+|---|---|
+| `prototype.DT7ciqAq` | `5dbf220f12c9cd9fcde449aa3288358566e9b4f5e450e3dda9d803b30ef75371` |
+| `prototype.Pe2cY9Za` | `2b2d0f6300db2a4ff924aa2310205400cb54f27af438ced292d75fcf703c29a1` |
+
+Les images font encore 3 061 841 920 octets. Les deux recettes sont identiques
+et les deux attestations filesystem schema 2 sont strictement égales :
+SHA-256 `7d1b82aec9d8dbe94f7a40314a470e68d80bfc3b129d9d8e3951744c2274766d`,
+**74 019 entrées rootfs et 434 bootfs**, racines incluses. Le périmètre est
+désormais `content-and-metadata-without-timestamps`, avec xattrs et relations
+de hardlinks représentés. Les rapports locaux `prototype.<suffixe>.integrity.json`
+indiquent PASS et vérification SHA des images ; ils ne constituent toujours
+ni une signature d'origine ni une qualification matérielle.
+
+| Mesure | Première paire, sans `noatime` | Nouvelle paire |
+|---|---:|---:|
+| Octets différents MBR/espace initial | 0 | 0 |
+| Octets différents FAT | 4 | 4 |
+| Blocs ext4 différents, 4 KiB | 10 327 | **888** |
+| Octets différents ext4 | 3 663 559 | **1 737 660** |
+| Slots d'inodes différents | 73 593 | **124** |
+| Inodes avec différences limitées à atime/checksums | 73 469 | **0** |
+| Blocs différents dans les tables d'inodes | 4 624 | **45** |
+| Octets différents dans les tables d'inodes | 661 297 | **2 817** |
+| Blocs différents dans le journal | 5 499 | **552** |
+
+Le nombre de blocs ext4 différents baisse de **91,4 %**, celui des octets
+différents de **52,6 %** entre ces deux paires. L'absence d'écarts atime seuls
+confirme l'effet attendu de la protection des lectures. Ce n'est cependant
+pas une expérience isolant chaque option : le remount readonly et l'inventaire
+schema 2 ont également changé, et les allocations varient entre exécutions.
+Ne pas attribuer tout le gain du journal ou des blocs de données à `noatime` seul.
+
+Décomposition exhaustive de la nouvelle partition ext4 :
+
+| Catégorie | Blocs différents | Octets différents |
+|---|---:|---:|
+| Superblock principal | 1 | 14 |
+| Descripteurs de groupes | 1 | 4 |
+| Bitmap de blocs | 1 | 34 |
+| Tables d'inodes | 45 | 2 817 |
+| Répertoires, checksum seul | 10 | 38 |
+| Journal | 552 | 833 142 |
+| Alloués dans une image, libres dans l'autre | 244 | 800 265 |
+| Fichiers alloués dans les deux images | 4 | 11 316 |
+| Libres dans les deux images | 30 | 90 030 |
+
+Les 124 slots différents comprennent 119 inodes alloués et 5 libres des deux
+côtés. Les 92 atime encore différents concernent aussi des créations ou
+modifications d'inodes ; aucun ne diffère seulement par une lecture.
+Les 59 fichiers dont le mapping de blocs diffère ont été reconstruits via
+leurs extents et hashés : **contenus logiques identiques et conformes aux
+manifestes**. Les dix blocs de répertoires ne diffèrent toujours que par
+checksum. Les quatre octets FAT restent les mêmes catégories temporelles de
+`INKYOS.TXT` et `CONFIG.TXT`, sans différence de leurs données.
+
+Méthode et restrictions identiques à l'audit initial : lecture directe sur
+Mac, aucune VM, aucun montage ou fichier image modifié. Les résultats sont
+conservés sous `build/repro-audit/byte-comparison-noatime.json`,
+`ext4-classification-noatime.json` et `summary-noatime.json` ; les sommes de
+catégories ont été vérifiées contre la comparaison brute intégrale.
+**Le contenu attesté est reproductible pour cette paire ; les images restent
+différentes octet pour octet.** La recommandation v0 et les limites de
+qualification restent donc inchangées.

@@ -9,7 +9,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import stat
 import sys
@@ -83,7 +83,7 @@ def validate_manifest(data):
                   'compatibility', 'qualification'}, 'manifest')
     require(type(data['schema_version']) is int and data['schema_version'] == 1, 'Unsupported schema')
     require(isinstance(data['application_version'], str) and
-            re.fullmatch(r'\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?', data['application_version']),
+            re.fullmatch(r'\d+\.\d+\.\d+(?:(?:a|b|rc)\d+|-[0-9A-Za-z.-]+)?', data['application_version']),
             'Exact application release version required')
     require(isinstance(data['source_commit'], str) and
             re.fullmatch(r'[0-9a-f]{40}', data['source_commit']), 'Full source commit required')
@@ -92,9 +92,12 @@ def validate_manifest(data):
     require(all(compatible[key] == value for key, value in TARGET.items()), 'Unsupported target compatibility')
     for key in CONTRACTS:
         value = compatible[key]
-        require(isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:/@+#-]{0,127}', value)
-                and value.lower() not in {'main', 'latest', 'pending', 'unknown', 'todo', 'unversioned'},
-                'Explicit contract reference required')
+        require(isinstance(value, str) and len(value) <= 128, 'Pinned contract reference required')
+        reference = re.fullmatch(r'git:([0-9a-f]{40})#([A-Za-z0-9][A-Za-z0-9._/-]*)', value)
+        require(reference is not None and reference[1] == data['source_commit'],
+                'Contract must reference the same immutable source commit')
+        path = PurePosixPath(reference[2])
+        require('..' not in path.parts and str(path) == reference[2], 'Invalid contract source path')
     require(isinstance(data['assets'], list) and len(data['assets']) == len(ROLES), 'Exactly three assets required')
     roles, names, total = set(), set(), 0
     for asset in data['assets']:

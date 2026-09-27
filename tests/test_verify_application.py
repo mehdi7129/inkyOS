@@ -26,7 +26,7 @@ class ApplicationInputTests(unittest.TestCase):
         self.manifest = self.root / 'manifest.json'
         self.data = {'schema_version': 1, 'application_version': '0.5.0-rc.2',
                      'source_commit': 'a' * 40, 'assets': [],
-                     'compatibility': {**module.TARGET, **{key: 'git:' + 'a' * 40 for key in module.CONTRACTS}},
+                     'compatibility': {**module.TARGET, **{key: 'git:' + 'a' * 40 + '#contracts/' + key for key in module.CONTRACTS}},
                      'qualification': {'evidence': []}}
         for role, suffix in module.ROLES.items():
             name = role + suffix
@@ -96,6 +96,22 @@ class ApplicationInputTests(unittest.TestCase):
                 altered[key] = value
                 with self.assertRaises(module.ManifestError):
                     module.validate_manifest(altered)
+
+    def test_contracts_are_immutable_and_match_source_commit(self):
+        for reference in ('git:main#server', 'git:latest#server',
+                          'https://github.com/example/project/blob/main/server',
+                          'git:' + 'b' * 40 + '#server',
+                          'git:' + 'a' * 40 + '#../server',
+                          'git:' + 'a' * 40 + '#server//api', 'v1'):
+            with self.subTest(reference=reference):
+                altered = copy.deepcopy(self.data)
+                altered['compatibility']['http_contract'] = reference
+                with self.assertRaises(module.ManifestError):
+                    module.validate_manifest(altered)
+        # Existing upstream Python release spelling and GitHub-style spelling
+        # are both explicit versions, never moving aliases.
+        self.data['application_version'] = '0.5.0rc2'
+        self.assertTrue(self.verify()['passed'])
 
     def test_duplicate_json_key_is_rejected(self):
         self.save()

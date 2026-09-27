@@ -26,7 +26,7 @@ Ajouter séparément :
 Le manifeste décrit explicitement `schema_version: 1`, `application_version`,
 `source_commit`, `assets`, `compatibility` et `qualification`. `compatibility`
 contient architecture `arm64`, version Python mineure, base Debian minimale,
-version des contrats HTTP/BLE et du helper réseau. `qualification` référence
+références des contrats HTTP/BLE et du helper réseau. `qualification` référence
 des preuves versionnées et distingue tests logiciels et essais Pi/iPhone.
 Un champ disant seulement `qualified: true` n'est pas une preuve.
 
@@ -107,10 +107,15 @@ Précision du schéma v1 proposé, sans champ additionnel implicite :
 | Qualification | `evidence`, liste de références |
 | Référence | `kind: software` ou `hardware`, `name`, `url` HTTPS sans credentials/query, `sha256` |
 
-Les références de contrats peuvent être des versions décidées upstream ou des
-références Git explicites ; le validateur n'invente pas de version de protocole.
-Les placeholders `pending`, `main`, `latest`, etc. sont refusés. Une liste de
-preuves vide reste représentable, mais le rapport signale les catégories
+Les trois contrats doivent être référencés sous la forme
+`git:<source_commit complet>#<chemin relatif canonique>`, avec le même commit
+que le payload. Les chemins sortants et aliases mobiles, y compris `git:main`,
+`git:latest` et `blob/main`, sont refusés. **HTTP n'a pas de version globale** :
+`/api/health.version` donne la version du produit. La référence vise donc
+`server/inky_web`, sans inventer HTTP v1. BLE et helper possèdent un protocole
+v1 ; leurs références visent respectivement `docs/ios/BLE-PROTOCOL-V1.md` et
+`scripts/inky-network-helper.py`. Ces précisions ont été relues avec Inky Studio.
+Une liste de preuves vide reste représentable, mais le rapport signale les catégories
 absentes. Les URLs/preuves externes ne sont ni téléchargées ni qualifiées par
 ce contrôle.
 
