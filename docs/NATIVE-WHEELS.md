@@ -86,8 +86,10 @@ pas les wheels produites. Le contrat de release commune reste celui de
 - Cinq tests de fixtures refusent notamment un FIFO, une expansion excessive,
   une wheel pure/mal étiquetée, un objet x86_64 et un `RECORD` incohérent.
 
-Aucune bibliothèque produite n'a été importée et aucun service applicatif n'a
-été lancé. `RPi.GPIO` vérifie le matériel dès son import et refuse un hôte
+Aucune bibliothèque produite n'a été importée par cette sonde et aucun service
+applicatif n'a été lancé. Un [banc logiciel ultérieur](OFFLINE-QUALIFICATION.md)
+teste séparément les imports compatibles avec la VM. `RPi.GPIO` vérifie le
+matériel dès son import et refuse un hôte
 non Raspberry Pi dans le [source 0.7.1](https://pypi.org/project/RPi.GPIO/0.7.1/).
 Un tel échec dans une VM ne suffirait pas à diagnostiquer une incompatibilité ABI.
 

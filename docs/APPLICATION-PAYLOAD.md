@@ -1,8 +1,9 @@
 # Payload commun Inky Studio / InkyOS — proposition v1
 
 Proposition du 27 septembre 2026, à valider avec la session Inky Studio.
-**Aucun payload qualifié ni lock Python livré à cette date.** Le prototype
-système InkyOS reste donc sans backend. Ce contrat de packaging ne change
+**Aucune release finale qualifiée sélectionnée.** Un candidat et son lock sont
+maintenant livrés et [testés offline en VM](OFFLINE-QUALIFICATION.md), depuis
+`6a697d1`. Le prototype système InkyOS reste sans backend. Ce contrat ne change
 aucune API HTTP/BLE et ne donne aucune qualification à `0.5.0-rc.2`.
 
 ## Garder le layout existant
@@ -137,3 +138,10 @@ L'origine réelle du source, la sûreté des archives, les tags des wheels,
 la fermeture des dépendances, l'installation offline et les essais matériels
 restent des contrôles ultérieurs. `integration_enabled` reste toujours `false`
 dans cette étape ; aucune option ne transforme ce rapport en qualification.
+
+Le [contrôleur d'archives](ARCHIVE-CONTRACT.md) ajoute désormais un contrôle
+inerte du layout plat, des chemins/types et des flux comprimés. Le marqueur
+du commit source reste dans `server/SOURCE_COMMIT`, pour conserver la racine
+historique acceptée par l'updater. Le [banc séparé](OFFLINE-QUALIFICATION.md)
+installe ensuite le candidat dans un venv jetable et teste ses imports/API.
+Ces étapes n'activent aucune intégration dans l'image.

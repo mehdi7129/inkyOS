@@ -40,6 +40,8 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Payload applicatif commun](docs/APPLICATION-PAYLOAD.md) : proposition relue avec Inky Studio, assets encore attendus.
 - [Compatibilité Python ARM64](docs/PYTHON-COMPATIBILITY.md) : audit initial des dépendances et limites de résolution depuis PyPI.
 - [Compilation des wheels natives](docs/NATIVE-WHEELS.md) : essai ARM64 réussi et artefacts expérimentaux transmis à Inky Studio.
+- [Contrôle des archives](docs/ARCHIVE-CONTRACT.md) : contrat commun et inspection inerte avant extraction.
+- [Qualification logicielle offline](docs/OFFLINE-QUALIFICATION.md) : candidat applicatif installé et testé dans une VM isolée, hors image.
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 

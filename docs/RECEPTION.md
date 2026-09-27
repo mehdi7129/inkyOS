@@ -135,3 +135,11 @@ dépendances sans réseau pendant le build. Les artefacts rehashés ont été tr
 à Inky Studio, qui prépare le payload/lock commun sur sa propre branche.
 Les wheels concordent octet pour octet entre deux builds. Aucun import applicatif,
 installation dans l'image ou accès au Pi n'a été réalisé par cette sonde.
+
+Le candidat applicatif `6a697d1` a ensuite passé l'inspection inerte des
+archives puis un [banc logiciel offline](OFFLINE-QUALIFICATION.md) distinct :
+40 wheels installées dans un venv neuf, editable, pip check, dix imports natifs
+et trois réponses API/frontend conformes, sans état applicatif ni lifespan.
+Les preuves rehashées sont transmises à Inky Studio pour sa PR #13 ; le
+prototype système reste inchangé et sans backend. La suite compte maintenant
+143 tests (140 exécutés sur Mac, 142 sur Linux ; skips documentés).

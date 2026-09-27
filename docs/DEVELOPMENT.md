@@ -126,7 +126,7 @@ restent ceux de la base. Le smoke Linux séparé passe ses 13 contrôles.
 Les tests couvrent cache corrompu, chemins dangereux, absence de données
 sensibles dans les rapports, état firstboot invalide et dix points de coupure
 simulée. Une exception ne reproduit pas une panne électrique de SD. La suite
-actuelle comprend **115 tests** : 112 exécutés et 3 skips sur macOS, 114 exécutés
+actuelle comprend **143 tests** : 140 exécutés et 3 skips sur macOS, 142 exécutés
 et 1 skip sur Linux ARM64/Python 3.13. Les skips concernent les API Linux et
 les privilèges de création de fichiers spéciaux. Les **14 fixtures du manifeste**
 ont aussi été exécutées avec privilèges dans Linux : toutes passent, sans skip,
@@ -190,8 +190,10 @@ générique et Hatchling se résolvent en wheels compatibles ; l'extra Pi comple
 ne se résout pas exclusivement depuis PyPI pour `RPi.GPIO` et `spidev`.
 Un [essai natif séparé](NATIVE-WHEELS.md) a depuis produit ces deux wheels
 ARM64/cp313 ; leurs octets concordent entre deux builds. Le candidat applicatif
-doit encore figer l'ensemble du graphe, dont `editables`, puis vérifier son
-installation offline. Aucun de ces résultats n'est une qualification matérielle.
+`6a697d1` fournit maintenant un lock de 40 wheels, dont `editables`. Son
+[installation et smoke d'import/API offline](OFFLINE-QUALIFICATION.md) passent
+dans un venv neuf de la VM, après contrôle des archives. Aucun de ces résultats
+n'est une qualification du rootfs exact de l'image ou du matériel.
 
 1. Release Inky Studio qualifiée, payload/lock transitif/wheelhouse ARM64 épinglés
    et intégration commune des units/CLI/helper.
