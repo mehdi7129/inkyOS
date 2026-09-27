@@ -4,6 +4,15 @@ Audit du 27 septembre 2026. **Le runtime sans extra Pi se résout en wheels ; l'
 
 Statut : recherche expérimentale, sans installation, import du backend, compilation depuis les sources, exécution Linux cible ou qualification matérielle. Aucun lock applicatif final n'est produit. Aucun changement de base OS, d'architecture ou de dépendance applicative n'est décidé ici.
 
+Suite de cette recherche : un [essai de compilation natif](NATIVE-WHEELS.md)
+a depuis produit les deux wheels manquantes, identiques sur deux builds.
+Le présent document conserve les résultats de l'audit PyPI initial. Ces wheels
+locales restent expérimentales et ne constituent pas une release qualifiée.
+Inky Studio a aussi identifié `editables`, nécessaire au build editable de
+Hatchling : les six packages de build résolus ici ne couvraient que les
+exigences initialement déclarées, pas ce hook de build dynamique. Le futur
+lock commun doit inclure cette dépendance explicitement.
+
 ## Périmètre et cible
 
 Source lue par `git show`, sans utiliser les changements du working tree : `inky-studio-ios`, commit `ae61df1c0f01408861ccb1210ec85986768d6784`, fichier `server/pyproject.toml`, projet `inky-studio-server` version `0.5.0rc2`. SHA256 du fichier : `ab31c8b9a7cbdc80c7d754dc586b38c10db3a10da334fbc7bc6b966c71dcee25`.

@@ -129,3 +129,9 @@ L'[audit Python ARM64](PYTHON-COMPATIBILITY.md) a identifié les wheels natives
 `RPi.GPIO` et `spidev` à produire pour la release commune. Résultat transmis à
 Inky Studio, sans modification du source applicatif. Les résolutions partielles
 et métadonnées PyPI ne constituent pas un lock qualifié.
+
+À la reprise suivante, un [essai natif isolé](NATIVE-WHEELS.md) compile ces deux
+dépendances sans réseau pendant le build. Les artefacts rehashés ont été transmis
+à Inky Studio, qui prépare le payload/lock commun sur sa propre branche.
+Les wheels concordent octet pour octet entre deux builds. Aucun import applicatif,
+installation dans l'image ou accès au Pi n'a été réalisé par cette sonde.

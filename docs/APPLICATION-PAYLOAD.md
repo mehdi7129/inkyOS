@@ -87,6 +87,12 @@ changement d'architecture ou recours implicite aux packages système n'est déci
 Les versions et hashes publiés relevés restent un inventaire de recherche,
 sans téléchargement ni vérification des octets des wheels.
 
+Les deux sdists bloquantes ont ensuite été téléchargées, rehashées et
+[compilées dans la VM ARM64](NATIVE-WHEELS.md). Les wheels expérimentales
+produites ont été transmises à Inky Studio ; la release commune doit encore
+les intégrer dans son lock, inclure `editables` pour Hatchling et fournir les
+preuves d'installation et d'exécution requises. Aucune qualification déduite.
+
 ## Contrôle d'entrée exécutable
 
 `scripts/verify-application.py` vérifie maintenant les **octets locaux** du

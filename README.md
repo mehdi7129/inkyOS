@@ -38,7 +38,8 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Développement sans SD](docs/DEVELOPMENT.md) : outils exécutables, environnement isolé et observations vérifiées.
 - [Delta système vérifié](docs/BASE-CUSTOMIZATION.md) : premier boot et croissance SD de la base exacte.
 - [Payload applicatif commun](docs/APPLICATION-PAYLOAD.md) : proposition relue avec Inky Studio, assets encore attendus.
-- [Compatibilité Python ARM64](docs/PYTHON-COMPATIBILITY.md) : résolution expérimentale et wheels natives encore à produire.
+- [Compatibilité Python ARM64](docs/PYTHON-COMPATIBILITY.md) : audit initial des dépendances et limites de résolution depuis PyPI.
+- [Compilation des wheels natives](docs/NATIVE-WHEELS.md) : essai ARM64 réussi et artefacts expérimentaux transmis à Inky Studio.
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 
