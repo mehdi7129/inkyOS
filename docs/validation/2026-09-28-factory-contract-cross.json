@@ -1,0 +1,153 @@
+{
+  "application_commit": "2c03466464f1b45f4baf1763e0416da52a8bef24",
+  "bench_sha256": "fd1dd85aa3aec04b90f8915738c0ddbd164f93b34bd1e659589385190fd12951",
+  "checks": [
+    {
+      "name": "os_new_grant_app_pending_ready_claim_adopted",
+      "passed": true
+    },
+    {
+      "name": "os_same_intent_retry_reopens_adopted",
+      "passed": true
+    },
+    {
+      "name": "deleted_app_database_retry_reopen_requires_recovery",
+      "passed": true
+    },
+    {
+      "name": "consumed_before_database_interruption_requires_recovery",
+      "passed": true
+    },
+    {
+      "name": "different_initialization_intent_refused_before_app",
+      "passed": true
+    },
+    {
+      "name": "mismatched_receipt_id_preserves_adopted_database",
+      "passed": true
+    },
+    {
+      "name": "mismatched_receipt_digest_preserves_adopted_database",
+      "passed": true
+    },
+    {
+      "name": "mismatched_frame_id_preserves_adopted_database",
+      "passed": true
+    },
+    {
+      "name": "mismatched_spki_pin_preserves_adopted_database",
+      "passed": true
+    },
+    {
+      "name": "lost_os_authority_requires_recovery_without_app_reset",
+      "passed": true
+    },
+    {
+      "name": "unknown_receipt_status_has_no_app_effect",
+      "passed": true
+    }
+  ],
+  "dependency_hashlock_sha256": "74f2177330079240129d67e2467c68f0220da93c76f4fd61cfc6ec023d1fb996",
+  "dependency_provenance_sha256": "2880eb61496fcd296a96a1c8ed4fef98c1149404ca283402803e7aff34cf40c2",
+  "dependency_versions": {
+    "cffi": "2.1.1",
+    "cryptography": "50.0.1",
+    "pycparser": "3.0",
+    "sqlite3": "3.53.4"
+  },
+  "dependency_wheels": [
+    {
+      "filename": "cffi-2.1.1-cp313-cp313-macosx_11_0_arm64.whl",
+      "metadata_url": "https://pypi.org/pypi/cffi/2.1.1/json",
+      "name": "cffi",
+      "sha256": "19ee6127ee34de7d83ce3d371ebc5ed91addbdcc39f9ab15ce4eb35a4e534971",
+      "size_bytes": 184764,
+      "url": "https://files.pythonhosted.org/packages/55/41/4c7042f317b9217502988f0873af87e16ad606dc20f84e546e3e6ce9764c/cffi-2.1.1-cp313-cp313-macosx_11_0_arm64.whl",
+      "version": "2.1.1"
+    },
+    {
+      "filename": "cryptography-50.0.1-cp311-abi3-macosx_11_0_arm64.whl",
+      "metadata_url": "https://pypi.org/pypi/cryptography/50.0.1/json",
+      "name": "cryptography",
+      "sha256": "b8f852c65863251b9e3a1b8c150ce21e59b522dbb6a7d4bc80e680d38388e986",
+      "size_bytes": 4010153,
+      "url": "https://files.pythonhosted.org/packages/ba/19/797e2aaac9df6a66f1550f49979dc1b1e39ecd2077501c30efa81e8d5d67/cryptography-50.0.1-cp311-abi3-macosx_11_0_arm64.whl",
+      "version": "50.0.1"
+    },
+    {
+      "filename": "pycparser-3.0-py3-none-any.whl",
+      "metadata_url": "https://pypi.org/pypi/pycparser/3.0/json",
+      "name": "pycparser",
+      "sha256": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992",
+      "size_bytes": 48172,
+      "url": "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl",
+      "version": "3.0"
+    }
+  ],
+  "generated_receipt_or_token_values_included": false,
+  "limitations": [
+    "Software fixtures only; the routing rule is local test code, not an installed adapter or wire protocol.",
+    "Current-user receipt ownership override does not qualify the eventual root/app privilege boundary.",
+    "Frame identity and credential epoch are synthetic assertions; no TLS key, certificate or real password is created.",
+    "No first boot, QR display, iPhone, Bluetooth, Wi-Fi, clock setting, SD or physical power-loss validation.",
+    "Both source components can be tested together; existing app runtime remains unchanged and inactive in the image."
+  ],
+  "method": {
+    "actual_os_receipt_results_used": true,
+    "app_lifespan_started": false,
+    "fixture_owner_overrides": true,
+    "hardware_qualified": false,
+    "pinned_app_components_executed": true,
+    "radio_time_services_changed": false,
+    "real_identity_key_material_verified": false,
+    "real_root_authorization_verified": false,
+    "runtime_adapter_installed": false,
+    "test_only_explicit_status_routing": true
+  },
+  "os_commit": "1ee27e2b30633259bc31db8c21b4edde26a23191",
+  "passed": true,
+  "python": {
+    "implementation": "CPython",
+    "platform": "darwin",
+    "version": "3.13.3"
+  },
+  "schema_version": 1,
+  "scope": "cross-contract-software-fixture-only",
+  "snapshot_sha256": "4aa7c24aff6bc713247ed8982116ee83f240eb153717587c42f22dd541af6791",
+  "source_files": {
+    "app/docs/inkyos/FACTORY-STATE.md": {
+      "git_blob": "aff09ad678d900212956d47f4266e2f3aae93ccd",
+      "sha256": "ca16f9c58c2e9bd9823beb473b50a8720f9a2da8d82ce8be8091cfa333ac629f"
+    },
+    "app/server/inky_web/__init__.py": {
+      "git_blob": "dbfab4a8cc04d9e583eacace7d918b589cfe770e",
+      "sha256": "eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc"
+    },
+    "app/server/inky_web/provisioning/__init__.py": {
+      "git_blob": "8cf34c7deecf41ef984ff4de6bafc6556b2260e4",
+      "sha256": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f"
+    },
+    "app/server/inky_web/provisioning/factory.py": {
+      "git_blob": "0b0524a9f0ecac49de6011991130040f94914d9e",
+      "sha256": "26665699c4ce594b0654c0979e67adafc296febb8b56d9608c54c379b1efe02b"
+    },
+    "app/server/inky_web/provisioning/identity.py": {
+      "git_blob": "7b129870fc370f46ebf92fe269c0c4ac16c284e0",
+      "sha256": "22fdbd6cda126fc46e6ea26bba77e0ac26d3d3cc6730db97fb5b463e0a2a1e71"
+    },
+    "app/server/inky_web/provisioning/ownership.py": {
+      "git_blob": "150323732b3f33eedd8e1af4b2e60efadafb32b9",
+      "sha256": "8cda6bf806f066470fe8137b23ab43d6357650917cfeaed815d765938e68a867"
+    },
+    "app/server/tests/test_provisioning_factory.py": {
+      "git_blob": "567a488238aa97bff8a17a3111197282948766e7",
+      "sha256": "be0a0b5c59b05c6e9a7050e850f854271c4a03b8c01b442a890a59dc57dc31c2"
+    },
+    "os/scripts/initialization-receipt.py": {
+      "sha256": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6"
+    }
+  },
+  "synthetic_state_cleaned": true,
+  "tests_passed": 11,
+  "tests_total": 11
+}

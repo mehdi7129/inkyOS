@@ -1,0 +1,177 @@
+{
+  "application": {
+    "application_version": "0.5.0-rc.2",
+    "manifest_sha256": "2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f",
+    "release_qualified": false,
+    "source_commit": "6a697d134290ced0214fc74b903f4b3c336d70fa",
+    "startup": "masked-pending-firstboot-contract"
+  },
+  "application_runtime_started": false,
+  "base_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+  "builds": [
+    {
+      "app_started": false,
+      "bootfs_entries": 434,
+      "directory": "build/prototype.gfUfP2ef",
+      "filesystem_manifest_sha256": "7009aa142c3a304afd12aaa6ffa07757468471074089eed529292af00a7cc564",
+      "firstboot_smoke_checks": 13,
+      "image": {
+        "filename": "inkyos-application-prototype.img",
+        "sha256": "68b772dfb3d6836bd471a5abdb32ced832910c2618c11aac03beb5efbd22a166",
+        "size_bytes": 3061841920
+      },
+      "installation_steps": [
+        {
+          "exit_code": 0,
+          "name": "venv"
+        },
+        {
+          "exit_code": 0,
+          "name": "dependencies"
+        },
+        {
+          "exit_code": 0,
+          "name": "editable"
+        },
+        {
+          "exit_code": 0,
+          "name": "pip-check"
+        }
+      ],
+      "manifest_sha256": "99975763c4663e877cc1b00bcb6159b57f9be23c3ead557742e422b81d0c77f0",
+      "reports": {
+        "application-archives.json": "8f94f85b129a89d375dcb64ff8cd6c552b37b7c5ff1e83a98b3404e6e0c28997",
+        "application-install-dependencies.txt": "7df7457226997f91587179522d3711bec768eb628ec9d86127aaa2187039073e",
+        "application-install-editable.txt": "daf07441500f8a2972b1c71d8acd1d046be596769d8032f6c8400aaf4b734a67",
+        "application-install-pip-check.txt": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+        "application-install-venv.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "application-installation.json": "8b0aeb438895f104a0ff789b9a35e6f1910939d2654589bfc015684532e3bbdd",
+        "application-manifest.json": "2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f",
+        "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+        "builder.json": "18713e019872ec1195c99b146e0d303aae0ec4a1d09e2953686f249908070aee",
+        "filesystem-manifest.json": "7009aa142c3a304afd12aaa6ffa07757468471074089eed529292af00a7cc564",
+        "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+        "fsck-ext4.txt": "16263dc140d844961c82b4b7e46cd47774f68345067c8c25eaa094b3ec1c7efd",
+        "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+        "image-inspection.json": "52d064acc600051f1900c7817b21562546d38a59afcde16041f35f16a60c790d",
+        "qualification-application.json": "9949dc0c991f8efb33d1187b3ee36b3fd66c00962a7288eecea812c44d93ad5b",
+        "qualification-static.json": "e241885fcc29a48486a695b1928a45941cf333c5117c4942e1dd3fc367e120f4",
+        "sudoers-verify.txt": "59f7ee8a877aa72c3c2982d462da7d1902baa672cb90f4beaf89fc461057e194",
+        "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rootfs_entries": 77299,
+      "rootfs_free_bytes_after_install": 161456128,
+      "static_application_checks": 26,
+      "static_system_checks": 62
+    },
+    {
+      "app_started": false,
+      "bootfs_entries": 434,
+      "directory": "build/prototype.TLQXKxT6",
+      "filesystem_manifest_sha256": "7009aa142c3a304afd12aaa6ffa07757468471074089eed529292af00a7cc564",
+      "firstboot_smoke_checks": 13,
+      "image": {
+        "filename": "inkyos-application-prototype.img",
+        "sha256": "fec4efdbb70b7832548d2d01fefb958aa94fe20c54dd9e4401e45ecd54ca22a5",
+        "size_bytes": 3061841920
+      },
+      "installation_steps": [
+        {
+          "exit_code": 0,
+          "name": "venv"
+        },
+        {
+          "exit_code": 0,
+          "name": "dependencies"
+        },
+        {
+          "exit_code": 0,
+          "name": "editable"
+        },
+        {
+          "exit_code": 0,
+          "name": "pip-check"
+        }
+      ],
+      "manifest_sha256": "d8d7638c48ad562e4f5f8406c1e4636f22b58b43af8d57f930b0fe09d3324a13",
+      "reports": {
+        "application-archives.json": "8f94f85b129a89d375dcb64ff8cd6c552b37b7c5ff1e83a98b3404e6e0c28997",
+        "application-install-dependencies.txt": "7df7457226997f91587179522d3711bec768eb628ec9d86127aaa2187039073e",
+        "application-install-editable.txt": "07fa16305e146f25ed5bf5a3ff58e2a5f88d9a255e66324ac281d42462a141dc",
+        "application-install-pip-check.txt": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+        "application-install-venv.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "application-installation.json": "098cf9451f97dbde1b9c1c71196ad12333ce1999a928fe2212d5cd0fcc3ce9db",
+        "application-manifest.json": "2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f",
+        "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+        "builder.json": "18713e019872ec1195c99b146e0d303aae0ec4a1d09e2953686f249908070aee",
+        "filesystem-manifest.json": "7009aa142c3a304afd12aaa6ffa07757468471074089eed529292af00a7cc564",
+        "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+        "fsck-ext4.txt": "16263dc140d844961c82b4b7e46cd47774f68345067c8c25eaa094b3ec1c7efd",
+        "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+        "image-inspection.json": "96b4a0b937b9351c34ed2cd1db1f5a10953cfb718bf4e89878e9605c7734fdda",
+        "qualification-application.json": "9949dc0c991f8efb33d1187b3ee36b3fd66c00962a7288eecea812c44d93ad5b",
+        "qualification-static.json": "e241885fcc29a48486a695b1928a45941cf333c5117c4942e1dd3fc367e120f4",
+        "sudoers-verify.txt": "59f7ee8a877aa72c3c2982d462da7d1902baa672cb90f4beaf89fc461057e194",
+        "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rootfs_entries": 77299,
+      "rootfs_free_bytes_after_install": 161456128,
+      "static_application_checks": 26,
+      "static_system_checks": 62
+    }
+  ],
+  "ci": {
+    "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the Billing & plans section in your settings",
+    "billing_configuration_read_or_changed": false,
+    "conclusion": "failure",
+    "steps_started": 0,
+    "url": "inkyOS/actions/runs/36398861253"
+  },
+  "comparison": {
+    "content_equal": true,
+    "extended_metadata_fully_inspected": true,
+    "filesystem_differences": {
+      "bootfs": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "rootfs": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      }
+    },
+    "image_byte_identical": false,
+    "image_hashes_verified": true,
+    "inputs_equal": true,
+    "report": "build/comparison-application-1ee27e2.json",
+    "sha256": "81ba140a4c79e97747da1f54e98d7cf77b66c64ba3d0971a307000b8d28e4594"
+  },
+  "date": "2026-09-28",
+  "hardware_qualified": false,
+  "limits": [
+    "No Raspberry Pi boot, display, BLE/Wi-Fi, iPhone or SD test.",
+    "Services masked, Wi-Fi disabled, no first-adoption or time/country runtime enabled.",
+    "Recorded filesystem contents/metadata agree; raw disk images differ.",
+    "Pip/build backend execute as UID1000 in the offline chroot; application/helper never start.",
+    "The receipt model is separately tested and is not installed or invoked in either image.",
+    "Builds and full receipts are local ignored artifacts; this report records their hashes.",
+    "Second build uses the same clean checkout in Library/Caches after macOS evicted Desktop inputs."
+  ],
+  "recipe_commit": "1ee27e2b30633259bc31db8c21b4edde26a23191",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "offline-application-image-prototype",
+  "software_fixtures": {
+    "linux_arm64_passed": 187,
+    "linux_arm64_skipped": 1,
+    "linux_inputs_sha256": "5f14e6950a42f6a5975554313bc287996a935ff1b6346cf0c07ce6062725a26e",
+    "linux_log_sha256": "2c249daf62120ada9b0aa9a1c9c953b868c9df1ef9c5af33cf08308a1fdb05d8",
+    "linux_results_sha256": "c4d35a3b3043123b4b41a8f0457b62263aa816b1fc34dda22360b79ee75f247b",
+    "macos_passed": 185,
+    "macos_skipped": 3,
+    "test_source_bytes_match_recipe_commit": true,
+    "total": 188
+  }
+}

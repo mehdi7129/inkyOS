@@ -1,0 +1,70 @@
+{
+  "base_commit": "1ee27e2b30633259bc31db8c21b4edde26a23191",
+  "date": "2026-09-28",
+  "hardware_qualified": false,
+  "image_installed": false,
+  "limits": [
+    "Injected numeric caller UID, not a privileged IPC adapter.",
+    "Clock and regulatory adapters are fake; no real setter, persistence, radio or phone authorization.",
+    "Initialization callback uses the receipt model in fixtures only; exceptions after callback require recovery.",
+    "Thread lock only; no process-shared production serialization.",
+    "Messages are experimental internal fixtures, not BLE or network-helper v1."
+  ],
+  "model_tests": 28,
+  "runtime_activated": false,
+  "schema_version": 1,
+  "scope": "inert-bootstrap-system-model",
+  "software_fixtures": {
+    "linux_arm64": {
+      "receipt": {
+        "architecture": "aarch64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "be259fcb981ae719761dfa8735da02be43f8df372038782322f5cf09e34e9cc9",
+        "passed": true,
+        "python": "3.13.5",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 7
+        },
+        "skipped": 1,
+        "system": "Linux",
+        "tests": 216
+      },
+      "receipt_sha256": "e0a9720fee298b9389cb62e9fad9e626b93de5e751619dfab8fe8fb3fdce45c7"
+    },
+    "linux_inputs_sha256": "0f66ce4f100526437803d56b75f63759af878406b2fef15c6261d1ce0f3a3448",
+    "linux_source_bytes_match_current": true,
+    "macos": {
+      "receipt": {
+        "architecture": "arm64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "06ea72727c0abd752d0f70372eaf6dd6f2356204b471a2056e108e4ccf1f3036",
+        "passed": true,
+        "python": "3.13.3",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 7
+        },
+        "skipped": 3,
+        "system": "Darwin",
+        "tests": 216
+      },
+      "receipt_sha256": "ea835d5593f260beafecf2ed57b9d1d2c32fb5f647ebe249a2fe4c35a13dc357"
+    }
+  },
+  "source_files": {
+    "scripts/bootstrap-system-model.py": "2d8257ed143ea37505f01de32627e2ec7b88d8dca3994d06ac7fb6c2aa4c14c4",
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "tests/test_bootstrap_system_model.py": "5123268def46745d000421295de982c85b203e1ce612a0cd984fd6e196a10e3b"
+  }
+}

@@ -58,3 +58,23 @@ activés qu'après livraison du [contrat exécutable commun](FIRST-BOOT.md), nou
 payload épinglé et tests correspondants. Le banc offline applicatif précédent
 prouve des imports/API dans la VM ; il ne prouve pas le boot du rootfs Raspberry
 Pi. Le cadre personnel et sa SD restent hors des essais.
+
+## Résultat vérifié le 28 septembre
+
+Deux builds propres du commit `1ee27e2b30633259bc31db8c21b4edde26a23191`
+ont passé l'installation offline, 62 gates système, 26 gates applicatifs,
+13 contrôles firstboot sur fixtures Linux, systemd, visudo et fsck FAT/ext4.
+Les dix fichiers boot/grow protégés sont identiques avant/après personnalisation.
+Il reste 161456128 octets libres dans le rootfs avant son extension au boot.
+
+La comparaison complète des deux exports rehashés trouve zéro fichier ajouté,
+supprimé ou modifié, y compris les permissions et métadonnées décrites. Les
+images brutes ont des SHA-256 différents : aucune garantie octet pour octet.
+Les [preuves et hashes](validation/2026-09-28-application-prototype.json) lient
+ces résultats au candidat `6a697d1` et à la recette exacte.
+
+Le second build s'est exécuté depuis une copie propre du même commit dans
+`~/Library/Caches/inkyos-checkout`. macOS avait évincé des
+fichiers du Bureau (`dataless`), bloquant leur lecture. Les entrées ont été
+récupérées/revérifiées, sans changement de configuration iCloud. Les deux
+exports comparés sont maintenant dans le `build/` de ce checkout local.

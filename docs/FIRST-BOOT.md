@@ -37,6 +37,21 @@ sont sur `codex/first-boot-contract`, distincts du candidat de packaging PR #13.
 
 ## Heure : mécanisme encore à choisir
 
+La décision TLS commune (`inky-studio/blob/efda86e4e759039fd6045afc57f0dbcadc7c7879/docs/inkyos/BOOTSTRAP-TLS-DECISION.md`)
+retient un profil bootstrap distinct, épinglé sur la clé du QR physique ou sur
+celle du propriétaire connu. Il doit conserver la preuve de possession de clé
+TLS 1.3 et limiter l'exception aux dates du certificat de ce profil. Le claim
+initial précède tout changement d'heure ; une réparation ultérieure exige un
+owner toujours autorisé. Après renouvellement du certificat sous la même clé,
+une nouvelle connexion TLS normale précède le pays et toute opération Wi-Fi.
+Ce choix est un prototype applicatif séparé, encore absent du payload `6a697d1`.
+
+Les sessions HTTP sont passées à monotonic dans le commit applicatif
+`ce4ab47` (`inky-studio/commit/ce4ab473e669e31502d4b697949289238ebce7a4`).
+Cela ne qualifie pas à lui seul tous les consommateurs d'heure, notamment le
+scheduler et le cycle certificat. Les politiques numériques et l'autorisation
+de chaque mutation restent à raccorder avant activation système.
+
 Le socle contient systemd/timesyncd `257.13-1~deb13u1`. Son interface
 [`SetTime`](https://github.com/systemd/systemd/blob/v257.13/src/timedate/timedated.c)
 refuse un changement lorsque NTP est actif, même sans synchronisation acquise.
@@ -112,6 +127,48 @@ UUID canoniques et digest hex64 concordent ; le raccord réel privilégié reste
 à intégrer. Ce lot est distinct du payload `6a697d1`, sans assemblage de fichiers
 provenant de branches différentes. Les tests de crash sont des sorties de
 processus sur fixtures, pas des coupures électriques sur SD.
+
+Un [banc croisé de 11 cas](validation/2026-09-28-factory-contract-cross.json)
+exécute ces deux sources exactes ensemble : nouveau reçu, création/claim,
+reprise après adoption, DB perdue, interruption entre consommation et DB,
+intent différent et bindings incompatibles. Tous passent ; les assertions
+d'identité restent synthétiques et l'ownership OS utilise un override de fixture.
+Ce résultat ne qualifie ni l'IPC privilégié futur ni un parcours de boot.
+
+Le [modèle système heure/pays](../scripts/bootstrap-system-model.py) fournit
+un parseur borné, un contrôle d'UID numérique, des bornes UTC explicites et
+l'ordre « radio fermée → intention persistée → application → observation
+vérifiée → confirmation persistée ». Tous les adapters sont injectés : aucune
+horloge, radio, socket, unité ou capability réelle n'est utilisée. Le modèle
+renvoie une décision de gate, il n'active pas le Wi-Fi. Un succès d'application
+seul ne suffit pas à confirmer le pays ; le vérificateur réglementaire doit
+accepter l'observation, puis la persistance doit réussir. Les messages refusés
+avant authentification/parsing ne modifient aucun état.
+Ses 28 tests ciblés font partie d'une suite de 216 tests passée sur Mac et Linux
+ARM64, avec [entrées et résultats hashés](validation/2026-09-28-bootstrap-system-model.json).
+
+Une troisième opération interne, `begin_initialization`, appelle le reçu une
+seule fois pour un UID applicatif distinct de celui du helper. Son résultat
+valide conserve exactement `newly_consumed` ou `already_consumed`. Un échec
+du callback ne devient jamais un nouveau grant et cette opération ne change
+pas le gate Wi-Fi. Le helper ne peut pas initialiser ; l'app ne peut pas régler
+l'heure ou le pays. Aucun chemin ni commande n'est accepté dans les messages.
+`InitializationUncertain` distingue une erreur après appel potentiellement
+consommant d'un refus préalable sans effet. Après cette erreur, conserver le
+même intent et consulter l'état pour rouvrir ou récupérer ; ne jamais en déduire
+un nouveau droit de création. Les callbacks ne doivent pas réentrer le modèle.
+
+Les trois opérations JSON de ce modèle sont internes et expérimentales. Elles
+ne sont pas ajoutées au protocole BLE ou au helper v1. L'adapter réel devra
+obtenir l'UID par `SO_PEERCRED`, sérialiser entre processus, imposer délais et
+persistance root-owned et vérifier le driver cible. Le verrou actuel ne
+sérialise que les threads d'un objet de test.
+
+Deux raccords restent explicites : le backend doit obtenir `newly_consumed`
+par un appel privilégié réellement à usage unique, sans réutiliser un grant
+stocké dans `/run` après un restart ; le gate initial doit permettre le démarrage
+de NetworkManager avec radio fermée, car le helper actuel dépend de ce service.
+Attendre un pays avant de lancer tout NetworkManager créerait un cycle.
 
 La cible `application-prototype` prend un manifeste et son SHA-256 explicitement
 épinglés, installe le payload offline, dérive les fichiers système depuis les

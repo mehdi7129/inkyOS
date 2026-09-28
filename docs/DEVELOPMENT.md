@@ -199,6 +199,12 @@ ARM64/cp313 ; leurs octets concordent entre deux builds. Le candidat applicatif
 dans un venv neuf de la VM, après contrôle des archives. Aucun de ces résultats
 n'est une qualification du rootfs exact de l'image ou du matériel.
 
+L'[intégration dans le rootfs](APPLICATION-IMAGE.md) a ensuite été exécutée deux
+fois au commit `1ee27e2` : installation offline et contrôles statiques réussis,
+contenu et métadonnées comparées identiques, services applicatifs masqués. Les
+modèles premier boot sans LAN avancent séparément ; la suite atteint 216 tests
+sur Mac/Linux, sans preuve de démarrage matériel.
+
 1. Release Inky Studio qualifiée, payload/lock transitif/wheelhouse ARM64 épinglés
    et intégration commune des units/CLI/helper.
 2. Contrats première adoption sans LAN, heure/TLS hors réseau, pays Wi-Fi,

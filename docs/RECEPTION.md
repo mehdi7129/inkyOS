@@ -159,7 +159,24 @@ services masqués et Wi-Fi désactivé avant le futur contrat pays. Le modèle d
 reçu OS est testé mais non installé dans l'image. Les preuves d'assemblage
 complet sont suivies dans [APPLICATION-IMAGE.md](APPLICATION-IMAGE.md).
 
-La dernière annotation CI vérifiée sur le run GitHub `36353199710` indique que
+Deux builds propres de `1ee27e2` intègrent ce candidat : contenu et métadonnées
+comparées identiques, images différentes octet pour octet. Les 62 contrôles
+système, 26 contrôles applicatifs et 13 checks de fixture premier boot passent
+pour chacun. La [preuve d'image](validation/2026-09-28-application-prototype.json)
+ne vaut ni activation applicative ni qualification matérielle.
+
+Le [banc croisé](validation/2026-09-28-factory-contract-cross.json) vérifie 11 cas
+entre le reçu OS et le magasin factory applicatif exact `2c03466`, notamment
+la perte de DB après consommation du reçu. Le modèle heure/pays/initialisation
+reste expérimental, séparé du protocole v1 et de l'image.
+
+Les entrées Desktop ont subi une éviction macOS (`dataless`). Le travail se
+poursuit dans un clone local du même dépôt, branche `main`, sous
+`~/Library/Caches/inkyos-checkout` ; le checkout Desktop est préservé. Les builds
+et preuves complètes ignorés par Git sont dans ce clone. Aucun réglage iCloud
+n'a été changé. Les commits continuent à être poussés vers le remote existant.
+
+La dernière annotation CI vérifiée sur le run GitHub `36398861253` indique que
 le job n'a pas démarré à cause de paiements récents refusés ou d'une limite de
 dépense à augmenter ; sa liste d'étapes est vide. Cette formulation générique
 ne permet pas de distinguer paiement, quota et budget exacts. Aucun écran ou
