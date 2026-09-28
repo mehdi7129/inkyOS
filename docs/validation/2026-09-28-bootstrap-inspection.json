@@ -1,0 +1,365 @@
+{
+  "checksum_list_sha256": "3db9ad81f84510b21b4078452b1e7ca4629eabfc5c58eb58dc87bd19eb27ca4d",
+  "date": "2026-09-28",
+  "hardware_qualified": false,
+  "image_changed": false,
+  "input_receipt_sha256": "e75db9abdb400c07fed3c0d1a34b395d40e31f5c75d9f7cafd4435409be41a5d",
+  "inputs": {
+    "files": {
+      "bootstrap-system-model.py": "3ed1d78bf45917fd852922b009dced0c40359d6b18dab4a800967d46270c08c1",
+      "initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+      "probe-bootstrap-linux.py": "65f254b6f4239662ff93eb079d2e6337299afb2f78a4c48e8f9f56930750ab8e"
+    },
+    "schema_version": 1,
+    "scope": "linux-bootstrap-probe-inputs",
+    "source_commit": "429e8949396bd022a2c9e502ac49937f1285d266",
+    "worktree_dirty": true
+  },
+  "model_test_sha256": "0644c4f2226080fe6e0cc375674aa63ea53d65def1188c2312fa90434070a58a",
+  "model_tests": 32,
+  "probe": {
+    "checks": [
+      {
+        "name": "root_receipt_permissions",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_1",
+        "passed": true
+      },
+      {
+        "name": "authorized_inspection_is_readonly",
+        "passed": true
+      },
+      {
+        "name": "private_receipt_denied_uid_1000",
+        "passed": true
+      },
+      {
+        "name": "private_receipt_denied_uid_65534",
+        "passed": true
+      },
+      {
+        "name": "private_receipt_denied_uid_65533",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_6",
+        "passed": true
+      },
+      {
+        "name": "role_refused_7",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_8",
+        "passed": true
+      },
+      {
+        "name": "role_refused_9",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_10",
+        "passed": true
+      },
+      {
+        "name": "role_refused_11",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_12",
+        "passed": true
+      },
+      {
+        "name": "role_refused_13",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_14",
+        "passed": true
+      },
+      {
+        "name": "role_refused_15",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_16",
+        "passed": true
+      },
+      {
+        "name": "role_refused_17",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_18",
+        "passed": true
+      },
+      {
+        "name": "inspection_rejects_arguments_without_effect",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_20",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_21",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_22",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_23",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_24",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_25",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_26",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_27",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_28",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_29",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_30",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_31",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_32",
+        "passed": true
+      },
+      {
+        "name": "framing_or_parser_refused_33",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_34",
+        "passed": true
+      },
+      {
+        "name": "fragmented_time_fake_only",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_36",
+        "passed": true
+      },
+      {
+        "name": "country_fake_order",
+        "passed": true
+      },
+      {
+        "name": "concurrent_clients_one_initial_grant",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_39",
+        "passed": true
+      },
+      {
+        "name": "consumed_inspection_preserves_binding_and_files",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_41",
+        "passed": true
+      },
+      {
+        "name": "conflicting_intent_requires_recovery",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_43",
+        "passed": true
+      },
+      {
+        "name": "restart_never_reissues_grant",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_45",
+        "passed": true
+      },
+      {
+        "name": "failure_checks_begin_with_confirmed_fake_gate",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_47",
+        "passed": true
+      },
+      {
+        "name": "absent_authority_inspection_refused_without_default",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_49",
+        "passed": true
+      },
+      {
+        "name": "missing_record_inspection_refused_without_default",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_51",
+        "passed": true
+      },
+      {
+        "name": "missing_receipt_requires_recovery",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_53",
+        "passed": true
+      },
+      {
+        "name": "corrupt_record_inspection_refused_without_default",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_55",
+        "passed": true
+      },
+      {
+        "name": "corrupt_receipt_requires_recovery",
+        "passed": true
+      },
+      {
+        "name": "killed_after_durable_consumption_before_reply",
+        "passed": true
+      },
+      {
+        "name": "kernel_credentials_58",
+        "passed": true
+      },
+      {
+        "name": "lost_response_retry_is_already_consumed",
+        "passed": true
+      },
+      {
+        "name": "source_bytes_unchanged",
+        "passed": true
+      },
+      {
+        "name": "fixtures_removed",
+        "passed": true
+      }
+    ],
+    "limits": [
+      "Socket framing and messages are private fixture mechanics, not a production wire contract.",
+      "UID authentication alone does not prove authenticated phone authorization.",
+      "Threads share one model; receipt locking is real, but the time/country model is not durable.",
+      "SIGKILL of the parent can leave the fixture directory; the server expires independently within 32 seconds.",
+      "Forked clients inherit parent memory; this proves filesystem permissions/SO_PEERCRED, not memory isolation.",
+      "Process termination is not physical power-loss or SD qualification.",
+      "No time syscall, regulatory observation, BLE, QR, app database or first boot is qualified."
+    ],
+    "method": {
+      "app_lifespan_started": false,
+      "app_uid": 1000,
+      "client_groups_cleared_before_connect": true,
+      "clock_radio_services_changed": false,
+      "foreign_uid": 65533,
+      "generated_receipt_or_token_values_included": false,
+      "hardware_qualified": false,
+      "helper_uid": 65534,
+      "image_modified": false,
+      "initialization_inspection": "real-readonly-receipt-callback-app-uid-only",
+      "kernel_peer_credentials": true,
+      "real_root_receipt": true,
+      "receipt_owner_overrides": false,
+      "runtime_installed": false,
+      "server_lifetime_limit_seconds": 32.0,
+      "time_country_adapters": "injected-fakes-only"
+    },
+    "passed": true,
+    "platform": {
+      "machine": "aarch64",
+      "python": "3.13.5",
+      "system": "Linux"
+    },
+    "schema_version": 1,
+    "scope": "linux-root-peercred-fixture-only",
+    "source_sha256": {
+      "bootstrap-system-model.py": "3ed1d78bf45917fd852922b009dced0c40359d6b18dab4a800967d46270c08c1",
+      "initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+      "probe-bootstrap-linux.py": "65f254b6f4239662ff93eb079d2e6337299afb2f78a4c48e8f9f56930750ab8e"
+    }
+  },
+  "production_ipc_implemented": false,
+  "report_sha256": "975705059af91327e260ff4999ebc50dc68d60b537bc05b1ddc2dc9b51f6d741",
+  "schema_version": 1,
+  "scope": "bootstrap-readonly-inspection-privilege-probe",
+  "software_fixtures": {
+    "linux_arm64": {
+      "receipt": {
+        "architecture": "aarch64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "10e121207a189dcc35e50ede9716496ea4f01b2b3484f0bdafac8d9319b3b648",
+        "passed": true,
+        "python": "3.13.5",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 8
+        },
+        "skipped": 1,
+        "system": "Linux",
+        "tests": 243
+      },
+      "receipt_sha256": "1a1e3df04a96426d6a27236d5c144218108e7d85e913db8645f97b84b8a5f976"
+    },
+    "linux_input_receipt_sha256": "8d59ce1c2ad5309f3765a058060a71e1a15b272f497ad801a4ab7cdb0d820afb",
+    "linux_inputs_match_current_source_bytes": true,
+    "macos": {
+      "receipt": {
+        "architecture": "arm64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "ef99ff2a47c48260065c01e47da3453dd2e7cbbc7de91fbda2e025fdf943a0d6",
+        "passed": true,
+        "python": "3.13.3",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 8
+        },
+        "skipped": 4,
+        "system": "Darwin",
+        "tests": 243
+      },
+      "receipt_sha256": "18618c8807c44a01cb9a047e23f53bfbbea79057a640abc1bad2f5de7a267da9"
+    }
+  },
+  "wrapper_sha256": "01cf553e3d795063fe3ce655ce1ea3b4814c3ebdd7a05e809b6e782db2c1f1b9"
+}

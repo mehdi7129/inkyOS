@@ -164,6 +164,7 @@ def server(socket_path, receipt_path, channel, stop, kill_after_begin, *, _lifet
     model = bootstrap.BootstrapSystemModel(
         helper_uid=HELPER_UID, application_uid=APP_UID,
         begin_initialization=lambda intent: receipt.begin(receipt_path, intent),
+        inspect_initialization=lambda: receipt.inspect(receipt_path),
         time_bounds=(1000, 2000), country_allowlist={'FR'},
         time_verifier=lambda requested, observed: requested == observed,
         regulatory_verifier=lambda requested, observed: requested == observed, adapter=adapter)
@@ -364,6 +365,7 @@ def run_probe():
     checks, running = [], None
     path = workspace / 'receipt'
     begin = request('begin_initialization', intent=INTENT)
+    inspect_initialization = request('inspect_initialization')
     country = request('country', country_code='FR')
     utc = request('time', unix_seconds=1500)
 
@@ -392,14 +394,22 @@ def run_probe():
                       for p in path.iterdir()))
         running = Server(context, workspace, path)
         baseline = receipt_bytes(path)
+        response, audit = exchange(APP_UID, inspect_initialization)
+        check('authorized_inspection_is_readonly', response['ok']
+              and response['result']['initialization'] == {'status': 'authorized'}
+              and audit['state_unchanged'] and not audit['calls_added'] and receipt_bytes(path) == baseline)
         for uid in (APP_UID, HELPER_UID, FOREIGN_UID):
             result = clients(context, running.socket, [(uid, b'', 'filesystem')], path)[0]
             check('private_receipt_denied_uid_' + str(uid), result.get('filesystem_denied') == [True] * 3)
         for uid, raw in ((0, begin), (FOREIGN_UID, begin), (HELPER_UID, begin),
+                         (HELPER_UID, inspect_initialization),
                          (APP_UID, utc), (APP_UID, country)):
             response, audit = exchange(uid, raw)
             check('role_refused_' + str(len(checks)), response == {'ok': False, 'error': 'refused'}
                   and audit['state_unchanged'] and not audit['calls_added'] and receipt_bytes(path) == baseline)
+        response, audit = exchange(APP_UID, request('inspect_initialization', intent=INTENT))
+        check('inspection_rejects_arguments_without_effect', response == {'ok': False, 'error': 'refused'}
+              and audit['state_unchanged'] and not audit['calls_added'] and receipt_bytes(path) == baseline)
         for raw, mode in ((b'{}', 'normal'), (b'{' , 'normal'), (b'', 'normal'),
                           (b'x' * (MAX_REQUEST + 1), 'normal'), (b'{', 'slow'),
                           (b'{"operation":"time","operation":"time","unix_seconds":1500}', 'normal'),
@@ -422,17 +432,43 @@ def run_probe():
               == ['already_consumed', 'newly_consumed'] and
               all(e['uid'] == APP_UID and e['gid'] == APP_UID and not e['calls_added'] for e in events)
               and {e['pid'] for e in events} == {r['pid'] for r in results})
+        consumed = {**results[0]['response']['result']['initialization'], 'status': 'consumed'}
+        baseline = receipt_bytes(path)
+        response, audit = exchange(APP_UID, inspect_initialization)
+        check('consumed_inspection_preserves_binding_and_files', response['ok']
+              and response['result']['initialization'] == consumed and response['result']['wifi_gate_open'] is True
+              and audit['state_unchanged'] and not audit['calls_added'] and receipt_bytes(path) == baseline)
         response, audit = exchange(APP_UID, request('begin_initialization', intent=OTHER_INTENT))
         check('conflicting_intent_requires_recovery', response == {'ok': False, 'error': 'recovery'}
               and audit['state_unchanged'] and not audit['calls_added'])
         running.close(); running = Server(context, workspace, path)
         response, _ = exchange(APP_UID, begin)
         check('restart_never_reissues_grant', response['result']['initialization']['status'] == 'already_consumed')
+        response, _ = exchange(HELPER_UID, country)
+        check('failure_checks_begin_with_confirmed_fake_gate', response['ok'] and response['result']['wifi_gate_open'] is True)
+        # Absence of the whole root authority is not interpreted as authorized.
+        retained = workspace / 'retained-receipt'; baseline = receipt_bytes(path)
+        path.rename(retained)
+        response, audit = exchange(APP_UID, inspect_initialization)
+        check('absent_authority_inspection_refused_without_default',
+              response == {'ok': False, 'error': 'refused'} and audit['state_unchanged']
+              and not audit['calls_added'] and not path.exists() and receipt_bytes(retained) == baseline)
+        retained.rename(path)
         # Deliberately corrupt only our own synthetic fixture, not image/app data.
         state = path / 'state.json'; original = state.read_bytes(); state.unlink()
+        baseline = receipt_bytes(path)
+        response, audit = exchange(APP_UID, inspect_initialization)
+        check('missing_record_inspection_refused_without_default',
+              response == {'ok': False, 'error': 'refused'} and audit['state_unchanged']
+              and not audit['calls_added'] and receipt_bytes(path) == baseline)
         response, audit = exchange(APP_UID, begin)
         check('missing_receipt_requires_recovery', response == {'ok': False, 'error': 'recovery'} and not state.exists())
         state.write_bytes(b'corrupt'); state.chmod(0o600)
+        baseline = receipt_bytes(path)
+        response, audit = exchange(APP_UID, inspect_initialization)
+        check('corrupt_record_inspection_refused_without_default',
+              response == {'ok': False, 'error': 'refused'} and audit['state_unchanged']
+              and not audit['calls_added'] and receipt_bytes(path) == baseline)
         response, _ = exchange(APP_UID, begin)
         check('corrupt_receipt_requires_recovery', response == {'ok': False, 'error': 'recovery'}
               and state.read_bytes() == b'corrupt')
@@ -462,6 +498,7 @@ def run_probe():
             'method': {'kernel_peer_credentials': True, 'receipt_owner_overrides': False,
                        'app_uid': APP_UID, 'helper_uid': HELPER_UID, 'foreign_uid': FOREIGN_UID,
                        'client_groups_cleared_before_connect': True, 'real_root_receipt': True,
+                       'initialization_inspection': 'real-readonly-receipt-callback-app-uid-only',
                        'server_lifetime_limit_seconds': SERVER_LIFETIME_SECONDS + SERVER_DRAIN_SECONDS,
                        'time_country_adapters': 'injected-fakes-only', 'runtime_installed': False,
                        'image_modified': False, 'clock_radio_services_changed': False,

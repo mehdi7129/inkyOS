@@ -304,9 +304,10 @@ class BootstrapSystemModelTests(unittest.TestCase):
         self.assertTrue(state['country']['observed']['accepted'])
         self.assertEqual(state['country']['persisted']['country_code'], 'FR')
 
-    def initializer(self, callback):
+    def initializer(self, callback, inspection=None):
         self.model = bootstrap.BootstrapSystemModel(
-            **self.config, application_uid=1000, begin_initialization=callback)
+            **self.config, application_uid=1000, begin_initialization=callback,
+            inspect_initialization=inspection)
         self.adapter.model = self.model
         return self.model
 
@@ -317,6 +318,85 @@ class BootstrapSystemModelTests(unittest.TestCase):
     def begin(self, uid=1000):
         return self.model.handle(request('begin_initialization',
                                  intent=self.initialization_result()['intent']), caller_uid=uid)
+
+    def inspect_initialization(self, uid=1000):
+        return self.model.handle(request('inspect_initialization'), caller_uid=uid)
+
+    def test_inspection_configuration_optional_but_requires_existing_initialization(self):
+        for change in (dict(inspect_initialization=lambda: {'status': 'authorized'}),
+                       dict(application_uid=1000, begin_initialization=lambda _: None,
+                            inspect_initialization=True)):
+            with self.subTest(change=change), self.assertRaises(bootstrap.Refused):
+                bootstrap.BootstrapSystemModel(**self.config, **change)
+        began = []
+        self.initializer(lambda intent: began.append(intent)); self.country()
+        before = self.model.inspect(); calls = list(self.adapter.calls)
+        with self.assertRaisesRegex(bootstrap.Refused, 'not configured'):
+            self.inspect_initialization()
+        self.assertEqual(began, []); self.assertEqual(self.model.inspect(), before)
+        self.assertEqual(self.adapter.calls, calls)
+
+    def test_inspection_roles_exact_noargs_and_duplicates_refused_before_callback(self):
+        inspected = []; began = []
+        self.initializer(lambda intent: began.append(intent),
+                         lambda: inspected.append('called') or {'status': 'authorized'})
+        self.country(); before = self.model.inspect(); calls = list(self.adapter.calls)
+        cases = [(request('inspect_initialization'), uid) for uid in (991, 0, 1001, True, '1000')]
+        cases += [(request('inspect_initialization', **extra), 1000) for extra in
+                  ({'path': '/state'}, {'intent': self.initialization_result()['intent']}, {'argv': []},
+                   {'nested': {'status': 'authorized'}})]
+        cases.append((b'{"operation":"inspect_initialization","operation":"inspect_initialization"}', 1000))
+        for raw, uid in cases:
+            with self.subTest(raw=raw, uid=uid), self.assertRaises(bootstrap.Refused):
+                self.model.handle(raw, caller_uid=uid)
+            self.assertEqual(inspected, []); self.assertEqual(began, [])
+            self.assertEqual(self.model.inspect(), before); self.assertEqual(self.adapter.calls, calls)
+
+    def test_inspection_strict_shapes_returns_observation_not_initialization_grant(self):
+        consumed = {**self.initialization_result(), 'status': 'consumed'}
+        for expected in ({'status': 'authorized'}, consumed):
+            with self.subTest(expected=expected):
+                inspected = []; began = []
+                self.initializer(lambda intent: began.append(intent),
+                                 lambda: inspected.append('called') or expected)
+                self.country(); before = self.model.inspect(); calls = list(self.adapter.calls)
+                result = self.inspect_initialization()
+                self.assertEqual(result['initialization'], expected)
+                self.assertEqual(inspected, ['called']); self.assertEqual(began, [])
+                self.assertEqual(self.model.inspect(), before); self.assertEqual(self.adapter.calls, calls)
+                if expected['status'] == 'consumed':
+                    result['initialization']['receipt']['digest'] = 'b' * 64
+                    self.assertEqual(expected['receipt']['digest'], 'a' * 64)
+
+    def test_inspection_failure_never_defaults_authorized_or_changes_gate(self):
+        consumed = {**self.initialization_result(), 'status': 'consumed'}
+        cases = [None, True, {}, {'status': True}, {'status': ['authorized']},
+                 {'status': 'authorized', 'intent': consumed['intent']},
+                 {'status': 'authorized', 'receipt': consumed['receipt']},
+                 self.initialization_result(), {**consumed, 'extra': 'ignored'},
+                 {**consumed, 'intent': consumed['intent'].upper()},
+                 {**consumed, 'receipt': {**consumed['receipt'], 'receipt_id': True}},
+                 {**consumed, 'receipt': {**consumed['receipt'], 'digest': 'A' * 64}},
+                 {**consumed, 'receipt': {**consumed['receipt'], 'digest': ['a' * 64]}}]
+        for value in cases:
+            with self.subTest(value=value):
+                inspected = []; began = []
+                self.initializer(lambda intent: began.append(intent),
+                                 lambda: inspected.append('called') or copy.deepcopy(value))
+                self.country(); before = self.model.inspect(); calls = list(self.adapter.calls)
+                with self.assertRaises(bootstrap.Refused):
+                    self.inspect_initialization()
+                self.assertEqual(inspected, ['called']); self.assertEqual(began, [])
+                self.assertEqual(self.model.inspect(), before); self.assertEqual(self.adapter.calls, calls)
+        inspected = []
+        def unavailable():
+            inspected.append('called')
+            raise OSError('fixture state unavailable')
+        self.initializer(lambda _: None, unavailable); self.country(); before = self.model.inspect()
+        with self.assertRaises(bootstrap.Refused) as error:
+            self.inspect_initialization()
+        self.assertIsInstance(error.exception.__cause__, OSError)
+        self.assertEqual(inspected, ['called']); self.assertEqual(self.model.inspect(), before)
 
     def test_initialization_configuration_is_optional_paired_and_role_separated(self):
         # Legacy constructors keep time/country; no initialization callback is invented.
@@ -438,13 +518,29 @@ class BootstrapSystemModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='.inkyos-bootstrap-test-', dir=Path.home().resolve()) as temporary:
             path = Path(temporary) / 'authorization'
             owner = {'_owner_uid': os.geteuid(), '_owner_gid': os.getegid()}
-            receipts.create_authorization(path, **owner)  # Explicit fixture setup, never an operation.
             called = []
             def callback(intent):
                 called.append(intent)
                 return receipts.begin(path, intent, **owner)
-            self.initializer(callback)
-            first = self.begin()['initialization']; retry = self.begin()['initialization']
+            self.initializer(callback, lambda: receipts.inspect(path, **owner))
+            with self.assertRaises(bootstrap.Refused) as missing:
+                self.inspect_initialization()
+            self.assertIsInstance(missing.exception.__cause__, receipts.RecoveryRequired)
+            self.assertFalse(path.exists()); self.assertEqual(called, [])
+            receipts.create_authorization(path, **owner)  # Explicit fixture setup, never an operation.
+            def bytes_snapshot():
+                return {entry.name: entry.read_bytes() for entry in path.iterdir()}
+            authorized_bytes = bytes_snapshot()
+            for _ in range(2):
+                self.assertEqual(self.inspect_initialization()['initialization'], {'status': 'authorized'})
+                self.assertEqual(bytes_snapshot(), authorized_bytes)
+            self.assertEqual(called, [])
+            first = self.begin()['initialization']
+            consumed_bytes = bytes_snapshot()
+            for _ in range(2):
+                self.assertEqual(self.inspect_initialization()['initialization'], {**first, 'status': 'consumed'})
+                self.assertEqual(bytes_snapshot(), consumed_bytes)
+            retry = self.begin()['initialization']
             self.assertEqual(first['status'], 'newly_consumed')
             self.assertEqual(retry['status'], 'already_consumed')
             self.assertEqual(first['receipt'], retry['receipt'])

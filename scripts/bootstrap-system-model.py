@@ -16,15 +16,17 @@ accept its observation, confirmed persistence must succeed, and Wi-Fi must still
 be disabled. The returned gate is permission to proceed, NOT a radio enable call.
 An authorized, syntactically valid operation's execution failure closes the gate
 (including an unsupported country). Identity/parser refusal changes no state.
-BLE is never touched. Initialization is an optional third INTERNAL model
-operation, restricted to a distinct application UID. It invokes one injected
+BLE is never touched. Initialization begin/inspection are optional INTERNAL
+model operations, restricted to a distinct application UID. It invokes one injected
 begin callback and preserves newly_consumed/already_consumed verbatim; a retry
 never authorizes DB recreation. It never creates authorization or changes the
 Wi-Fi gate, even on callback failure. Once invoked, callback errors or invalid
 results raise InitializationUncertain: same-intent consultation/recovery only,
 never a new intent or DB recreation. Interruptions remain interruptions.
 Callbacks/verifiers must not reenter handle()/inspect() under the non-reentrant
-lock. No BLE/helper-v1 contract is changed.
+lock. The optional inspect callback is explicitly trusted to be read-only;
+receipt.inspect() does not consume authorization. Missing/corrupt/invalid results
+are refused, never inferred authorized. No BLE/helper-v1 contract is changed.
 
 Fake adapter methods: set_time(int)->True, observe_time()->int,
 close_wifi_gate()->True, wifi_status()->{disabled,trial,connected:bool},
@@ -99,6 +101,8 @@ def parse_request(raw):
     elif operation == 'begin_initialization':
         _require(set(value) == {'operation', 'intent'} and _canonical_uuid(value['intent']),
                  'Exact canonical initialization intent required')
+    elif operation == 'inspect_initialization':
+        _require(set(value) == {'operation'}, 'Initialization inspection accepts no arguments')
     else:
         raise Refused('Unknown internal operation')
     return value
@@ -108,7 +112,7 @@ class BootstrapSystemModel:
     """Thread-serialized fixture state. Construction never calls an adapter."""
     def __init__(self, *, helper_uid, time_bounds, country_allowlist,
                  time_verifier, regulatory_verifier, adapter,
-                 application_uid=None, begin_initialization=None):
+                 application_uid=None, begin_initialization=None, inspect_initialization=None):
         _require(type(helper_uid) is int and 0 < helper_uid <= MAX_UID, 'Nonroot helper UID required')
         _require(type(time_bounds) is tuple and len(time_bounds) == 2 and
                  all(type(value) is int for value in time_bounds) and
@@ -122,6 +126,10 @@ class BootstrapSystemModel:
                  (type(application_uid) is int and 0 < application_uid <= MAX_UID and
                   application_uid != helper_uid and callable(begin_initialization)),
                  'Initialization requires a distinct nonroot application UID and callback')
+        _require(inspect_initialization is None or
+                 (application_uid is not None and begin_initialization is not None and callable(inspect_initialization)),
+                 'Inspection requires configured initialization and a callable read-only callback')
+        self._inspect_initialization_callback = inspect_initialization
         self._application_uid = application_uid
         self._begin_initialization = begin_initialization
         self._helper_uid = helper_uid
@@ -162,11 +170,13 @@ class BootstrapSystemModel:
             _require(type(caller_uid) is int and caller_uid in (self._helper_uid, self._application_uid),
                      'Configured nonroot caller UID required')
             request = parse_request(raw)
-            if request['operation'] == 'begin_initialization':
-                _require(self._begin_initialization is not None, 'Initialization operation not configured')
+            if request['operation'] in ('begin_initialization', 'inspect_initialization'):
+                begin = request['operation'] == 'begin_initialization'
+                callback = self._begin_initialization if begin else self._inspect_initialization_callback
+                _require(callback is not None, 'Initialization operation not configured')
                 _require(caller_uid == self._application_uid, 'Application UID required for initialization')
-                result = self._begin(request['intent'])
-                return {'acknowledged': True, 'operation': 'begin_initialization',
+                result = self._begin(request['intent']) if begin else self._inspect_receipt()
+                return {'acknowledged': True, 'operation': request['operation'],
                         'initialization': result, **self._snapshot()}
             _require(caller_uid == self._helper_uid, 'Helper UID required for time/country')
             try:
@@ -186,14 +196,31 @@ class BootstrapSystemModel:
                      type(result['status']) is str and result['status'] in ('newly_consumed', 'already_consumed') and
                      type(result['intent']) is str and result['intent'] == intent,
                      'Invalid initialization callback result')
-            receipt = result['receipt']
-            _require(type(receipt) is dict and set(receipt) == {'receipt_id', 'digest'} and
-                     _canonical_uuid(receipt['receipt_id']) and type(receipt['digest']) is str and
-                     len(receipt['digest']) == 64 and all(c in '0123456789abcdef' for c in receipt['digest']),
-                     'Invalid initialization receipt binding')
-            return {'status': result['status'], 'intent': intent, 'receipt': dict(receipt)}
+            return {'status': result['status'], 'intent': intent, 'receipt': self._receipt_copy(result['receipt'])}
         except Exception as exc:
             raise InitializationUncertain('Initialization may be consumed; same-intent recovery only') from exc
+
+    @staticmethod
+    def _receipt_copy(receipt):
+        _require(type(receipt) is dict and set(receipt) == {'receipt_id', 'digest'} and
+                 _canonical_uuid(receipt['receipt_id']) and type(receipt['digest']) is str and
+                 len(receipt['digest']) == 64 and all(c in '0123456789abcdef' for c in receipt['digest']),
+                 'Invalid initialization receipt binding')
+        return dict(receipt)
+
+    def _inspect_receipt(self):
+        try:
+            result = self._inspect_initialization_callback()  # Read-only trusted callback, exactly once.
+            _require(type(result) is dict and type(result.get('status')) is str, 'Invalid inspection result')
+            if result['status'] == 'authorized':
+                _require(set(result) == {'status'}, 'Invalid authorized inspection fields')
+                return {'status': 'authorized'}
+            _require(set(result) == {'status', 'intent', 'receipt'} and result['status'] == 'consumed' and
+                     _canonical_uuid(result['intent']), 'Invalid consumed inspection result')
+            return {'status': 'consumed', 'intent': result['intent'],
+                    'receipt': self._receipt_copy(result['receipt'])}
+        except Exception as exc:
+            raise Refused('Initialization inspection unavailable; no authorization inferred') from exc
 
     def _set_time(self, requested):
         low, high = self._time_bounds

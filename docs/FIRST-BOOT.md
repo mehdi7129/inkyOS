@@ -142,6 +142,20 @@ intent différent et bindings incompatibles. Tous passent ; les assertions
 d'identité restent synthétiques et l'ownership OS utilise un override de fixture.
 Ce résultat ne qualifie ni l'IPC privilégié futur ni un parcours de boot.
 
+Un second banc assemble ensuite le reçu OS réel et les cores applicatifs
+d'identité/coordinator : [20 cas sur `5b5ad6e`](validation/2026-09-28-first-boot-core-cross.json)
+passent, dont deux processus indépendants, pertes de DB/identité/réponse,
+publication et réparation de certificat sous la même clé et le même UUID.
+La [passe précédente sur `f244fd2`](validation/2026-09-28-first-boot-core-cross-f244fd2.json)
+conserve le comportement antérieur : des credentials absents consommaient déjà
+le reçu et laissaient un ledger pending. Le correctif vérifié refuse désormais
+avant préparation et consommation ; les 19 autres cas restent inchangés.
+La [comparaison des deux révisions](validation/2026-09-28-first-boot-core-delta.json)
+lie les rapports, snapshots et dépendances exacts.
+Ce banc Mac utilise un override d'ownership de fixture et une assertion locale
+`ClockResult` simulée. Il ne vérifie ni autorisation owner, ni heure réelle,
+ni handshake TLS, ni dispatcher ou chemin BLE/iPhone.
+
 Le [modèle système heure/pays](../scripts/bootstrap-system-model.py) fournit
 un parseur borné, un contrôle d'UID numérique, des bornes UTC explicites et
 l'ordre « radio fermée → intention persistée → application → observation
@@ -151,10 +165,10 @@ renvoie une décision de gate, il n'active pas le Wi-Fi. Un succès d'applicatio
 seul ne suffit pas à confirmer le pays ; le vérificateur réglementaire doit
 accepter l'observation, puis la persistance doit réussir. Les messages refusés
 avant authentification/parsing ne modifient aucun état.
-Ses 28 tests ciblés font partie d'une suite de 216 tests passée sur Mac et Linux
-ARM64, avec [entrées et résultats hashés](validation/2026-09-28-bootstrap-system-model.json).
+Ses 32 tests ciblés font partie d'une suite de 243 tests passée sur Mac et Linux
+ARM64, avec [entrées et résultats hashés](validation/2026-09-28-bootstrap-inspection.json).
 
-Une troisième opération interne, `begin_initialization`, appelle le reçu une
+L'opération interne `begin_initialization` appelle le reçu une
 seule fois pour un UID applicatif distinct de celui du helper. Son résultat
 valide conserve exactement `newly_consumed` ou `already_consumed`. Un échec
 du callback ne devient jamais un nouveau grant et cette opération ne change
@@ -165,14 +179,21 @@ consommant d'un refus préalable sans effet. Après cette erreur, conserver le
 même intent et consulter l'état pour rouvrir ou récupérer ; ne jamais en déduire
 un nouveau droit de création. Les callbacks ne doivent pas réentrer le modèle.
 
-Les trois opérations JSON de ce modèle sont internes et expérimentales. Elles
+`inspect_initialization` est également réservée à l'UID app et n'accepte aucun
+argument. Elle consulte le vrai modèle de reçu sans consommation : `authorized`
+seul, ou `consumed` avec intent/receipt stricts. Un état manquant, corrompu ou une
+réponse invalide est refusé sans grant, retry, changement du gate ni autorisation
+implicite. Le callback est explicitement trusted et readonly ; l'UID app n'accède
+pas directement au fichier root.
+
+Les quatre opérations JSON de ce modèle sont internes et expérimentales. Elles
 ne sont pas ajoutées au protocole BLE ou au helper v1. L'adapter réel devra
 obtenir l'UID par `SO_PEERCRED`, sérialiser entre processus, imposer délais et
 persistance root-owned et vérifier le driver cible. Le verrou actuel ne
 sérialise que les threads d'un objet de test.
 
 Le [banc Linux privilégié](BOOTSTRAP-PROBE.md) vérifie séparément les credentials
-kernel et un vrai reçu root-owned : 46 checks passent, dont la réponse perdue
+kernel et un vrai reçu root-owned : 62 checks passent, dont la réponse perdue
 après consommation durable. Il utilise les mêmes modèles et des adapters
 temps/pays simulés ; il n'installe aucun IPC de production ni hook de boot.
 

@@ -205,3 +205,17 @@ Le lot suivant prépare identité avant RTC, réparation du certificat sous la
 même clé et coordination avec un adapter OS simulé. Aucun dispatcher bootstrap,
 GATT, flow iOS complet ou démarrage sans LAN utilisable n'est déduit de ces lots.
 Le payload de l'image reste exactement `6a697d1`, avec services masqués.
+
+Dernière passe : 243 tests Mac/Linux sans échec (4/1 skips), 62 checks du banc
+Linux UID/root receipt après ajout de l'inspection readonly, et 20 scénarios
+croisés sur les cores applicatifs corrigés `5b5ad6e`. Le reçu n'est plus consommé
+si les credentials manquent dès l'entrée. Les preuves conservent séparément
+l'ancienne révision et la correction. Aucun de ces lots ne modifie l'image.
+
+Pour obtenir le parcours sans LAN utilisable, restent les raccords runtime :
+création OS fiable de l'autorité initiale, IPC de production, opérations d'heure
+autorisées et idempotentes, dispatcher/GATT/bootstrap iOS et reconnexion TLS
+normale, pays réellement observé et gate actif. Un payload commun qualifié devra
+ensuite être épinglé et reconstruit, puis testé sur une SD dédiée. Les composants
+actuels sont des fondations testées ; le premier démarrage complet n'est pas
+annoncé comme fonctionnel.

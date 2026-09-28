@@ -1,0 +1,224 @@
+{
+  "application_commit": "f244fd28998bc818dd1d6666133b23ac54e182c7",
+  "bench_sha256": "253dbb238fe130c1713a5c15b9336e3a82dbc5e244aa06e92341fed0db61342a",
+  "checks": [
+    {
+      "name": "actual_os_new_grant_prepared_identity_ready_no_normal_tls",
+      "passed": true
+    },
+    {
+      "name": "claim_adopted_same_intent_os_retry_reopens_without_qr",
+      "passed": true
+    },
+    {
+      "name": "authorized_prepared_restart_reuses_durable_uuid_and_key",
+      "passed": true
+    },
+    {
+      "name": "os_consumed_before_db_requires_recovery_without_creation",
+      "passed": true
+    },
+    {
+      "name": "lost_begin_reply_durable_consumption_retry_requires_recovery",
+      "passed": true
+    },
+    {
+      "name": "deleted_adopted_db_os_already_consumed_never_recreates",
+      "passed": true
+    },
+    {
+      "name": "all_application_files_missing_consumed_authority_refuses",
+      "passed": true
+    },
+    {
+      "name": "consumed_os_foreign_fresh_bundle_refused_before_begin",
+      "passed": true
+    },
+    {
+      "name": "same_os_intent_replacement_uuid_key_fails_ledger_binding",
+      "passed": true
+    },
+    {
+      "name": "missing_os_authority_preserves_adopted_application",
+      "passed": true
+    },
+    {
+      "name": "os_partial_two_record_commit_blocks_all_future_creation",
+      "passed": true
+    },
+    {
+      "name": "unavailable_credentials_leave_pending_then_same_receipt_resume",
+      "passed": true
+    },
+    {
+      "name": "identity_lost_during_credentials_check_never_marks_ready",
+      "passed": true
+    },
+    {
+      "name": "fake_authorized_clock_initial_publication_same_key_idempotent",
+      "passed": true
+    },
+    {
+      "name": "fake_authorized_clock_expired_certificate_repair_same_key_idempotent",
+      "passed": true
+    },
+    {
+      "name": "fake_authorized_clock_future_certificate_repair_same_key_idempotent",
+      "passed": true
+    },
+    {
+      "name": "mismatched_clock_operation_assertion_has_no_publication_effect",
+      "passed": true
+    },
+    {
+      "name": "normal_identity_missing_after_completed_publication_requires_recovery",
+      "passed": true
+    },
+    {
+      "name": "historical_initial_result_never_rolls_back_later_repair",
+      "passed": true
+    },
+    {
+      "name": "two_independent_processes_share_one_os_grant_and_identity",
+      "passed": true
+    }
+  ],
+  "dependency_hashlock_sha256": "74f2177330079240129d67e2467c68f0220da93c76f4fd61cfc6ec023d1fb996",
+  "dependency_provenance_sha256": "2880eb61496fcd296a96a1c8ed4fef98c1149404ca283402803e7aff34cf40c2",
+  "dependency_versions": {
+    "cffi": "2.1.1",
+    "cryptography": "50.0.1",
+    "pycparser": "3.0"
+  },
+  "dependency_wheels": [
+    {
+      "filename": "cffi-2.1.1-cp313-cp313-macosx_11_0_arm64.whl",
+      "metadata_url": "https://pypi.org/pypi/cffi/2.1.1/json",
+      "name": "cffi",
+      "sha256": "19ee6127ee34de7d83ce3d371ebc5ed91addbdcc39f9ab15ce4eb35a4e534971",
+      "size_bytes": 184764,
+      "url": "https://files.pythonhosted.org/packages/55/41/4c7042f317b9217502988f0873af87e16ad606dc20f84e546e3e6ce9764c/cffi-2.1.1-cp313-cp313-macosx_11_0_arm64.whl",
+      "version": "2.1.1"
+    },
+    {
+      "filename": "cryptography-50.0.1-cp311-abi3-macosx_11_0_arm64.whl",
+      "metadata_url": "https://pypi.org/pypi/cryptography/50.0.1/json",
+      "name": "cryptography",
+      "sha256": "b8f852c65863251b9e3a1b8c150ce21e59b522dbb6a7d4bc80e680d38388e986",
+      "size_bytes": 4010153,
+      "url": "https://files.pythonhosted.org/packages/ba/19/797e2aaac9df6a66f1550f49979dc1b1e39ecd2077501c30efa81e8d5d67/cryptography-50.0.1-cp311-abi3-macosx_11_0_arm64.whl",
+      "version": "50.0.1"
+    },
+    {
+      "filename": "pycparser-3.0-py3-none-any.whl",
+      "metadata_url": "https://pypi.org/pypi/pycparser/3.0/json",
+      "name": "pycparser",
+      "sha256": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992",
+      "size_bytes": 48172,
+      "url": "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl",
+      "version": "3.0"
+    }
+  ],
+  "generated_uuid_secret_token_receipt_values_included": false,
+  "limitations": [
+    "Direct Python fixture adapter with explicit current-UID ownership override; no root authorization or IPC proof.",
+    "ClockResult is an explicitly fake-authorized local assertion, not owner authorization, verified UTC or a clock setter result.",
+    "Credential callback checks fsynced synthetic verifier bytes; it does not qualify production password generation or authentication.",
+    "No normal/bootstrap TLS handshake, dispatcher, BLE, QR display, iPhone, Wi-Fi, SD power loss or full first boot.",
+    "Snapshots and bench are ignored build artifacts; application/runtime and OS image remain unchanged."
+  ],
+  "method": {
+    "actual_os_receipt_inspect_and_begin": true,
+    "actual_pinned_first_boot_coordinator": true,
+    "actual_prepared_key_certificate_and_sqlite_storage": true,
+    "application_lifespan_started": false,
+    "clock_authorization_or_utc_verified": false,
+    "clock_radio_services_or_network_changed": false,
+    "current_uid_gid_os_receipt_fixture_override": true,
+    "fake_authorized_clock_local_assertion": true,
+    "fixture_reads_fsynced_synthetic_credential_verifier": true,
+    "hardware_or_sd_qualified": false,
+    "independent_process_concurrency": true,
+    "production_credential_persistence_qualified": false,
+    "real_root_authorization_verified": false,
+    "runtime_adapter_or_dispatcher_installed": false
+  },
+  "observed_revision_behavior": {
+    "credentials_checked_before_preparation_and_begin": false,
+    "missing_credentials_at_entry_consumes_os_authority": true,
+    "missing_credentials_at_entry_leaves_pending_database": true,
+    "preflight_credentials_followup_required": true,
+    "restored_same_credentials_resume_pending_same_receipt": true
+  },
+  "os_commit": "3a8a55ef9d1060cd18419544e7f88c77b0da0a33",
+  "passed": true,
+  "python": {
+    "implementation": "CPython",
+    "platform": "darwin",
+    "version": "3.13.3"
+  },
+  "schema_version": 1,
+  "scope": "first-boot-core-cross-contract-software-fixtures-only",
+  "snapshot_sha256": "ca4e2905700fd88c2a03af43479c450794aaa5b5dc4653d26a65652ba6b1fe1f",
+  "source_files": {
+    "app/docs/inkyos/BOOTSTRAP-IDENTITY.md": {
+      "git_blob": "75a67439a12211a13ce5e3c8ec7aeb62854b5833",
+      "sha256": "56da93acb929e7bcf742b650dae979cde6027ba2ce00731be133284ee87762ff",
+      "size_bytes": 5524
+    },
+    "app/docs/inkyos/FACTORY-STATE.md": {
+      "git_blob": "0840fbaac54c064ea365c96a2e5ba8953bd68221",
+      "sha256": "98d772a7d2681fb2b60438d9eba119c6928647adf7c31810e1e544e47ca4d647",
+      "size_bytes": 5908
+    },
+    "app/docs/inkyos/FIRST-BOOT-COORDINATOR.md": {
+      "git_blob": "33aa7531c8588c7c765519d63473a074aa4b12a8",
+      "sha256": "001606f4cdc3b57f0e066f3e3ce22f42454558f3ca55e6e82400418068707d40",
+      "size_bytes": 4617
+    },
+    "app/server/inky_web/__init__.py": {
+      "git_blob": "dbfab4a8cc04d9e583eacace7d918b589cfe770e",
+      "sha256": "eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc",
+      "size_bytes": 114
+    },
+    "app/server/inky_web/provisioning/__init__.py": {
+      "git_blob": "8cf34c7deecf41ef984ff4de6bafc6556b2260e4",
+      "sha256": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f",
+      "size_bytes": 237
+    },
+    "app/server/inky_web/provisioning/bootstrap_identity.py": {
+      "git_blob": "dca3d0b65197f97a0f0eddfaa218afbd95d49426",
+      "sha256": "85b8105eb851b9bc0138d5ddcefface6bb57d0f4369c999982ad100d5fb1c9c4",
+      "size_bytes": 24698
+    },
+    "app/server/inky_web/provisioning/factory.py": {
+      "git_blob": "0b0524a9f0ecac49de6011991130040f94914d9e",
+      "sha256": "26665699c4ce594b0654c0979e67adafc296febb8b56d9608c54c379b1efe02b",
+      "size_bytes": 3200
+    },
+    "app/server/inky_web/provisioning/first_boot.py": {
+      "git_blob": "ee5c6ac0f3e3d4993c4bc09a191c349b52601d65",
+      "sha256": "758cda0a838fcf9d6feddd9ae591ca6a27cacb1f1bd096c3abf409566c00a149",
+      "size_bytes": 8716
+    },
+    "app/server/inky_web/provisioning/identity.py": {
+      "git_blob": "7b129870fc370f46ebf92fe269c0c4ac16c284e0",
+      "sha256": "22fdbd6cda126fc46e6ea26bba77e0ac26d3d3cc6730db97fb5b463e0a2a1e71",
+      "size_bytes": 15276
+    },
+    "app/server/inky_web/provisioning/ownership.py": {
+      "git_blob": "150323732b3f33eedd8e1af4b2e60efadafb32b9",
+      "sha256": "8cda6bf806f066470fe8137b23ab43d6357650917cfeaed815d765938e68a867",
+      "size_bytes": 29502
+    },
+    "os/scripts/initialization-receipt.py": {
+      "git_blob": "f8a0c8e7971895a2d8ad4aff284678352a5140e8",
+      "sha256": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+      "size_bytes": 11992
+    }
+  },
+  "sqlite_version": "3.53.4",
+  "synthetic_state_cleaned": true,
+  "tests_passed": 20,
+  "tests_total": 20
+}

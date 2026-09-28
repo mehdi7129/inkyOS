@@ -1,0 +1,62 @@
+{
+  "after": {
+    "application_commit": "5b5ad6eb0edf6b959d26d37f7696acb36e39eb98",
+    "missing_credentials_at_entry": {
+      "begin_attempted": false,
+      "exception": "FirstBootRefused",
+      "os_authority": "authorized",
+      "os_authority_files_exactly_unchanged": true,
+      "ownership_database_created": false,
+      "prepared_identity_created": false,
+      "restored_credentials_first_new_consumption": true
+    },
+    "report_sha256": "b0ad5a28957ccd44d9220ce3584468c8fae28978a768efe71147afce69f60eba",
+    "sha256sums_sha256": "483a6f5b21aa4a5abbf6ed753786a258baa6570ccc2fe23c09545ae9966c3c12",
+    "tests_passed": 20,
+    "tests_total": 20,
+    "verified_artifact_count": 21
+  },
+  "before": {
+    "application_commit": "f244fd28998bc818dd1d6666133b23ac54e182c7",
+    "missing_credentials_at_entry": {
+      "begin_attempted": true,
+      "exception": "FirstBootUncertain",
+      "os_authority": "consumed",
+      "ownership_database": "pending",
+      "prepared_identity_created": true,
+      "restored_credentials_same_receipt_resume": true
+    },
+    "report_sha256": "222144e9b871b50b28183879b82e0ad8ceca0562c179a929b3e28ea333a29359",
+    "sha256sums_sha256": "3f981362ecda5394cfdd1b17e32462ff894e50341146ce11dba6720e2a16e665",
+    "tests_passed": 20,
+    "tests_total": 20,
+    "verified_artifact_count": 21
+  },
+  "comparison_controls": {
+    "changed_source_snapshot_files": [
+      "app/docs/inkyos/FIRST-BOOT-COORDINATOR.md",
+      "app/server/inky_web/provisioning/first_boot.py"
+    ],
+    "dependency_versions_and_wheel_provenance_identical": true,
+    "only_changed_case_index_zero_based": 11,
+    "other_19_case_AST_entries_identical": true,
+    "shared_fixture_helpers_and_case_function_AST_identical": true,
+    "shared_function_or_class_count": 31,
+    "source_snapshots_and_reports_are_separate": true
+  },
+  "comparison_passed": true,
+  "generated_state_cleaned_for_both_revisions": true,
+  "os_commit_unchanged": "3a8a55ef9d1060cd18419544e7f88c77b0da0a33",
+  "qualification": {
+    "clock_authorization": false,
+    "complete_first_boot": false,
+    "hardware_or_sd": false,
+    "production_credentials": false,
+    "root_authorization": false,
+    "runtime_adapter": false,
+    "software_fixture_only": true
+  },
+  "schema_version": 1,
+  "scope": "first-boot-core-cross-contract-software-revision-comparison",
+  "secrets_uuids_receipt_values_in_report": false
+}

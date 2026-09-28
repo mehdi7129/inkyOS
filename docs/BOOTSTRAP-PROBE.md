@@ -19,18 +19,19 @@ Les sources, `inputs.json`, `report.json` et `SHA256SUMS` restent dans un nouvea
 
 ## Résultat vérifié le 28 septembre 2026
 
-46 checks passent dans Linux ARM64. La
-[preuve compacte](validation/2026-09-28-bootstrap-peercred.json) contient les
+62 checks passent dans Linux ARM64. La
+[preuve compacte](validation/2026-09-28-bootstrap-inspection.json) contient les
 hashes exacts et le résultat. Les UID sont des identités de fixture, pas une
 allocation de comptes de production.
-La suite complète compte 221 tests, sans échec sur Mac et Linux ARM64 ; cinq
+La suite complète compte 243 tests, sans échec sur Mac et Linux ARM64 ; cinq
 tests ciblent le framing, les gardes d'environnement et l'expiration du serveur.
 
 | Contrôle | Résultat observé |
 | --- | --- |
 | App UID 1000 / helper UID 65534 | Groupes supplémentaires vidés et UID/GID changés avant `connect()` ; credentials relus par `SO_PEERCRED`, PID compris |
 | Accès au reçu | App/helper/UID étranger ne peuvent ni lire, ni écrire, ni remplacer le répertoire root 0700 et ses fichiers 0600 |
-| Rôles | App autorisée à initialiser seulement ; helper autorisé aux fakes heure/pays seulement ; UID 0 et étranger refusés |
+| Rôles | App autorisée à inspecter/initialiser seulement ; helper autorisé aux fakes heure/pays seulement ; UID 0 et étranger refusés |
+| Inspection | App seule : authorized avant consommation, puis consumed avec même intent/receipt ; fichiers inchangés ; manque/corruption refusés sans autorisation implicite |
 | Transport | JSON invalide/dupliqué, UID injecté dans le message, EOF vide/tronqué, dépassement et client lent refusés sans effet ; fragmentation valide acceptée |
 | Pays | Trace fermée → pending → apply → observation → confirmed ; aucun appel réel de radio |
 | Concurrence | Deux clients : exactement un `newly_consumed` et un `already_consumed` |
