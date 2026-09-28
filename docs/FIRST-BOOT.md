@@ -164,6 +164,11 @@ obtenir l'UID par `SO_PEERCRED`, sérialiser entre processus, imposer délais et
 persistance root-owned et vérifier le driver cible. Le verrou actuel ne
 sérialise que les threads d'un objet de test.
 
+Le [banc Linux privilégié](BOOTSTRAP-PROBE.md) vérifie séparément les credentials
+kernel et un vrai reçu root-owned : 46 checks passent, dont la réponse perdue
+après consommation durable. Il utilise les mêmes modèles et des adapters
+temps/pays simulés ; il n'installe aucun IPC de production ni hook de boot.
+
 Deux raccords restent explicites : le backend doit obtenir `newly_consumed`
 par un appel privilégié réellement à usage unique, sans réutiliser un grant
 stocké dans `/run` après un restart ; le gate initial doit permettre le démarrage

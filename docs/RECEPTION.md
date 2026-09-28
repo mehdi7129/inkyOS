@@ -176,9 +176,20 @@ poursuit dans un clone local du même dépôt, branche `main`, sous
 et preuves complètes ignorés par Git sont dans ce clone. Aucun réglage iCloud
 n'a été changé. Les commits continuent à être poussés vers le remote existant.
 
-La dernière annotation CI vérifiée sur le run GitHub `36398861253` indique que
+Le banc Linux `make bootstrap-probe` ajoute 46 checks avec de vrais UID kernel
+et un reçu root-owned, sans mutation d'heure/radio. La suite compte 221 tests
+Mac/Linux ; [méthode et limites](BOOTSTRAP-PROBE.md) sont conservées.
+
+La dernière annotation CI vérifiée sur le run GitHub `36401860603` indique que
 le job n'a pas démarré à cause de paiements récents refusés ou d'une limite de
 dépense à augmenter ; sa liste d'étapes est vide. Cette formulation générique
 ne permet pas de distinguer paiement, quota et budget exacts. Aucun écran ou
 champ de facturation privé lu ou modifié. Les suites Mac/Linux continuent
 indépendamment ; cela ne transforme pas la CI GitHub en succès.
+
+La visibilité des dépôts explique pourquoi Inky Studio peut avoir une CI active
+au même moment : `inky-studio` est public, `inkyOS` privé (métadonnées GitHub
+vérifiées le 28 septembre). Les runners standard publics sont gratuits ; les
+dépôts privés dépendent du quota et du budget du propriétaire, selon les
+[règles GitHub](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+Aucune visibilité ni configuration de facturation n'a été changée.

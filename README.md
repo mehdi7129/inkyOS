@@ -45,6 +45,7 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Qualification logicielle offline](docs/OFFLINE-QUALIFICATION.md) : candidat applicatif installé et testé dans une VM isolée, hors image.
 - [Intégration applicative dans l'image](docs/APPLICATION-IMAGE.md) : installation offline et fichiers système du candidat, startup masqué.
 - [Premier démarrage sans LAN](docs/FIRST-BOOT.md) : contrat partagé, heure, pays Wi-Fi et limites restant à résoudre.
+- [Banc privilégié Linux](docs/BOOTSTRAP-PROBE.md) : UID kernel, reçu root et perte de réponse ; heure/radio simulées.
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 
