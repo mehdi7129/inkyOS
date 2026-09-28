@@ -76,6 +76,39 @@ def rehash_report(directory, name, value):
     path.write_text(json.dumps(manifest))
 
 
+def save_application_export(directory):
+    source = {'source_commit': 'd' * 40, 'application_version': '0.5.0-rc.2'}
+    raw = json.dumps(source).encode()
+    pin = {**source, 'manifest_sha256': hashlib.sha256(raw).hexdigest()}
+    build = default_build()
+    build.update(kind='application-prototype', application={**pin,
+                 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False})
+    build['recipe']['files']['application-manifest.json'] = pin['manifest_sha256']
+    build['recipe']['files']['scripts/install-application-rootfs.py'] = 'e' * 64
+    save_export(directory, build=build)
+    static_system = json.loads((directory/'qualification-static.json').read_text())
+    static_system['checks'].append({'id': 'BOOT_NO_COUNTRY', 'passed': True})
+    rehash_report(directory, 'qualification-static.json', static_system)
+    rehash_report(directory, 'application-manifest.json', raw)
+    inspection = {**pin, 'schema_version': 1, 'scope': 'pinned-application-archive-structure',
+                  'passed': True, 'target_code_executed': False, 'qualification_granted': False}
+    install = {**pin, 'schema_version': 1, 'scope': 'offline-application-rootfs-install', 'passed': True,
+               'app_started': False, 'hardware_qualified': False, 'release_qualified': False, 'steps': [],
+               'scratch_removed': True, 'input_snapshot_removed': True, 'inputs_snapshotted_root_only': True,
+               'build_uid': 1000, 'build_gid': 1000, 'network_interfaces': ['lo'], 'recipe_sha256': 'e' * 64}
+    for name in ('venv', 'dependencies', 'editable', 'pip-check'):
+        raw_log = ('synthetic ' + name).encode()
+        rehash_report(directory, 'application-install-' + name + '.txt', raw_log)
+        install['steps'].append({'name': name, 'exit_code': 0, 'log_sha256': hashlib.sha256(raw_log).hexdigest()})
+    static = {**pin, 'schema_version': 1, 'scope': 'offline-application-prototype-contract',
+              'passed': True, 'failed_checks': [],
+              'checks': [{'id': name, 'passed': True} for name in sorted(artifacts.APPLICATION_CHECKS)]}
+    for name, value in (('application-archives.json', inspection), ('application-installation.json', install),
+                        ('qualification-application.json', static), ('sudoers-verify.txt', b'fixture syntax pass')):
+        rehash_report(directory, name, value)
+    return json.loads((directory/'manifest.json').read_text())
+
+
 class VerifyArtifactsTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -204,6 +237,68 @@ class VerifyArtifactsTests(unittest.TestCase):
         self.output = self.export / "new.json"
         self.assertEqual(self.cli().returncode, 2)
         self.assertFalse(self.output.exists())
+
+    def test_application_candidate_requires_all_pinned_inert_installation_evidence(self):
+        save_application_export(self.export)
+        result = artifacts.load_export(self.export)
+        self.assertEqual(result['manifest']['kind'], 'application-prototype')
+        self.assertTrue(result['report']['passed'])
+        self.assertFalse(result['manifest']['application']['release_qualified'])
+
+    def test_application_pin_must_be_in_recipe_and_services_must_remain_masked(self):
+        for change in ('recipe', 'startup', 'release'):
+            manifest = save_application_export(self.export)
+            if change == 'recipe':
+                del manifest['recipe']['files']['application-manifest.json']
+            elif change == 'startup':
+                manifest['application']['startup'] = 'enabled'
+            else:
+                manifest['application']['release_qualified'] = True
+            (self.export/'manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaises(artifacts.ArtifactError):
+                artifacts.load_export(self.export)
+
+    def test_application_report_wrong_source_cannot_pass_after_rehash(self):
+        for name in ('application-archives.json', 'application-installation.json', 'qualification-application.json'):
+            save_application_export(self.export)
+            value = json.loads((self.export/name).read_text())
+            value['source_commit'] = 'e' * 40
+            rehash_report(self.export, name, value)
+            with self.assertRaises(artifacts.ArtifactError):
+                artifacts.load_export(self.export)
+
+    def test_application_cannot_omit_steps_start_runtime_or_forge_logs(self):
+        for change in ('steps', 'runtime', 'log'):
+            save_application_export(self.export)
+            value = json.loads((self.export/'application-installation.json').read_text())
+            if change == 'steps':
+                value['steps'].pop()
+            elif change == 'runtime':
+                value['app_started'] = True
+            else:
+                value['steps'][0]['log_sha256'] = 'f' * 64
+            rehash_report(self.export, 'application-installation.json', value)
+            with self.assertRaises(artifacts.ArtifactError):
+                artifacts.load_export(self.export)
+
+    def test_application_static_gate_requires_its_core_checks(self):
+        save_application_export(self.export)
+        value = json.loads((self.export/'qualification-application.json').read_text())
+        value['checks'] = [check for check in value['checks'] if check['id'] != 'WIFI_DISABLED']
+        rehash_report(self.export, 'qualification-application.json', value)
+        with self.assertRaises(artifacts.ArtifactError):
+            artifacts.load_export(self.export)
+
+    def test_application_isolation_cleanup_and_recipe_are_not_just_labels(self):
+        for key, bad in (('build_uid', 0), ('build_gid', 0), ('network_interfaces', ['lo', 'eth0']),
+                         ('scratch_removed', False), ('input_snapshot_removed', False),
+                         ('inputs_snapshotted_root_only', False), ('recipe_sha256', 'f' * 64)):
+            save_application_export(self.export)
+            value = json.loads((self.export/'application-installation.json').read_text())
+            value[key] = bad
+            rehash_report(self.export, 'application-installation.json', value)
+            with self.assertRaises(artifacts.ArtifactError):
+                artifacts.load_export(self.export)
 
 
 if __name__ == "__main__":

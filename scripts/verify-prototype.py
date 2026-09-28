@@ -123,7 +123,7 @@ def account_contract(root):
     return {"spi", "i2c", "gpio"} <= membership and not {"sudo", "admin", "netdev"} & membership
 
 
-def nm_state_contract(root):
+def nm_state_contract(root, enabled=True):
     entries = root.entries("var/lib/NetworkManager")
     if [name for name, _ in entries] != ["NetworkManager.state"]:
         return False
@@ -132,7 +132,7 @@ def nm_state_contract(root):
     if state.defaults() or state.sections() != ["main"]:
         return False
     expected = {"wirelessenabled"}
-    return set(state["main"]) == expected and all(state["main"][key].lower() == "true" for key in expected)
+    return set(state["main"]) == expected and all(state["main"][key].lower() == str(enabled).lower() for key in expected)
 
 
 def no_ssh_host_keys(root):
@@ -141,7 +141,7 @@ def no_ssh_host_keys(root):
     return not any(name.startswith("ssh_host_") for name, _ in root.entries("etc/ssh"))
 
 
-def verify(rootfs, bootfs, package_lock, *, _owner_uid=0):
+def verify(rootfs, bootfs, package_lock, *, application=None, _owner_uid=0):
     """_owner_uid supports unprivileged fixtures; the CLI always requires root-owned files."""
     checks = []
 
@@ -159,10 +159,11 @@ def verify(rootfs, bootfs, package_lock, *, _owner_uid=0):
             def metadata_contract():
                 data = json.loads(root.read("etc/inkyos-release.json", 64 * 1024))
                 return (isinstance(data, dict) and type(data.get("schema_version")) is int
-                        and data["schema_version"] == 1 and data.get("kind") == "system-prototype"
-                        and "application" in data and data["application"] is None)
+                        and data["schema_version"] == 1
+                        and data.get("kind") == ("application-prototype" if application else "system-prototype")
+                        and "application" in data and data["application"] == application)
 
-            check("RELEASE_METADATA", metadata_contract, "schema_version=1, kind=system-prototype, application=null")
+            check("RELEASE_METADATA", metadata_contract, "schema_version=1, explicit prototype kind and matching application pin")
             for path, executable in (("etc/inkyos-release.json", False),
                                      ("usr/local/lib/inkyos/firstboot.py", False),
                                      (f"etc/systemd/system/{FIRSTBOOT}", False)):
@@ -195,8 +196,8 @@ def verify(rootfs, bootfs, package_lock, *, _owner_uid=0):
                          "run/NetworkManager/system-connections", "var/lib/bluetooth"):
                 check("EMPTY_" + path.upper().replace("/", "_"), lambda p=path: empty_or_missing(root, p),
                       f"/{path}: absent or empty directories only; no content values disclosed")
-            check("NETWORKMANAGER_GENERIC_STATE", lambda: nm_state_contract(root),
-                  "only NetworkManager.state, main section with WirelessEnabled=true")
+            check("NETWORKMANAGER_GENERIC_STATE", lambda: nm_state_contract(root, enabled=application is None),
+                  "only NetworkManager.state; Wi-Fi disabled for application prototype pending country contract")
             check("NO_BUILD_POLICY_RC", lambda: missing(root, "usr/sbin/policy-rc.d"), "temporary build policy-rc.d removed")
             for unit in MASKS:
                 check("MASK_" + unit, lambda u=unit: readlink(root, f"etc/systemd/system/{u}") == "/dev/null",
@@ -206,6 +207,10 @@ def verify(rootfs, bootfs, package_lock, *, _owner_uid=0):
             for name in ("user-data", "network-config", "meta-data", "userconf", "userconf.txt", "firstrun.sh", "ssh", "ssh.txt"):
                 check("BOOT_ABSENT_" + name, lambda p=name: missing(boot, p), f"boot/{name} absent")
             check("BOOT_RESIZE", lambda: "resize" in boot.read("cmdline.txt", 64 * 1024).split(), "boot cmdline retains resize token")
+            if application:
+                check('BOOT_NO_COUNTRY', lambda: not any(token.startswith('cfg80211.ieee80211_regdom=')
+                      for token in boot.read('cmdline.txt', 64 * 1024).split()),
+                      'application prototype has no preselected country in kernel cmdline')
             check("BOOT_INCLUDE", lambda: "include inkyos.txt" in all_section_lines(boot.read("config.txt", 64 * 1024)),
                   "config.txt includes inkyos.txt in the unconditional configuration")
 
@@ -265,6 +270,8 @@ def main(argv=None):
     parser.add_argument("--bootfs", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--packages-lock", type=Path, default=ROOT / "config/system-packages.lock.json")
+    parser.add_argument("--application-manifest", type=Path)
+    parser.add_argument("--application-sha256")
     args = parser.parse_args(argv)
     try:
         output = args.output.absolute()
@@ -272,7 +279,16 @@ def main(argv=None):
             raise ValueError("output must be outside the inspected trees")
         with args.packages_lock.open("r", encoding="utf-8") as stream:
             lock = json.load(stream)
-        report = verify(args.rootfs, args.bootfs, lock)
+        application = None
+        if args.application_manifest or args.application_sha256:
+            if not (args.application_manifest and args.application_sha256):
+                raise ValueError("Both application manifest and SHA-256 are required")
+            spec = importlib.util.spec_from_file_location("_application_config", ROOT / "scripts/configure-application-rootfs.py")
+            config = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(config)
+            application = config.application_metadata(
+                config.load_manifest(args.application_manifest, args.application_sha256), args.application_sha256)
+        report = verify(args.rootfs, args.bootfs, lock, application=application)
         fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             json.dump(report, stream, indent=2, ensure_ascii=False)

@@ -2,6 +2,7 @@
 
 from contextlib import redirect_stderr, redirect_stdout
 import importlib.util
+import hashlib
 import io
 import json
 import os
@@ -77,6 +78,20 @@ class VerifyPrototypeTests(unittest.TestCase):
         report = self.report()
         self.assertTrue(report["passed"], report["failed_checks"])
         self.assertFalse(report["method"]["image_code_executed"])
+
+    def test_application_mode_is_explicit_and_keeps_wifi_disabled(self):
+        application = {'source_commit': 'a' * 40, 'application_version': '0.5.0-rc.2',
+                       'manifest_sha256': 'b' * 64, 'startup': 'masked-pending-firstboot-contract',
+                       'release_qualified': False}
+        self.put('etc/inkyos-release.json', json.dumps({'schema_version': 1,
+                 'kind': 'application-prototype', 'application': application}))
+        self.put('var/lib/NetworkManager/NetworkManager.state', '[main]\nWirelessEnabled=false\n', 0o600)
+        self.assertFalse(self.report()['passed'])
+        report = verify.verify(self.root, self.boot, self.lock, application=application, _owner_uid=os.getuid())
+        self.assertTrue(report['passed'], report['failed_checks'])
+        self.put('var/lib/NetworkManager/NetworkManager.state', '[main]\nWirelessEnabled=true\n', 0o600)
+        report = verify.verify(self.root, self.boot, self.lock, application=application, _owner_uid=os.getuid())
+        self.assertIn('NETWORKMANAGER_GENERIC_STATE', report['failed_checks'])
 
     def test_missing_metadata_and_wrong_prototype_type_fail(self):
         path = self.root / "etc/inkyos-release.json"
@@ -171,7 +186,7 @@ class VerifyPrototypeTests(unittest.TestCase):
         output = self.base / "report.json"
         args = ["--rootfs", str(self.root), "--bootfs", str(self.boot), "--packages-lock", str(self.lock_path), "--output", str(output)]
         original = verify.verify
-        with patch.object(verify, "verify", side_effect=lambda root, boot, lock: original(root, boot, lock, _owner_uid=os.getuid())), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        with patch.object(verify, "verify", side_effect=lambda root, boot, lock, **kw: original(root, boot, lock, _owner_uid=os.getuid(), **kw)), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             self.assertEqual(verify.main(args), 0)
             before = output.read_bytes()
             self.assertEqual(verify.main(args), 1)
@@ -180,6 +195,30 @@ class VerifyPrototypeTests(unittest.TestCase):
             self.assertEqual(verify.main(args[:-1] + [str(inside)]), 1)
             self.assertFalse(inside.exists())
         self.assertTrue(json.loads(before)["passed"])
+
+    def test_cli_loads_explicit_pinned_application_manifest(self):
+        source = '6a697d134290ced0214fc74b903f4b3c336d70fa'
+        data = {'schema_version': 1, 'application_version': '0.5.0-rc.2', 'source_commit': source,
+                'assets': [{'role': role, 'filename': role + suffix, 'size_bytes': 1, 'sha256': 'a' * 64}
+                           for role, suffix in (('application', '.tar.gz'), ('wheelhouse', '.zip'), ('python_lock', '.lock'))],
+                'compatibility': {'architecture': 'arm64', 'python_minor': '3.13', 'debian_release': 'trixie',
+                                  **{key: 'git:' + source + '#contracts/' + key for key in
+                                     ('http_contract', 'ble_contract', 'network_helper_contract')}},
+                'qualification': {'evidence': []}}
+        manifest = self.base/'application.json'
+        manifest.write_text(json.dumps(data))
+        digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+        application = {'source_commit': source, 'application_version': data['application_version'],
+                       'manifest_sha256': digest, 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False}
+        self.put('etc/inkyos-release.json', json.dumps({'schema_version': 1,
+                 'kind': 'application-prototype', 'application': application}))
+        self.put('var/lib/NetworkManager/NetworkManager.state', '[main]\nWirelessEnabled=false\n', 0o600)
+        args = ['--rootfs', str(self.root), '--bootfs', str(self.boot), '--packages-lock', str(self.lock_path),
+                '--output', str(self.base/'app-report.json'), '--application-manifest', str(manifest),
+                '--application-sha256', digest]
+        original = verify.verify
+        with patch.object(verify, 'verify', side_effect=lambda *a, **kw: original(*a, _owner_uid=os.getuid(), **kw)), redirect_stdout(io.StringIO()):
+            self.assertEqual(verify.main(args), 0)
 
 
 if __name__ == "__main__":

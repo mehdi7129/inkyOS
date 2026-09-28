@@ -1,12 +1,14 @@
 # Développer InkyOS sans carte SD
 
 Un **prototype système sans Inky Studio** est assemblé depuis une base officielle
-Lite ARM64 figée. Aucun accès au Pi, à sa SD personnelle ou à un disque physique.
-Le premier assemblage a réussi le 27 septembre 2026 ; aucune qualification SD.
+Lite ARM64 figée. Une [cible applicative expérimentale](APPLICATION-IMAGE.md)
+installe maintenant un candidat épinglé avec services masqués. Aucun accès au
+Pi, à sa SD personnelle ou à un disque physique. Le premier assemblage système
+a réussi le 27 septembre 2026 ; aucune qualification SD.
 
 ## Utilisation sur Mac Apple Silicon
 
-Prérequis : Python 3.9+ côté Mac, Lima 2.0+ et Git. Le Python Linux du builder
+Prérequis : Python 3.11+ côté Mac, Lima 2.0+ et Git. Le Python Linux du builder
 est 3.13. Les tests locaux ne nécessitent aucune dépendance Python externe.
 
 ```sh
@@ -75,8 +77,10 @@ l'image cible. Modifier lima.yaml ne réécrit pas une VM déjà créée.
   [BASE-CUSTOMIZATION.md](BASE-CUSTOMIZATION.md).
 
 Le hostname avant boot reste générique. Aucune identité app, clé, QR, photo,
-base de données ou association créée au build. Payload, venv, helper/polkit/CLI
-viendront de la release commune [APPLICATION-PAYLOAD.md](APPLICATION-PAYLOAD.md).
+base de données ou association créée au build. Le prototype applicatif ajoute
+payload/venv/helper/polkit/CLI du candidat commun, un compte helper non-root et
+son groupe restreint ; son Wi-Fi reste désactivé et ses services masqués.
+Voir [APPLICATION-IMAGE.md](APPLICATION-IMAGE.md).
 
 ## Rapports par build
 

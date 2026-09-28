@@ -18,7 +18,18 @@ fi
 cd "$work"
 [[ -f prototype.img && ! -L prototype.img && ! -e root && ! -e boot ]] || exit 2
 python3 - <<'PY'
-import hashlib,json,os,stat
+import hashlib,json,os,pathlib,stat
+recipe=json.load(open('recipe/recipe-inputs.json'))
+for name,digest in recipe['files'].items():
+    relative=pathlib.PurePosixPath(name)
+    assert not relative.is_absolute() and '..' not in relative.parts and str(relative)==name
+    path=pathlib.Path('recipe')/name
+    for parent in path.parents:
+        assert not parent.is_symlink()
+    info=path.lstat()
+    assert stat.S_ISREG(info.st_mode) and info.st_nlink==1
+    with path.open('rb') as stream:
+        assert hashlib.file_digest(stream,'sha256').hexdigest()==digest, 'Recipe input hash mismatch'
 base=json.load(open('recipe/config/base-image.lock.json'))['image']
 info=os.stat('prototype.img',follow_symlinks=False)
 assert stat.S_ISREG(info.st_mode) and info.st_nlink==1
@@ -104,15 +115,41 @@ chroot root /usr/sbin/usermod --groups spi,i2c,gpio --shell /usr/sbin/nologin --
 chroot root /usr/bin/id inky
 python3 recipe/scripts/configure-rootfs.py --rootfs "$work/root" --bootfs "$work/boot" \
   --recipe "$work/recipe"
+application_options=()
+if [[ -f recipe/application-manifest.json ]]; then
+  application_sha256=$(python3 -c 'import json; print(json.load(open("recipe/recipe-inputs.json"))["files"]["application-manifest.json"])')
+  python3 recipe/scripts/install-application-rootfs.py --rootfs "$work/root" \
+    --manifest "$work/recipe/application-manifest.json" --sha256 "$application_sha256" \
+    --assets-dir "$work/application-inputs" --output "$work/application-installation.json"
+  chroot root /usr/sbin/groupadd --system inky-provisioning
+  chroot root /usr/sbin/usermod --append --groups inky-provisioning inky
+  chroot root /usr/sbin/useradd --system --no-create-home --home-dir /nonexistent \
+    --shell /usr/sbin/nologin --gid inky-provisioning inky-network
+  chroot root /usr/bin/chage --lastday 0 inky-network
+  python3 recipe/scripts/configure-application-rootfs.py --rootfs "$work/root" \
+    --manifest "$work/recipe/application-manifest.json" --sha256 "$application_sha256"
+  chroot root /usr/sbin/visudo -cf /etc/sudoers.d/inky-studio > sudoers-verify.txt 2>&1
+  python3 recipe/scripts/verify-application-rootfs.py --rootfs "$work/root" \
+    --manifest "$work/recipe/application-manifest.json" --sha256 "$application_sha256" \
+    --output "$work/qualification-application.json"
+  application_options=(--application-manifest "$work/recipe/application-manifest.json" --application-sha256 "$application_sha256")
+fi
 # Imports only: no D-Bus connection, no daemon or application startup.
 chroot root /usr/bin/env -i PATH=/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 \
   /usr/bin/python3 -c 'import dbus; print("python3-dbus import OK")'
 chroot root /usr/bin/systemd-analyze verify inkyos-firstboot.service \
   NetworkManager.service avahi-daemon.service bluetooth.service rpi-resize.service \
   > systemd-verify.txt 2>&1 || { cat systemd-verify.txt >&2; exit 1; }
+if (( ${#application_options[@]} )); then
+  # Explicit vendor paths allow syntax verification despite deliberate local masks.
+  chroot root /usr/bin/systemd-analyze verify /usr/lib/systemd/system/inky-studio.service \
+    /usr/lib/systemd/system/inky-network.service >> systemd-verify.txt 2>&1 || {
+      cat systemd-verify.txt >&2; exit 1;
+    }
+fi
 rm -- root/usr/sbin/policy-rc.d
 python3 recipe/scripts/verify-prototype.py --rootfs "$work/root" --bootfs "$work/boot" \
-  --output "$work/qualification-static.json"
+  --output "$work/qualification-static.json" "${application_options[@]}"
 sha256sum --check --strict boot-preserved.sha256
 umount root/dev
 dev_mounted=0
@@ -130,4 +167,4 @@ root_mounted=0
 e2fsck -fn "${loop}p2" > fsck-ext4.txt 2>&1 || { cat fsck-ext4.txt >&2; exit 1; }
 fsck.fat -n "${loop}p1" > fsck-fat.txt 2>&1 || { cat fsck-fat.txt >&2; exit 1; }
 # EXIT trap unmounts before the host-side wrapper hashes/exports the image.
-echo 'System prototype customized and static gates passed; no Pi boot performed.'
+echo 'Prototype customized and static gates passed; no Pi boot performed.'

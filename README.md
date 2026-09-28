@@ -2,11 +2,12 @@
 
 Image Raspberry Pi dédiée aux cadres photo **Inky Studio**.
 
-**État : prototype système assemblé, 27 septembre 2026.** Une image officielle
+**État : prototypes expérimentaux, 28 septembre 2026.** Une image officielle
 Lite ARM64 figée est personnalisée offline dans une VM dédiée. Premier boot
 système, compte applicatif verrouillé, services et prérequis matériels sont
-préparés et contrôlés. **Le prototype ne contient pas encore Inky Studio et
-n'est pas qualifié sur SD.**
+préparés et contrôlés. Le prototype système reste sans app ; une cible opt-in
+intègre un candidat Inky Studio épinglé avec ses services masqués.
+**Le parcours sans LAN reste en développement ; aucune qualification SD.**
 
 ```sh
 make test
@@ -42,6 +43,8 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Compilation des wheels natives](docs/NATIVE-WHEELS.md) : essai ARM64 réussi et artefacts expérimentaux transmis à Inky Studio.
 - [Contrôle des archives](docs/ARCHIVE-CONTRACT.md) : contrat commun et inspection inerte avant extraction.
 - [Qualification logicielle offline](docs/OFFLINE-QUALIFICATION.md) : candidat applicatif installé et testé dans une VM isolée, hors image.
+- [Intégration applicative dans l'image](docs/APPLICATION-IMAGE.md) : installation offline et fichiers système du candidat, startup masqué.
+- [Premier démarrage sans LAN](docs/FIRST-BOOT.md) : contrat partagé, heure, pays Wi-Fi et limites restant à résoudre.
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 

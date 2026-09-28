@@ -55,7 +55,9 @@ def compare_builds(left_directory, right_directory, *, verify_images=False):
     recipe_changes = {"metadata": changes(*metadata), "files": changes(*(recipe["files"] for recipe in recipes))}
     filesystem_changes = {section: changes(*(filesystem[section] for filesystem in filesystems))
                           for section in ("rootfs", "bootfs")}
-    inputs_equal = all(unchanged(diff) for diff in recipe_changes.values())
+    application_equal = artifacts.canonical(builds[0]['application']) == artifacts.canonical(builds[1]['application'])
+    kind_equal = builds[0]['kind'] == builds[1]['kind']
+    inputs_equal = kind_equal and application_equal and all(unchanged(diff) for diff in recipe_changes.values())
     content_equal = all(unchanged(diff) for diff in filesystem_changes.values())
     hashes_equal = builds[0]["image"]["sha256"] == builds[1]["image"]["sha256"]
     extended_complete = version == 2 and all(record["xattrs"]["status"] == "inspected"
@@ -63,6 +65,7 @@ def compare_builds(left_directory, right_directory, *, verify_images=False):
     return {
         "schema_version": 1, "scope": "verified-export-reports-and-recorded-filesystem-content",
         "direction": "left-to-right", "inputs_equal": inputs_equal, "content_equal": content_equal,
+        "prototype_kind_equal": kind_equal, "application_pin_equal": application_equal,
         "declared_report_hashes_verified": True, "image_hashes_verified": verify_images,
         "recorded_image_hashes_equal": hashes_equal,
         "image_byte_identical": hashes_equal if verify_images else None,

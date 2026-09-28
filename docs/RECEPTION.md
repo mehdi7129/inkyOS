@@ -143,3 +143,25 @@ et trois réponses API/frontend conformes, sans état applicatif ni lifespan.
 Les preuves rehashées sont transmises à Inky Studio pour sa PR #13 ; le
 prototype système reste inchangé et sans backend. La suite compte maintenant
 143 tests (140 exécutés sur Mac, 142 sur Linux ; skips documentés).
+
+## Démarrage sans LAN et intégration — 28 septembre
+
+l’opérateur demande explicitement le premier boot sans LAN, les contrats heure/pays
+et l'intégration dans l'image. Coordination active avec Inky Studio : contrat
+commun `4bdaf6b`, lot applicatif d'état/receipt `2c03466`, branches distinctes du
+candidat de packaging. Le [suivi premier boot](FIRST-BOOT.md) distingue code
+testé, interfaces internes et décisions encore ouvertes. Aucun wire format ou
+droit système élargi n'est imposé unilatéralement.
+
+L'intégration expérimentale du candidat `6a697d1` est désormais implémentée :
+installation offline au chemin final, fichiers système dérivés du même source,
+services masqués et Wi-Fi désactivé avant le futur contrat pays. Le modèle de
+reçu OS est testé mais non installé dans l'image. Les preuves d'assemblage
+complet sont suivies dans [APPLICATION-IMAGE.md](APPLICATION-IMAGE.md).
+
+La dernière annotation CI vérifiée sur le run GitHub `36353199710` indique que
+le job n'a pas démarré à cause de paiements récents refusés ou d'une limite de
+dépense à augmenter ; sa liste d'étapes est vide. Cette formulation générique
+ne permet pas de distinguer paiement, quota et budget exacts. Aucun écran ou
+champ de facturation privé lu ou modifié. Les suites Mac/Linux continuent
+indépendamment ; cela ne transforme pas la CI GitHub en succès.

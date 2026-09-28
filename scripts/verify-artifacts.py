@@ -33,6 +33,18 @@ REQUIRED_STATIC_CHECKS = frozenset({
     "CLOUD_INIT_DISABLED", "BOOT_RESIZE", "BOOT_INCLUDE", "BOOT_INTERFACES", "I2C_MODULE",
     "RPI_RESIZE_ENABLED", "LOCKED_SYSTEM_PACKAGES",
 })
+APPLICATION_REPORTS = frozenset({
+    'application-manifest.json', 'application-archives.json', 'application-installation.json',
+    'qualification-application.json', 'sudoers-verify.txt',
+    'application-install-venv.txt', 'application-install-dependencies.txt',
+    'application-install-editable.txt', 'application-install-pip-check.txt',
+})
+APPLICATION_CHECKS = frozenset({
+    'APPLICATION_METADATA', 'REVIEWED_INSTALLER_SOURCES', 'SOURCE_COMMIT_PIN',
+    'APPLICATION_ACCOUNTS', 'APP_MASK_inky-studio.service', 'APP_MASK_inky-network.service',
+    'WIFI_DISABLED', 'NO_PRESEEDED_COUNTRY', 'APP_VENV', 'NO_APP_RUNTIME_STATE', 'NO_PYTHON_BYTECODE',
+    'APP_DATA_DIRECTORIES',
+})
 
 
 class ArtifactError(ValueError):
@@ -153,18 +165,36 @@ def validate_recipe(recipe):
 
 def validate_build(value):
     if (not isinstance(value, dict) or type(value.get("schema_version")) is not int
-            or value["schema_version"] != 1 or value.get("kind") != "system-prototype"
+            or value["schema_version"] != 1 or value.get("kind") not in {"system-prototype", "application-prototype"}
             or value.get("hardware_qualified") is not False
-            or "application" not in value or value["application"] is not None):
-        raise ArtifactError("Expected schema 1 system-prototype, application=null, hardware_qualified=false")
+            or "application" not in value):
+        raise ArtifactError("Expected schema 1 prototype with explicit application and hardware_qualified=false")
     validate_recipe(value.get("recipe"))
+    application = value['application']
+    required_reports = REQUIRED_REPORTS
+    if value['kind'] == 'system-prototype':
+        if application is not None:
+            raise ArtifactError('System prototype requires application=null')
+    else:
+        if (not isinstance(application, dict) or set(application) != {
+                'source_commit', 'application_version', 'manifest_sha256', 'startup', 'release_qualified'}
+                or not isinstance(application['source_commit'], str)
+                or re.fullmatch(r'[0-9a-f]{40}', application['source_commit']) is None
+                or not isinstance(application['application_version'], str)
+                or re.fullmatch(r'\d+\.\d+\.\d+(?:(?:a|b|rc)\d+|-[0-9A-Za-z.-]+)?', application['application_version']) is None
+                or not valid_hash(application['manifest_sha256'])
+                or application['startup'] != 'masked-pending-firstboot-contract'
+                or application['release_qualified'] is not False
+                or value['recipe']['files'].get('application-manifest.json') != application['manifest_sha256']):
+            raise ArtifactError('Application prototype requires a pinned recipe input and masked, unqualified startup')
+        required_reports |= APPLICATION_REPORTS
     image = value.get("image")
     if (not isinstance(image, dict) or not basename(image.get("filename"))
             or not image["filename"].endswith(".img") or not valid_hash(image.get("sha256"))
             or not integer(image.get("size_bytes")) or not 0 < image["size_bytes"] <= MAX_IMAGE_BYTES):
         raise ArtifactError("Image requires a regular .img basename, bounded size and SHA-256")
     reports = value.get("reports")
-    if (not isinstance(reports, dict) or not REQUIRED_REPORTS <= set(reports) or len(reports) > 128
+    if (not isinstance(reports, dict) or not required_reports <= set(reports) or len(reports) > 128
             or any(not basename(name) or not valid_hash(digest) for name, digest in reports.items())
             or {"manifest.json", image["filename"]} & set(reports)):
         raise ArtifactError("Invalid report names/hashes or required build reports are missing")
@@ -255,6 +285,60 @@ def validate_gates(reports, manifest):
     if (not isinstance(image, dict) or image.get("sha256") != manifest["image"]["sha256"]
             or type(image.get("size_bytes")) is not int or image["size_bytes"] != manifest["image"]["size_bytes"]):
         raise ArtifactError("Image-inspection metadata differs from export manifest")
+    if manifest['kind'] == 'application-prototype':
+        if 'BOOT_NO_COUNTRY' not in {check['id'] for check in checks}:
+            raise ArtifactError('Application prototype omits the boot country check')
+        validate_application_gates(reports, manifest)
+
+
+def validate_application_gates(reports, manifest):
+    application = manifest['application']
+    pin = {key: application[key] for key in ('manifest_sha256', 'source_commit', 'application_version')}
+    raw = reports['application-manifest.json']
+    source = parse_json(raw)
+    if (hashlib.sha256(raw).hexdigest() != pin['manifest_sha256']
+            or any(source.get(key) != pin[key] for key in ('source_commit', 'application_version'))):
+        raise ArtifactError('Application source manifest differs from recipe pin')
+    for name, scope in (
+            ('application-archives.json', 'pinned-application-archive-structure'),
+            ('application-installation.json', 'offline-application-rootfs-install'),
+            ('qualification-application.json', 'offline-application-prototype-contract')):
+        value = parse_json(reports[name])
+        if (not isinstance(value, dict) or type(value.get('schema_version')) is not int
+                or value['schema_version'] != 1 or value.get('scope') != scope
+                or value.get('passed') is not True or any(value.get(key) != expected for key, expected in pin.items())):
+            raise ArtifactError('Application report does not match the pinned candidate or PASS scope')
+    inspection = parse_json(reports['application-archives.json'])
+    if inspection.get('target_code_executed') is not False or inspection.get('qualification_granted') is not False:
+        raise ArtifactError('Archive report exceeds its inert qualification scope')
+    install = parse_json(reports['application-installation.json'])
+    if (install.get('app_started') is not False or install.get('hardware_qualified') is not False
+            or install.get('release_qualified') is not False):
+        raise ArtifactError('Installation must not start the app or assert release/hardware qualification')
+    if (any(install.get(key) is not True for key in
+            ('scratch_removed', 'input_snapshot_removed', 'inputs_snapshotted_root_only'))
+            or type(install.get('build_uid')) is not int or install['build_uid'] != 1000
+            or type(install.get('build_gid')) is not int or install['build_gid'] != 1000
+            or install.get('network_interfaces') != ['lo']
+            or not valid_hash(install.get('recipe_sha256'))
+            or install['recipe_sha256'] != manifest['recipe']['files'].get('scripts/install-application-rootfs.py')):
+        raise ArtifactError('Installation isolation, cleanup or recipe hash contradicts the build contract')
+    steps = install.get('steps')
+    if (not isinstance(steps, list) or len(steps) != 4
+            or [step.get('name') for step in steps if isinstance(step, dict)] != ['venv', 'dependencies', 'editable', 'pip-check']):
+        raise ArtifactError('Incomplete application installation steps')
+    for step in steps:
+        log = reports['application-install-' + step['name'] + '.txt']
+        if type(step.get('exit_code')) is not int or step['exit_code'] != 0 or step.get('log_sha256') != hashlib.sha256(log).hexdigest():
+            raise ArtifactError('Application step or exported log is inconsistent')
+    static = parse_json(reports['qualification-application.json'])
+    checks = static.get('checks')
+    if (static.get('failed_checks') != [] or not isinstance(checks, list) or not checks
+            or any(not isinstance(check, dict) or not isinstance(check.get('id'), str)
+                   or check.get('passed') is not True for check in checks)
+            or len({check['id'] for check in checks}) != len(checks)
+            or not APPLICATION_CHECKS <= {check['id'] for check in checks}):
+        raise ArtifactError('Application static PASS contradicts its checks or omits core checks')
 
 
 def load_export(directory, *, verify_images=True):
