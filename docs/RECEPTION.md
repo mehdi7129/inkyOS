@@ -219,3 +219,13 @@ normale, pays réellement observé et gate actif. Un payload commun qualifié de
 ensuite être épinglé et reconstruit, puis testé sur une SD dédiée. Les composants
 actuels sont des fondations testées ; le premier démarrage complet n'est pas
 annoncé comme fonctionnel.
+
+Le 28 septembre, à la demande explicite de l’opérateur, `inkyOS` est devenu
+public (`private=false`, `visibility=public` vérifiés via l'API GitHub). Une
+vérification ciblée des fichiers suivis et des 157 blobs de l'historique n'a
+détecté aucun secret réel avec les motifs recherchés ; les URL contenant des
+credentials correspondent à des fixtures explicites. Aucun artefact Actions
+n'était présent. Cela ne publie aucune image ni release qualifiée et ne change
+aucun réglage de facturation. Le prochain push permet de vérifier si les jobs
+sur runner standard public démarrent ; les échecs privés précédents restent
+des échecs avant exécution, et non des tests réussis.

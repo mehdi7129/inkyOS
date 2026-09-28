@@ -63,5 +63,7 @@ la carte SD personnelle de développement ne doit entrer dans les sources ou
 les artefacts distribués. Construire une image vierge, puis créer chaque identité
 au premier démarrage.
 
-Dépôt initial privé. L'ouverture publique et la publication d'une image viendront
-après qualification et vérification des licences de redistribution.
+Dépôt public depuis le 28 septembre 2026, à la demande de l’opérateur. Les images
+restent expérimentales : aucune release d'image qualifiée n'est publiée.
+La publication d'une image nécessite encore sa qualification et la vérification
+des licences de redistribution.
