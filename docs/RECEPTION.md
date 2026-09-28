@@ -229,3 +229,19 @@ n'était présent. Cela ne publie aucune image ni release qualifiée et ne chang
 aucun réglage de facturation. Le prochain push permet de vérifier si les jobs
 sur runner standard public démarrent ; les échecs privés précédents restent
 des échecs avant exécution, et non des tests réussis.
+
+Le premier push public `2399924` a effectivement déclenché une
+CI réussie (`inkyOS/actions/runs/36409574780`) :
+243 tests exécutés, aucun échec, 1 skip. Le blocage avant démarrage est donc
+levé pour ce run sur runner standard public.
+
+Relais Inky Studio du 28 septembre, fusion vérifiée via GitHub : la
+PR #14 (`inky-studio/pull/14`), head testé `5b5ad6e`,
+est fusionnée dans `codex/ios-demo-onboarding` au commit
+`30aed843c9389f590eae9f78d41bf12423698fe7`. Ce n'est ni un merge dans `main`,
+ni une release, ni un déploiement. La suite applicative est suivie dans
+#15 (`inky-studio/issues/15`) pour le runtime
+first-boot/iOS et #16 (`inky-studio/issues/16`)
+pour la qualification physique BLE/Wi-Fi et la release. Le pin applicatif
+InkyOS reste `6a697d1` ; aucun raccord runtime supplémentaire n'est annoncé
+par cette fusion.
