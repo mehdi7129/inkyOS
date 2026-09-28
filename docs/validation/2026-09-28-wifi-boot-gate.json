@@ -1,0 +1,78 @@
+{
+  "base_commit": "3a8a55ef9d1060cd18419544e7f88c77b0da0a33",
+  "date": "2026-09-28",
+  "gate_tests": 18,
+  "glib_oracle": {
+    "host": "dedicated-linux-arm64-builder",
+    "ran": true,
+    "rejects_encoding_load_failure": true,
+    "requires_no_error_and_explicit_false": true,
+    "version": "2.84.4"
+  },
+  "hardware_qualified": false,
+  "image_installed": false,
+  "limits": [
+    "Fixture-root writer, no root runtime entry point or ExecStartPre installed.",
+    "Directory flock serializes these writers only; caller must ensure NetworkManager is stopped.",
+    "Changing the persisted flag does not prove an already active radio is off before NetworkManager.",
+    "Atomic-write checkpoints and fsync error injection are not real power loss or SD tests.",
+    "Future factory-only policy must preserve BLE when NM or its helper is unavailable, and revalidate country after restart."
+  ],
+  "networkmanager_stopped_or_reconfigured": false,
+  "radio_or_clock_changed": false,
+  "runtime_entrypoint_implemented": false,
+  "schema_version": 1,
+  "scope": "inactive-networkmanager-boot-gate-fixtures",
+  "software_fixtures": {
+    "all_linux_source_bytes_match_current": true,
+    "linux_arm64": {
+      "receipt": {
+        "architecture": "aarch64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "4df70f5ffaf07ba8e028541bc8ed59cd5ce3f9c7f3f2da3d24a06e4db42e6bd1",
+        "passed": true,
+        "python": "3.13.5",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 8
+        },
+        "skipped": 1,
+        "system": "Linux",
+        "tests": 239
+      },
+      "receipt_sha256": "7f9bdb74ace35fbdc994e5d7688394d94f267066b0a25a5422d80b76609dab08"
+    },
+    "linux_inputs_sha256": "19654ee82de7c69fa391ee7fe45ec304c923facff8ced9aa9ea519763fda6a4b",
+    "macos": {
+      "receipt": {
+        "architecture": "arm64",
+        "errors": 0,
+        "failures": 0,
+        "hardware_qualified": false,
+        "log_sha256": "474438c14e73e2c055509521e2ea3c94ea3fb8e3e8dab84e879926eb55972d16",
+        "passed": true,
+        "python": "3.13.3",
+        "python_fixtures_passed": true,
+        "schema_version": 1,
+        "scope": "software-fixtures-only",
+        "shell_syntax": {
+          "passed": true,
+          "scripts_checked": 8
+        },
+        "skipped": 4,
+        "system": "Darwin",
+        "tests": 239
+      },
+      "receipt_sha256": "73acd8d7616a9407172810503fb8aa0a8123c0a0ac65c52a9c4adc88f58afadf"
+    }
+  },
+  "source_sha256": {
+    "scripts/wifi-boot-gate.py": "96b251196cff66c60868bfafde738e9b07f528f00a98abf0e944f4af023eb6c4",
+    "tests/test_wifi_boot_gate.py": "6306772a527b881e6795108406daad9882678eba8864d2d647b38d2e666eb40f"
+  }
+}

@@ -35,7 +35,7 @@ sont sur `codex/first-boot-contract`, distincts du candidat de packaging PR #13.
   build ne déterminent pas ce pays. Aucun scan ou autoconnect n'est autorisé
   avant application et vérification de l'état réglementaire.
 
-## Heure : mécanisme encore à choisir
+## Heure : profil TLS et opération système
 
 La décision TLS commune (`inky-studio/blob/efda86e4e759039fd6045afc57f0dbcadc7c7879/docs/inkyos/BOOTSTRAP-TLS-DECISION.md`)
 retient un profil bootstrap distinct, épinglé sur la clé du QR physique ou sur
@@ -62,9 +62,10 @@ Une opération étroite utilisant
 [`clock_settime_ns(CLOCK_REALTIME, …)`](https://docs.python.org/3.13/library/time.html#time.clock_settime_ns)
 éviterait de suspendre NTP, mais exige `CAP_SYS_TIME`. Le helper actuel est
 non-root et sans capability ; élargir son service n'est donc pas une simple
-option d'installation. Comparer cette extension à un composant privilégié
-strictement limité avant de choisir les unités. Le backend ordinaire ne reçoit
-aucun sudo général, droit timedate ou capability.
+option d'installation. La direction commune retient un composant privilégié
+distinct, aux opérations bornées ; unités, capabilities et autorisation effective
+restent à revoir avant activation. Le backend ordinaire ne reçoit aucun sudo
+général, droit timedate ou capability.
 
 Le contrat doit borner les valeurs entières, les corrections avant/arrière,
 le débit et la durée d'autorisation. Une borne supérieure fixée à la date de
@@ -108,6 +109,12 @@ seule règle avec le futur helper. Une erreur doit laisser le Wi-Fi fermé et
 permettre la correction via BLE. Une mise à jour app d'un cadre existant exige
 une migration conservant sa configuration ; elle ne doit pas lui appliquer
 automatiquement le gate d'une image usine vierge.
+
+Le [gate avant NetworkManager](WIFI-BOOT-GATE.md) est désormais une fonction
+testée, toujours inactive : écriture atomique de `WirelessEnabled=false` avant
+chaque démarrage/restart du daemon. Son futur `ExecStartPre` restera indépendant
+du firstboot hostname pour éviter qu'un échec Wi-Fi bloque également Bluetooth.
+Il ne prouve pas à lui seul la fermeture physique du radio avant NM.
 
 ## Intégration et prochaines preuves
 

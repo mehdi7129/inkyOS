@@ -46,6 +46,7 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Intégration applicative dans l'image](docs/APPLICATION-IMAGE.md) : installation offline et fichiers système du candidat, startup masqué.
 - [Premier démarrage sans LAN](docs/FIRST-BOOT.md) : contrat partagé, heure, pays Wi-Fi et limites restant à résoudre.
 - [Banc privilégié Linux](docs/BOOTSTRAP-PROBE.md) : UID kernel, reçu root et perte de réponse ; heure/radio simulées.
+- [Gate Wi-Fi au boot](docs/WIFI-BOOT-GATE.md) : préparation durable de l'état NM sur fixtures, intégration encore inactive.
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 

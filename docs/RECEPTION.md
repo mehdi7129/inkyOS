@@ -193,3 +193,15 @@ vérifiées le 28 septembre). Les runners standard publics sont gratuits ; les
 dépôts privés dépendent du quota et du budget du propriétaire, selon les
 [règles GitHub](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 Aucune visibilité ni configuration de facturation n'a été changée.
+
+Le [gate avant NetworkManager](WIFI-BOOT-GATE.md) est implémenté sur fixtures,
+sans entrée runtime ni installation. Les 239 tests passent sur Mac/Linux, dont
+un oracle du vrai parser GLib sous Linux. Inky Studio a accepté uniquement la
+fonction et les fixtures inactives ; l'activation, la tolérance du backend à
+l'absence du helper et la fermeture radio réelle restent à qualifier.
+
+Le profil TLS séparé applicatif est poussé dans `a1596a2` (PR #14 draft (`inky-studio/pull/14`)).
+Le lot suivant prépare identité avant RTC, réparation du certificat sous la
+même clé et coordination avec un adapter OS simulé. Aucun dispatcher bootstrap,
+GATT, flow iOS complet ou démarrage sans LAN utilisable n'est déduit de ces lots.
+Le payload de l'image reste exactement `6a697d1`, avec services masqués.
