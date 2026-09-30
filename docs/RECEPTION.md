@@ -12,8 +12,11 @@ dans les sources : identification EEPROM/radio, création de la clé hôte
 uniquement sur le Pi, rapport local puis arrêt demandé. Aucun profil réseau,
 country setter, accès SSH ni lancement applicatif n'est autorisé par cette
 phase. Le banc des helpers ext4/FAT32 passe 17/17, avec cleanup externe
-vérifié. L'assemblage privé et le contrôleur de retour restent en cours ;
-aucun flash ni premier boot de cette variante n'a eu lieu.
+vérifié. L'export privé est construit depuis `2c54070` propre (CI verte),
+62+26+16+16 contrôles passent ; 501 fixtures Mac/Linux et leurs 95 inputs
+sont liés au même commit. Le [rapport réduit](validation/2026-09-30-test-enrollment.json)
+consigne ces observations. Le contrôleur de retour et la relecture externe
+restent en cours ; aucun flash ni premier boot de cette variante n'a eu lieu.
 
 Inky Studio a livré le candidat corrigé `758a2bf7ed099aad41ef35316e53228e797b0b2b`,
 manifeste `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`.
@@ -22,7 +25,8 @@ Il remplace le candidat pour les nouveaux builds TEST ; l'ancien couple exact
 les métadonnées des panneaux, sans changement de driver/protocole.
 
 Les sources de la [variante TEST LAN inactive](TEST-LAN.md), du preflight et
-des sondes EEPROM/radio sont livrées. Les sondes restent hors image/preflight.
+des sondes EEPROM/radio sont livrées. Les sondes restent hors image générique
+PREPARED/preflight ; elles sont installées uniquement dans son enfant privé ENROLL.
 Le [canal opérateur privé](TEST-OPERATOR.md) et son activation restent une
 proposition distincte ; le banc SSH utilise un runner inerte.
 La suite finale compte **443 tests**, sans échec sur Mac Python 3.13.3

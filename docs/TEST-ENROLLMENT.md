@@ -2,8 +2,8 @@
 
 Préparation du 30 septembre 2026 pour la Qumox 16 Go et le Pi Zero 2 W.
 Cette phase se construit depuis l'[image TEST LAN préparée](TEST-LAN.md),
-sans démarrer l'app, le helper ou SSH. **Sources et banc filesystem validés ;
-assemblage privé et contrôle de retour encore en cours. Aucun flash ni
+sans démarrer l'app, le helper ou SSH. **Export privé construit et vérifié ;
+contrôle de retour et relecture externe encore en cours. Aucun flash ni
 exécution sur le Pi à ce stade.**
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
@@ -40,6 +40,18 @@ make test-enrollment PYTHON=python3.13 \
 
 Cette commande crée une clé opérateur neuve dans le dossier privé et
 assemble une copie ; elle ne touche aucune SD et ne lance aucun runtime du Pi.
+
+L'export local `private/test-enrollment.23b4736c` est construit depuis les
+sources propres `2c540701fb222dde0437edd47002f6a49945da5b` (CI verte).
+L'image fait 3 061 841 920 octets, SHA-256
+`7a1b70463e5501830f67e9c4b2ffcb69d8970a154115a8e9f8aa2e27eeb9d86e`.
+Ses 62 contrôles système, 26 applicatifs, 16 hérités PREPARED et 16 propres
+à l'enrôlement passent. Le manifeste et les inventaires sont contrôlés,
+les dix fichiers boot/grow et tout le bootfs restent identiques au parent ;
+systemd verify et les deux fsck passent. La copie d'image VM a été retirée
+après réception vérifiée ; le contrôle externe ne trouve aucun loop/montage
+de staging. La [preuve publique réduite](validation/2026-09-30-test-enrollment.json)
+omet toute personnalisation. L'image et ses preuves complètes restent privées.
 
 Le build installe le runtime, les deux sondes readonly et une seule unité
 root d'enrôlement après firstboot. Les comptes applicatifs, masques SSH,
