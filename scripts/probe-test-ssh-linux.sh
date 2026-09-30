@@ -52,10 +52,10 @@ import time
 EXACT_SOURCE = '758a2bf7ed099aad41ef35316e53228e797b0b2b'
 EXACT_MANIFEST = '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'
 USER = 'inky-test'
-DISPATCH_PATH = '/usr/local/lib/inkyos/test-lan-ssh-dispatch.py'
-RUNNER_PATH = '/usr/local/lib/inkyos/test-lan-runner'
+DISPATCH_PATH = '/usr/local/lib/inkyos-test-ssh/dispatch.py'
+RUNNER_PATH = '/usr/local/lib/inkyos-test-ssh/runner'
 RUNTIME = '/run/inkyos-test-ssh'
-SUDOERS = 'inky-test ALL=(root) NOPASSWD: /usr/local/lib/inkyos/test-lan-runner ""\n'
+SUDOERS = 'inky-test ALL=(root) NOPASSWD: /usr/local/lib/inkyos-test-ssh/runner ""\n'
 INPUTS = {'probe-test-ssh-linux.sh', 'probe.img', 'parent-manifest.json',
           'parent-manifest.sha256', 'parent-filesystem-manifest.json', 'parent-integrity.json'}
 PROGRAMS = (
@@ -122,7 +122,7 @@ def main():
     try:
         verb = operation(os.environ.get('SSH_ORIGINAL_COMMAND', ''))
         payload = {'schema_version': 1, 'operation': verb, 'request': receive(0)}
-        result = subprocess.run(['/usr/bin/sudo', '-n', '--', '/usr/local/lib/inkyos/test-lan-runner'],
+        result = subprocess.run(['/usr/bin/sudo', '-n', '--', '/usr/local/lib/inkyos-test-ssh/runner'],
             input=json.dumps(payload).encode(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LC_ALL': 'C'}, timeout=5)
         sys.stdout.buffer.write(result.stdout)
@@ -207,6 +207,46 @@ def sha_file(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def transport_reason(raw):
+    """Classify diagnostics without exporting SSH logs, keys or fingerprints."""
+    for marker, reason in (
+            (b'Permission denied (publickey)', 'authentication_refused'),
+            (b'Host key verification failed', 'host_key_refused'),
+            (b'Connection refused', 'connection_refused'),
+            (b'Connection reset', 'connection_reset'),
+            (b'Connection closed', 'connection_closed'),
+            (b'Permission denied', 'permission_denied'),
+            (b'Traceback (most recent call last)', 'python_exception'),
+            (b'Bad configuration option', 'client_configuration_refused'),
+            (b'kex_exchange_identification', 'key_exchange_failed'),
+            (b'No such file or directory', 'path_unavailable'),
+            (b'not found', 'command_unavailable')):
+        if marker in raw:
+            return reason
+    return 'other_diagnostic' if raw else 'none'
+
+
+def tunnel_observation(result, interface_names):
+    # OpenSSH V_10_0_P1 serverloop.c:469 sends a specific policy rejection,
+    # then the channel-open failure retains CONNECT_FAILED (line553). The
+    # ADMINISTRATIVELY_PROHIBITED reason belongs to direct-tcpip, not tun.
+    raw = result.stderr
+    facts = {
+        'exit_status': result.returncode,
+        'local_device_opened': b'Tunnel forwarding using interface ' in raw,
+        'server_policy_refusal': b'Remote: Server has rejected tunnel device forwarding' in raw,
+        'channel_open_refused': re.search(rb'(?m)^channel [0-9]+: open failed: connect failed: open failed\r?$', raw) is not None,
+        'local_device_open_failed': b'Tunnel device open failed' in raw,
+        'tunnel_forwarding_failed': b'Tunnel forwarding failed' in raw,
+        'loopback_only_after_client': interface_names == {'lo'},
+    }
+    passed = (facts['exit_status'] == 255 and facts['local_device_opened']
+              and facts['server_policy_refusal'] and facts['channel_open_refused']
+              and not facts['local_device_open_failed'] and facts['tunnel_forwarding_failed']
+              and facts['loopback_only_after_client'])
+    return passed, facts
+
+
 def configuration(port):
     require(type(port) is int and 1024 < port < 65536, 'invalid_probe_port')
     return f'''AddressFamily inet
@@ -264,7 +304,7 @@ def main(work):
               'checks': checks, 'method': methods, 'parent': {}, 'package_versions': {}, 'program_sha256': {},
               'fixture_sha256': {name: hashlib.sha256(value.encode()).hexdigest()
                                  for name, value in {'dispatcher': DISPATCHER, 'runner': RUNNER, 'sudoers': SUDOERS}.items()},
-              'error_stage': None, 'source_sha256': None,
+              'error_stage': None, 'source_sha256': None, 'transport_diagnostics': {},
               'limits': ['Unsigned parent hashes establish local consistency, not independent authenticity.',
                          'The forced dispatcher and privileged runner are probe fixtures; activation is an inert stub.',
                          'No real application activation, Pi/SD, display, Wi-Fi, BLE or release is qualified.',
@@ -272,6 +312,7 @@ def main(work):
     loop = None
     mounts = []
     daemon = None
+    daemon_log = None
     stage = 'input_validation'
     disposable = False
     staging_valid = False
@@ -414,6 +455,7 @@ def main(work):
         require(not any(line.startswith(USER + ':') for line in (root / 'etc/passwd').read_text().splitlines()),
                 'test_account_already_exists')
         require(not (root / 'nonexistent').exists(), 'unexpected_test_account_home')
+        require(not (root / 'usr/local/lib/inkyos-test-ssh').exists(), 'existing_probe_fixture_directory')
         hosts = root / 'etc/hosts'
         require(hosts.is_file() and not hosts.is_symlink(), 'unsafe_hosts_file')
         with hosts.open('a') as stream:
@@ -446,6 +488,11 @@ def main(work):
         create(DISPATCH_PATH, DISPATCHER, 0o555)
         create(RUNNER_PATH, RUNNER, 0o555)
         create('/etc/sudoers.d/inkyos-test-ssh-probe', SUDOERS, 0o440)
+        # The image's /usr/local/lib/inkyos is intentionally root-only 0700.
+        # Keep that directory untouched; these public executable fixtures use
+        # their own root-owned 0755 parent and still require the exact sudo rule.
+        require(all(target(['/usr/sbin/runuser', '-u', USER, '--', '/usr/bin/test', '-x', path]).returncode == 0
+                    for path in (DISPATCH_PATH, RUNNER_PATH)), 'probe_fixture_not_accessible')
         checks['root_public_key_readable'] = target(['/usr/sbin/runuser', '-u', USER, '--',
             '/usr/bin/test', '-r', '/etc/inkyos-test-ssh/authorized_keys']).returncode == 0
         checks['sudoers_syntax'] = target(['/usr/sbin/visudo', '-c']).returncode == 0
@@ -476,8 +523,10 @@ def main(work):
         require(checks['effective_sshd_restrictions'], 'effective_sshd_configuration_differs')
 
         stage = 'actual_ssh_transport'
+        # Anonymous RAM-backed FD only; never copy raw SSH diagnostics out.
+        daemon_log = os.memfd_create('inkyos-probe-sshd', os.MFD_CLOEXEC)
         daemon = subprocess.Popen(['chroot', str(root), '/usr/sbin/sshd', '-D', '-e', *config_args],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=daemon_log,
             env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LC_ALL': 'C'})
         for _ in range(40):
             require(daemon.poll() is None, 'sshd_stopped_early')
@@ -503,10 +552,14 @@ def main(work):
         def successful(verb):
             before = invocations()
             result = ssh(verb)
+            report['transport_diagnostics'][verb] = {
+                'exit_status': result.returncode, 'stderr_reason': transport_reason(result.stderr),
+                'stdout_json': False, 'invocation_recorded': invocations() == before + [verb.encode()]}
             try:
                 value = json.loads(result.stdout)
             except (ValueError, UnicodeError):
                 return False
+            report['transport_diagnostics'][verb]['stdout_json'] = True
             return (result.returncode == 0 and value == {'schema_version': 1, 'scope': 'inert-test-ssh-runner',
                 'operation': verb, 'euid': 0, 'application_activated': False}
                 and invocations() == before + [verb.encode()])
@@ -551,8 +604,7 @@ def main(work):
             result = ssh(extra=('-N', '-o', 'ExitOnForwardFailure=yes', '-R', '127.0.0.1:0:127.0.0.1:' + str(sink_port)), data=b'')
             checks['remote_forward_refused'] = result.returncode != 0 and b'remote port forwarding failed' in result.stderr
         result = ssh(extra=('-vv', '-N', '-o', 'ExitOnForwardFailure=yes', '-w', 'any:any'), data=b'')
-        checks['tunnel_channel_refused'] = (result.returncode != 0 and b'administratively prohibited' in result.stderr
-            and b'Tunnel device open failed' not in result.stderr and interfaces() == {'lo'})
+        checks['tunnel_channel_refused'], report['transport_diagnostics']['tunnel'] = tunnel_observation(result, interfaces())
         result = ssh('preflight', extra=('-tt',))
         checks['tty_refused'] = b'PTY allocation request failed' in result.stderr
 
@@ -589,6 +641,12 @@ def main(work):
                     daemon.kill(); daemon.wait(timeout=3)
                 except (OSError, subprocess.TimeoutExpired):
                     pass
+        if daemon_log is not None:
+            try:
+                os.lseek(daemon_log, 0, os.SEEK_SET)
+                report['transport_diagnostics']['daemon_reason'] = transport_reason(os.read(daemon_log, 65536))
+            finally:
+                os.close(daemon_log)
         def live_children():
             if root / 'proc' not in mounts:
                 return []

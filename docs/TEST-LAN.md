@@ -163,3 +163,23 @@ Cette recette et ces contrôles seront transmis à Inky Studio avant activation.
 Ils ne livrent pas encore une image prête pour l'installation iPhone sans LAN.
 L'[accès opérateur privé proposé](TEST-OPERATOR.md) précise l'enrôlement,
 SSH/PAM et les preuves encore nécessaires avant le premier essai LAN.
+
+## Résultat exécuté le 30 septembre
+
+Parent neuf `build/prototype.GKiGyY0d` et dérivé
+`build/test-lan-prepared.wIV9Vjtj`, recettes propres à `2f168ec8` : installation
+offline du candidat `758a2bf7`, 62 contrôles système, 26 applicatifs,
+17 de préparation, systemd, visudo et fsck réussis. Les dix fichiers boot/grow
+restent identiques. Les deux images mesurent 3061841920 octets.
+Inky Studio a rehashé intégralement images/assets/rapports et relu le commit
+figé sans défaut confirmé dans la portée préparée/inactive.
+
+Après corrections séparées du banc, **443 tests** passent sur Mac/Linux ARM64
+(4/1 skips) et **39 contrôles SSH/PAM/sudo** passent sur copie jetable avec
+runner inerte. Les cinq tentatives du banc, dont quatre échouées, restent
+conservées ; leur cleanup a réussi. La [preuve réduite](validation/2026-09-30-test-lan-prepared.json)
+lie images, recettes, rapports, source du banc et fichiers des suites exécutées.
+Les modifications du banc n'altèrent pas les deux exports construits.
+
+L'accès opérateur et l'activation restent à implémenter ; ces résultats ne
+rendent pas cette image prête à flasher ni à tester l'app iPhone.

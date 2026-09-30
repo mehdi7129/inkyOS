@@ -31,6 +31,39 @@ def fixture(name):
 
 
 class TestSshProbeTests(unittest.TestCase):
+    def test_transport_diagnostics_export_only_closed_reasons(self):
+        for raw, expected in (
+                (b'', 'none'),
+                (b'PRIVATE_HOST: Permission denied (publickey). PRIVATE_KEY', 'authentication_refused'),
+                (b'PRIVATE_PATH: Permission denied', 'permission_denied'),
+                (b'PRIVATE_KEY PRIVATE_FINGERPRINT PRIVATE_RAW_LOG', 'other_diagnostic')):
+            self.assertEqual(probe['transport_reason'](raw), expected)
+            self.assertNotIn('PRIVATE', probe['transport_reason'](raw))
+
+    def test_tunnel_refusal_requires_local_open_and_exact_remote_policy_failure(self):
+        lines = [b'debug1: Tunnel forwarding using interface tun0',
+                 b'debug1: Remote: Server has rejected tunnel device forwarding',
+                 b'channel 0: open failed: connect failed: open failed',
+                 b'Tunnel forwarding failed']
+        raw = b'\r\n'.join(lines) + b'\r\nPRIVATE_FINGERPRINT\r\n'
+        result = types.SimpleNamespace(returncode=255, stderr=raw)
+        passed, facts = probe['tunnel_observation'](result, {'lo'})
+        self.assertTrue(passed)
+        self.assertNotIn('PRIVATE', json.dumps(facts))
+        for removed in lines:
+            result.stderr = raw.replace(removed, b'')
+            self.assertFalse(probe['tunnel_observation'](result, {'lo'})[0])
+        for invalid in (b'Tunnel device open failed.\n',
+                        b'channel 0: open failed: administratively prohibited: open failed\n',
+                        raw + b'Tunnel device open failed.\n'):
+            result.stderr = invalid
+            self.assertFalse(probe['tunnel_observation'](result, {'lo'})[0])
+        result.stderr = raw
+        self.assertFalse(probe['tunnel_observation'](result, {'lo', 'tun0'})[0])
+        for status in (0, 1):
+            result.returncode = status
+            self.assertFalse(probe['tunnel_observation'](result, {'lo'})[0])
+
     def transport_receipt(self):
         inputs = {'files': {'probe-test-ssh-linux.sh': 'source', 'parent-manifest.json': 'manifest',
                             'parent-filesystem-manifest.json': 'inventory'},

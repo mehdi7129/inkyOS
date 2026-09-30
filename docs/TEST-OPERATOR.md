@@ -1,9 +1,11 @@
 # Accès opérateur privé pour le premier essai
 
 Proposition du 30 septembre 2026, séparée de la [variante préparée](TEST-LAN.md).
-**Canal et activation non livrés à ce stade.** Un banc OpenSSH/PAM réel avec
-dispatcher inerte est préparé pour vérifier le transport dans la VM ; il ne
-qualifiera ni le Pi, ni l'activation applicative.
+**Canal et activation non livrés à ce stade.** Le banc OpenSSH/PAM réel avec
+dispatcher inerte a passé 39/39 contrôles dans la VM sur une copie jetable
+du parent épinglé. Il ne qualifie ni le Pi, ni l'activation applicative.
+Les échecs, corrections et hashes sont conservés dans la
+[preuve réduite](validation/2026-09-30-test-lan-prepared.json).
 
 Le chemin retenu évite de supposer une console, un réseau USB ou une confiance
 dans mDNS. Il utilise la Qumox de test et un aller-retour physique après un
@@ -54,6 +56,12 @@ modifiables : OpenSSH ouvre ce fichier sous l'UID utilisateur. Les clés privée
 profil réseau et état privé restent 0600. [Code Debian exact](https://sources.debian.org/src/openssh/1:10.0p1-7%2Bdeb13u4/auth2-pubkey.c/),
 [sshd_config](https://manpages.debian.org/trixie/openssh-server/sshd_config.5.en.html).
 
+Le dispatcher et son runner doivent résider dans un dossier dédié root-owned
+0755, tel que `/usr/local/lib/inkyos-test-ssh`, avec exécutables 0555.
+`/usr/local/lib/inkyos` reste privé 0700 : le placer sous ce dossier a donné
+un vrai échec de transport (exit 126) lors du premier banc. Ces permissions
+privées ne sont pas modifiées pour donner accès au compte opérateur.
+
 ForceCommand vers un launcher root-owned 0555 acceptant exactement `preflight`,
 `activate` ou `stop`, sans arguments ni espaces supplémentaires. Un JSON stdin
 unique et borné à 4096 octets / 5 secondes transporte seulement les champs
@@ -75,12 +83,20 @@ sont invalides. Aucun `enable` applicatif ni redémarrage automatique. Un simple
 
 ## Preuves restant nécessaires
 
-Le banc VM doit utiliser le vrai rootfs/OpenSSH/PAM épinglé, loopback dans un
+Le banc VM a utilisé le vrai rootfs/OpenSSH/PAM épinglé, loopback dans un
 namespace privé, clés jetables et dispatcher d'activation inerte. Vérifier clés,
 PAM, aging/nologin négatifs, sudo zéro argument, injections, JSON lent/excessif,
 shell/SFTP/SCP refusés et vrais canaux de forwarding. Un listener client ouvert
 ne démontre pas un tunnel utilisable. Les secrets et fingerprints ne vont pas
 dans les rapports publics.
+
+Ces contrôles passent désormais : 39/39, dont les négatifs PAM/nologin/aging,
+les trois verbes, sudo sans argument et les vrais canaux refusés. Le refus TUN
+est celui d'[OpenSSH 10.0p1](https://github.com/openssh/openssh-portable/blob/V_10_0_P1/serverloop.c#L469),
+`CONNECT_FAILED` avec message de refus politique, différent du motif
+`ADMINISTRATIVELY_PROHIBITED` de direct-tcpip. Le test exige aussi l'ouverture
+locale effective puis l'absence d'interface résiduelle. Aucun runner applicatif,
+compte ou unit d'accès opérateur n'est installé par ce résultat.
 
 La sonde EEPROM est livrée comme outil source inactif ; son intégration et
 son essai matériel restent à faire. La sonde radio est également livrée hors

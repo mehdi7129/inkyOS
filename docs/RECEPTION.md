@@ -17,9 +17,16 @@ Les sources de la [variante TEST LAN inactive](TEST-LAN.md), du preflight et
 des sondes EEPROM/radio sont livrées. Les sondes restent hors image/preflight.
 Le [canal opérateur privé](TEST-OPERATOR.md) et son activation restent une
 proposition distincte ; le banc SSH utilise un runner inerte.
-La suite finale compte **441 tests**, sans échec sur Mac Python 3.13.3
-(4 skips) et Linux ARM64 Python 3.13.5 (1 skip). Les builds/export et le vrai
-banc SSH/PAM doivent encore être exécutés et relus avant l'étape matérielle.
+La suite finale compte **443 tests**, sans échec sur Mac Python 3.13.3
+(4 skips) et Linux ARM64 Python 3.13.5 (1 skip). Un parent neuf et son dérivé
+TEST LAN sont maintenant construits : 62 contrôles système, 26 applicatifs,
+17 de préparation et les dix fichiers boot/grow protégés passent.
+Le banc SSH/PAM réel passe maintenant 39/39 contrôles avec runner inerte,
+après correction du dossier public de commandes et du motif attendu de refus TUN.
+Les quatre tentatives échouées sont conservées, avec cleanup réussi.
+Inky Studio a rehashé et relu le commit et les exports préparés ; le delta
+correctif du banc est contrôlé séparément. Les résultats sont
+consignés dans la [preuve réduite](validation/2026-09-30-test-lan-prepared.json).
 
 La session app confirme TestFlight `1.0.0 (5)` traité mais non distribué
 (conformité manquante, aucun groupe). Build 3 permet de viser les photos LAN
