@@ -1,0 +1,158 @@
+{
+  "application": {
+    "application_version": "0.5.0-rc.2",
+    "manifest_sha256": "2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f",
+    "release_qualified": false,
+    "source_commit": "6a697d134290ced0214fc74b903f4b3c336d70fa",
+    "startup": "masked-pending-firstboot-contract"
+  },
+  "builder_stopped": true,
+  "date": "2026-09-30",
+  "export_integrity": {
+    "authenticity_verified": false,
+    "declared_reports_verified": [
+      "application-manifest.json",
+      "boot-preserved.sha256",
+      "build.log",
+      "diagnostic-configuration.json",
+      "filesystem-manifest.json",
+      "fsck-ext4.txt",
+      "fsck-fat.txt",
+      "image-inspection.json",
+      "parent-filesystem-manifest.json",
+      "parent-integrity.json",
+      "parent-manifest.json",
+      "qualification-application.json",
+      "qualification-static.json",
+      "recipe.tar",
+      "systemd-verify.txt"
+    ],
+    "hardware_qualified": false,
+    "image_sha256_verified": true,
+    "limits": [
+      "Unsigned local hashes establish consistency, not independent authenticity.",
+      "The parent image was verified when building; its bytes are not retained or rehashed here.",
+      "Reports and archived recipe sources are checked; the build and static tests are not rerun.",
+      "Filesystem inventory is not regenerated from image bytes by this verifier.",
+      "No boot, SD, Pi, display, radio or application runtime qualification is established."
+    ],
+    "no_active_application": true,
+    "parent_image_sha256": "fec4efdbb70b7832548d2d01fefb958aa94fe20c54dd9e4401e45ecd54ca22a5",
+    "passed": true,
+    "recipe_source_hashes_verified": true,
+    "release_qualified": false,
+    "schema_version": 1,
+    "scope": "local-sd-diagnostic-export-integrity"
+  },
+  "fat_probe_harness_sha256": "1426ef2ee4d73238e359bc40d6b5114225dde3c85468b6126339f6a931429847",
+  "fat_sandbox_probe": {
+    "fat_mount": true,
+    "hardware_qualified": false,
+    "limits": [
+      "Builder VM only; no Raspberry Pi boot, app runtime or poweroff performed."
+    ],
+    "passed": true,
+    "poweroff_executed": false,
+    "runs": 2,
+    "same_boot_single_report": true,
+    "scope": "linux-sandbox-fat-export-only",
+    "source_sha256": "48c8d3ec05aa03f21268b899825d8ee5bc5f705854ed15254c4aa40a53b2e84b",
+    "subprocess_units_observed": 15,
+    "systemd_sandbox": true
+  },
+  "gates": {
+    "diagnostic-configuration.json": 16,
+    "qualification-application.json": 26,
+    "qualification-static.json": 62
+  },
+  "github_ci": "inkyOS/actions/runs/36715622143",
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-sd-diagnostic.img",
+    "sha256": "6a5821c1a0adca679a611b8aa97d20ac7dba2e0694d0b6a1a871eee9b273e248",
+    "size_bytes": 3061841920
+  },
+  "initial_cli_write": {
+    "card_bytes_written": 0,
+    "errno": 1,
+    "operation": "raw-device-open",
+    "status": "refused-before-write"
+  },
+  "limits": [
+    "VM FAT/sandbox test is not a Raspberry Pi boot.",
+    "App/helper inactive; Wi-Fi disabled for diagnostic only.",
+    "Single test SD; A/B identity and recovery remain untested.",
+    "No panel refresh, iPhone adoption, Wi-Fi transaction or power-loss qualification."
+  ],
+  "parent": {
+    "image_sha256": "fec4efdbb70b7832548d2d01fefb958aa94fe20c54dd9e4401e45ecd54ca22a5",
+    "kind": "application-prototype",
+    "manifest_sha256": "d8d7638c48ad562e4f5f8406c1e4636f22b58b43af8d57f930b0fe09d3324a13",
+    "size_bytes": 3061841920
+  },
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "sd-diagnostic-build-and-flash",
+  "sd": {
+    "boot_tested": false,
+    "capacity_bytes": 127865454592,
+    "flash": {
+      "customization_added": false,
+      "disk_absent_after_ejection": true,
+      "ejection_observed_in_ui": true,
+      "image_filename": "inkyos-sd-diagnostic.img",
+      "independent_raw_readback_verified": false,
+      "limits": [
+        "Imager reported completion and automatic ejection.",
+        "The dedicated CLI raw-device open was denied by macOS even as root; it wrote zero bytes.",
+        "No independent raw readback SHA-256 is claimed."
+      ],
+      "success_observed_in_ui": true,
+      "tool": "Raspberry Pi Imager",
+      "version": "2.0.6"
+    },
+    "model": "Secure Digital 128 GB",
+    "raspberry_pi": "Zero 2 W"
+  },
+  "software_tests": {
+    "linux": {
+      "architecture": "aarch64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "56087cce7e8c66ff24ea2ec6301cefe4f7f2ae771eb85d05feec0943a45141e3",
+      "passed": true,
+      "python": "3.13.5",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 10
+      },
+      "skipped": 1,
+      "system": "Linux",
+      "tests": 305
+    },
+    "macos": {
+      "architecture": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "519a631b7f9ff092cd1eef7d96a2538cdd0f3ba7ba43dcf5daf46eceaf7a4cf1",
+      "passed": true,
+      "python": "3.13.3",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 10
+      },
+      "skipped": 4,
+      "system": "Darwin",
+      "tests": 305
+    }
+  },
+  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715"
+}

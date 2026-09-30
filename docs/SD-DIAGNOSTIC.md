@@ -80,3 +80,21 @@ Le deuxième démarrage est déclenché manuellement par l'utilisateur. Il produ
 un autre rapport pour vérifier la stabilité de l'identité système et la resize,
 sans activer l'app. Les rapports bruts restent locaux ; seuls des résultats
 réduits et relus doivent être versionnés pour la qualification.
+
+## Premier artefact et SD préparés le 30 septembre
+
+La recette propre `196733a` a produit une image de 3061841920 octets :
+SHA-256 `6a5821c1a0adca679a611b8aa97d20ac7dba2e0694d0b6a1a871eee9b273e248`.
+16 contrôles diagnostic, 62 gates système et 26 gates applicatifs passent,
+ainsi que systemd, fsck FAT/ext4 et la préservation des dix fichiers boot/grow.
+Les 305 fixtures passent sur Mac/Linux et dans la CI publique. Un test avec
+un vrai montage FAT et le sandbox systemd a exporté deux fois avec succès
+sur le même boot de VM, sans déclencher de poweroff.
+
+La tentative CLI macOS a été refusée à l'ouverture du raw device, même root,
+avant toute écriture. Raspberry Pi Imager 2.0.6 a ensuite écrit l'image locale
+sur la SD fournie de 128 Go, sans personnalisation. Son écran final a confirmé
+la réussite et l'éjection automatique ; le disque n'était plus présent dans
+`diskutil`. Aucune relecture raw indépendante n'est revendiquée. La
+[preuve réduite](validation/2026-09-30-sd-diagnostic-flash.json) conserve cette
+distinction. La VM est arrêtée ; le premier boot physique du Pi reste NON TESTÉ.

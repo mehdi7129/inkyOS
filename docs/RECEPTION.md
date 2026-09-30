@@ -245,3 +245,19 @@ first-boot/iOS et #16 (`inky-studio/issues/16`)
 pour la qualification physique BLE/Wi-Fi et la release. Le pin applicatif
 InkyOS reste `6a697d1` ; aucun raccord runtime supplémentaire n'est annoncé
 par cette fusion.
+
+Le 30 septembre, l’opérateur a fourni une SD de test de 128 Go et confirmé le Pi Zero
+2 W. Une variante autonome de diagnostic a été construite depuis le parent
+applicatif inchangé : app/helper masqués, Wi-Fi désactivé pour cet essai, mises
+à jour firmware/APT bloquées, rapport expurgé sur FAT puis demande de poweroff.
+305 tests passent sur Mac/Linux et CI ; le vrai FAT sous sandbox systemd est
+testé dans la VM. L'image et les contrôles statiques sont décrits dans
+[SD-DIAGNOSTIC.md](SD-DIAGNOSTIC.md).
+
+La SD a été écrite avec succès et éjectée par Raspberry Pi Imager 2.0.6 après
+un refus macOS de l'ouverture raw en CLI avant écriture. La preuve distingue
+succès affiché par Imager et absence de relecture raw indépendante. Aucun boot
+du Raspberry, refresh du panneau ou scénario iPhone n'a été exécuté. Le prochain
+geste matériel appartient à l’opérateur : Pi hors tension, démarrer sur cette SD de
+test puis, après arrêt propre, la remettre dans le Mac pour lire le rapport.
+La SD personnelle reste intacte et la VM de build est arrêtée.
