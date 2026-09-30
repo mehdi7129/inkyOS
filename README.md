@@ -2,12 +2,14 @@
 
 Image Raspberry Pi dédiée aux cadres photo **Inky Studio**.
 
-**État : prototypes expérimentaux, 28 septembre 2026.** Une image officielle
+**État : prototypes expérimentaux, 30 septembre 2026.** Une image officielle
 Lite ARM64 figée est personnalisée offline dans une VM dédiée. Premier boot
 système, compte applicatif verrouillé, services et prérequis matériels sont
 préparés et contrôlés. Le prototype système reste sans app ; une cible opt-in
 intègre un candidat Inky Studio épinglé avec ses services masqués.
-**Le parcours sans LAN reste en développement ; aucune qualification SD.**
+Un premier boot de la variante diagnostic est observé sur une SD de test et
+un Pi Zero 2 W : identité système cohérente et stockage agrandi automatiquement.
+**Le parcours applicatif sans LAN et la qualification complète restent ouverts.**
 
 ```sh
 make test
@@ -47,7 +49,7 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Premier démarrage sans LAN](docs/FIRST-BOOT.md) : contrat partagé, heure, pays Wi-Fi et limites restant à résoudre.
 - [Banc privilégié Linux](docs/BOOTSTRAP-PROBE.md) : UID kernel, reçu root et perte de réponse ; heure/radio simulées.
 - [Gate Wi-Fi au boot](docs/WIFI-BOOT-GATE.md) : préparation durable de l'état NM sur fixtures, intégration encore inactive.
-- [Qualification SD](docs/SD-QUALIFICATION.md) : procédure future et fiche de preuves, sans essai matériel effectué.
+- [Qualification SD](docs/SD-QUALIFICATION.md) : procédure, premier boot physique observé et essais restant à effectuer.
 - [Diagnostic SD sans LAN](docs/SD-DIAGNOSTIC.md) : variante de test avec rapport automatique sur FAT et arrêt propre.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 

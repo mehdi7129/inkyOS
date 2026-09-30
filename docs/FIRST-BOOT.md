@@ -5,6 +5,16 @@ utilisable de bout en bout**. Le candidat applicatif `6a697d1` ne sait pas ouvri
 sa première fenêtre QR sans session LAN authentifiée. Son intégration dans
 l'image reste expérimentale, avec services applicatifs masqués.
 
+Le 30 septembre, la session Inky Studio a confirmé que sa tête
+`codex/ios-demo-onboarding` reste
+`30aed843c9389f590eae9f78d41bf12423698fe7`. Le coordinator n'est pas raccordé
+au démarrage ; dispatcher/bootstrap GATT, création initiale durable des
+credentials et parcours iOS sans LAN restent dans
+#15 (`inky-studio/issues/15`). Aucun nouveau pin
+qualifié n'autorise l'activation. Le premier boot
+[diagnostic système observé](validation/2026-09-30-sd-first-boot.json) ne change
+pas ce statut : le payload `6a697d1` et ses services masqués sont conservés.
+
 Le contrat commun de besoins (`inky-studio/blob/4bdaf6b12f550f8c3fd19a58c04294ba5221e8c3/docs/inkyos/FIRST-BOOT-CONTRACT.md`)
 porte les cas FB-01 à FB-12. Cette révision ne définit ni wire format ni nouvelle
 permission système. Inky Studio possède le backend, iOS, BLE, les helpers,

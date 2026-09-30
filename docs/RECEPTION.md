@@ -276,3 +276,27 @@ la preuve de cette première carte, puis préparer la nouvelle depuis l'image
 vierge : ne pas cloner la carte initialisée avec son identité. La nouvelle
 carte n'est pas encore identifiée ni flashée. Aucun changement du cadre
 personnel ou du protocole applicatif n'a été effectué.
+
+Relais Inky Studio confirmé ensuite le 30 septembre : la branche
+`codex/ios-demo-onboarding` reste à `30aed843`, sans nouveau pin qualifié.
+Coordinator non importé au démarrage, dispatcher/bootstrap GATT, credentials
+durables et flow iPhone sans LAN restent à intégrer dans l'issue #15. Les
+raccords OS attendus sont inspect/begin privilégiés avec reçu root durable,
+rôles UID séparés et NetworkManager démarré radio fermée jusqu'au pays vérifié.
+Le protocole réseau v1 actuel n'accepte pas heure/pays ; aucun élargissement
+local n'est réalisé. Le comparateur de rapports SD prépare les prochains
+essais d'identité en attendant ces raccords et la nouvelle carte.
+
+l’opérateur précise ensuite la carte prévue : **Qumox 16 Go**, référence détaillée
+non fournie. L'image actuelle mesure 3061841920 octets. Capacité réelle et média
+cible restent à vérifier à son insertion ; aucune qualification de cette carte
+n'est déduite de sa capacité nominale et elle n'est pas encore flashée.
+
+Le comparateur de rapports est livré avec 19 tests dédiés. La suite de 324
+tests passe sur Mac/Linux ARM64 ; le même rapport physique comparé à lui-même
+est refusé comme attendu (boot identique), sans publier d'empreinte d'identité.
+Les [sources et résultats](validation/2026-09-30-sd-report-comparison.json)
+sont épinglés. Le rapport de la première carte est conservé localement ; la
+SD de 128 Go a été éjectée proprement du Mac, sans réécriture, pour permettre
+l'insertion ultérieure de la Qumox. Aucun média SD n'était détecté lors du
+dernier relevé après cette éjection ; aucun flash de la Qumox n'a été lancé.

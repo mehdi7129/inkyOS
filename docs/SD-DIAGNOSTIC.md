@@ -81,6 +81,49 @@ un autre rapport pour vérifier la stabilité de l'identité système et la resi
 sans activer l'app. Les rapports bruts restent locaux ; seuls des résultats
 réduits et relus doivent être versionnés pour la qualification.
 
+## Comparer les observations localement
+
+Copier uniquement les rapports du répertoire `inkyos-diagnostics` dans un
+répertoire local ignoré sous `build/`, en conservant séparément carte et phase
+du test. Comparer les deux démarrages d'une même carte :
+
+```sh
+python3.13 scripts/compare-sd-reports.py --mode same-card \
+  build/sd-A/first.json build/sd-A/restart.json
+```
+
+Comparer les premières observations de deux cartes flashées depuis le même
+artefact vierge :
+
+```sh
+python3.13 scripts/compare-sd-reports.py --mode different-cards \
+  build/sd-A/first.json build/sd-B/first.json
+```
+
+Le mode est une déclaration de l'opérateur : le JSON ne peut pas identifier
+matériellement la carte. Le comparateur vérifie les observations nécessaires
+à l'identité et le succès firstboot, puis exige deux boot IDs distincts.
+Deux copies du même rapport ne valident donc pas un redémarrage. Sur une même
+carte, machine-id et hostname doivent rester identiques ; entre cartes vierges,
+les deux doivent différer. Les assertions de cohérence sont également
+recoupées avec les empreintes locales.
+
+Les fichiers sont lus sans écriture, avec taille bornée et refus des liens,
+fichiers spéciaux et JSON ambigus. La sortie contient des contrôles booléens et
+les SHA-256 des artefacts lus ; aucune empreinte machine/hostname/boot ou chemin
+local n'est publié. Codes de sortie : 0 comparaison réussie, 1 critère refusé,
+2 entrée invalide. Le rapport n'est pas une attestation signée et ne contient
+pas le pin de l'image : conserver séparément la preuve du flash. Une comparaison
+réussie ne qualifie ni l'app, ni la radio, ni toute la campagne SD.
+
+Validation du 30 septembre : 19 tests dédiés, dans une suite de 324 tests sans
+échec sur Mac et Linux ARM64 (4 et 1 skips). Le vrai rapport physique comparé
+à lui-même est correctement refusé, code 1 : identité/cohérence/firstboot
+acceptés, mais boot identique. La
+[preuve logicielle](validation/2026-09-30-sd-report-comparison.json) épingle
+les sources exécutées et conserve ce résultat négatif attendu. Aucun reboot
+physique ou comparaison A/B supplémentaire n'est déduit de ces tests.
+
 ## Premier artefact et SD préparés le 30 septembre
 
 La recette propre `196733a` a produit une image de 3061841920 octets :

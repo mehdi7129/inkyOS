@@ -1,0 +1,112 @@
+{
+  "date": "2026-09-30",
+  "distinct_physical_cards_compared": false,
+  "hardware_qualified": false,
+  "limits": [
+    "This validates comparison software; no second physical boot or A/B initialization was performed.",
+    "Input report provenance and image pinning remain in separate preparation/first-boot evidence.",
+    "The same-report negative smoke is deliberately a copied observation, not a reboot."
+  ],
+  "linux_source_receipt": {
+    "executed_comparator_and_tests_match_current_files": true,
+    "inputs_json_sha256": "ad3a43fe3af02813432f63b3aa1bb987afc456f7e93ab3177c213cf269792707",
+    "snapshot_source_commit": "9221f480a258360e9742d2583a22145a821ce986",
+    "worktree_dirty": true
+  },
+  "physical_reboot_tested": false,
+  "release_qualified": false,
+  "same_report_smoke": {
+    "actual_exit_code": 1,
+    "expected_exit_code": 1,
+    "expected_rejection": true,
+    "identity_fingerprints_exported": false,
+    "result": {
+      "checks": {
+        "distinct_boots": false,
+        "expected_hostname_relationship": true,
+        "expected_machine_id_relationship": true,
+        "left_coherence_assertions_consistent": true,
+        "left_firstboot_success": true,
+        "left_hashes_coherent": true,
+        "left_hosts_readable": true,
+        "left_identity_ready": true,
+        "left_reported_coherent": true,
+        "right_coherence_assertions_consistent": true,
+        "right_firstboot_success": true,
+        "right_hashes_coherent": true,
+        "right_hosts_readable": true,
+        "right_identity_ready": true,
+        "right_reported_coherent": true
+      },
+      "comparisons": {
+        "hostname_equal": true,
+        "kernel_hostname_equal": true,
+        "machine_id_equal": true,
+        "state_hostname_equal": true
+      },
+      "error": null,
+      "hardware_qualified": false,
+      "input_artifact_sha256": [
+        "5fdcd286506c5da7e9a6f3331325a8a3db902f6547eb513e8fe355a6a00d928c",
+        "5fdcd286506c5da7e9a6f3331325a8a3db902f6547eb513e8fe355a6a00d928c"
+      ],
+      "limitations": [
+        "Unsigned local snapshots are not attestations; their origin is unverified.",
+        "Image provenance and artifact verification require separate evidence.",
+        "Distinct boot identifiers do not prove an observed reboot or separate physical cards.",
+        "Identity comparison does not qualify complete boot, hardware, services, application or release."
+      ],
+      "mode": "same-card",
+      "passed": false,
+      "release_qualified": false,
+      "schema_version": 1,
+      "scope": "identity_comparison_only"
+    }
+  },
+  "schema_version": 1,
+  "scope": "sd-identity-comparator-software-and-local-report-smoke",
+  "software_tests": {
+    "linux": {
+      "architecture": "aarch64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "0262f9466260b93336be199da366ca126dbd520d3088d51e03a90a7cda2d52a3",
+      "passed": true,
+      "python": "3.13.5",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 10
+      },
+      "skipped": 1,
+      "system": "Linux",
+      "tests": 324
+    },
+    "macos": {
+      "architecture": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "12632204d95028c15840379e2bc02b6af41eb85b0b90fc82144a6c31a6b6980f",
+      "passed": true,
+      "python": "3.13.3",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 10
+      },
+      "skipped": 4,
+      "system": "Darwin",
+      "tests": 324
+    }
+  },
+  "sources_sha256": {
+    "scripts/compare-sd-reports.py": "1d9d90002596eb914b2041c80e8eb67d017b47730c6a6e865e20a17c13644393",
+    "tests/test_compare_sd_reports.py": "8d8e66e600479934660a36b62fe990c352a25608056eb35ef3d0e59218b9c751"
+  }
+}

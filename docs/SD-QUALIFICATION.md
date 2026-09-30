@@ -46,6 +46,11 @@ normalement `activating/start`. l’opérateur a confirmé séparément que le P
 arrêté avant de retirer la SD. Un redémarrage reste nécessaire pour vérifier
 la persistance : la campagne prototype n'est donc pas terminée.
 
+Le [comparateur local](SD-DIAGNOSTIC.md#comparer-les-observations-localement)
+prépare S02/S05 : il contrôle cohérence et stabilité/distinction des identités
+sans publier leurs empreintes. Il exige des boots distincts ; sa disponibilité
+et ses fixtures ne remplacent pas un second démarrage physique ou une seconde SD.
+
 Références : [plan de réalisation](BUILD-PLAN.md), [contrats et responsabilités](HANDOFF.md),
 [sources matériel](HARDWARE-SOURCES.md), [outils offline](DEVELOPMENT.md) et
 [payload applicatif proposé](APPLICATION-PAYLOAD.md).
