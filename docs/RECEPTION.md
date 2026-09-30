@@ -300,3 +300,23 @@ sont épinglés. Le rapport de la première carte est conservé localement ; la
 SD de 128 Go a été éjectée proprement du Mac, sans réécriture, pour permettre
 l'insertion ultérieure de la Qumox. Aucun média SD n'était détecté lors du
 dernier relevé après cette éjection ; aucun flash de la Qumox n'a été lancé.
+
+l’opérateur a ensuite inséré la Qumox. Le Mac détecte une seule SD physique amovible
+de 15938355200 octets, inscriptible, compatible avec la taille de l'image vierge
+épinglée. Imager a été lancé sur ce média. La vérification à 31 %, l'écran
+« Écriture terminée » et l'éjection sont observés ; une erreur d'ouverture de
+`/dev/rdisk6` est également apparue. L'UI a changé sous intervention utilisateur
+avant l'action suivante de l'automatisation. La
+[preuve d'observation](validation/2026-09-30-sd-qumox-flash-observation.json)
+conserve cette contradiction : flash non accepté avant clarification/vérification,
+aucun boot de cette carte effectué. Aucun réglage de confidentialité ou accès
+complet au disque n'a été modifié.
+
+l’opérateur confirme avoir seulement fermé l'erreur, sans relance manuelle. La
+séquence est compatible avec le bug upstream Imager #1511 ; sa causalité
+exacte reste non prouvée. Le correctif est présent dans la copie officielle
+2.0.11.1 préparée localement, dont DMG, signature Raspberry Pi et notarization
+sont vérifiés. Cette session a sélectionné le même artefact vierge ; elle
+attend la réinsertion physique de la Qumox, car aucun média SD n'est détecté.
+Le flash précédent reste non accepté ; aucune modification des réglages Mac
+ni remplacement de l'app installée n'a été effectué.

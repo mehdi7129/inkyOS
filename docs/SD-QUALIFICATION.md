@@ -5,8 +5,11 @@ Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
 complète encore ouverte.** l’opérateur a fourni
 une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
 confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
-Une seule SD permet de commencer la campagne système ; les comparaisons A/B
-et la récupération sur une carte de secours attendent une seconde SD.
+Une seconde carte, Qumox 16 Go selon l’opérateur, a ensuite été insérée dans le Mac :
+15938355200 octets détectés. Les comparaisons A/B, redémarrages et récupération
+restent à réaliser. Son flash n'est pas encore accepté : Imager a affiché à
+la fois une fin avec éjection et une erreur d'ouverture raw, voir
+l'[observation réduite](validation/2026-09-30-sd-qumox-flash-observation.json).
 
 Le premier essai utilise une [variante de diagnostic automatique](SD-DIAGNOSTIC.md),
 distincte de la release : rapport expurgé sur FAT, puis demande de poweroff.

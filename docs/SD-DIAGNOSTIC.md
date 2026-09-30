@@ -162,3 +162,30 @@ campagne applicative restent à faire. l’opérateur prévoit de remplacer cett
 par une SD plus adaptée : repartir du même artefact vierge évite de recopier
 une identité déjà générée. Aucun changement de carte ni nouveau flash n'a
 encore été effectué.
+
+## Remplacement par la Qumox 16 Go — 30 septembre
+
+l’opérateur a fourni cette seconde carte ; le Mac a relevé 15938355200 octets,
+média SD physique amovible inscriptible. Le premier flash avec Imager 2.0.6
+a présenté une vérification à 31 %, une fin avec éjection et une erreur
+d'ouverture raw simultanée. Il reste **non accepté** ; la
+[preuve d'observation](validation/2026-09-30-sd-qumox-flash-observation.json)
+conserve cette ambiguïté. l’opérateur a seulement fermé l'erreur, sans relancer
+manuellement l'écriture.
+
+Cette séquence est compatible avec le [bug upstream #1511](https://github.com/raspberrypi/rpi-imager/issues/1511),
+sans en prouver la cause sur cette carte. Le
+[correctif](https://github.com/raspberrypi/rpi-imager/commit/f1e5335314937aa1d35f4cfeb7df3c3e4d2277a9)
+empêche une seconde écriture pendant la première et corrige le watchdog.
+Le conseil de confidentialité affiché par l'ancienne version couvre tout échec
+d'ouverture ; il ne démontre pas un besoin d'accès complet au disque.
+
+Une copie officielle d'[Imager 2.0.11.1](https://github.com/raspberrypi/rpi-imager/releases/tag/v2.0.11.1)
+est préparée localement : DMG hashé selon la release, signature Apple vérifiée,
+Team ID Raspberry Pi `8RDZTRXE62` identique à l'app existante et Gatekeeper
+accepté avec notarization. L'app installée existante et les réglages de
+confidentialité restent inchangés. La nouvelle session a sélectionné le même
+artefact vierge ; aucun média SD n'y est encore détecté. Réinsérer la carte,
+identifier à nouveau son device/capacité, puis effectuer une seule écriture
+avec vérification avant le boot. Ne pas réutiliser un numéro de disque par
+hypothèse après éjection.

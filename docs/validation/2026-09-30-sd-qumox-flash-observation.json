@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-30",
+  "flash": {
+    "automatic_ejection_reported_in_ui": true,
+    "customization_added": false,
+    "error_device": "/dev/rdisk6",
+    "error_mentions_removable_volume_privacy_permission": true,
+    "first_start_returned_to_summary_without_success_observation": true,
+    "independent_raw_readback_verified": false,
+    "raw_disk_open_error_also_observed": true,
+    "same_virgin_image_selected": true,
+    "sd_device_absent_after_ejection": true,
+    "success_screen_observed_in_ui": true,
+    "tool": "Raspberry Pi Imager",
+    "user_ui_change_detected_by_automation": true,
+    "verification_phase_observed_in_ui": true,
+    "verification_progress_percent_observed": 31,
+    "version": "2.0.6",
+    "write_confirmation_issued_by_agent": 2
+  },
+  "flash_accepted": false,
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-sd-diagnostic.img",
+    "sha256": "6a5821c1a0adca679a611b8aa97d20ac7dba2e0694d0b6a1a871eee9b273e248",
+    "size_bytes": 3061841920
+  },
+  "limits": [
+    "The UI showed both completion/ejection and a raw disk open error; their relation is not established.",
+    "The initial flash remains unaccepted. A corrected official tool is prepared, but no media is currently detected for a clean retry.",
+    "No private SD files were inspected, no privacy/full-disk-access setting changed, and no Raspberry Pi boot was performed.",
+    "The original 128GB test report remains local. All attempted writes selected the virgin image, not a clone of the initialized card."
+  ],
+  "next_step": "User reinserts the same Qumox into the Mac reader; reidentify physical media, then run one clean write with verification in the corrected official Imager.",
+  "possible_upstream_issue": {
+    "causality_for_this_card_proven": false,
+    "correction_commit": "f1e5335314937aa1d35f4cfeb7df3c3e4d2277a9",
+    "correction_present_in_replacement_version": true,
+    "error_alone_proves_privacy_permission_denial": false,
+    "url": "https://github.com/raspberrypi/rpi-imager/issues/1511"
+  },
+  "release_qualified": false,
+  "replacement_tool": {
+    "apple_signature_verified": true,
+    "apple_team_id": "8RDZTRXE62",
+    "dmg_bytes": 51904566,
+    "dmg_sha256": "2b4c5324c5ff04aa3bfb216795ae9e01cb54400752727353e13fb21e66c528a9",
+    "download_sha256_matches_release": true,
+    "gatekeeper_accepted": true,
+    "gatekeeper_source": "Notarized Developer ID",
+    "installed_original_app_replaced": false,
+    "launch_version_observed": "2.0.11.1",
+    "official_app_staged_locally_for_test": true,
+    "release": "v2.0.11.1",
+    "same_image_selected": true,
+    "sd_detected_in_new_session": false,
+    "source": "https://github.com/raspberrypi/rpi-imager/releases/tag/v2.0.11.1",
+    "team_matches_existing_imager": true,
+    "write_started": false
+  },
+  "schema_version": 1,
+  "scope": "replacement-sd-flash-ui-observation",
+  "sd": {
+    "boot_tested": false,
+    "brand_reported_by_user": "Qumox",
+    "capacity_bytes_observed_on_mac": 15938355200,
+    "nominal_capacity_gb": 16,
+    "physical_removable_sd": true,
+    "writable_media": true
+  },
+  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715",
+  "user_clarification": {
+    "closed_error_only": true,
+    "manually_restarted_write": false
+  }
+}
