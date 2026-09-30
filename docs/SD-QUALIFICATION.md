@@ -7,17 +7,20 @@ une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
 confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
 Une seconde carte, Qumox 16 Go selon l’opérateur, a ensuite été insérée dans le Mac :
 15938355200 octets détectés. Les comparaisons A/B, redémarrages et récupération
-restent à réaliser. Son flash n'est pas encore accepté : Imager a affiché à
-la fois une fin avec éjection et une erreur d'ouverture raw, voir
-l'[observation réduite](validation/2026-09-30-sd-qumox-flash-observation.json).
+restent à réaliser. Après un
+[premier essai ambigu](validation/2026-09-30-sd-qumox-flash-observation.json),
+une écriture unique avec Imager 2.0.11.1 termine sans erreur et éjecte la SD.
+Ce [flash propre](validation/2026-09-30-sd-qumox-clean-flash.json) est accepté
+pour le prochain essai système ; aucune relecture raw indépendante ou
+qualification de boot de cette carte n'est encore établie.
 
 Le premier essai utilise une [variante de diagnostic automatique](SD-DIAGNOSTIC.md),
 distincte de la release : rapport expurgé sur FAT, puis demande de poweroff.
 Le rapport récupéré après l'arrêt confirme le boot réel en ARM64 sur ce Pi.
 La [preuve réduite](validation/2026-09-30-sd-first-boot.json) distingue le
 snapshot du système, les tailles de partitions lues sur le Mac et l'arrêt
-confirmé par l’opérateur. La SD plus adaptée qu'il a trouvée sera préparée ensuite
-depuis l'image vierge, sans copier les identités de la carte déjà initialisée.
+confirmé par l’opérateur. La seconde carte est préparée depuis ce même artefact
+vierge, sans copier les identités de la carte déjà initialisée.
 
 ## Première observation physique — 30 septembre
 

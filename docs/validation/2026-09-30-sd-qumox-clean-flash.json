@@ -1,0 +1,85 @@
+{
+  "acceptance_scope": "Imager UI write completion and automatic ejection; default verification workflow, no independent raw readback",
+  "clean_retry": {
+    "automatic_ejection_reported_in_ui": true,
+    "capacity_bytes_observed": 15938355200,
+    "customization_added": false,
+    "device_observed_before_write": "disk6",
+    "error_dialog_observed": false,
+    "independent_raw_readback_verified": false,
+    "physical_sd_reidentified_after_reinsertion": true,
+    "same_virgin_image_selected": true,
+    "sd_device_absent_after_ejection": true,
+    "success_screen_observed_in_ui": true,
+    "tool": "Raspberry Pi Imager",
+    "verification_expected_from_gui_default": true,
+    "verification_phase_observed_in_ui": false,
+    "verification_skip_action_taken": false,
+    "version": "2.0.11.1",
+    "write_confirmations_issued": 1,
+    "write_progress_percent_observed": 77,
+    "write_started_observed_in_ui": true
+  },
+  "date": "2026-09-30",
+  "flash_accepted": true,
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-sd-diagnostic.img",
+    "sha256": "6a5821c1a0adca679a611b8aa97d20ac7dba2e0694d0b6a1a871eee9b273e248",
+    "size_bytes": 3061841920
+  },
+  "limits": [
+    "Clean retry completion/ejection is observed separately from the earlier contradictory 2.0.6 attempt; the earlier attempt is not retroactively accepted.",
+    "The capture shows write progress and final completion; verification progress was not captured. No skip action was taken, and the pinned GUI source defaults to verification enabled.",
+    "No independent raw readback hash or full-capacity SD/endurance test is claimed.",
+    "Qumox physical boot, resize, identity stability and A/B comparison remain untested at this snapshot.",
+    "No display refresh, BLE/iPhone adoption, Wi-Fi transaction, clock/country mutation or power-loss qualification is established.",
+    "No private SD files inspected and no Mac privacy or full-disk-access setting changed."
+  ],
+  "next_step": "User boots the Qumox on the Zero2W, confirms automatic shutdown, then returns the SD to the Mac for the report. Manual restart and A/B comparisons follow.",
+  "prior_ambiguous_attempt": {
+    "accepted": false,
+    "evidence": "2026-09-30-sd-qumox-flash-observation.json",
+    "old_error_preserved": true,
+    "version": "2.0.6"
+  },
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "replacement-sd-clean-flash-ui-completion",
+  "sd": {
+    "boot_tested": false,
+    "brand_reported_by_user": "Qumox",
+    "capacity_bytes_observed_on_mac": 15938355200,
+    "nominal_capacity_gb": 16,
+    "physical_removable_sd": true,
+    "writable_media": true
+  },
+  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715",
+  "system_services": {
+    "application_startup": "masked",
+    "diagnostic_wifi_disabled": true,
+    "network_helper_startup": "masked"
+  },
+  "tool_provenance": {
+    "apple_signature_verified": true,
+    "apple_team_id": "8RDZTRXE62",
+    "dmg_bytes": 51904566,
+    "dmg_sha256": "2b4c5324c5ff04aa3bfb216795ae9e01cb54400752727353e13fb21e66c528a9",
+    "download_sha256_matches_release": true,
+    "gatekeeper_accepted": true,
+    "gatekeeper_source": "Notarized Developer ID",
+    "installed_original_app_replaced": false,
+    "launch_version_observed": "2.0.11.1",
+    "official_app_staged_locally_for_test": true,
+    "release": "v2.0.11.1",
+    "source": "https://github.com/raspberrypi/rpi-imager/releases/tag/v2.0.11.1",
+    "team_matches_existing_imager": true
+  },
+  "verification_policy_source": {
+    "commit": "f259e1c99007b8a84b4e0049f03f0c34050f38e0",
+    "enabled_by_gui_default": true,
+    "runtime_progress_independently_observed": false,
+    "source_review_found_persisted_disable_setting": false,
+    "url": "https://github.com/raspberrypi/rpi-imager/blob/f259e1c99007b8a84b4e0049f03f0c34050f38e0/src/imagewriter.cpp#L137"
+  }
+}

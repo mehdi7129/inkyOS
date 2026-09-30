@@ -160,8 +160,8 @@ distincte de l'utilisateur, puisque le rapport précède poweroff.
 Le redémarrage manuel, la comparaison de deux installations vierges et la
 campagne applicative restent à faire. l’opérateur prévoit de remplacer cette carte
 par une SD plus adaptée : repartir du même artefact vierge évite de recopier
-une identité déjà générée. Aucun changement de carte ni nouveau flash n'a
-encore été effectué.
+une identité déjà générée. À la fin de cette première observation, aucun
+changement de carte ni nouveau flash n'avait encore été effectué.
 
 ## Remplacement par la Qumox 16 Go — 30 septembre
 
@@ -189,3 +189,24 @@ artefact vierge ; aucun média SD n'y est encore détecté. Réinsérer la carte
 identifier à nouveau son device/capacité, puis effectuer une seule écriture
 avec vérification avant le boot. Ne pas réutiliser un numéro de disque par
 hypothèse après éjection.
+
+Après réinsertion, la carte de 15938355200 octets est identifiée à nouveau
+comme seule SD physique amovible inscriptible. Une seule écriture est lancée
+avec Imager 2.0.11.1 ; 77 % d'écriture puis « Écriture terminée » sont observés,
+sans erreur, avec éjection automatique et disparition du device côté Mac.
+La [preuve du retry propre](validation/2026-09-30-sd-qumox-clean-flash.json)
+accepte ce résultat UI pour le prochain boot. Elle conserve séparément le
+premier essai ambigu, qui n'est pas accepté rétroactivement.
+
+La progression de vérification n'a pas été capturée. Le
+[code GUI exact](https://github.com/raspberrypi/rpi-imager/blob/f259e1c99007b8a84b4e0049f03f0c34050f38e0/src/imagewriter.cpp#L137)
+active cette passe par défaut ; aucune action de skip n'a été faite. Cela ne
+constitue pas une relecture raw indépendante ni un 100 % observé. Aucun boot
+de la Qumox, comparaison A/B ou test de persistance n'est encore conclu.
+
+Suite du banc : Pi hors tension, premier démarrage de la Qumox puis arrêt
+automatique confirmé par l’opérateur ; remettre la SD dans le Mac pour récupérer le
+rapport local. Comparer les premières observations 128 Go/Qumox avec
+`different-cards`. Faire ensuite un second démarrage manuel de la Qumox,
+récupérer son autre rapport et utiliser `same-card`. Le flash n'active pas
+l'app/helper et ne valide aucun parcours iPhone, radio ou écran.

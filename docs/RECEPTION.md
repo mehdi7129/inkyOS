@@ -320,3 +320,14 @@ sont vérifiés. Cette session a sélectionné le même artefact vierge ; elle
 attend la réinsertion physique de la Qumox, car aucun média SD n'est détecté.
 Le flash précédent reste non accepté ; aucune modification des réglages Mac
 ni remplacement de l'app installée n'a été effectué.
+
+l’opérateur a réinséré la Qumox. La nouvelle session 2.0.11.1 confirme une seule SD
+physique amovible de 15938355200 octets ; une seule écriture du même artefact
+vierge est lancée. Écriture à 77 %, fin sans erreur et éjection automatique
+sont observées ; le device a disparu côté Mac. Le
+[retry propre](validation/2026-09-30-sd-qumox-clean-flash.json) est accepté
+pour l'essai suivant. La progression de vérification n'a pas été capturée :
+défaut GUI activé dans la source exacte, aucune action de skip, aucune
+relecture raw indépendante revendiquée. Le premier essai reste consigné
+comme ambigu. La Qumox attend son premier boot réel, puis comparaison A/B et
+second boot manuel pour la stabilité de l'identité. App/helper toujours masqués.
