@@ -7,8 +7,11 @@ Lite ARM64 figée est personnalisée offline dans une VM dédiée. Premier boot
 système, compte applicatif verrouillé, services et prérequis matériels sont
 préparés et contrôlés. Le prototype système reste sans app ; une cible opt-in
 intègre un candidat Inky Studio épinglé avec ses services masqués.
-Un premier boot de la variante diagnostic est observé sur une SD de test et
-un Pi Zero 2 W : identité système cohérente et stockage agrandi automatiquement.
+Les premiers boots de la variante diagnostic sont observés sur deux SD et
+un Pi Zero 2 W ; la Qumox conserve son identité au second démarrage.
+La cible produit est une **microSD de 16 Go nominales, marque non fixée**.
+Les essais actifs utilisent la Qumox seule ; l'ancienne SD de 128 Go est retirée
+du périmètre à la demande de l’opérateur. Chaque référence retenue devra être testée.
 **Le parcours applicatif sans LAN et la qualification complète restent ouverts.**
 
 ```sh

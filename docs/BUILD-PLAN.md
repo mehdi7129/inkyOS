@@ -301,6 +301,16 @@ exactes. Les deux SD proviennent du même artefact vierge ; elles peuvent être
 testées successivement sur un banc dédié. Les comptes, réseaux et photos de test
 sont fictifs. Les seuils ci-dessous sont des critères proposés, pas des mesures.
 
+Mise à jour du 30 septembre : la cible produit est **microSD de 16 Go nominales,
+marque non fixée**, choisie selon disponibilité/prix puis qualifiée. L'image
+diagnostic actuelle mesure 3061841920 octets et tient sur la Qumox observée à
+15938355200 octets ; chaque flash vérifie la capacité réelle. L'ancienne SD
+de 128 Go est retirée des essais à la demande de l’opérateur. La campagne active
+reste sur Qumox seule ; les résultats A/B initiaux sont conservés, sans
+exiger un nouveau boot de A ni déclarer ses essais manquants réussis.
+La matrice étendue reste une condition de qualification/distribution,
+pas un préalable à un premier essai applicatif explicitement expérimental.
+
 | Essai | Critère / preuve à conserver |
 |---|---|
 | Inspection avant boot | Hashs, partitions, services/permissions, aucun état privé ; SSH inactif et aucun password Linux partagé. |
@@ -348,14 +358,14 @@ Ordre de travail proposé :
 4. **Après preuves** : image compressée, SHA-256/provenance/licences, guide Imager,
    procédure de restauration et décision de distribution.
 
-L'hôte de build Linux ARM64 est maintenant éprouvé. Restent ouverts : panneau/banc et SD de test,
-release app définitive, contrats listés en section 6. Aucun de ces éléments n'est
+L'hôte de build Linux ARM64 est maintenant éprouvé. Restent ouverts : identification
+du panneau/banc, release app définitive et contrats listés en section 6. Aucun de ces éléments n'est
 implicitement remplacé par le Pi personnel ou par une valeur arbitraire.
 
-**Disponibilité confirmée par l’opérateur : aucune SD de test pour le moment.** Sa SD
-est utilisée dans son Raspberry Pi et reste intacte. Les étapes de préparation
-et de build peuvent avancer ; l'étape de qualification physique attend un
-support dédié. Une image contrôlée offline restera marquée non qualifiée.
+**Disponibilité au 30 septembre : Qumox 16 Go de test fournie**, premier boot
+et un redémarrage avec identité conservée observés. L'ancienne SD de test
+128 Go sort du périmètre actif à la demande de l’opérateur ; sa SD personnelle reste
+intacte. La campagne complète et les essais applicatifs restent ouverts.
 
 Pour v0, conserver une seule cible, boot FAT + root ext4 et récupération par
 reflash de secours. A/B, partitionnement spécial, service cloud et mécanisme

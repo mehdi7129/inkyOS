@@ -345,7 +345,7 @@ machine-id et hostname sont distincts, cohérents sur chaque SD, sans publier
 leurs empreintes. S01/S02/S04 sont observés dans leur portée système initiale ;
 persistance S05, série de reboots et qualification complète restent ouverts.
 Prochain geste : un nouveau boot de la même Qumox, sans reflash, puis rapport
-et comparaison `same-card`. La SD A doit aussi être redémarrée. Aucun refresh
+et comparaison `same-card`. Un redémarrage de A était aussi prévu à ce stade. Aucun refresh
 du panneau, parcours iPhone ou transaction Wi-Fi n'a été exécuté.
 
 Le second démarrage Qumox est ensuite effectué sans reflash. À son retour,
@@ -359,7 +359,31 @@ documente S05 sur B dans ce périmètre, pas la qualification complète.
 La nomenclature des premiers relevés FAT est corrigée : 528593408 octets
 correspondent au volume macOS, tandis que la partition Qumox mesure
 536870912 octets. Aucune valeur observée ni identité privée n'est modifiée
-ou publiée. Prochain geste matériel : second boot de la SD A de 128 Go sans
+ou publiée. Prochain geste alors prévu : second boot de la SD A de 128 Go sans
 reflash pour sa persistance. B compte un redémarrage manuel ; S06, coupures,
 charge, app, iPhone et réseau restent ouverts. Aucun changement de protocole
 ou pin applicatif n'a été fait.
+
+l’opérateur refuse ensuite de réutiliser l'ancienne SD de 128 Go. Les essais actifs
+se poursuivent uniquement sur Qumox ; aucune action supplémentaire n'est
+demandée sur A. Ses preuves restent historiques, S05/S06 non exécutés.
+La cible produit est **16 Go nominales, marque non fixée**, à choisir selon
+disponibilité/prix puis tester. L'image actuelle de 3061841920 octets tient
+sur le média Qumox mesuré ; cela ne qualifie pas toutes les cartes de 16 Go.
+
+La priorité demandée est maintenant une image installable pour tester l'app
+iOS et l'appairage sur le Pi. La base système observée ne suffit pas :
+app/helper sont encore masqués. Un premier essai avec LAN authentifié et le
+bootstrap entièrement sans LAN sont deux portées distinctes à coordonner
+avec Inky Studio ; aucun délai ou parcours opérationnel n'est déduit de la CI.
+
+Vérification upstream du 30 septembre : la tête `codex/ios-demo-onboarding`
+reste `30aed843`, #15 (`inky-studio/issues/15`) et
+#16 (`inky-studio/issues/16`) sont ouvertes.
+Le chemin le plus court proposé pour un premier essai est une variante
+applicative expérimentale avec connexion LAN préalable, candidat épinglé,
+app/helper actifs, sans auto-arrêt diagnostic, et bêta iOS Bluetooth réellement
+disponible. Réseau/pays/heure doivent être préparés sans secrets dans l'artefact
+générique. Cette variante doit être coordonnée et construite ; elle n'existe
+pas encore et ne remplace pas le chantier sans LAN de #15. La série complète
+de dix reboots n'est pas un préalable à ce premier essai applicatif.

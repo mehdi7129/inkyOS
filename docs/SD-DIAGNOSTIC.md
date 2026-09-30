@@ -235,8 +235,8 @@ avant poweroff. La qualification complète reste ouverte.
 Prochain essai prévu à ce stade : **redémarrer manuellement la Qumox sans la reflasher**,
 attendre l'arrêt, la remettre dans le Mac et conserver le nouveau rapport
 avec celui-ci. Exécuter `same-card`, puis vérifier aussi services et capacité
-du FS. Le même contrôle de persistance devra être fait sur la SD de 128 Go ;
-la comparaison A/B ne remplace pas ces redémarrages.
+du FS. Un contrôle sur la SD de 128 Go était également prévu à ce stade,
+avant son retrait ultérieur du périmètre actif.
 
 ## Second boot Qumox et persistance — 30 septembre
 
@@ -253,8 +253,11 @@ le nom du champ historique pour le volume FAT : `diskutil info` donne
 528593408 octets de volume, tandis que `diskutil list` mesure une partition
 de 536870912 octets. Les valeurs historiques ne sont pas remplacées.
 
-S05 est documenté sur B dans ce périmètre ; A doit encore être redémarrée
-sans reflash. B compte un seul redémarrage manuel pour S06. Aucune série de
+S05 est documenté sur B dans ce périmètre. l’opérateur demande ensuite de ne plus
+utiliser A : son redémarrage prévu n'est pas exécuté. B compte un seul
+redémarrage manuel pour S06. Aucune série de
 dix, erreur transitoire exhaustive, coupure, adoption ou transaction réseau
-n'est déduite des deux snapshots. Conserver les deux installations pour les
-essais suivants ; ne pas reflasher avant les contrôles de persistance.
+n'est déduite des deux snapshots. Conserver la Qumox pour les essais suivants,
+sans reflash pendant la série de persistance. La cible produit est 16 Go
+nominaux, marque non fixée ; une autre référence n'hérite pas des résultats
+Qumox par sa seule capacité annoncée.

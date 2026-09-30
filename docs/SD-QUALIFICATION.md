@@ -8,14 +8,24 @@ une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
 confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
 Une seconde carte, Qumox 16 Go selon l’opérateur, a ensuite été insérée dans le Mac :
 15938355200 octets détectés. La comparaison des identités initiales A/B passe ;
-le second boot Qumox conserve son identité. Redémarrage de A, série complète
-et récupération restent à réaliser. Après un
+le second boot Qumox conserve son identité. **La campagne active se poursuit
+uniquement sur Qumox ; A est retirée du périmètre à la demande de l’opérateur.**
+La série complète et la récupération restent à réaliser. Après un
 [premier essai ambigu](validation/2026-09-30-sd-qumox-flash-observation.json),
 une écriture unique avec Imager 2.0.11.1 termine sans erreur et éjecte la SD.
 Ce [flash propre](validation/2026-09-30-sd-qumox-clean-flash.json) a été suivi
 d'un [boot système observé](validation/2026-09-30-sd-qumox-first-boot.json).
 Aucune relecture raw indépendante ou qualification complète de cette carte
 n'est revendiquée.
+
+La cible produit est une **microSD de 16 Go nominales**, sans marque imposée.
+La référence sera choisie selon disponibilité/prix, puis qualifiée sur le banc.
+L'image diagnostic actuelle mesure 3061841920 octets ; le contrôle de flash
+compare la taille réelle de l'artefact à la capacité réelle du média, sans
+exiger arbitrairement 16 milliards d'octets. Les 11,89 Go disponibles observés
+sur Qumox ne sont pas une promesse valable pour toute carte de 16 Go.
+Les résultats historiques sur A restent conservés ; ses essais non exécutés
+ne sont ni relancés ni déclarés réussis.
 
 Le premier essai utilise une [variante de diagnostic automatique](SD-DIAGNOSTIC.md),
 distincte de la release : rapport expurgé sur FAT, puis demande de poweroff.
@@ -52,8 +62,8 @@ pas une durée de boot. Ce snapshot ne mesure ni charge ni consommation.
 
 Le rapport est écrit avant la demande d'arrêt ; le collecteur y apparaît
 normalement `activating/start`. l’opérateur a confirmé séparément que le Pi était
-arrêté avant de retirer la SD. Un redémarrage reste nécessaire pour vérifier
-la persistance : la campagne prototype n'est donc pas terminée.
+arrêté avant de retirer la SD. À ce stade, un redémarrage restait nécessaire
+pour vérifier la persistance ; A a ensuite été retirée des essais actifs.
 
 Le [comparateur local](SD-DIAGNOSTIC.md#comparer-les-observations-localement)
 prépare S02/S05 : il contrôle cohérence et stabilité/distinction des identités
@@ -82,8 +92,8 @@ SHA-256 des artefacts et les résultats booléens.
 | S02 | PASS : identités initiales cohérentes et distinctes sur A/B | Persistance après redémarrage suivie par S05. |
 | S03 | États des services et masques observés sur A/B ; critère complet NON TESTÉ | Ordre réel, comptes et permissions exhaustives. |
 | S04 | PASS : expansion automatique observée sur A/B | Reboot interne éventuel et durée non mesurés. |
-| S05 | PASS sur B dans le périmètre observé ; NON TESTÉ sur A | Second boot sans reflash de A ; snapshots limités aux services sélectionnés. |
-| S06 | NON TESTÉ : un redémarrage manuel observé sur B, aucun sur A | Série de dix redémarrages par carte. |
+| S05 | PASS sur B dans le périmètre observé ; NON TESTÉ sur A, retirée du périmètre actif | Snapshots limités aux services sélectionnés ; aucun nouveau test demandé sur A. |
+| S06 | NON TESTÉ : un redémarrage manuel observé sur B ; A retirée du périmètre actif | Poursuivre la série de dix sur Qumox seule. |
 | S07 | Snapshots disponibles sur A/B ; critère complet NON TESTÉ | Charge, OOM, temps de boot et mesures électriques. |
 | S08 et coupures | NON TESTÉ | Banc et scénario à préparer séparément. |
 | A01–A06 | BLOQUÉ | Release applicative et runtime sans LAN non qualifiés. |
@@ -119,8 +129,8 @@ premiers boots avaient nommé la mesure du volume `boot_partition_bytes` :
 le champ est corrigé en `boot_volume_mac_total_bytes`, sans changer sa valeur
 ni déduire rétroactivement la taille de partition de A.
 
-La SD de 128 Go (A) doit maintenant être démarrée une seconde fois, **sans
-reflash**, puis remise dans le Mac pour son propre contrôle de persistance.
+l’opérateur demande ensuite de ne plus utiliser la SD de 128 Go (A) : le contrôle
+de persistance prévu sur A n'est pas exécuté et sort des travaux actifs.
 La Qumox conserve son installation actuelle. Pour S06, B compte un redémarrage
 manuel observé : il en reste neuf pour la série de dix ; le premier boot et
 un éventuel reboot interne de resize ne sont pas comptés.
@@ -147,6 +157,12 @@ ce moyen disponible ; elles ne justifient pas un login partagé, un contournemen
 des comptes verrouillés ou l'ouverture de SSH dans l'image distribuée.
 
 ## Préparer le banc et les preuves
+
+La matrice générale ci-dessous conserve les comparaisons de deux installations
+requises pour une qualification étendue future. Elle ne demande pas de réutiliser
+A : le banc actif est Qumox seule. Toute nouvelle carte sera choisie séparément.
+Le prototype système et les premiers essais applicatifs peuvent avancer sur
+la carte retenue sans terminer la matrice de distribution.
 
 1. Réserver deux SD de test, étiquetées **A** et **B**, et un banc dédié. Elles
    peuvent être démarrées successivement sur le même Pi de test. La SD et le
