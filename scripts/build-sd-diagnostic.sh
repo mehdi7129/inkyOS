@@ -94,6 +94,10 @@ for entry in [path, *path.rglob('*')]:
     info = entry.lstat()
     assert stat.S_ISDIR(info.st_mode) or (stat.S_ISREG(info.st_mode) and info.st_nlink == 1)
     os.chown(entry, 0, 0, follow_symlinks=False)
+    # Implicit tar parent directories inherit the guest user's umask. Normalize
+    # every entry before a root interpreter reads this sealed snapshot.
+    os.chmod(entry, 0o755 if stat.S_ISDIR(info.st_mode) else 0o444, follow_symlinks=False)
+os.chmod(path / 'diagnostic.img', 0o600, follow_symlinks=False)
 os.chmod(path, 0o700)
 PY
 limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/build-sd-diagnostic-linux.sh" "$guest_dir" \
