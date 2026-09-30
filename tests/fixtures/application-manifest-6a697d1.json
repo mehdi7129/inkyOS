@@ -1,0 +1,36 @@
+{
+  "application_version": "0.5.0-rc.2",
+  "assets": [
+    {
+      "filename": "inky-studio-v0.5.0-rc.2.tar.gz",
+      "role": "application",
+      "sha256": "7fe32a7a5889a0aecc6de2352ac8576c2c904a64ba7d66523dbfc624b95aa22b",
+      "size_bytes": 961250
+    },
+    {
+      "filename": "inky-studio-python-arm64-cp313.zip",
+      "role": "wheelhouse",
+      "sha256": "e4a18473a2e7ef2c7cedf248c311ec97d98e92f83420af927e128b668bf45928",
+      "size_bytes": 38247381
+    },
+    {
+      "filename": "requirements-arm64-cp313.lock",
+      "role": "python_lock",
+      "sha256": "c7e7fac7681d95dac34cee80a8dc46f33555efe3a1563a6403cf6bd82280877b",
+      "size_bytes": 4158
+    }
+  ],
+  "compatibility": {
+    "architecture": "arm64",
+    "ble_contract": "git:6a697d134290ced0214fc74b903f4b3c336d70fa#docs/ios/BLE-PROTOCOL-V1.md",
+    "debian_release": "trixie",
+    "http_contract": "git:6a697d134290ced0214fc74b903f4b3c336d70fa#server/inky_web",
+    "network_helper_contract": "git:6a697d134290ced0214fc74b903f4b3c336d70fa#scripts/inky-network-helper.py",
+    "python_minor": "3.13"
+  },
+  "qualification": {
+    "evidence": []
+  },
+  "schema_version": 1,
+  "source_commit": "6a697d134290ced0214fc74b903f4b3c336d70fa"
+}

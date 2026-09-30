@@ -1,5 +1,30 @@
 # Réception du relais Inky Studio
 
+## Préparation du premier essai applicatif — 30 septembre 2026
+
+l’opérateur confirme **France** et décrit son écran comme « Inky Spectra, format
+carte postale ». Le modèle exact reste à observer ; aucune référence n'est
+déduite de cette description. La Qumox 16 Go reste la seule carte active.
+Aucune nouvelle opération SD/Pi n'a été faite pendant cette préparation.
+
+Inky Studio a livré le candidat corrigé `758a2bf7ed099aad41ef35316e53228e797b0b2b`,
+manifeste `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`.
+Il remplace le candidat pour les nouveaux builds TEST ; l'ancien couple exact
+`6a697d1` reste contrôlable pour les audits historiques. La livraison corrige
+les métadonnées des panneaux, sans changement de driver/protocole.
+
+Les sources de la [variante TEST LAN inactive](TEST-LAN.md), du preflight et
+des sondes EEPROM/radio sont livrées. Les sondes restent hors image/preflight.
+Le [canal opérateur privé](TEST-OPERATOR.md) et son activation restent une
+proposition distincte ; le banc SSH utilise un runner inerte.
+La suite finale compte **441 tests**, sans échec sur Mac Python 3.13.3
+(4 skips) et Linux ARM64 Python 3.13.5 (1 skip). Les builds/export et le vrai
+banc SSH/PAM doivent encore être exécutés et relus avant l'étape matérielle.
+
+La session app confirme TestFlight `1.0.0 (5)` traité mais non distribué
+(conformité manquante, aucun groupe). Build 3 permet de viser les photos LAN
+après réception du Pi ; le parcours Bluetooth attend la distribution du build 5.
+
 Reçu le **27 septembre 2026** dans `inkyOS`.
 Point de départ vérifié : `main`, commit
 `7b40c38768fd826d8b36e07619f40d62cdf982eb`, arbre de travail propre à réception.

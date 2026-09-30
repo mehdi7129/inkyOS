@@ -197,28 +197,22 @@ class VerifyPrototypeTests(unittest.TestCase):
         self.assertTrue(json.loads(before)["passed"])
 
     def test_cli_loads_explicit_pinned_application_manifest(self):
-        source = '6a697d134290ced0214fc74b903f4b3c336d70fa'
-        data = {'schema_version': 1, 'application_version': '0.5.0-rc.2', 'source_commit': source,
-                'assets': [{'role': role, 'filename': role + suffix, 'size_bytes': 1, 'sha256': 'a' * 64}
-                           for role, suffix in (('application', '.tar.gz'), ('wheelhouse', '.zip'), ('python_lock', '.lock'))],
-                'compatibility': {'architecture': 'arm64', 'python_minor': '3.13', 'debian_release': 'trixie',
-                                  **{key: 'git:' + source + '#contracts/' + key for key in
-                                     ('http_contract', 'ble_contract', 'network_helper_contract')}},
-                'qualification': {'evidence': []}}
-        manifest = self.base/'application.json'
-        manifest.write_text(json.dumps(data))
-        digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
-        application = {'source_commit': source, 'application_version': data['application_version'],
-                       'manifest_sha256': digest, 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False}
-        self.put('etc/inkyos-release.json', json.dumps({'schema_version': 1,
-                 'kind': 'application-prototype', 'application': application}))
-        self.put('var/lib/NetworkManager/NetworkManager.state', '[main]\nWirelessEnabled=false\n', 0o600)
-        args = ['--rootfs', str(self.root), '--bootfs', str(self.boot), '--packages-lock', str(self.lock_path),
-                '--output', str(self.base/'app-report.json'), '--application-manifest', str(manifest),
-                '--application-sha256', digest]
-        original = verify.verify
-        with patch.object(verify, 'verify', side_effect=lambda *a, **kw: original(*a, _owner_uid=os.getuid(), **kw)), redirect_stdout(io.StringIO()):
-            self.assertEqual(verify.main(args), 0)
+        for name in ('application-manifest-6a697d1.json', 'application-manifest-758a2bf7.json'):
+            with self.subTest(manifest=name):
+                manifest = Path(__file__).with_name('fixtures') / name
+                data = json.loads(manifest.read_bytes())
+                digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+                application = {'source_commit': data['source_commit'], 'application_version': data['application_version'],
+                               'manifest_sha256': digest, 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False}
+                self.put('etc/inkyos-release.json', json.dumps({'schema_version': 1,
+                         'kind': 'application-prototype', 'application': application}))
+                self.put('var/lib/NetworkManager/NetworkManager.state', '[main]\nWirelessEnabled=false\n', 0o600)
+                args = ['--rootfs', str(self.root), '--bootfs', str(self.boot), '--packages-lock', str(self.lock_path),
+                        '--output', str(self.base / ('report-' + name)), '--application-manifest', str(manifest),
+                        '--application-sha256', digest]
+                original = verify.verify
+                with patch.object(verify, 'verify', side_effect=lambda *a, **kw: original(*a, _owner_uid=os.getuid(), **kw)), redirect_stdout(io.StringIO()):
+                    self.assertEqual(verify.main(args), 0)
 
 
 if __name__ == "__main__":

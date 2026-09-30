@@ -7,13 +7,19 @@ Elle ne télécharge pas une release mobile et n'active pas le backend.
 ```sh
 make application-prototype \
   APPLICATION_MANIFEST=/chemin/candidat/inky-studio-manifest-v1.json \
-  APPLICATION_SHA256=2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f \
+  APPLICATION_SHA256=0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551 \
   APPLICATION_ASSETS=/chemin/candidat
 ```
 
-Cette intégration déclarative accepte uniquement le source revu
-`6a697d134290ced0214fc74b903f4b3c336d70fa`. Pour changer de candidat, revoir le
-manifeste, les installers et leurs hashes, puis adapter les tests d'équivalence.
+Cette intégration déclarative accepte uniquement deux couples exacts revus :
+le candidat `758a2bf7ed099aad41ef35316e53228e797b0b2b` et le manifeste ci-dessus,
+ou l'ancien `6a697d134290ced0214fc74b903f4b3c336d70fa` avec
+`2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f`.
+Un commit seul, une version commune ou un autre manifeste sont refusés.
+Pour changer de candidat, revoir le manifeste, les installers et leurs hashes,
+puis adapter les tests d'équivalence. Le nouveau candidat conserve exactement
+les quatre sources auditées d'installation, launcher et helper ; il corrige
+uniquement les métadonnées de panneau. Il exige un nouveau build parent.
 Le candidat est une entrée expérimentale, **pas la release finale qualifiée**.
 
 ## Assemblage
@@ -55,7 +61,9 @@ gates statiques supplémentaires. La comparaison conserve la distinction entre
 
 Cette image ne propose pas encore le parcours sans LAN. Les services ne seront
 activés qu'après livraison du [contrat exécutable commun](FIRST-BOOT.md), nouveau
-payload épinglé et tests correspondants. Le banc offline applicatif précédent
+payload épinglé et tests correspondants, ou dans la [variante TEST avec LAN
+initial](TEST-LAN.md) après réception de ses contrôles propres. Cette variante
+reste préparée et inactive à ce stade. Le banc offline applicatif précédent
 prouve des imports/API dans la VM ; il ne prouve pas le boot du rootfs Raspberry
 Pi. Le cadre personnel et sa SD restent hors des essais.
 

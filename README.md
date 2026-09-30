@@ -43,7 +43,7 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Plan de réalisation de l'image](docs/BUILD-PLAN.md) : comparaison des builders, recette proposée et qualification.
 - [Développement sans SD](docs/DEVELOPMENT.md) : outils exécutables, environnement isolé et observations vérifiées.
 - [Delta système vérifié](docs/BASE-CUSTOMIZATION.md) : premier boot et croissance SD de la base exacte.
-- [Payload applicatif commun](docs/APPLICATION-PAYLOAD.md) : proposition relue avec Inky Studio, assets encore attendus.
+- [Payload applicatif commun](docs/APPLICATION-PAYLOAD.md) : contrat relu avec Inky Studio, candidat livré et release finale encore attendue.
 - [Compatibilité Python ARM64](docs/PYTHON-COMPATIBILITY.md) : audit initial des dépendances et limites de résolution depuis PyPI.
 - [Compilation des wheels natives](docs/NATIVE-WHEELS.md) : essai ARM64 réussi et artefacts expérimentaux transmis à Inky Studio.
 - [Contrôle des archives](docs/ARCHIVE-CONTRACT.md) : contrat commun et inspection inerte avant extraction.
@@ -54,6 +54,7 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Gate Wi-Fi au boot](docs/WIFI-BOOT-GATE.md) : préparation durable de l'état NM sur fixtures, intégration encore inactive.
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure, premier boot physique observé et essais restant à effectuer.
 - [Diagnostic SD sans LAN](docs/SD-DIAGNOSTIC.md) : variante de test avec rapport automatique sur FAT et arrêt propre.
+- [Variante TEST LAN préparée](docs/TEST-LAN.md) : candidat relu, recette/preflight et conditions avant activation applicative.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 
 ## Avant l'image complète

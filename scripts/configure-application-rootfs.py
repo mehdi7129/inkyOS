@@ -3,7 +3,7 @@
 
 Never source installers, execute application code, start services or create app
 identities. Account creation and offline Python installation precede this step.
-The declarative extraction is deliberately limited to one reviewed app commit.
+The declarative extraction is limited to explicitly reviewed source/manifest pairs.
 """
 import argparse
 import hashlib
@@ -30,7 +30,14 @@ inspection = module('_inkyos_application_inspection', 'inspect-rootfs.py')
 manifest_verifier = module('_inkyos_application_manifest', 'verify-application.py')
 APP = 'home/inky/inky-studio'
 DATA = 'var/lib/inky-studio'
-SOURCE_COMMIT = '6a697d134290ced0214fc74b903f4b3c336d70fa'
+SOURCE_COMMIT = '758a2bf7ed099aad41ef35316e53228e797b0b2b'
+MANIFEST_SHA256 = '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'
+# Retain the original pair for old exports. Sharing a version or a source alone
+# does not authorize a repackaged payload; each manifest is pinned in full.
+REVIEWED_APPLICATIONS = {
+    '6a697d134290ced0214fc74b903f4b3c336d70fa': '2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f',
+    SOURCE_COMMIT: MANIFEST_SHA256,
+}
 SOURCE_HASHES = {
     'install.sh': '541a98b9f3dc220b0dc89162e98affb97be200360ec7ad8e0650960d7d15944d',
     'scripts/install-bluetooth.sh': 'e0f301c97830860bcc1778579d7f4181370fb4cef8d64aeac4c226ab8aeafb69',
@@ -53,7 +60,8 @@ def load_manifest(path, digest):
     raw = manifest_verifier.read_regular(path)
     require(hashlib.sha256(raw).hexdigest() == digest, 'Manifest hash mismatch')
     data = manifest_verifier.validate_manifest(json.loads(raw, object_pairs_hook=manifest_verifier.unique_pairs))
-    require(data['source_commit'] == SOURCE_COMMIT, 'Static integration requires the reviewed app commit')
+    require(REVIEWED_APPLICATIONS.get(data['source_commit']) == digest,
+            'Static integration requires an exact reviewed source/manifest pair')
     return data
 
 

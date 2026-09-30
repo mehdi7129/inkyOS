@@ -30,16 +30,8 @@ class ApplicationRootfsTests(unittest.TestCase):
         self.root = self.base / 'root'
         self.root.mkdir()
         self.manifest = self.base / 'manifest.json'
-        source = configure.SOURCE_COMMIT
-        manifest = {'schema_version': 1, 'application_version': '0.5.0-rc.2', 'source_commit': source,
-                    'assets': [{'role': role, 'filename': 'fixture' + suffix, 'size_bytes': 1, 'sha256': 'a' * 64}
-                               for role, suffix in (('application', '.tar.gz'), ('wheelhouse', '.zip'), ('python_lock', '.lock'))],
-                    'compatibility': {'architecture': 'arm64', 'python_minor': '3.13', 'debian_release': 'trixie',
-                                      'http_contract': 'git:' + source + '#server/inky_web',
-                                      'ble_contract': 'git:' + source + '#docs/ios/BLE-PROTOCOL-V1.md',
-                                      'network_helper_contract': 'git:' + source + '#scripts/inky-network-helper.py'},
-                    'qualification': {'evidence': []}}
-        self.manifest.write_text(json.dumps(manifest))
+        self.manifest.write_bytes((ROOT / 'tests/fixtures/application-manifest-758a2bf7.json').read_bytes())
+        source = json.loads(self.manifest.read_bytes())['source_commit']
         self.digest = hashlib.sha256(self.manifest.read_bytes()).hexdigest()
         self.write('etc/inkyos-release.json', json.dumps({'schema_version': 1, 'kind': 'system-prototype',
                    'application': None, 'status': 'not-hardware-qualified',
@@ -144,6 +136,41 @@ class ApplicationRootfsTests(unittest.TestCase):
         sudoers = (self.root / 'etc/sudoers.d/inky-studio').read_text()
         self.assertEqual(sudoers.count('/usr/bin/systemctl'), 4)
         self.assertNotIn('timedate', sudoers)
+
+    def test_original_manifest_still_configures_and_verifies_without_repinning(self):
+        self.manifest.write_bytes((ROOT / 'tests/fixtures/application-manifest-6a697d1.json').read_bytes())
+        source = json.loads(self.manifest.read_bytes())['source_commit']
+        self.digest = hashlib.sha256(self.manifest.read_bytes()).hexdigest()
+        release = json.loads((self.root / 'etc/inkyos-release.json').read_bytes())
+        release['recipe_inputs']['files']['application-manifest.json'] = self.digest
+        self.write('etc/inkyos-release.json', json.dumps(release))
+        self.write(configure.APP + '/server/SOURCE_COMMIT', source + '\n')
+        self.configure()
+        report = self.report()
+        self.assertTrue(report['passed'], report['failed_checks'])
+        self.assertEqual(report['source_commit'], source)
+        self.assertEqual(report['manifest_sha256'], self.digest)
+
+    def test_exact_reviewed_pairs_reject_crossed_and_repackaged_manifests(self):
+        fixtures = [ROOT / 'tests/fixtures' / name for name in
+                    ('application-manifest-6a697d1.json', 'application-manifest-758a2bf7.json')]
+        pins = {json.loads(path.read_bytes())['source_commit']: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in fixtures}
+        self.assertEqual(len(pins), 2)
+        self.assertEqual(configure.REVIEWED_APPLICATIONS, pins)
+        self.assertEqual(verify.configuration.REVIEWED_APPLICATIONS, pins)
+        for path in fixtures:
+            source = json.loads(path.read_bytes())['source_commit']
+            for other_source, pin in pins.items():
+                with self.subTest(source=source, other_source=other_source):
+                    if source == other_source:
+                        self.assertEqual(configure.load_manifest(path, pin)['source_commit'], source)
+                    else:
+                        with self.assertRaises(ValueError):
+                            configure.load_manifest(path, pin)
+            self.manifest.write_bytes(path.read_bytes() + b' ')
+            with self.assertRaisesRegex(ValueError, 'reviewed source/manifest pair'):
+                configure.load_manifest(self.manifest, hashlib.sha256(self.manifest.read_bytes()).hexdigest())
 
     def test_tampered_source_or_manifest_is_rejected_before_configuration(self):
         with self.assertRaises(ValueError):
