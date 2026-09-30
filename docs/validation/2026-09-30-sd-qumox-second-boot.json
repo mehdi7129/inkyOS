@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "date": "2026-09-30",
-  "scope": "sd-B-system-prototype-physical-observation-and-initial-identity-comparison",
-  "decision": "system-prototype-observed-on-Qumox-and-distinct-initial-system-identities-on-A-B",
+  "scope": "sd-B-system-prototype-manual-second-boot-observation",
+  "decision": "system-identity-persistence-observed-on-Qumox-without-reflash",
   "hardware_qualified": false,
   "release_qualified": false,
   "image": {
@@ -12,19 +12,19 @@
   },
   "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715",
   "preparation_evidence": "2026-09-30-sd-qumox-clean-flash.json",
-  "previous_card_evidence": "2026-09-30-sd-first-boot.json",
   "card": {
     "label": "B",
     "brand_and_nominal_capacity_from_user": "Qumox 16 GB",
     "detailed_reference_known": false
   },
   "report": {
-    "sha256": "bed69cc4d513a88f321da87fa94e84300b767db17647e8827892289723657f01",
+    "sha256": "b71ea779b1cd461334e5bc62f09d375bdcc4edfe331d535261fa385a7c180445",
     "schema_version": 1,
     "raw_retained_locally": true,
     "identity_hashes_published": false,
-    "reports_observed": 1,
-    "independent_authenticity_verified": false
+    "reports_observed": 2,
+    "independent_authenticity_verified": false,
+    "reports_observed_meaning": "Two regular boot reports retained on returned SD B; this evidence describes the second."
   },
   "observations_from_report": {
     "hardware": {
@@ -43,11 +43,11 @@
       "memory": {
         "status": "ok",
         "total_bytes": 435318784,
-        "available_bytes": 282222592
+        "available_bytes": 295190528
       },
       "temperature_millicelsius": {
         "status": "ok",
-        "value": 37014
+        "value": 34862
       },
       "throttling": {
         "status": "ok",
@@ -55,7 +55,7 @@
       },
       "uptime_seconds": {
         "status": "ok",
-        "value": 56
+        "value": 46
       }
     },
     "identity": {
@@ -74,7 +74,7 @@
         "state_matches_kernel": true
       },
       "comparison_between_cards_tested": true,
-      "stability_after_manual_restart_tested": false
+      "stability_after_manual_restart_tested": true
     },
     "filesystems": {
       "boot": {
@@ -82,14 +82,14 @@
         "type": "vfat",
         "device": "mmc",
         "total_bytes": 528592896,
-        "available_bytes": 449281024
+        "available_bytes": 448347136
       },
       "root": {
         "status": "ok",
         "type": "ext4",
         "device": "mmc",
         "total_bytes": 15080513536,
-        "available_bytes": 11886649344
+        "available_bytes": 11886645248
       }
     },
     "services": {
@@ -104,8 +104,8 @@
       },
       "rpi-resize.service": {
         "status": "ok",
-        "ActiveState": "active",
-        "SubState": "exited",
+        "ActiveState": "inactive",
+        "SubState": "dead",
         "LoadState": "loaded",
         "UnitFileState": "disabled",
         "Result": "success",
@@ -113,8 +113,8 @@
       },
       "systemd-growfs-root.service": {
         "status": "ok",
-        "ActiveState": "active",
-        "SubState": "exited",
+        "ActiveState": "inactive",
+        "SubState": "dead",
         "LoadState": "loaded",
         "UnitFileState": "static",
         "Result": "success",
@@ -232,30 +232,90 @@
   },
   "observations_from_mac_metadata": {
     "card_capacity_bytes": 15938355200,
-    "linux_partition_bytes": 15393095680,
-    "partition_contents_read": "diagnostic-report-only",
-    "card_rewritten_after_return": false,
+    "boot_partition_bytes": 536870912,
     "boot_volume_mac_total_bytes": 528593408,
-    "boot_volume_measurement_note": "528593408 is the diskutil info TotalSize/VolumeSize value, not the block partition size; field naming corrected in the second-boot evidence."
+    "linux_partition_bytes": 15393095680,
+    "partition_size_source": "diskutil list -plist; volume capacity comes separately from diskutil info -plist",
+    "partition_contents_read": "diagnostic-report-only",
+    "card_rewritten_after_return": false
   },
   "observation_from_user": {
     "workflow_completion_acknowledged": true,
-    "workflow": "User acknowledged the instructions to boot the test SD, wait for shutdown, unplug and return it to the Mac.",
+    "workflow": "User acknowledged the instructions to boot the same Qumox without reflash, wait for shutdown, unplug and return it to the Mac.",
     "separate_explicit_shutdown_confirmation_in_this_turn": false
   },
   "checks": {
     "physical_system_boot_observed": true,
     "firstboot_service_succeeded": true,
     "system_identity_coherent": true,
-    "root_partition_and_ext4_expansion_observed": true,
     "manual_resize_performed": false,
     "expected_selected_services_and_masks_observed": true,
-    "initial_identity_comparison_between_cards_passed": true
+    "initial_identity_comparison_between_cards_passed": true,
+    "system_identity_stable_across_two_distinct_boots": true,
+    "root_partition_and_ext4_capacity_preserved": true,
+    "resize_and_growfs_inactive_without_reported_failure": true,
+    "manual_restarts_observed_on_card_B": 1
   },
-  "initial_identity_comparison": {
+  "campaign_criteria": {
+    "S01": {
+      "status": "PASS",
+      "scope": "Initial system boot on SD B; diagnostic image disables Wi-Fi and has no preloaded profile. Radio connectivity itself is not measured."
+    },
+    "S02": {
+      "status": "PASS",
+      "scope": "Initial system identities on A/B are internally coherent and distinct, as established by the first-boot evidence. Persistence is now observed on B under S05; A remains untested."
+    },
+    "S03": {
+      "status": "NON TESTÉ",
+      "observed": "Selected service states and masks match the diagnostic image. Runtime ordering, account policy and all permissions are not explicitly measured."
+    },
+    "S04": {
+      "status": "PASS",
+      "scope": "Initial partition/ext4 expansion on B was established by the previous-boot evidence; the second boot preserves both capacities. No manual resize. Any initial internal reboot and timing were not independently observed."
+    },
+    "S05": {
+      "status": "PASS",
+      "card": "B",
+      "scope": "One manual restart without reflash; system identity/coherence, selected service states and filesystem capacity preserved on B.",
+      "limits": "Transient errors and exhaustive system permissions/order are not measured. S05 on A remains untested."
+    },
+    "S06": {
+      "status": "NON TESTÉ",
+      "observed_manual_restarts_on_B": 1,
+      "remaining_manual_restarts_on_B_for_ten": 9,
+      "manual_restarts_on_A_observed": 0
+    },
+    "S07": {
+      "status": "NON TESTÉ",
+      "observed": "Single snapshot of memory, temperature and throttling; no load or electrical measurement."
+    },
+    "S08": {
+      "status": "NON TESTÉ"
+    },
+    "A01-A06": {
+      "status": "BLOQUÉ"
+    },
+    "physical_power_loss": {
+      "status": "NON TESTÉ"
+    }
+  },
+  "next_step": "One manual boot of SD A without reflash for its persistence check; preserve initialized Qumox. Full series and application qualification are separate.",
+  "limits": [
+    "One observed manual restart on SD B does not qualify full SD endurance, recovery or the application campaign. SD A still requires its own persistence observation.",
+    "Card and image association come from physical workflow, not unsigned report contents; no independent raw readback or signed boot attestation is claimed.",
+    "Report precedes poweroff. User acknowledged the workflow but did not separately explicitly confirm completed shutdown in this turn.",
+    "Uptime of 46 seconds is a collection snapshot, not boot duration or time to poweroff.",
+    "Throttling zero and temperature are a single snapshot, not load or electrical measurements.",
+    "Selected service snapshots do not exclude transient failures, filesystem errors or an exhaustive failed-unit list; no journal or personal data is exported.",
+    "App/helper and SSH remain masked, diagnostic Wi-Fi disabled; no panel, iPhone, BLE transaction, Wi-Fi change or recovery is tested.",
+    "Private identity and boot fingerprints stay local. Public evidence retains artifact digests and boolean comparisons only.",
+    "Detailed SD reference, power supply and cable characteristics are still unidentified."
+  ],
+  "previous_boot_evidence": "2026-09-30-sd-qumox-first-boot.json",
+  "persistence_comparison": {
     "comparator_source_commit": "5294e51d68066ddb3c41e9699bcaec5a3bd38408",
     "comparator_script_sha256": "1d9d90002596eb914b2041c80e8eb67d017b47730c6a6e865e20a17c13644393",
-    "mode_declaration_from_operator": "A is the 128 GB SD; B is the Qumox 16 GB SD. Both were prepared from the same virgin artifact.",
+    "mode_declaration_from_operator": "Two physical observations of the same Qumox installation; no reflash between boots.",
     "exit_code": 0,
     "result": {
       "checks": {
@@ -276,16 +336,16 @@
         "right_reported_coherent": true
       },
       "comparisons": {
-        "hostname_equal": false,
-        "kernel_hostname_equal": false,
-        "machine_id_equal": false,
-        "state_hostname_equal": false
+        "hostname_equal": true,
+        "kernel_hostname_equal": true,
+        "machine_id_equal": true,
+        "state_hostname_equal": true
       },
       "error": null,
       "hardware_qualified": false,
       "input_artifact_sha256": [
-        "5fdcd286506c5da7e9a6f3331325a8a3db902f6547eb513e8fe355a6a00d928c",
-        "bed69cc4d513a88f321da87fa94e84300b767db17647e8827892289723657f01"
+        "bed69cc4d513a88f321da87fa94e84300b767db17647e8827892289723657f01",
+        "b71ea779b1cd461334e5bc62f09d375bdcc4edfe331d535261fa385a7c180445"
       ],
       "limitations": [
         "Unsigned local snapshots are not attestations; their origin is unverified.",
@@ -293,59 +353,70 @@
         "Distinct boot identifiers do not prove an observed reboot or separate physical cards.",
         "Identity comparison does not qualify complete boot, hardware, services, application or release."
       ],
-      "mode": "different-cards",
+      "mode": "same-card",
       "passed": true,
       "release_qualified": false,
       "schema_version": 1,
       "scope": "identity_comparison_only"
     }
   },
-  "campaign_criteria": {
-    "S01": {
-      "status": "PASS",
-      "scope": "Initial system boot on SD B; diagnostic image disables Wi-Fi and has no preloaded profile. Radio connectivity itself is not measured."
+  "filesystem_comparison": {
+    "root_total_bytes_equal": true,
+    "root_available_bytes_delta": -4096,
+    "boot_total_bytes_equal": true
+  },
+  "service_changes": {
+    "rpi-resize.service": {
+      "first_boot": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "disabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "second_boot": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "loaded",
+        "UnitFileState": "disabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "interpretation": "Expected inactive state after initial expansion; no reported failure. Inactive does not independently attest non-execution."
     },
-    "S02": {
-      "status": "PASS",
-      "scope": "Initial system identities on A/B: internally coherent state/hostname/kernel/hosts and distinct machine-id and hostname. Persistence after a new boot is S05 and remains untested."
-    },
-    "S03": {
-      "status": "NON TESTÉ",
-      "observed": "Selected service states and masks match the diagnostic image. Runtime ordering, account policy and all permissions are not explicitly measured."
-    },
-    "S04": {
-      "status": "PASS",
-      "scope": "Partition and ext4 expansion on SD B; resize/growfs success. No manual resize. Any initial internal reboot and timing were not independently observed."
-    },
-    "S05": {
-      "status": "NON TESTÉ"
-    },
-    "S06": {
-      "status": "NON TESTÉ"
-    },
-    "S07": {
-      "status": "NON TESTÉ",
-      "observed": "Single snapshot of memory, temperature and throttling; no load or electrical measurement."
-    },
-    "S08": {
-      "status": "NON TESTÉ"
-    },
-    "A01-A06": {
-      "status": "BLOQUÉ"
-    },
-    "physical_power_loss": {
-      "status": "NON TESTÉ"
+    "systemd-growfs-root.service": {
+      "first_boot": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "second_boot": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "loaded",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "interpretation": "Expected inactive state after initial expansion; no reported failure. Inactive does not independently attest non-execution."
     }
   },
-  "next_step": "A second manual boot of the same Qumox installation without reflash; recover a distinct report, compare same-card and review service/filesystem states. SD A also requires its own restart.",
-  "limits": [
-    "These first-boot snapshots and the identity comparison do not qualify the full SD or application campaign.",
-    "Physical card and image association come from the preparation and user workflow. No independent raw readback or signed boot attestation is claimed.",
-    "The report is written before poweroff. The user acknowledged the complete workflow but did not separately explicitly confirm shutdown in this turn.",
-    "Uptime of 56 seconds is measured at collection, not boot duration or time to poweroff.",
-    "Throttling zero and temperature are a single snapshot, not load, endurance or power consumption qualification.",
-    "App/helper and SSH stay masked; diagnostic Wi-Fi remains disabled. No display refresh, adoption, BLE transaction, Wi-Fi change or recovery is tested.",
-    "Identity fingerprints and boot identifier remain local. Public evidence retains only artifact digests and boolean comparison results.",
-    "Brand and nominal capacity are user supplied. Detailed card reference, power supply and cable characteristics remain unidentified."
-  ]
+  "metadata_correction": {
+    "affected_evidence_files": [
+      "2026-09-30-sd-first-boot.json",
+      "2026-09-30-sd-qumox-first-boot.json"
+    ],
+    "correction": "The previously named boot_partition_bytes value 528593408 came from diskutil info TotalSize/VolumeSize. It is renamed boot_volume_mac_total_bytes; no measurement value is changed.",
+    "current_Qumox_boot_partition_bytes": 536870912,
+    "current_Qumox_boot_volume_mac_total_bytes": 528593408,
+    "historical_card_A_block_partition_size_inferred": false
+  }
 }

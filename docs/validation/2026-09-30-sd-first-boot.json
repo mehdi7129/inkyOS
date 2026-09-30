@@ -226,10 +226,11 @@
   },
   "observations_from_mac_metadata": {
     "card_capacity_bytes": 127865454592,
-    "boot_partition_bytes": 528593408,
     "linux_partition_bytes": 127320195072,
     "partition_contents_read": "diagnostic-report-only",
-    "card_rewritten_after_return": false
+    "card_rewritten_after_return": false,
+    "boot_volume_mac_total_bytes": 528593408,
+    "boot_volume_measurement_note": "528593408 is the diskutil info TotalSize/VolumeSize value, not the block partition size; field naming corrected in the second-boot evidence."
   },
   "observation_from_user": {
     "pi_stopped_before_sd_removal": true,

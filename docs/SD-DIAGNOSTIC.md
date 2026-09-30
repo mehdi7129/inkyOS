@@ -232,8 +232,29 @@ sans mesure de durée de boot, charge ou consommation. L'acquittement utilisateu
 n'est pas une confirmation séparée explicite de l'arrêt ; le rapport est écrit
 avant poweroff. La qualification complète reste ouverte.
 
-Prochain essai : **redémarrer manuellement la Qumox sans la reflasher**,
+Prochain essai prévu à ce stade : **redémarrer manuellement la Qumox sans la reflasher**,
 attendre l'arrêt, la remettre dans le Mac et conserver le nouveau rapport
 avec celui-ci. Exécuter `same-card`, puis vérifier aussi services et capacité
 du FS. Le même contrôle de persistance devra être fait sur la SD de 128 Go ;
 la comparaison A/B ne remplace pas ces redémarrages.
+
+## Second boot Qumox et persistance — 30 septembre
+
+Après ce nouveau démarrage sans reflash, deux rapports sont retrouvés sur la
+FAT ; le premier est inchangé. La comparaison `same-card` passe, code 0 :
+boots distincts, machine-id et hostname conservés, état version 1 cohérent.
+Firstboot réussit à nouveau ; services actifs et masques restent conformes
+aux snapshots attendus. Resize/growfs sont inactifs sans échec rapporté,
+état normal après leur travail initial ; la capacité ext4 est conservée.
+
+La [preuve réduite](validation/2026-09-30-sd-qumox-second-boot.json) sépare
+comparaison d'identité et observations des services/FS. Elle corrige aussi
+le nom du champ historique pour le volume FAT : `diskutil info` donne
+528593408 octets de volume, tandis que `diskutil list` mesure une partition
+de 536870912 octets. Les valeurs historiques ne sont pas remplacées.
+
+S05 est documenté sur B dans ce périmètre ; A doit encore être redémarrée
+sans reflash. B compte un seul redémarrage manuel pour S06. Aucune série de
+dix, erreur transitoire exhaustive, coupure, adoption ou transaction réseau
+n'est déduite des deux snapshots. Conserver les deux installations pour les
+essais suivants ; ne pas reflasher avant les contrôles de persistance.

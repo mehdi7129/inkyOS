@@ -2,12 +2,14 @@
 
 Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
 **30 septembre**. **Premiers boots du prototype système observés sur deux SD,
-identités initiales distinctes ; qualification complète encore ouverte.** l’opérateur a fourni
+identités initiales distinctes, persistance observée sur Qumox ; qualification
+complète encore ouverte.** l’opérateur a fourni
 une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
 confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
 Une seconde carte, Qumox 16 Go selon l’opérateur, a ensuite été insérée dans le Mac :
 15938355200 octets détectés. La comparaison des identités initiales A/B passe ;
-redémarrages et récupération restent à réaliser. Après un
+le second boot Qumox conserve son identité. Redémarrage de A, série complète
+et récupération restent à réaliser. Après un
 [premier essai ambigu](validation/2026-09-30-sd-qumox-flash-observation.json),
 une écriture unique avec Imager 2.0.11.1 termine sans erreur et éjecte la SD.
 Ce [flash propre](validation/2026-09-30-sd-qumox-clean-flash.json) a été suivi
@@ -69,8 +71,8 @@ Resize/growfs ont terminé avec succès, sans intervention manuelle.
 Le comparateur exécuté sur les deux rapports initiaux termine avec le code 0 :
 boots distincts, machine-id et hostname différents, cohérence et firstboot
 acceptés sur A et B. **S02 est établi pour les identités initiales A/B.** La
-stabilité après un nouveau démarrage relève de S05 et reste NON TESTÉE sur
-chacune des deux cartes. Les empreintes d'identité restent locales ; la
+stabilité après un nouveau démarrage relève de S05 ; elle n'était pas encore
+testée à ce stade. Les empreintes d'identité restent locales ; la
 [preuve réduite](validation/2026-09-30-sd-qumox-first-boot.json) conserve les
 SHA-256 des artefacts et les résultats booléens.
 
@@ -80,7 +82,8 @@ SHA-256 des artefacts et les résultats booléens.
 | S02 | PASS : identités initiales cohérentes et distinctes sur A/B | Persistance après redémarrage suivie par S05. |
 | S03 | États des services et masques observés sur A/B ; critère complet NON TESTÉ | Ordre réel, comptes et permissions exhaustives. |
 | S04 | PASS : expansion automatique observée sur A/B | Reboot interne éventuel et durée non mesurés. |
-| S05–S06 | NON TESTÉ | Nouveau boot sans reflash de chaque carte, puis série complète. |
+| S05 | PASS sur B dans le périmètre observé ; NON TESTÉ sur A | Second boot sans reflash de A ; snapshots limités aux services sélectionnés. |
+| S06 | NON TESTÉ : un redémarrage manuel observé sur B, aucun sur A | Série de dix redémarrages par carte. |
 | S07 | Snapshots disponibles sur A/B ; critère complet NON TESTÉ | Charge, OOM, temps de boot et mesures électriques. |
 | S08 et coupures | NON TESTÉ | Banc et scénario à préparer séparément. |
 | A01–A06 | BLOQUÉ | Release applicative et runtime sans LAN non qualifiés. |
@@ -89,9 +92,38 @@ Au prélèvement Qumox : 282222592 octets de RAM disponibles, 37,014 °C et
 `get_throttled=0`. L'uptime de 56 secondes n'est pas une durée de boot. l’opérateur
 a répondu « c'est fait » aux étapes de boot, arrêt, débranchement et retour
 de la carte ; aucun constat indépendant de l'arrêt n'est déduit du rapport
-écrit avant poweroff. Le prochain geste est un second démarrage manuel de la
-**même installation Qumox, sans reflash**, pour comparer `same-card` et relire
-les états des services et du FS. La SD A nécessite aussi son propre redémarrage.
+écrit avant poweroff. Le second démarrage manuel de la même installation
+Qumox, sans reflash, a ensuite été observé comme décrit ci-dessous.
+
+## Persistance Qumox après second boot — 30 septembre
+
+Deux rapports sont retrouvés sur la carte ; le premier est identique à la
+copie conservée. La comparaison `same-card` passe, code 0 : boots distincts,
+machine-id et hostname conservés, cohérence et firstboot réussis. NetworkManager,
+Avahi et Bluetooth restent actifs ; les masques diagnostic sont conservés.
+Resize et growfs sont désormais inactifs, sans échec rapporté, comme attendu
+après l'expansion initiale. Leur état inactif seul n'atteste pas la non-exécution.
+
+La capacité ext4 reste 15080513536 octets, dont 11886645248 disponibles.
+Au prélèvement : 295190528 octets de RAM disponibles, 34,862 °C,
+`get_throttled=0` et 46 secondes d'uptime. Ces snapshots ne mesurent pas la
+durée de boot ni les erreurs transitoires ou la charge. La
+[preuve du second boot](validation/2026-09-30-sd-qumox-second-boot.json)
+documente S05 sur B pour l'identité, la cohérence, les services sélectionnés
+et la capacité conservée ; elle ne qualifie pas toute la campagne.
+
+Précision de métadonnées : `diskutil list` mesure une partition FAT de
+536870912 octets ; `diskutil info` donne un volume FAT de 528593408 octets.
+La capacité vue depuis Linux est encore une autre mesure. Les preuves des
+premiers boots avaient nommé la mesure du volume `boot_partition_bytes` :
+le champ est corrigé en `boot_volume_mac_total_bytes`, sans changer sa valeur
+ni déduire rétroactivement la taille de partition de A.
+
+La SD de 128 Go (A) doit maintenant être démarrée une seconde fois, **sans
+reflash**, puis remise dans le Mac pour son propre contrôle de persistance.
+La Qumox conserve son installation actuelle. Pour S06, B compte un redémarrage
+manuel observé : il en reste neuf pour la série de dix ; le premier boot et
+un éventuel reboot interne de resize ne sont pas comptés.
 
 Références : [plan de réalisation](BUILD-PLAN.md), [contrats et responsabilités](HANDOFF.md),
 [sources matériel](HARDWARE-SOURCES.md), [outils offline](DEVELOPMENT.md) et

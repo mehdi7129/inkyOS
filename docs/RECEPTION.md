@@ -347,3 +347,19 @@ persistance S05, série de reboots et qualification complète restent ouverts.
 Prochain geste : un nouveau boot de la même Qumox, sans reflash, puis rapport
 et comparaison `same-card`. La SD A doit aussi être redémarrée. Aucun refresh
 du panneau, parcours iPhone ou transaction Wi-Fi n'a été exécuté.
+
+Le second démarrage Qumox est ensuite effectué sans reflash. À son retour,
+les deux rapports sont présents ; le premier n'a pas changé. `same-card`
+passe : machine-id/hostname conservés et cohérents, firstboot réussi.
+Les services sélectionnés restent sains ou masqués selon l'image ;
+resize/growfs sont inactifs sans échec rapporté, capacité ext4 conservée.
+La [preuve de persistance](validation/2026-09-30-sd-qumox-second-boot.json)
+documente S05 sur B dans ce périmètre, pas la qualification complète.
+
+La nomenclature des premiers relevés FAT est corrigée : 528593408 octets
+correspondent au volume macOS, tandis que la partition Qumox mesure
+536870912 octets. Aucune valeur observée ni identité privée n'est modifiée
+ou publiée. Prochain geste matériel : second boot de la SD A de 128 Go sans
+reflash pour sa persistance. B compte un redémarrage manuel ; S06, coupures,
+charge, app, iPhone et réseau restent ouverts. Aucun changement de protocole
+ou pin applicatif n'a été fait.
