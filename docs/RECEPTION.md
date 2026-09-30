@@ -7,6 +7,14 @@ carte postale ». Le modèle exact reste à observer ; aucune référence n'est
 déduite de cette description. La Qumox 16 Go reste la seule carte active.
 Aucune nouvelle opération SD/Pi n'a été faite pendant cette préparation.
 
+La [recette privée d'enrôlement](TEST-ENROLLMENT.md) est maintenant livrée
+dans les sources : identification EEPROM/radio, création de la clé hôte
+uniquement sur le Pi, rapport local puis arrêt demandé. Aucun profil réseau,
+country setter, accès SSH ni lancement applicatif n'est autorisé par cette
+phase. Le banc des helpers ext4/FAT32 passe 17/17, avec cleanup externe
+vérifié. L'assemblage privé et le contrôleur de retour restent en cours ;
+aucun flash ni premier boot de cette variante n'a eu lieu.
+
 Inky Studio a livré le candidat corrigé `758a2bf7ed099aad41ef35316e53228e797b0b2b`,
 manifeste `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`.
 Il remplace le candidat pour les nouveaux builds TEST ; l'ancien couple exact

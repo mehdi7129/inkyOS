@@ -85,7 +85,7 @@ sont invalides. Aucun `enable` applicatif ni redémarrage automatique. Un simple
 
 Le banc VM a utilisé le vrai rootfs/OpenSSH/PAM épinglé, loopback dans un
 namespace privé, clés jetables et dispatcher d'activation inerte. Vérifier clés,
-PAM, aging/nologin négatifs, sudo zéro argument, injections, JSON lent/excessif,
+PAM, aging/nologin négatifs, sudo zéro argument, injections, JSON excessif,
 shell/SFTP/SCP refusés et vrais canaux de forwarding. Un listener client ouvert
 ne démontre pas un tunnel utilisable. Les secrets et fingerprints ne vont pas
 dans les rapports publics.
@@ -97,6 +97,14 @@ est celui d'[OpenSSH 10.0p1](https://github.com/openssh/openssh-portable/blob/V_
 `ADMINISTRATIVELY_PROHIBITED` de direct-tcpip. Le test exige aussi l'ouverture
 locale effective puis l'absence d'interface résiduelle. Aucun runner applicatif,
 compte ou unit d'accès opérateur n'est installé par ce résultat.
+Le délai de lecture de cinq secondes est couvert par une fixture Python ;
+aucun client SSH à stdin volontairement lent n'a été mesuré dans ces 39 gates.
+
+La [première phase d'enrôlement](TEST-ENROLLMENT.md) est simplifiée : aucun
+profil Wi-Fi ni PSK n'est demandé ou préchargé au premier boot. La clé publique
+opérateur nouvelle et un challenge local sont les seules personnalisations,
+dans une image privée distincte. Le réseau viendra au retour de la SD, après
+contrôle offline du rapport et de la clé hôte réellement générée sur le Pi.
 
 La sonde EEPROM est livrée comme outil source inactif ; son intégration et
 son essai matériel restent à faire. La sonde radio est également livrée hors

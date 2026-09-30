@@ -14,7 +14,8 @@ root=pathlib.Path.cwd()
 names={'Makefile', 'overlay/usr/local/lib/inkyos/firstboot.py',
        'overlay/etc/systemd/system/inkyos-firstboot.service'}
 for pattern in ('scripts/*.py','scripts/*.sh','tests/test_*.py','tests/fixtures/*.json','config/*.json',
-                'diagnostic/*.py','diagnostic/*.service','diagnostic/*.timer'):
+                'diagnostic/*.py','diagnostic/*.service','diagnostic/*.timer',
+                'overlay-test-enrollment/*.service'):
     names.update(str(p) for p in pathlib.Path('.').glob(pattern))
 blobs={}
 for name in sorted(names):

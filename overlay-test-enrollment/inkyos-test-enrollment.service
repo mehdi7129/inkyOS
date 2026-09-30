@@ -1,0 +1,22 @@
+[Unit]
+Description=Enroll a private TEST host key, export local observations and stop
+Requires=inkyos-firstboot.service
+After=local-fs.target inkyos-firstboot.service rpi-resize.service systemd-growfs-root.service
+RequiresMountsFor=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /boot/firmware
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I /usr/local/lib/inkyos/test-enrollment-firstboot.py --live
+TimeoutStartSec=110s
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateNetwork=false
+ProtectHome=false
+ProtectSystem=strict
+ReadWritePaths=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /boot/firmware
+
+[Install]
+WantedBy=multi-user.target

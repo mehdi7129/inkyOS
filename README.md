@@ -55,6 +55,7 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Qualification SD](docs/SD-QUALIFICATION.md) : procédure, premier boot physique observé et essais restant à effectuer.
 - [Diagnostic SD sans LAN](docs/SD-DIAGNOSTIC.md) : variante de test avec rapport automatique sur FAT et arrêt propre.
 - [Variante TEST LAN préparée](docs/TEST-LAN.md) : candidat relu, recette/preflight et conditions avant activation applicative.
+- [Boot privé d'enrôlement](docs/TEST-ENROLLMENT.md) : identification EEPROM/radio, nouvelle clé hôte sur le Pi et rapport local, avant tout accès réseau.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 
 ## Avant l'image complète
