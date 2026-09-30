@@ -2,6 +2,7 @@
   "application_activated": false,
   "ci": {
     "conclusion": "success",
+    "documentation_run_url": "inkyOS/actions/runs/36778519796",
     "run_url": "inkyOS/actions/runs/36777334386"
   },
   "cleanup": {
@@ -122,9 +123,24 @@
   "external_preparation_review": {
     "hardware_qualified": false,
     "report_sha256": "24a1d36d853f941182973c8f247b27acad51081a0aa27bd16aee2444323a4d09",
-    "return_controller_review_pending": true,
+    "return_controller_review_pending": false,
     "scope": "private-inactive-enrollment-preparation-only",
     "source_commit": "2c540701fb222dde0437edd47002f6a49945da5b"
+  },
+  "external_return_review": {
+    "acquisition_on_sd_qualified": false,
+    "activation_authorized": false,
+    "controller_static_review": "PASS",
+    "hardware_qualified": false,
+    "native_positive_return_qualified": false,
+    "new_confirmed_findings": false,
+    "private_keys_opened": false,
+    "raw_personalization_exported": false,
+    "release_qualified": false,
+    "report_sha256": "1bee444be7d9b5393cecc2ab7525286060115aa43b04b731779a021d8d032f08",
+    "scope": "read-only-return-controller-and-negative-probe-review",
+    "source_commit": "b697bfc2e1050b5af7b24fafa85629ec2ff3bbce",
+    "synthetic_assertions": 650
   },
   "fixtures": {
     "linux_arm64": {

@@ -152,6 +152,11 @@ enrôlement réussi n'est simulé. L'image est rehashée avant/après, identique
 loops et montages sont retirés puis contrôlés extérieurement. La copie VM est
 retirée après ce contrôle ; l'export privé original est conservé sur le Mac.
 Ce banc et les 99 sources exécutées de la suite sont liés à `b697bfc` (CI verte).
+Inky Studio a ensuite terminé sa revue indépendante du contrôleur, des
+artefacts du banc et de cette méthode RO : aucun défaut confirmé, revue statique
+et 650 assertions synthétiques PASS. Le reçu final est lié par hash dans la
+preuve réduite. Cette revue ne qualifie ni l'acquisition SD, ni un retour
+positif, ni l'arrêt physique, et ne déclenche aucune action matérielle.
 
 Le rapport FAT contient la clé hôte publique nécessaire à la confiance SSH.
 Il reste local et n'est pas publié brut. Il ne contient aucun secret réseau,

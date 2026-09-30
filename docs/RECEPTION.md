@@ -23,6 +23,9 @@ Le [banc natif de retour non booté](validation/2026-09-30-test-enrollment-retur
 confirme le refus attendu (exit 1, retour incomplet), sur une copie exacte
 montée readonly ; hash après lecture identique et cleanup externe vérifié.
 Les 99 sources de la suite correspondent au commit `b697bfc` (CI verte).
+La revue finale du contrôleur et de la méthode RO par Inky Studio est terminée
+sans défaut confirmé ; son reçu figé est lié dans la preuve réduite, avec
+distinction explicite entre refus natif et retour positif encore non observé.
 Aucun flash ni premier boot de cette variante n'a eu lieu. La carte annoncée
 branchée n'est pas encore détectée comme SD sur le Mac ; sa position reste
 à clarifier avant toute acquisition ou écriture.
