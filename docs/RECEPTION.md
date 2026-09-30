@@ -19,8 +19,13 @@ consigne ces observations. Inky Studio a terminé sa relecture de l'export,
 du runtime et de l'unité, sans nouveau défaut confirmé. Le contrôleur de retour
 readonly est livré et relu (24 tests ciblés), avec un banc négatif inerte
 supplémentaire ; la suite complète compte 531 tests Mac/Linux sans échec.
-Le banc natif de retour non booté reste à lancer ; aucun flash ni premier
-boot de cette variante n'a eu lieu.
+Le [banc natif de retour non booté](validation/2026-09-30-test-enrollment-return.json)
+confirme le refus attendu (exit 1, retour incomplet), sur une copie exacte
+montée readonly ; hash après lecture identique et cleanup externe vérifié.
+Les 99 sources de la suite correspondent au commit `b697bfc` (CI verte).
+Aucun flash ni premier boot de cette variante n'a eu lieu. La carte annoncée
+branchée n'est pas encore détectée comme SD sur le Mac ; sa position reste
+à clarifier avant toute acquisition ou écriture.
 
 Inky Studio a livré le candidat corrigé `758a2bf7ed099aad41ef35316e53228e797b0b2b`,
 manifeste `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`.

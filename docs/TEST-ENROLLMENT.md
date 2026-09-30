@@ -3,7 +3,7 @@
 Préparation du 30 septembre 2026 pour la Qumox 16 Go et le Pi Zero 2 W.
 Cette phase se construit depuis l'[image TEST LAN préparée](TEST-LAN.md),
 sans démarrer l'app, le helper ou SSH. **Export privé construit et vérifié ;
-contrôleur de retour livré et relu, banc natif de refus encore en cours.
+contrôleur de retour livré et relu, refus natif sur l'image non bootée confirmé.
 Aucun flash ni exécution sur le Pi à ce stade.**
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
@@ -141,6 +141,17 @@ SSH, l'app ou une association. Les 24 fixtures ciblées, les six tests du banc
 négatif et leurs relectures passent ; la suite complète atteint 531 tests
 Mac/Linux sans échec.
 Elles ne remplacent pas une acquisition ni un retour matériel réels.
+
+Le [banc négatif natif](validation/2026-09-30-test-enrollment-return.json)
+est maintenant exécuté sur une copie exacte de l'image privée non bootée.
+Ses neuf contrôles passent : le contrôleur vérifie les deux montages RO et
+l'export attendu, puis retourne explicitement `FAIL / return_incomplete`
+(exit 1), avec uniquement ses quatre premiers contrôles positifs. Il manque
+encore la clé hôte et le rapport, comme attendu avant tout boot. Aucun
+enrôlement réussi n'est simulé. L'image est rehashée avant/après, identique ;
+loops et montages sont retirés puis contrôlés extérieurement. La copie VM est
+retirée après ce contrôle ; l'export privé original est conservé sur le Mac.
+Ce banc et les 99 sources exécutées de la suite sont liés à `b697bfc` (CI verte).
 
 Le rapport FAT contient la clé hôte publique nécessaire à la confiance SSH.
 Il reste local et n'est pas publié brut. Il ne contient aucun secret réseau,
