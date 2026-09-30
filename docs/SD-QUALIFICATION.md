@@ -1,8 +1,16 @@
 # Qualification InkyOS sur SD dédiée
 
-Procédure préparée le **27 septembre 2026**. **Aucun essai SD consigné ici.**
-l’opérateur ne dispose pas encore de SD de test ; sa SD personnelle reste intacte.
-Ce document ne lance aucun flash, accès Pi ou changement matériel.
+Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
+**30 septembre**. **Aucun boot physique qualifié à ce stade.** l’opérateur a fourni
+une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
+confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
+Une seule SD permet de commencer la campagne système ; les comparaisons A/B
+et la récupération sur une carte de secours attendent une seconde SD.
+
+Le premier essai utilise une [variante de diagnostic automatique](SD-DIAGNOSTIC.md),
+distincte de la release : rapport expurgé sur FAT, puis demande de poweroff.
+Le modèle de Pi confirme la compatibilité ARM64 de la base, pas son boot réel
+([liste officielle des systèmes compatibles](https://www.raspberrypi.com/software/operating-systems/)).
 
 Références : [plan de réalisation](BUILD-PLAN.md), [contrats et responsabilités](HANDOFF.md),
 [sources matériel](HARDWARE-SOURCES.md), [outils offline](DEVELOPMENT.md) et

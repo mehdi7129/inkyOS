@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: help test test-linux bootstrap-probe fetch vm-start vm-stop inspect prototype application-prototype
+.PHONY: help test test-linux bootstrap-probe fetch vm-start vm-stop inspect prototype application-prototype sd-diagnostic
 
 help:
 	@echo 'make test     : tests locaux, sans image ni VM'
@@ -11,6 +11,7 @@ help:
 	@echo 'make inspect  : vérifier le builder et inspecter la base en lecture seule'
 	@echo 'make prototype: assembler une image système expérimentale sans app ni flash'
 	@echo 'make application-prototype: intégrer APPLICATION_MANIFEST, APPLICATION_SHA256, APPLICATION_ASSETS ; démarrage app masqué'
+	@echo 'make sd-diagnostic: dériver PARENT_EXPORT en image de diagnostic SD avec rapport et arrêt automatique ; aucun flash'
 	@echo 'make vm-stop  : arrêter la VM de travail'
 
 test:
@@ -46,3 +47,6 @@ prototype: test test-linux
 application-prototype: test test-linux
 	bash scripts/build-prototype.sh --application-manifest "$(APPLICATION_MANIFEST)" \
 	  --application-sha256 "$(APPLICATION_SHA256)" --assets-dir "$(APPLICATION_ASSETS)"
+
+sd-diagnostic: test test-linux
+	PYTHON="$(PYTHON)" bash scripts/build-sd-diagnostic.sh "$(PARENT_EXPORT)"

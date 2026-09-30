@@ -1,0 +1,18 @@
+[Unit]
+Description=Export the experimental InkyOS SD boot diagnostic and power off
+After=local-fs.target inkyos-firstboot.service rpi-resize.service systemd-growfs-root.service NetworkManager.service avahi-daemon.service bluetooth.service
+RequiresMountsFor=/boot/firmware
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I /usr/local/lib/inkyos/sd-diagnostic.py
+ExecStartPost=/usr/bin/systemctl --no-block poweroff
+TimeoutStartSec=45s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/boot/firmware

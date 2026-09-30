@@ -1,0 +1,10 @@
+[Unit]
+Description=Collect one experimental InkyOS SD boot report
+
+[Timer]
+OnBootSec=45s
+AccuracySec=1s
+Unit=inkyos-sd-diagnostic.service
+
+[Install]
+WantedBy=timers.target
