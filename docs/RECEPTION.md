@@ -15,8 +15,12 @@ phase. Le banc des helpers ext4/FAT32 passe 17/17, avec cleanup externe
 vérifié. L'export privé est construit depuis `2c54070` propre (CI verte),
 62+26+16+16 contrôles passent ; 501 fixtures Mac/Linux et leurs 95 inputs
 sont liés au même commit. Le [rapport réduit](validation/2026-09-30-test-enrollment.json)
-consigne ces observations. Le contrôleur de retour et la relecture externe
-restent en cours ; aucun flash ni premier boot de cette variante n'a eu lieu.
+consigne ces observations. Inky Studio a terminé sa relecture de l'export,
+du runtime et de l'unité, sans nouveau défaut confirmé. Le contrôleur de retour
+readonly est livré et relu (24 tests ciblés), avec un banc négatif inerte
+supplémentaire ; la suite complète compte 531 tests Mac/Linux sans échec.
+Le banc natif de retour non booté reste à lancer ; aucun flash ni premier
+boot de cette variante n'a eu lieu.
 
 Inky Studio a livré le candidat corrigé `758a2bf7ed099aad41ef35316e53228e797b0b2b`,
 manifeste `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`.

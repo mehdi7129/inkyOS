@@ -3,8 +3,8 @@
 Préparation du 30 septembre 2026 pour la Qumox 16 Go et le Pi Zero 2 W.
 Cette phase se construit depuis l'[image TEST LAN préparée](TEST-LAN.md),
 sans démarrer l'app, le helper ou SSH. **Export privé construit et vérifié ;
-contrôle de retour et relecture externe encore en cours. Aucun flash ni
-exécution sur le Pi à ce stade.**
+contrôleur de retour livré et relu, banc natif de refus encore en cours.
+Aucun flash ni exécution sur le Pi à ce stade.**
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
 clé hôte SSH du Pi. Il ne configure aucun réseau. Le pays demandé `FR`, confirmé
@@ -100,7 +100,47 @@ avec un état `pending`, `review-required`, absent ou différent ne permet donc
 pas de préparer la confiance SSH. Le challenge, les pins, le hash du runtime
 et la clé publique hôte doivent également correspondre aux artefacts locaux
 et au fichier `.pub` de la carte, sans ouvrir sa clé privée. Le contrôleur de
-retour readonly reste à livrer avant le flash.
+retour readonly est livré ; son usage réel attend le retour de la SD.
+
+### Contrôle readonly sous Linux
+
+`scripts/verify-test-enrollment-return.py` lit uniquement un export attendu et
+des systèmes ext4/FAT **déjà montés en lecture seule**. Il ne monte pas la SD,
+ne flashe rien et n'ouvre aucune clé privée. La seule lecture des métadonnées
+de l'image attendue ne rehash pas son contenu : l'intégrité complète de
+l'export doit avoir été vérifiée séparément comme pour l'export construit ici.
+
+```sh
+sudo python3 -I sources/verify-test-enrollment-return.py \
+  --rootfs /mnt/inkyos-return/returned-root \
+  --bootfs /mnt/inkyos-return/returned-boot \
+  --expected-export /mnt/inkyos-return/expected
+```
+
+Ces chemins illustrent le layout, sans exécuter une acquisition. Tous leurs
+ancêtres doivent être root-owned et non writable par groupe/autres ;
+`/mnt/inkyos-return` et `expected` doivent être protégés, l'export attendu en
+0700 et ses preuves privées en 0600. `/var/tmp` est refusé malgré un sous-dossier
+en 0700. Les deux racines retournées doivent être les montages complets ext4
+et vfat RO identifiés par leurs FD/mount IDs, vérifiés avant et après lecture.
+Pour une copie locale de la SD, le loop device devra être readonly, ext4
+monté `ro,noload` et FAT `ro` ; aucun rejeu du journal ne doit écrire dans la copie.
+
+Le Mac ne monte pas nativement ext4. L'acquisition de la Qumox identifiée devra
+donc produire une **copie privée locale** pour cette lecture Linux, ou employer
+un lecteur Linux. Cette acquisition reste une étape matérielle distincte,
+avec contrôle de la carte choisie et du nombre d'octets. Une copie après boot
+peut contenir la clé hôte privée : conserver le conteneur en 0700 et le fichier
+en 0600, ne jamais le publier ni en extraire la clé. Le contrôleur ne lit pas
+le fichier de clé privée, uniquement son type, ses permissions et sa taille.
+
+La sortie JSON est fermée, sans identité, clé, fingerprint, challenge ou log
+brut. Exit 0 signifie cohérence locale ; exit 1 signifie retour incomplet ou
+incohérent ; exit 2 signifie entrée invalide. Aucun de ces résultats n'autorise
+SSH, l'app ou une association. Les 24 fixtures ciblées, les six tests du banc
+négatif et leurs relectures passent ; la suite complète atteint 531 tests
+Mac/Linux sans échec.
+Elles ne remplacent pas une acquisition ni un retour matériel réels.
 
 Le rapport FAT contient la clé hôte publique nécessaire à la confiance SSH.
 Il reste local et n'est pas publié brut. Il ne contient aucun secret réseau,
