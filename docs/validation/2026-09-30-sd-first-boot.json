@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-30",
+  "scope": "single-sd-system-prototype-physical-observation",
+  "decision": "system-prototype-observed-on-one-combination",
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "image": {
+    "filename": "inkyos-sd-diagnostic.img",
+    "sha256": "6a5821c1a0adca679a611b8aa97d20ac7dba2e0694d0b6a1a871eee9b273e248",
+    "size_bytes": 3061841920
+  },
+  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715",
+  "preparation_evidence": "2026-09-30-sd-diagnostic-flash.json",
+  "report": {
+    "sha256": "5fdcd286506c5da7e9a6f3331325a8a3db902f6547eb513e8fe355a6a00d928c",
+    "schema_version": 1,
+    "raw_retained_locally": true,
+    "identity_hashes_published": false,
+    "reports_observed": 1,
+    "independent_authenticity_verified": false
+  },
+  "observations_from_report": {
+    "hardware": {
+      "architecture": {
+        "status": "ok",
+        "value": "aarch64"
+      },
+      "kernel": {
+        "release": "6.18.50+rpt-rpi-v8",
+        "status": "ok"
+      },
+      "model": {
+        "status": "ok",
+        "value": "Raspberry Pi Zero 2 W"
+      },
+      "memory": {
+        "available_bytes": 290742272,
+        "status": "ok",
+        "total_bytes": 435318784
+      },
+      "temperature_millicelsius": {
+        "status": "ok",
+        "value": 40242
+      },
+      "throttling": {
+        "status": "ok",
+        "value": 0
+      },
+      "uptime_seconds": {
+        "status": "ok",
+        "value": 46
+      }
+    },
+    "identity": {
+      "field_statuses": {
+        "firstboot_state": "ok",
+        "hostname": "ok",
+        "hosts_file": "ok",
+        "kernel_hostname": "ok",
+        "machine_id": "ok"
+      },
+      "firstboot_state_version": 1,
+      "coherence": {
+        "state_matches_hostname": true,
+        "state_matches_hosts": true,
+        "state_matches_kernel": true,
+        "status": "ok"
+      },
+      "comparison_between_cards_tested": false,
+      "stability_after_manual_restart_tested": false
+    },
+    "filesystems": {
+      "boot": {
+        "available_bytes": 449281024,
+        "device": "mmc",
+        "status": "ok",
+        "total_bytes": 528592896,
+        "type": "vfat"
+      },
+      "root": {
+        "available_bytes": 117598322688,
+        "device": "mmc",
+        "status": "ok",
+        "total_bytes": 125269159936,
+        "type": "ext4"
+      }
+    },
+    "services": {
+      "inkyos-firstboot.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "rpi-resize.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "disabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "systemd-growfs-root.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "NetworkManager.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "running",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "avahi-daemon.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "running",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "bluetooth.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "running",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "inkyos-sd-diagnostic.service": {
+        "status": "ok",
+        "ActiveState": "activating",
+        "SubState": "start",
+        "LoadState": "loaded",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "ssh.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "inky-studio.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "inky-network.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "rpi-eeprom-update.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "apt-daily.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "apt-daily-upgrade.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "apt-daily.timer": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": null,
+        "ExecMainStatus": null
+      },
+      "apt-daily-upgrade.timer": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": null,
+        "ExecMainStatus": null
+      }
+    }
+  },
+  "observations_from_mac_metadata": {
+    "card_capacity_bytes": 127865454592,
+    "boot_partition_bytes": 528593408,
+    "linux_partition_bytes": 127320195072,
+    "partition_contents_read": "diagnostic-report-only",
+    "card_rewritten_after_return": false
+  },
+  "observation_from_user": {
+    "pi_stopped_before_sd_removal": true,
+    "method": "User confirmed the Pi was stopped before returning the SD."
+  },
+  "checks": {
+    "physical_system_boot_observed": true,
+    "firstboot_service_succeeded": true,
+    "system_identity_coherent": true,
+    "root_partition_and_ext4_expansion_observed": true,
+    "manual_resize_performed": false,
+    "expected_selected_services_and_masks_observed": true
+  },
+  "campaign_criteria": {
+    "S01": {
+      "status": "PASS",
+      "scope": "Initial system boot on SD A; diagnostic image disables Wi-Fi and has no preloaded profile. Radio connectivity itself is not measured by this report."
+    },
+    "S02": {
+      "status": "NON TESTÉ",
+      "observed": "Valid machine-id, state v1 and coherent hostname/kernel/hosts. A/B comparison and restart stability remain untested."
+    },
+    "S03": {
+      "status": "NON TESTÉ",
+      "observed": "Selected service states and masks match the diagnostic image. Runtime ordering, account policy and all permissions are not explicitly measured."
+    },
+    "S04": {
+      "status": "PASS",
+      "scope": "Partition and ext4 expansion on SD A; resize/growfs success. No manual resize. Any initial internal reboot and its timing were not independently observed."
+    },
+    "S05": {
+      "status": "NON TESTÉ"
+    },
+    "S06": {
+      "status": "NON TESTÉ"
+    },
+    "S07": {
+      "status": "NON TESTÉ",
+      "observed": "Single snapshot of memory, temperature and throttling; no load or electrical measurement."
+    },
+    "S08": {
+      "status": "NON TESTÉ"
+    },
+    "A01-A06": {
+      "status": "BLOQUÉ"
+    },
+    "physical_power_loss": {
+      "status": "NON TESTÉ"
+    }
+  },
+  "next_card": {
+    "change_requested_by_user": true,
+    "flashed": false,
+    "plan": "Start from the same virgin image, not a clone of the initialized card, to compare independent identities."
+  },
+  "limits": [
+    "One returned diagnostic report establishes one physical initialization observation, not full SD or application qualification.",
+    "Image association comes from the preparation and physical workflow; no independent raw readback or cryptographic attestation of the booted image is claimed.",
+    "Uptime of 46 seconds is measured at collection; it is not boot duration or time to poweroff.",
+    "The diagnostic service is activating/start while collecting. The report precedes poweroff; completed shutdown is a separate user observation.",
+    "Throttling value zero is a single snapshot, not load, endurance or power consumption qualification.",
+    "App/helper and SSH stay masked, and diagnostic Wi-Fi remains disabled. No display refresh, adoption, BLE transaction, Wi-Fi change or recovery is tested.",
+    "Identity fingerprints and boot identifier remain local; the public evidence includes only the report artifact digest and coherence results.",
+    "Card model, power supply and cable characteristics are not identified; the planned replacement card requires its own physical checks."
+  ]
+}

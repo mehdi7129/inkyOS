@@ -261,3 +261,18 @@ du Raspberry, refresh du panneau ou scénario iPhone n'a été exécuté. Le pro
 geste matériel appartient à l’opérateur : Pi hors tension, démarrer sur cette SD de
 test puis, après arrêt propre, la remettre dans le Mac pour lire le rapport.
 La SD personnelle reste intacte et la VM de build est arrêtée.
+
+Après cet essai, l’opérateur a confirmé l'arrêt du Pi et remis la SD dans le Mac.
+Le [premier rapport physique](validation/2026-09-30-sd-first-boot.json) confirme
+le boot du Pi Zero 2 W en ARM64, firstboot/resize/growfs réussis, identité
+système cohérente et 117,60 Go décimaux disponibles sur ext4. Les tailles de
+partitions ont aussi été relevées en lecture seule sur le Mac. Les services
+attendus sont actifs ou masqués selon la variante ; app/helper restent inactifs.
+L'arrêt est confirmé par l'utilisateur et non par ce snapshot écrit avant
+poweroff. Redémarrage, comparaison A/B, écran, adoption et Wi-Fi restent ouverts.
+
+l’opérateur a trouvé une SD plus adaptée et souhaite l'utiliser ensuite. Conserver
+la preuve de cette première carte, puis préparer la nouvelle depuis l'image
+vierge : ne pas cloner la carte initialisée avec son identité. La nouvelle
+carte n'est pas encore identifiée ni flashée. Aucun changement du cadre
+personnel ou du protocole applicatif n'a été effectué.

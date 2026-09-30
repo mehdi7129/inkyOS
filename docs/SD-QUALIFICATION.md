@@ -1,7 +1,8 @@
 # Qualification InkyOS sur SD dédiée
 
 Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
-**30 septembre**. **Aucun boot physique qualifié à ce stade.** l’opérateur a fourni
+**30 septembre**. **Premier boot du prototype système observé ; qualification
+complète encore ouverte.** l’opérateur a fourni
 une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
 confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
 Une seule SD permet de commencer la campagne système ; les comparaisons A/B
@@ -9,8 +10,41 @@ et la récupération sur une carte de secours attendent une seconde SD.
 
 Le premier essai utilise une [variante de diagnostic automatique](SD-DIAGNOSTIC.md),
 distincte de la release : rapport expurgé sur FAT, puis demande de poweroff.
-Le modèle de Pi confirme la compatibilité ARM64 de la base, pas son boot réel
-([liste officielle des systèmes compatibles](https://www.raspberrypi.com/software/operating-systems/)).
+Le rapport récupéré après l'arrêt confirme le boot réel en ARM64 sur ce Pi.
+La [preuve réduite](validation/2026-09-30-sd-first-boot.json) distingue le
+snapshot du système, les tailles de partitions lues sur le Mac et l'arrêt
+confirmé par l’opérateur. La SD plus adaptée qu'il a trouvée sera préparée ensuite
+depuis l'image vierge, sans copier les identités de la carte déjà initialisée.
+
+## Première observation physique — 30 septembre
+
+Sur la SD de 127865454592 octets, `inkyos-firstboot`, `rpi-resize` et
+`systemd-growfs-root` terminent avec succès, code 0. L'état firstboot version 1,
+le hostname, le kernel et `/etc/hosts` sont cohérents. La partition Linux mesure
+127320195072 octets ; ext4 offre 125269159936 octets, dont 117598322688 disponibles
+(117,60 Go décimaux). Aucun resize manuel n'a été effectué.
+
+NetworkManager, Avahi et Bluetooth sont actifs ; SSH, app/helper et les mises
+à jour automatiques prévues sont masqués. Le kernel démarré est
+`6.18.50+rpt-rpi-v8`. Au prélèvement : 290742272 octets de RAM disponibles,
+40,242 °C et `get_throttled=0`. Les 46 secondes sont l'uptime au prélèvement,
+pas une durée de boot. Ce snapshot ne mesure ni charge ni consommation.
+
+| Essai | Résultat sur cette carte | Limite restante |
+|---|---|---|
+| S01 | PASS : boot initial système de la variante sans Wi-Fi | Le rapport ne mesure pas une connexion radio ; pas d'adoption applicative. |
+| S02 | Identité et cohérence observées ; critère complet NON TESTÉ | Comparaison A/B et stabilité après redémarrage. |
+| S03 | États des services et masques observés ; critère complet NON TESTÉ | Ordre réel, comptes et permissions exhaustives non mesurés. |
+| S04 | PASS : partition et ext4 agrandis automatiquement | Éventuel reboot interne initial et sa durée non observés. |
+| S05–S06 | NON TESTÉ | Redémarrage manuel et série de dix reboots. |
+| S07 | Snapshot disponible ; critère complet NON TESTÉ | Charge, swap/OOM, temps de boot et mesures électriques. |
+| S08 et coupures | NON TESTÉ | Banc et scénario préparés séparément. |
+| A01–A06 | BLOQUÉ | App/helper inactifs ; écran, iPhone et transactions réseau non testés. |
+
+Le rapport est écrit avant la demande d'arrêt ; le collecteur y apparaît
+normalement `activating/start`. l’opérateur a confirmé séparément que le Pi était
+arrêté avant de retirer la SD. Un redémarrage reste nécessaire pour vérifier
+la persistance : la campagne prototype n'est donc pas terminée.
 
 Références : [plan de réalisation](BUILD-PLAN.md), [contrats et responsabilités](HANDOFF.md),
 [sources matériel](HARDWARE-SOURCES.md), [outils offline](DEVELOPMENT.md) et

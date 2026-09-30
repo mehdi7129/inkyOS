@@ -97,4 +97,25 @@ sur la SD fournie de 128 Go, sans personnalisation. Son écran final a confirmé
 la réussite et l'éjection automatique ; le disque n'était plus présent dans
 `diskutil`. Aucune relecture raw indépendante n'est revendiquée. La
 [preuve réduite](validation/2026-09-30-sd-diagnostic-flash.json) conserve cette
-distinction. La VM est arrêtée ; le premier boot physique du Pi reste NON TESTÉ.
+distinction. À la fin de cette préparation, la VM était arrêtée et le premier
+boot physique restait NON TESTÉ.
+
+## Rapport du premier boot récupéré le 30 septembre
+
+l’opérateur a démarré le Pi Zero 2 W sur cette carte puis confirmé son arrêt avant
+de la remettre dans le Mac. Un rapport a été récupéré et conservé localement ;
+seule la [preuve réduite](validation/2026-09-30-sd-first-boot.json) est publiée,
+sans empreintes d'identités ni identifiant de boot.
+
+Firstboot, resize et growfs réussissent ; l'identité système est cohérente.
+Le rootfs ext4 dispose de 117598322688 octets libres (117,60 Go décimaux).
+Les états des services correspondent à la variante de diagnostic. Le snapshot
+indique 40,242 °C et aucun flag de throttling ; ses 46 secondes d'uptime ne
+constituent pas une mesure de durée de boot. L'arrêt est une observation
+distincte de l'utilisateur, puisque le rapport précède poweroff.
+
+Le redémarrage manuel, la comparaison de deux installations vierges et la
+campagne applicative restent à faire. l’opérateur prévoit de remplacer cette carte
+par une SD plus adaptée : repartir du même artefact vierge évite de recopier
+une identité déjà générée. Aucun changement de carte ni nouveau flash n'a
+encore été effectué.
