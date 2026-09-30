@@ -331,3 +331,19 @@ défaut GUI activé dans la source exacte, aucune action de skip, aucune
 relecture raw indépendante revendiquée. Le premier essai reste consigné
 comme ambigu. La Qumox attend son premier boot réel, puis comparaison A/B et
 second boot manuel pour la stabilité de l'identité. App/helper toujours masqués.
+
+La Qumox a ensuite été démarrée : l’opérateur acquitte les étapes, et un rapport
+physique est récupéré à son retour dans le Mac. Firstboot/resize/growfs sont
+réussis, identité système cohérente, 11,89 Go décimaux libres sur ext4 et
+services attendus observés. La
+[preuve réduite](validation/2026-09-30-sd-qumox-first-boot.json) sépare snapshot,
+métadonnées Mac et acquittement utilisateur ; elle ne déduit pas l'arrêt
+effectif du JSON écrit avant poweroff.
+
+Le comparateur `different-cards` passe sur les deux premiers rapports :
+machine-id et hostname sont distincts, cohérents sur chaque SD, sans publier
+leurs empreintes. S01/S02/S04 sont observés dans leur portée système initiale ;
+persistance S05, série de reboots et qualification complète restent ouverts.
+Prochain geste : un nouveau boot de la même Qumox, sans reflash, puis rapport
+et comparaison `same-card`. La SD A doit aussi être redémarrée. Aucun refresh
+du panneau, parcours iPhone ou transaction Wi-Fi n'a été exécuté.

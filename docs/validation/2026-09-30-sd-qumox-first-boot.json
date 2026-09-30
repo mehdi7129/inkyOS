@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-30",
+  "scope": "sd-B-system-prototype-physical-observation-and-initial-identity-comparison",
+  "decision": "system-prototype-observed-on-Qumox-and-distinct-initial-system-identities-on-A-B",
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "image": {
+    "filename": "inkyos-sd-diagnostic.img",
+    "sha256": "6a5821c1a0adca679a611b8aa97d20ac7dba2e0694d0b6a1a871eee9b273e248",
+    "size_bytes": 3061841920
+  },
+  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715",
+  "preparation_evidence": "2026-09-30-sd-qumox-clean-flash.json",
+  "previous_card_evidence": "2026-09-30-sd-first-boot.json",
+  "card": {
+    "label": "B",
+    "brand_and_nominal_capacity_from_user": "Qumox 16 GB",
+    "detailed_reference_known": false
+  },
+  "report": {
+    "sha256": "bed69cc4d513a88f321da87fa94e84300b767db17647e8827892289723657f01",
+    "schema_version": 1,
+    "raw_retained_locally": true,
+    "identity_hashes_published": false,
+    "reports_observed": 1,
+    "independent_authenticity_verified": false
+  },
+  "observations_from_report": {
+    "hardware": {
+      "architecture": {
+        "status": "ok",
+        "value": "aarch64"
+      },
+      "kernel": {
+        "status": "ok",
+        "release": "6.18.50+rpt-rpi-v8"
+      },
+      "model": {
+        "status": "ok",
+        "value": "Raspberry Pi Zero 2 W"
+      },
+      "memory": {
+        "status": "ok",
+        "total_bytes": 435318784,
+        "available_bytes": 282222592
+      },
+      "temperature_millicelsius": {
+        "status": "ok",
+        "value": 37014
+      },
+      "throttling": {
+        "status": "ok",
+        "value": 0
+      },
+      "uptime_seconds": {
+        "status": "ok",
+        "value": 56
+      }
+    },
+    "identity": {
+      "field_statuses": {
+        "firstboot_state": "ok",
+        "hostname": "ok",
+        "hosts_file": "ok",
+        "kernel_hostname": "ok",
+        "machine_id": "ok"
+      },
+      "firstboot_state_version": 1,
+      "coherence": {
+        "status": "ok",
+        "state_matches_hostname": true,
+        "state_matches_hosts": true,
+        "state_matches_kernel": true
+      },
+      "comparison_between_cards_tested": true,
+      "stability_after_manual_restart_tested": false
+    },
+    "filesystems": {
+      "boot": {
+        "status": "ok",
+        "type": "vfat",
+        "device": "mmc",
+        "total_bytes": 528592896,
+        "available_bytes": 449281024
+      },
+      "root": {
+        "status": "ok",
+        "type": "ext4",
+        "device": "mmc",
+        "total_bytes": 15080513536,
+        "available_bytes": 11886649344
+      }
+    },
+    "services": {
+      "inkyos-firstboot.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "rpi-resize.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "disabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "systemd-growfs-root.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "LoadState": "loaded",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "NetworkManager.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "running",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "avahi-daemon.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "running",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "bluetooth.service": {
+        "status": "ok",
+        "ActiveState": "active",
+        "SubState": "running",
+        "LoadState": "loaded",
+        "UnitFileState": "enabled",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "inkyos-sd-diagnostic.service": {
+        "status": "ok",
+        "ActiveState": "activating",
+        "SubState": "start",
+        "LoadState": "loaded",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "ssh.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "inky-studio.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "inky-network.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "rpi-eeprom-update.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "apt-daily.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "apt-daily-upgrade.service": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": "success",
+        "ExecMainStatus": 0
+      },
+      "apt-daily.timer": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": null,
+        "ExecMainStatus": null
+      },
+      "apt-daily-upgrade.timer": {
+        "status": "ok",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "LoadState": "masked",
+        "UnitFileState": "masked",
+        "Result": null,
+        "ExecMainStatus": null
+      }
+    }
+  },
+  "observations_from_mac_metadata": {
+    "card_capacity_bytes": 15938355200,
+    "boot_partition_bytes": 528593408,
+    "linux_partition_bytes": 15393095680,
+    "partition_contents_read": "diagnostic-report-only",
+    "card_rewritten_after_return": false
+  },
+  "observation_from_user": {
+    "workflow_completion_acknowledged": true,
+    "workflow": "User acknowledged the instructions to boot the test SD, wait for shutdown, unplug and return it to the Mac.",
+    "separate_explicit_shutdown_confirmation_in_this_turn": false
+  },
+  "checks": {
+    "physical_system_boot_observed": true,
+    "firstboot_service_succeeded": true,
+    "system_identity_coherent": true,
+    "root_partition_and_ext4_expansion_observed": true,
+    "manual_resize_performed": false,
+    "expected_selected_services_and_masks_observed": true,
+    "initial_identity_comparison_between_cards_passed": true
+  },
+  "initial_identity_comparison": {
+    "comparator_source_commit": "5294e51d68066ddb3c41e9699bcaec5a3bd38408",
+    "comparator_script_sha256": "1d9d90002596eb914b2041c80e8eb67d017b47730c6a6e865e20a17c13644393",
+    "mode_declaration_from_operator": "A is the 128 GB SD; B is the Qumox 16 GB SD. Both were prepared from the same virgin artifact.",
+    "exit_code": 0,
+    "result": {
+      "checks": {
+        "distinct_boots": true,
+        "expected_hostname_relationship": true,
+        "expected_machine_id_relationship": true,
+        "left_coherence_assertions_consistent": true,
+        "left_firstboot_success": true,
+        "left_hashes_coherent": true,
+        "left_hosts_readable": true,
+        "left_identity_ready": true,
+        "left_reported_coherent": true,
+        "right_coherence_assertions_consistent": true,
+        "right_firstboot_success": true,
+        "right_hashes_coherent": true,
+        "right_hosts_readable": true,
+        "right_identity_ready": true,
+        "right_reported_coherent": true
+      },
+      "comparisons": {
+        "hostname_equal": false,
+        "kernel_hostname_equal": false,
+        "machine_id_equal": false,
+        "state_hostname_equal": false
+      },
+      "error": null,
+      "hardware_qualified": false,
+      "input_artifact_sha256": [
+        "5fdcd286506c5da7e9a6f3331325a8a3db902f6547eb513e8fe355a6a00d928c",
+        "bed69cc4d513a88f321da87fa94e84300b767db17647e8827892289723657f01"
+      ],
+      "limitations": [
+        "Unsigned local snapshots are not attestations; their origin is unverified.",
+        "Image provenance and artifact verification require separate evidence.",
+        "Distinct boot identifiers do not prove an observed reboot or separate physical cards.",
+        "Identity comparison does not qualify complete boot, hardware, services, application or release."
+      ],
+      "mode": "different-cards",
+      "passed": true,
+      "release_qualified": false,
+      "schema_version": 1,
+      "scope": "identity_comparison_only"
+    }
+  },
+  "campaign_criteria": {
+    "S01": {
+      "status": "PASS",
+      "scope": "Initial system boot on SD B; diagnostic image disables Wi-Fi and has no preloaded profile. Radio connectivity itself is not measured."
+    },
+    "S02": {
+      "status": "PASS",
+      "scope": "Initial system identities on A/B: internally coherent state/hostname/kernel/hosts and distinct machine-id and hostname. Persistence after a new boot is S05 and remains untested."
+    },
+    "S03": {
+      "status": "NON TESTÉ",
+      "observed": "Selected service states and masks match the diagnostic image. Runtime ordering, account policy and all permissions are not explicitly measured."
+    },
+    "S04": {
+      "status": "PASS",
+      "scope": "Partition and ext4 expansion on SD B; resize/growfs success. No manual resize. Any initial internal reboot and timing were not independently observed."
+    },
+    "S05": {
+      "status": "NON TESTÉ"
+    },
+    "S06": {
+      "status": "NON TESTÉ"
+    },
+    "S07": {
+      "status": "NON TESTÉ",
+      "observed": "Single snapshot of memory, temperature and throttling; no load or electrical measurement."
+    },
+    "S08": {
+      "status": "NON TESTÉ"
+    },
+    "A01-A06": {
+      "status": "BLOQUÉ"
+    },
+    "physical_power_loss": {
+      "status": "NON TESTÉ"
+    }
+  },
+  "next_step": "A second manual boot of the same Qumox installation without reflash; recover a distinct report, compare same-card and review service/filesystem states. SD A also requires its own restart.",
+  "limits": [
+    "These first-boot snapshots and the identity comparison do not qualify the full SD or application campaign.",
+    "Physical card and image association come from the preparation and user workflow. No independent raw readback or signed boot attestation is claimed.",
+    "The report is written before poweroff. The user acknowledged the complete workflow but did not separately explicitly confirm shutdown in this turn.",
+    "Uptime of 56 seconds is measured at collection, not boot duration or time to poweroff.",
+    "Throttling zero and temperature are a single snapshot, not load, endurance or power consumption qualification.",
+    "App/helper and SSH stay masked; diagnostic Wi-Fi remains disabled. No display refresh, adoption, BLE transaction, Wi-Fi change or recovery is tested.",
+    "Identity fingerprints and boot identifier remain local. Public evidence retains only artifact digests and boolean comparison results.",
+    "Brand and nominal capacity are user supplied. Detailed card reference, power supply and cable characteristics remain unidentified."
+  ]
+}

@@ -201,12 +201,39 @@ premier essai ambigu, qui n'est pas accepté rétroactivement.
 La progression de vérification n'a pas été capturée. Le
 [code GUI exact](https://github.com/raspberrypi/rpi-imager/blob/f259e1c99007b8a84b4e0049f03f0c34050f38e0/src/imagewriter.cpp#L137)
 active cette passe par défaut ; aucune action de skip n'a été faite. Cela ne
-constitue pas une relecture raw indépendante ni un 100 % observé. Aucun boot
-de la Qumox, comparaison A/B ou test de persistance n'est encore conclu.
+constitue pas une relecture raw indépendante ni un 100 % observé. À l'issue
+de ce flash, aucun boot de la Qumox, comparaison A/B ou test de persistance
+n'était encore conclu.
 
-Suite du banc : Pi hors tension, premier démarrage de la Qumox puis arrêt
+Suite prévue à ce stade : Pi hors tension, premier démarrage de la Qumox puis arrêt
 automatique confirmé par l’opérateur ; remettre la SD dans le Mac pour récupérer le
 rapport local. Comparer les premières observations 128 Go/Qumox avec
 `different-cards`. Faire ensuite un second démarrage manuel de la Qumox,
 récupérer son autre rapport et utiliser `same-card`. Le flash n'active pas
 l'app/helper et ne valide aucun parcours iPhone, radio ou écran.
+
+## Premier boot Qumox récupéré et identités A/B comparées — 30 septembre
+
+Après l'acquittement des étapes par l’opérateur, la carte est détectée dans le Mac.
+Un rapport régulier est copié depuis le répertoire diagnostic FAT, sans lire
+les autres contenus de la SD. Le
+[résultat réduit](validation/2026-09-30-sd-qumox-first-boot.json) confirme
+firstboot/resize/growfs réussis, identité cohérente et 11,89 Go décimaux libres
+sur ext4. Les services attendus correspondent à la variante masquée.
+
+La comparaison `different-cards` entre les premiers rapports 128 Go/Qumox
+passe, code 0 : boot IDs distincts et machine-id/hostname différents. Les
+empreintes d'identité ne sont pas publiées. L'association aux deux cartes et
+au même artefact vierge vient du workflow de préparation ; les rapports locaux
+ne sont pas des attestations signées.
+
+Les 56 secondes d'uptime et la température de 37,014 °C sont un snapshot,
+sans mesure de durée de boot, charge ou consommation. L'acquittement utilisateur
+n'est pas une confirmation séparée explicite de l'arrêt ; le rapport est écrit
+avant poweroff. La qualification complète reste ouverte.
+
+Prochain essai : **redémarrer manuellement la Qumox sans la reflasher**,
+attendre l'arrêt, la remettre dans le Mac et conserver le nouveau rapport
+avec celui-ci. Exécuter `same-card`, puis vérifier aussi services et capacité
+du FS. Le même contrôle de persistance devra être fait sur la SD de 128 Go ;
+la comparaison A/B ne remplace pas ces redémarrages.

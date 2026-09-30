@@ -1,18 +1,19 @@
 # Qualification InkyOS sur SD dédiée
 
 Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
-**30 septembre**. **Premier boot du prototype système observé ; qualification
-complète encore ouverte.** l’opérateur a fourni
+**30 septembre**. **Premiers boots du prototype système observés sur deux SD,
+identités initiales distinctes ; qualification complète encore ouverte.** l’opérateur a fourni
 une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
 confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
 Une seconde carte, Qumox 16 Go selon l’opérateur, a ensuite été insérée dans le Mac :
-15938355200 octets détectés. Les comparaisons A/B, redémarrages et récupération
-restent à réaliser. Après un
+15938355200 octets détectés. La comparaison des identités initiales A/B passe ;
+redémarrages et récupération restent à réaliser. Après un
 [premier essai ambigu](validation/2026-09-30-sd-qumox-flash-observation.json),
 une écriture unique avec Imager 2.0.11.1 termine sans erreur et éjecte la SD.
-Ce [flash propre](validation/2026-09-30-sd-qumox-clean-flash.json) est accepté
-pour le prochain essai système ; aucune relecture raw indépendante ou
-qualification de boot de cette carte n'est encore établie.
+Ce [flash propre](validation/2026-09-30-sd-qumox-clean-flash.json) a été suivi
+d'un [boot système observé](validation/2026-09-30-sd-qumox-first-boot.json).
+Aucune relecture raw indépendante ou qualification complète de cette carte
+n'est revendiquée.
 
 Le premier essai utilise une [variante de diagnostic automatique](SD-DIAGNOSTIC.md),
 distincte de la release : rapport expurgé sur FAT, puis demande de poweroff.
@@ -36,10 +37,10 @@ NetworkManager, Avahi et Bluetooth sont actifs ; SSH, app/helper et les mises
 40,242 °C et `get_throttled=0`. Les 46 secondes sont l'uptime au prélèvement,
 pas une durée de boot. Ce snapshot ne mesure ni charge ni consommation.
 
-| Essai | Résultat sur cette carte | Limite restante |
+| Essai | État lors de cette première observation sur A | Limite restante à ce stade |
 |---|---|---|
 | S01 | PASS : boot initial système de la variante sans Wi-Fi | Le rapport ne mesure pas une connexion radio ; pas d'adoption applicative. |
-| S02 | Identité et cohérence observées ; critère complet NON TESTÉ | Comparaison A/B et stabilité après redémarrage. |
+| S02 | Identité et cohérence observées ; critère complet NON TESTÉ | Comparaison initiale A/B ; persistance après redémarrage suivie par S05. |
 | S03 | États des services et masques observés ; critère complet NON TESTÉ | Ordre réel, comptes et permissions exhaustives non mesurés. |
 | S04 | PASS : partition et ext4 agrandis automatiquement | Éventuel reboot interne initial et sa durée non observés. |
 | S05–S06 | NON TESTÉ | Redémarrage manuel et série de dix reboots. |
@@ -56,6 +57,41 @@ Le [comparateur local](SD-DIAGNOSTIC.md#comparer-les-observations-localement)
 prépare S02/S05 : il contrôle cohérence et stabilité/distinction des identités
 sans publier leurs empreintes. Il exige des boots distincts ; sa disponibilité
 et ses fixtures ne remplacent pas un second démarrage physique ou une seconde SD.
+
+## Première observation Qumox et comparaison A/B — 30 septembre
+
+La Qumox revient dans le Mac avec un rapport. Le boot réel ARM64 du Pi Zero 2 W,
+le succès firstboot, la cohérence état/hostname/kernel/hosts et les états des
+services attendus sont observés. La partition Linux mesure 15393095680 octets ;
+ext4 offre 15080513536 octets, dont 11886649344 disponibles (11,89 Go décimaux).
+Resize/growfs ont terminé avec succès, sans intervention manuelle.
+
+Le comparateur exécuté sur les deux rapports initiaux termine avec le code 0 :
+boots distincts, machine-id et hostname différents, cohérence et firstboot
+acceptés sur A et B. **S02 est établi pour les identités initiales A/B.** La
+stabilité après un nouveau démarrage relève de S05 et reste NON TESTÉE sur
+chacune des deux cartes. Les empreintes d'identité restent locales ; la
+[preuve réduite](validation/2026-09-30-sd-qumox-first-boot.json) conserve les
+SHA-256 des artefacts et les résultats booléens.
+
+| Essai | État actuel A/B | Limite restante |
+|---|---|---|
+| S01 | PASS : premier boot système observé sur A et B | Variante diagnostic ; aucun parcours applicatif sans LAN. |
+| S02 | PASS : identités initiales cohérentes et distinctes sur A/B | Persistance après redémarrage suivie par S05. |
+| S03 | États des services et masques observés sur A/B ; critère complet NON TESTÉ | Ordre réel, comptes et permissions exhaustives. |
+| S04 | PASS : expansion automatique observée sur A/B | Reboot interne éventuel et durée non mesurés. |
+| S05–S06 | NON TESTÉ | Nouveau boot sans reflash de chaque carte, puis série complète. |
+| S07 | Snapshots disponibles sur A/B ; critère complet NON TESTÉ | Charge, OOM, temps de boot et mesures électriques. |
+| S08 et coupures | NON TESTÉ | Banc et scénario à préparer séparément. |
+| A01–A06 | BLOQUÉ | Release applicative et runtime sans LAN non qualifiés. |
+
+Au prélèvement Qumox : 282222592 octets de RAM disponibles, 37,014 °C et
+`get_throttled=0`. L'uptime de 56 secondes n'est pas une durée de boot. l’opérateur
+a répondu « c'est fait » aux étapes de boot, arrêt, débranchement et retour
+de la carte ; aucun constat indépendant de l'arrêt n'est déduit du rapport
+écrit avant poweroff. Le prochain geste est un second démarrage manuel de la
+**même installation Qumox, sans reflash**, pour comparer `same-card` et relire
+les états des services et du FS. La SD A nécessite aussi son propre redémarrage.
 
 Références : [plan de réalisation](BUILD-PLAN.md), [contrats et responsabilités](HANDOFF.md),
 [sources matériel](HARDWARE-SOURCES.md), [outils offline](DEVELOPMENT.md) et
