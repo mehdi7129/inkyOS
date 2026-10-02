@@ -1,5 +1,26 @@
 # Réception du relais Inky Studio
 
+## Retour de la SD — 3 octobre 2026
+
+l’opérateur confirme le boot sur le Pi, l'arrêt, puis la réinsertion dans le Mac.
+La SD physique de 15938355200 octets est identifiée à nouveau ; FAT mesure
+536870912 octets et la partition Linux 15393095680 octets. Le rapport FAT est
+conservé localement avec permissions privées. Schéma et observations fermées
+valides, challenge/profil/pins/runtime correspondants : il déclare `enrolled`.
+Ce résultat préliminaire ne remplace pas la lecture de l'état privé ext4.
+Les sondes panneau et radio sont toutes deux `blocked` sans données ; leur
+cause n'a pas été conservée par la réduction du rapport. L'identification de
+l'écran et toute activation applicative restent ouvertes.
+
+La [procédure de récupération](SD-RECOVERY.md) et sa
+[preuve FAT préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
+documentent la suite. Le Mac refuse la lecture raw sans authentification
+administrateur. Le lanceur local est préparé pour `sudo` ; l'outil de contrôle
+de l'ordinateur refuse l'accès à Terminal, donc l’opérateur doit le lancer lui-même.
+La VM dédiée est passée localement à 32 GiB ; ext4 offre 33603391488 octets,
+dont 26190274560 disponibles avant le nouveau banc. Aucune SD n'est partagée
+directement avec la VM, aucune donnée réseau ni clé client n'y est transférée.
+
 ## SD d'enrôlement écrite — 3 octobre 2026
 
 La carte annoncée par l’opérateur est détectée comme SD physique amovible de

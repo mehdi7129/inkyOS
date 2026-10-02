@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "scope": "preliminary-physical-enrollment-return-fat-only",
+  "date": "2026-10-03",
+  "timezone": "Europe/Paris",
+  "operator_observation": {
+    "source": "user_message",
+    "booted_flashed_sd_on_pi": true,
+    "shutdown_observed_by_user": true,
+    "sd_returned_to_mac": true
+  },
+  "mac_observation": {
+    "whole_physical_removable_sd": true,
+    "capacity_bytes": 15938355200,
+    "fat_partition_bytes": 536870912,
+    "linux_partition_bytes": 15393095680,
+    "raw_read_without_administrator": false,
+    "private_fat_report_copy_preserved": true
+  },
+  "fat_report_checks": {
+    "closed_schema_valid": true,
+    "observations_schema_valid": true,
+    "state_claim": "enrolled",
+    "live_evidence_claim": true,
+    "challenge_matches_expected": true,
+    "application_source_matches_expected": true,
+    "application_manifest_matches_expected": true,
+    "parent_image_matches_expected": true,
+    "profile_bytes_hash_matches_expected": true,
+    "runtime_source_matches_expected": true,
+    "panel_observation_status": "blocked",
+    "radio_observation_status": "blocked",
+    "panel_data_present": false,
+    "radio_data_present": false
+  },
+  "ext4_state_checked": false,
+  "physical_return_controller_passed": false,
+  "host_trust_prepared": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "The user observed shutdown; a FAT report alone does not attest it.",
+    "Matching FAT claims do not prove enrolled state on ext4 or full return consistency.",
+    "Both hardware probes returned reduced blocked/null observations; no exact cause or panel reference is established.",
+    "The SD, full private report, challenge, keys and identity hashes are not published.",
+    "The current acquisition requires macOS administrator authentication and a private full-card copy."
+  ]
+}

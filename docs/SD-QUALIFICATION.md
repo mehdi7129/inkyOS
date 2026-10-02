@@ -22,8 +22,11 @@ Le **3 octobre**, la même capacité de SD dédiée est identifiée puis reçoit
 l'[image privée d'enrôlement](TEST-ENROLLMENT.md). La
 [preuve de ce nouveau flash](validation/2026-10-03-sd-enrollment-flash.json)
 consigne la vérification Imager observée, la fin sans erreur et l'éjection.
-Le boot de cette variante reste à effectuer ; les observations système du
-30 septembre ci-dessous concernent l'image diagnostic précédente.
+l’opérateur confirme ensuite son boot et son arrêt, puis rapporte la SD. Le
+[contrôle FAT préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
+correspond aux pins attendus, mais les sondes panneau/radio sont bloquées et
+l'état ext4 attend sa [récupération privée](SD-RECOVERY.md). Les observations
+système du 30 septembre ci-dessous concernent l'image diagnostic précédente.
 
 La cible produit est une **microSD de 16 Go nominales**, sans marque imposée.
 La référence sera choisie selon disponibilité/prix, puis qualifiée sur le banc.
