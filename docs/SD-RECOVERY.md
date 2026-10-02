@@ -19,7 +19,7 @@ python3.13 -I scripts/acquire-sd-macos.py \
   --device DISQUE_IDENTIFIE --capacity-bytes CAPACITE_OBSERVEE \
   --registry-id IDENTIFIANT_IOREGISTRY_OBSERVE \
   --output-dir CHEMIN_ABSOLU/private/sd-acquisition.NOUVEL_ESSAI \
-  --owner-uid UID_OPERATEUR --owner-gid GID_OPERATEUR
+  --owner-uid UID_OPERATEUR --owner-gid GID_OPERATEUR --progress
 ```
 
 Sans `--acquire`, cette commande est un dry-run sans démontage ni copie.
@@ -27,6 +27,8 @@ Après validation, la même commande avec `sudo` et `--acquire` nécessite
 l'authentification macOS de l'opérateur ; le mot de passe se saisit directement
 dans Terminal. UID/GID doivent alors correspondre à `SUDO_UID`/`SUDO_GID`.
 Le script ne crée aucun accès administrateur permanent.
+`--progress` affiche les phases `copy` et `local_readback`, le pourcentage et
+les compteurs sur stderr ; stdout reste exclusivement le résultat JSON.
 
 L'acquisition démonte seulement le disque identifié et lit sa capacité entière,
 sans écrire sur le raw device. Les blocs entièrement nuls deviennent des trous
@@ -79,6 +81,13 @@ et montages avant toute suppression d'une copie temporaire.
 
 Le banc `probe-test-enrollment-return-linux.sh` reste réservé au refus attendu
 sur l'image non bootée ; il n'est pas une procédure de retour positif.
+
+Les [preuves des outils](validation/2026-10-03-sd-recovery-tools.json) lient
+64 fixtures ciblées Mac, la CI et un essai natif du nouveau runner sur une copie
+de l'image non bootée. Les dix contrôles d'infrastructure passent ; le contrôleur
+retourne bien `FAIL / return_incomplete`, code 1. Un contrôle externe confirme
+l'absence de montages/loops et le hash inchangé des deux copies avant leur
+suppression dans la VM. L'export privé original reste conservé sur le Mac.
 
 ## Retour physique du 3 octobre 2026
 

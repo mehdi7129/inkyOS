@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -234,6 +235,75 @@ class AcquisitionTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertTrue((self.output / "returned.img").exists())
         self.assertTrue((self.output / "acquisition.json").exists())
+
+    def test_progress_preserves_exact_copy_and_hash_including_sparse_bytes(self):
+        payload = b"nonzero" * 1024 + bytes(8192)
+        events = []
+        callback = lambda phase, count, total: events.append((phase, count, total))
+        with tempfile.TemporaryFile() as source, tempfile.TemporaryFile() as target:
+            source.write(payload)
+            source.seek(0)
+            with patch.object(acquisition, "BLOCK_SIZE", 4096):
+                digest = acquisition.copy_card(source.fileno(), target.fileno(), len(payload), callback)
+                readback = acquisition.local_readback(target.fileno(), len(payload), callback)
+            target.seek(0)
+            self.assertEqual(target.read(), payload)
+        self.assertEqual(digest, hashlib.sha256(payload).hexdigest())
+        self.assertEqual(readback, digest)
+        for phase in ("copy", "local_readback"):
+            counts = [count for observed, count, total in events if observed == phase]
+            self.assertEqual(counts[0], 0)
+            self.assertEqual(counts[-1], len(payload))
+            self.assertEqual(counts, sorted(counts))
+        self.assertTrue(all(total == len(payload) for _, _, total in events))
+
+    def test_progress_throttles_by_time_or_bytes_with_explicit_phase_start(self):
+        stream = io.StringIO()
+        progress = acquisition.StderrProgress()
+        total = 1024**3
+        with contextlib.redirect_stderr(stream), \
+                patch.object(acquisition.time, "monotonic", side_effect=[0, 1, 2, 2.1, 2.2, 2.3]):
+            progress("copy", 0, total)
+            progress("copy", 1, total)  # Suppressed: neither threshold reached.
+            progress("copy", 2, total)  # Time threshold.
+            progress("copy", 2 + 256 * 1024**2, total)  # Byte threshold.
+            progress("copy", total, total)
+            progress("local_readback", 0, total)
+        lines = stream.getvalue().splitlines()
+        self.assertEqual(len(lines), 5)
+        self.assertEqual(lines[0], f"copy: 0.0% (0/{total} bytes)")
+        self.assertEqual(lines[-1], f"local_readback: 0.0% (0/{total} bytes)")
+        for line in lines:
+            self.assertRegex(line, r"^(copy|local_readback): [0-9]+\.[0-9]% \([0-9]+/[0-9]+ bytes\)$")
+
+    def test_progress_cli_keeps_stdout_one_json_document(self):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        argv = ["acquire-sd-macos.py", "--output-dir", str(self.output), "--device", "disk6",
+                "--capacity-bytes", str(len(self.payload)), "--registry-id", "1234", "--acquire",
+                "--progress"]
+        with self.environment(), patch.object(acquisition.sys, "argv", argv), \
+                contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            status = acquisition.main()
+        self.assertEqual(status, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["sha256"], hashlib.sha256(self.payload).hexdigest())
+        self.assertEqual(len(stderr.getvalue().splitlines()), 4)
+        self.assertNotIn(str(self.output), stderr.getvalue())
+        self.assertNotIn(result["sha256"], stderr.getvalue())
+        self.assertNotIn(self.payload.decode(), stderr.getvalue())
+
+    def test_progress_dry_run_is_silent_and_creates_nothing(self):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        argv = ["acquire-sd-macos.py", "--output-dir", str(self.output), "--device", "disk6",
+                "--capacity-bytes", str(len(self.payload)), "--registry-id", "1234", "--progress"]
+        with self.environment(), patch.object(acquisition.sys, "argv", argv), \
+                contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            status = acquisition.main()
+        self.assertEqual(status, 0)
+        self.assertEqual(json.loads(stdout.getvalue())["status"], "dry_run")
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertFalse(self.output.exists())
 
 
 if __name__ == "__main__":

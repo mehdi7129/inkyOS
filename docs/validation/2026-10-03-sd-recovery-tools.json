@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "scope": "recovery-tools-fixtures-and-native-unbooted-refusal",
+  "date": "2026-10-03",
+  "source_commit": "cadacd7cd475390004bd0d882b815cea25bc67d9",
+  "mac_targeted_fixtures": {
+    "tests": 64,
+    "failures": 0,
+    "errors": 0,
+    "acquisition_script_sha256": "a9ce52ef421e8ef6f646ddfd4e4194ac51aeb8aa88637f0225364f6d3ebed9bd",
+    "live_acquisition_dry_run_passed": true
+  },
+  "ci": {
+    "conclusion": "success",
+    "url": "inkyOS/actions/runs/37075892740"
+  },
+  "native_runner_smoke": {
+    "platform": "Linux ARM64",
+    "runner_sha256": "52feb5b9e191c21ae4eff6caa34499cdb9eb57e6021446f1af7a260e4b8d2ec6",
+    "returned_input": "copy of the pinned unbooted enrollment image, not the physical SD",
+    "both_image_copies_sha256": "7a1b70463e5501830f67e9c4b2ffcb69d8970a154115a8e9f8aa2e27eeb9d86e",
+    "image_size_bytes": 3061841920,
+    "inputs_sha256": "85cb94a79a4769540a7e90d6e48e65cd037ff2dc53d136fc1785d4663adad8d4",
+    "report_sha256": "3c39fefb7a431b5f626ea10308ca25fb38cde38d32603e999b4c58937fb1dcc9",
+    "external_cleanup_sha256": "52426981351ccaa38e2367d4bc3a2db0efba11148b61c09add6865012e84731f",
+    "infrastructure_verified": true,
+    "infrastructure_checks_passed": 10,
+    "infrastructure_checks_total": 10,
+    "controller_exit_code": 1,
+    "controller_status": "FAIL",
+    "controller_error": "return_incomplete",
+    "expected_refusal_observed": true,
+    "external_mounts_absent": true,
+    "external_loops_absent": true,
+    "both_copies_rehashed_after_check": true,
+    "temporary_vm_image_copies_removed": true,
+    "original_mac_export_preserved": true
+  },
+  "physical_sd_return_verified": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "The Linux runner was exercised on a non-booted image copy and correctly preserved the controller refusal.",
+    "This verifies runner plumbing, readonly mounts, closed output and cleanup; it does not establish a positive physical return.",
+    "The macOS acquisition fixtures and dry-run do not substitute for completion of the full physical-SD acquisition."
+  ]
+}

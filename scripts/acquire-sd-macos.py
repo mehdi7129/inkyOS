@@ -15,6 +15,7 @@ import platform
 import stat
 import subprocess
 import sys
+import time
 
 
 _spec = importlib.util.spec_from_file_location(
@@ -25,6 +26,25 @@ media_record = _media.media_record
 run = _media.run
 Refused = _media.Refused
 BLOCK_SIZE = 4 * 1024**2
+
+
+class StderrProgress:
+    """Emit only a fixed phase, percentage and byte counters; never card data."""
+    def __init__(self):
+        self.phase, self.count, self.updated_at = None, 0, 0
+
+    def __call__(self, phase, count, total):
+        if (phase not in ("copy", "local_readback")
+                or type(count) is not int or type(total) is not int
+                or total <= 0 or not 0 <= count <= total):
+            raise Refused("invalid_progress_update")
+        now = time.monotonic()
+        if (phase != self.phase or count - self.count >= 256 * 1024**2
+                or now - self.updated_at >= 2
+                or (count == total and count != self.count)):
+            print(f"{phase}: {100 * count / total:.1f}% ({count}/{total} bytes)",
+                  file=sys.stderr, flush=True)
+            self.phase, self.count, self.updated_at = phase, count, now
 
 
 def require_same(observed, expected):
@@ -139,8 +159,10 @@ def write_all(fd, block):
         remaining = remaining[written:]
 
 
-def copy_card(raw_fd, output_fd, size):
+def copy_card(raw_fd, output_fd, size, progress=None):
     count, digest = 0, hashlib.sha256()
+    if progress is not None:
+        progress("copy", count, size)
     while count < size:
         block = os.read(raw_fd, min(BLOCK_SIZE, size - count))
         if not block:
@@ -153,22 +175,28 @@ def copy_card(raw_fd, output_fd, size):
             write_all(output_fd, block)
         digest.update(block)
         count += len(block)
+        if progress is not None:
+            progress("copy", count, size)
     os.ftruncate(output_fd, size)
     return digest.hexdigest()
 
 
-def local_readback(fd, size):
+def local_readback(fd, size, progress=None):
     before = os.fstat(fd)
     if not stat.S_ISREG(before.st_mode) or before.st_size != size:
         raise Refused("local_image_size_mismatch")
     os.lseek(fd, 0, os.SEEK_SET)
     count, digest = 0, hashlib.sha256()
+    if progress is not None:
+        progress("local_readback", count, size)
     while count < size:
         block = os.read(fd, min(BLOCK_SIZE, size - count))
         if not block:
             raise Refused("local_image_ended_early")
         digest.update(block)
         count += len(block)
+        if progress is not None:
+            progress("local_readback", count, size)
     after = os.fstat(fd)
     if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
             != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)):
@@ -189,7 +217,8 @@ def receipt(directory_fd, result, owner):
         os.close(fd)
 
 
-def acquire_sd(output_dir, expected, *, acquire=False, owner_uid=None, owner_gid=None):
+def acquire_sd(output_dir, expected, *, acquire=False, owner_uid=None, owner_gid=None,
+               progress=None):
     result = {"schema_version": 1, "scope": "private-full-sd-acquisition",
               "status": "dry_run", "device": expected["device"],
               "capacity_bytes": expected["capacity_bytes"], "registry_id": expected["registry_id"],
@@ -244,11 +273,12 @@ def acquire_sd(output_dir, expected, *, acquire=False, owner_uid=None, owner_gid
         require_ancestry(descriptors)
         require_local_entry(image_fd, directory_fd)
         result["raw_opened_readonly"] = True
-        stream_hash = copy_card(raw_fd, image_fd, expected["capacity_bytes"])
+        progress_options = {"progress": progress} if progress is not None else {}
+        stream_hash = copy_card(raw_fd, image_fd, expected["capacity_bytes"], **progress_options)
         os.fsync(image_fd)
         require_raw_device(raw_fd, raw_path)
         require_same(media_record(expected["device"]), expected)
-        if local_readback(image_fd, expected["capacity_bytes"]) != stream_hash:
+        if local_readback(image_fd, expected["capacity_bytes"], **progress_options) != stream_hash:
             raise Refused("local_readback_hash_mismatch")
         require_raw_device(raw_fd, raw_path)
         require_same(media_record(expected["device"]), expected)
@@ -289,11 +319,14 @@ def main():
     parser.add_argument("--owner-uid", type=int)
     parser.add_argument("--owner-gid", type=int)
     parser.add_argument("--acquire", action="store_true")
+    parser.add_argument("--progress", action="store_true",
+                        help="Show copy/readback phase and byte progress on stderr only")
     args = parser.parse_args()
     result = acquire_sd(args.output_dir,
                         {"device": args.device, "capacity_bytes": args.capacity_bytes,
                          "registry_id": args.registry_id}, acquire=args.acquire,
-                        owner_uid=args.owner_uid, owner_gid=args.owner_gid)
+                        owner_uid=args.owner_uid, owner_gid=args.owner_gid,
+                        progress=StderrProgress() if args.progress else None)
     print(json.dumps(result, indent=2, sort_keys=True))
     return 2 if result["status"] == "failed" else 0
 
