@@ -102,3 +102,34 @@ pas être distingués depuis ce seul rapport.
 
 La [preuve préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
 conserve cette limite ; l'écran, la radio et l'app ne sont pas qualifiés.
+
+L'acquisition complète est ensuite terminée : 15938355200 octets lus avec un
+descripteur raw readonly, puis relus dans la copie locale avec le même SHA-256.
+Le premier essai interrompu à 2185232384 octets reste conservé. La relance dans
+ce même dossier a été refusée avant ouverture raw ; le nouvel essai utilise
+une autre destination et affiche sa progression.
+
+Les secteurs libres ne sont presque pas nuls : la copie sparse consomme
+15925772288 octets. Une compression locale gzip niveau 1 produit une archive
+privée de 970146017 octets. Le flux source est rehashé, puis l'archive entière
+est décompressée pour vérifier taille et hash contre le reçu d'acquisition.
+Archive, répertoire et preuves sont synchronisés avant de retirer la copie
+raw générée sur le Mac. Cette opération ponctuelle conserve les octets exacts,
+ne touche pas la SD et ne supprime pas le premier essai interrompu ; ce n'est
+pas encore une commande de compression packagée dans le dépôt.
+
+La copie est reconstruite dans la VM dédiée et rehashée. Le runner termine
+avec dix contrôles d'infrastructure réussis et **21/21 contrôles du retour
+réel**, exit 0, PASS. État ext4 `enrolled`, profil, rapport FAT, runtime et clé
+publique hôte sont liés à l'export attendu. Le fichier de clé privée n'est pas
+lu directement ; il reste inclus dans le conteneur privé copié et hashé.
+
+Une inspection complémentaire readonly confirme les scripts/unité installés,
+leurs permissions, la configuration I²C/SPI, `i2c-dev` et la présence de `iw`.
+Aucun journal persistant n'est disponible et aucune cause des sondes bloquées
+n'est confirmée. Les contrôles externes constatent zéro loop/montage restant.
+La [preuve réduite du retour](validation/2026-10-03-sd-enrollment-return.json)
+ne contient ni identité, challenge, clé, ni hash de la SD retournée. Ce PASS
+vérifie la cohérence des fichiers ; il ne qualifie pas l'écran, la radio,
+l'app ou la release. Un prochain boot de diagnostic doit conserver les erreurs
+fermées des sondes plutôt que leurs seules observations réduites.

@@ -4,22 +4,32 @@
 
 l’opérateur confirme le boot sur le Pi, l'arrêt, puis la réinsertion dans le Mac.
 La SD physique de 15938355200 octets est identifiée à nouveau ; FAT mesure
-536870912 octets et la partition Linux 15393095680 octets. Le rapport FAT est
-conservé localement avec permissions privées. Schéma et observations fermées
-valides, challenge/profil/pins/runtime correspondants : il déclare `enrolled`.
-Ce résultat préliminaire ne remplace pas la lecture de l'état privé ext4.
-Les sondes panneau et radio sont toutes deux `blocked` sans données ; leur
-cause n'a pas été conservée par la réduction du rapport. L'identification de
-l'écran et toute activation applicative restent ouvertes.
+536870912 octets et la partition Linux 15393095680 octets. L'acquisition complète
+en lecture seule et sa relecture locale passent. Après un premier essai
+interrompu, conservé, la reprise utilise une nouvelle destination ; aucun
+fichier existant n'est écrasé. Une archive privée de 970146017 octets restitue
+exactement la taille et le hash du flux acquis. La copie raw générée sur le Mac
+est retirée seulement après cette vérification complète et sa preuve durable.
 
-La [procédure de récupération](SD-RECOVERY.md) et sa
+Le [contrôle natif ext4/FAT](validation/2026-10-03-sd-enrollment-return.json)
+sur la copie dans Linux ARM64 passe : dix contrôles d'infrastructure et
+**21/21 contrôles de cohérence**, exit 0. Profil, état `enrolled`, rapport,
+runtime et clé publique hôte correspondent à l'export attendu. Le fichier de
+clé privée n'est pas ouvert ; le conteneur complet reste privé. Les montages
+readonly et loops sont nettoyés, y compris après l'inspection complémentaire.
+
+Les sondes panneau et radio sont toutes deux `blocked` sans données ; leur
+cause n'a pas été conservée par la réduction du rapport. Les sources installées,
+leurs permissions, les réglages I²C/SPI et la présence de `iw` sont conformes.
+Aucun journal persistant ne permet d'expliquer les refus. La prochaine étape
+est un petit boot dédié qui conservera les erreurs fermées des deux sondes ;
+l'app reste arrêtée et le Wi-Fi désactivé. L'écran reste à identifier.
+
+La [procédure de récupération](SD-RECOVERY.md) conserve la
 [preuve FAT préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
-documentent la suite. Le Mac refuse la lecture raw sans authentification
-administrateur. Le lanceur local est préparé pour `sudo` ; l'outil de contrôle
-de l'ordinateur refuse l'accès à Terminal, donc l’opérateur doit le lancer lui-même.
-La VM dédiée est passée localement à 32 GiB ; ext4 offre 33603391488 octets,
-dont 26190274560 disponibles avant le nouveau banc. Aucune SD n'est partagée
-directement avec la VM, aucune donnée réseau ni clé client n'y est transférée.
+et ses limites historiques. l’opérateur a lancé la copie via Terminal après
+authentification administrateur. La VM dédiée est passée localement à 32 GiB ;
+aucune SD n'y est partagée directement, aucune clé client n'y est transférée.
 
 ## SD d'enrôlement écrite — 3 octobre 2026
 

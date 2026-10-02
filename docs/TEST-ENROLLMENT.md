@@ -5,17 +5,20 @@ Cette phase se construit depuis l'[image TEST LAN préparée](TEST-LAN.md),
 sans démarrer l'app, le helper ou SSH. **Flash de l'export privé terminé le
 3 octobre 2026 sur la SD de test de 16 Go, après contrôle d'intégrité ;
 vérification Imager observée, fin sans erreur et éjection confirmées.
-Le boot et l'arrêt sont ensuite confirmés par l’opérateur ; rapport FAT reçu,
-contrôle de l'état ext4 encore en attente.** Le contrôleur de retour est livré
-et relu ; son refus natif sur l'image non bootée est confirmé.
+Le boot et l'arrêt sont ensuite confirmés par l’opérateur ; l'acquisition complète
+et le contrôle natif du retour ext4/FAT passent, 21/21 contrôles de cohérence.**
+Le refus natif sur l'image non bootée reste une preuve négative distincte.
 
 La [preuve du flash](validation/2026-10-03-sd-enrollment-flash.json) porte sur
 l'image épinglée ci-dessous, écrite une seule fois avec Imager 2.0.11.1,
 sans personnalisation supplémentaire. Elle ne revendique pas de relecture raw
 indépendante ni de qualification du Pi. l’opérateur a effectué le boot puis rapporté
-la carte après l'arrêt. La [récupération privée](SD-RECOVERY.md) contrôle maintenant
-le retour offline. Le rapport FAT correspond au profil et aux pins attendus,
-mais les deux observations panneau/radio sont `blocked` sans détail de cause.
+la carte après l'arrêt. La [récupération privée](SD-RECOVERY.md) vérifie le retour
+offline : état ext4, rapport FAT, profil, pins et clé publique hôte concordent.
+Les deux observations panneau/radio sont `blocked` sans détail de cause ;
+la [preuve du retour](validation/2026-10-03-sd-enrollment-return.json) ne qualifie
+donc ni l'écran ni la radio. Les sources et réglages inspectés sont conformes,
+mais aucun journal persistant ne conserve les erreurs initiales.
 Aucun refresh d'écran n'est prévu à ce stade.
 
 Le premier boot doit identifier l'écran, observer la radio et produire la

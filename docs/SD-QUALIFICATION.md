@@ -24,8 +24,12 @@ l'[image privée d'enrôlement](TEST-ENROLLMENT.md). La
 consigne la vérification Imager observée, la fin sans erreur et l'éjection.
 l’opérateur confirme ensuite son boot et son arrêt, puis rapporte la SD. Le
 [contrôle FAT préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
-correspond aux pins attendus, mais les sondes panneau/radio sont bloquées et
-l'état ext4 attend sa [récupération privée](SD-RECOVERY.md). Les observations
+correspond aux pins attendus. La [récupération privée](SD-RECOVERY.md) est ensuite
+terminée : copie complète et relecture locale vérifiées, puis contrôle natif
+ext4/FAT **21/21 PASS**, sans lecture du fichier de clé privée. La
+[preuve complète réduite](validation/2026-10-03-sd-enrollment-return.json)
+établit la cohérence du retour ; les sondes panneau/radio restent bloquées
+sans cause enregistrée et aucun essai applicatif n'est qualifié. Les observations
 système du 30 septembre ci-dessous concernent l'image diagnostic précédente.
 
 La cible produit est une **microSD de 16 Go nominales**, sans marque imposée.
