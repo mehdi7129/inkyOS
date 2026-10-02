@@ -2,9 +2,18 @@
 
 Préparation du 30 septembre 2026 pour la Qumox 16 Go et le Pi Zero 2 W.
 Cette phase se construit depuis l'[image TEST LAN préparée](TEST-LAN.md),
-sans démarrer l'app, le helper ou SSH. **Export privé construit et vérifié ;
-contrôleur de retour livré et relu, refus natif sur l'image non bootée confirmé.
-Aucun flash ni exécution sur le Pi à ce stade.**
+sans démarrer l'app, le helper ou SSH. **Flash de l'export privé terminé le
+3 octobre 2026 sur la SD de test de 16 Go, après contrôle d'intégrité ;
+vérification Imager observée, fin sans erreur et éjection confirmées.
+Le boot d'enrôlement et le retour physique restent à réaliser.** Le contrôleur
+de retour est livré et relu ; son refus natif sur l'image non bootée est confirmé.
+
+La [preuve du flash](validation/2026-10-03-sd-enrollment-flash.json) porte sur
+l'image épinglée ci-dessous, écrite une seule fois avec Imager 2.0.11.1,
+sans personnalisation supplémentaire. Elle ne revendique pas de relecture raw
+indépendante ni de qualification du Pi. Insérer la SD dans le Pi hors tension,
+le démarrer une fois, constater son arrêt automatique, puis rapporter la carte
+au Mac pour le contrôle offline. Aucun refresh d'écran n'est prévu à ce stade.
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
 clé hôte SSH du Pi. Il ne configure aucun réseau. Le pays demandé `FR`, confirmé

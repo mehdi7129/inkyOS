@@ -1,7 +1,7 @@
 # Qualification InkyOS sur SD dédiée
 
 Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
-**30 septembre**. **Premiers boots du prototype système observés sur deux SD,
+**3 octobre 2026**. **Premiers boots du prototype système observés sur deux SD,
 identités initiales distinctes, persistance observée sur Qumox ; qualification
 complète encore ouverte.** l’opérateur a fourni
 une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
@@ -17,6 +17,13 @@ Ce [flash propre](validation/2026-09-30-sd-qumox-clean-flash.json) a été suivi
 d'un [boot système observé](validation/2026-09-30-sd-qumox-first-boot.json).
 Aucune relecture raw indépendante ou qualification complète de cette carte
 n'est revendiquée.
+
+Le **3 octobre**, la même capacité de SD dédiée est identifiée puis reçoit
+l'[image privée d'enrôlement](TEST-ENROLLMENT.md). La
+[preuve de ce nouveau flash](validation/2026-10-03-sd-enrollment-flash.json)
+consigne la vérification Imager observée, la fin sans erreur et l'éjection.
+Le boot de cette variante reste à effectuer ; les observations système du
+30 septembre ci-dessous concernent l'image diagnostic précédente.
 
 La cible produit est une **microSD de 16 Go nominales**, sans marque imposée.
 La référence sera choisie selon disponibilité/prix, puis qualifiée sur le banc.

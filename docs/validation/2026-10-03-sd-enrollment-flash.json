@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "scope": "private-enrollment-sd-flash-ui-completion",
+  "date": "2026-10-03",
+  "timezone": "Europe/Paris",
+  "completion_checked_at_utc": "2026-10-02T22:45:29Z",
+  "flash_accepted": true,
+  "acceptance_scope": "Pinned image integrity, Imager write/verification progress and successful completion, automatic ejection confirmed by device absence",
+  "source_commit": "2c540701fb222dde0437edd47002f6a49945da5b",
+  "image": {
+    "filename": "inkyos-test-enrollment.img",
+    "sha256": "7a1b70463e5501830f67e9c4b2ffcb69d8970a154115a8e9f8aa2e27eeb9d86e",
+    "size_bytes": 3061841920,
+    "manifest_sha256": "649d0eb4ed5b84742e402fd85b2bef043d078b679be752568be5528bc4b3b08b",
+    "private_artifact": true,
+    "bootstrap_action": "enroll-and-stop"
+  },
+  "pre_write": {
+    "full_export_integrity_passed": true,
+    "pinned_image_sha256_rechecked": true,
+    "flash_script_dry_run_passed": true,
+    "same_live_medium_rechecked_before_write": true,
+    "medium_checks": ["whole physical SD", "Secure Digital bus", "removable", "writable", "capacity", "IORegistry object"],
+    "private_profile_or_keys_published": false
+  },
+  "sd": {
+    "brand_reported_previously_by_user": "Qumox",
+    "nominal_capacity_gb": 16,
+    "capacity_bytes_observed": 15938355200,
+    "device_observed_before_write": "disk6",
+    "identity_limit": "Matches the documented test-card capacity; manufacturer not independently read",
+    "original_personal_sd_used": false,
+    "old_128gb_sd_used": false
+  },
+  "write": {
+    "tool": "Raspberry Pi Imager",
+    "version_observed": "2.0.11.1",
+    "staged_application_apple_signature_reverified": true,
+    "existing_installed_app_replaced": false,
+    "customization_added": false,
+    "write_confirmations_issued": 1,
+    "write_progress_percent_observed": [15, 36, 73],
+    "verification_phase_observed_in_ui": true,
+    "verification_progress_percent_observed": 11,
+    "verification_skip_action_taken": false,
+    "success_screen_observed_in_ui": true,
+    "error_dialog_observed": false,
+    "automatic_ejection_reported_in_ui": true,
+    "sd_device_absent_after_ejection": true,
+    "independent_raw_readback_verified": false,
+    "mac_privacy_settings_changed": false
+  },
+  "image_service_configuration": {
+    "observed_on_pi_this_step": false,
+    "application_startup": "masked",
+    "network_helper_startup": "masked",
+    "ssh_startup": "masked",
+    "wifi_enabled": false,
+    "display_refresh_requested": false
+  },
+  "enrollment_boot_observed": false,
+  "return_controller_run_on_physical_sd": false,
+  "ready_for_activation": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "next_step": "User boots the SD once on the powered-off Zero 2 W, observes automatic shutdown, then returns it for private acquisition and readonly ext4/FAT checks.",
+  "limits": [
+    "Imager completion after an observed verification phase is UI evidence; no independent raw readback SHA-256 was acquired.",
+    "No full-capacity, endurance, power-loss or enrollment boot qualification is established.",
+    "Earlier diagnostic-image boots do not qualify this newly written enrollment image.",
+    "No panel identification, display refresh, iPhone/BLE adoption, Wi-Fi transaction or application activation occurred in this flash step.",
+    "A positive return requires the ext4 state and FAT report; the existing negative probe must not be used as a positive-return workflow.",
+    "The private image, profile, challenge and keys remain local; no personal SD or old 128GB card was used."
+  ]
+}

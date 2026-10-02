@@ -1,5 +1,28 @@
 # Réception du relais Inky Studio
 
+## SD d'enrôlement écrite — 3 octobre 2026
+
+La carte annoncée par l’opérateur est détectée comme SD physique amovible de
+15938355200 octets, capacité de la Qumox de test documentée. Le contrôle complet
+de l'export privé `2c54070` / image `7a1b7046` passe de nouveau. La cible est
+revérifiée par device, capacité et objet IORegistry avant l'écriture.
+Une seule écriture avec la copie officielle signée d'Imager 2.0.11.1 est
+effectuée, sans personnalisation : progression d'écriture et de vérification
+observées, puis « Écriture terminée », sans erreur et avec éjection automatique.
+L'absence du device est confirmée côté Mac. La
+[preuve réduite](validation/2026-10-03-sd-enrollment-flash.json) distingue ce
+résultat UI d'une relecture raw indépendante, non effectuée.
+
+Prochaine étape : un boot de cette image sur le Zero 2 W, constat d'arrêt par
+l’opérateur, puis retour de la SD pour acquisition privée et contrôle ext4/FAT readonly.
+App/helper/SSH restent masqués, Wi-Fi désactivé ; le modèle exact de l'écran
+reste à lire. Aucun essai iPhone ou refresh d'écran n'est encore qualifié.
+L'acquisition raw Mac nécessitera l'authentification administrateur et une copie
+locale protégée. Le wrapper d'acquisition reste à préparer ; le contrôleur de
+retour existe. La VM configurée avec 16 GiB ne suffit pas à conserver une copie
+complète de la SD, l'export attendu et l'OS : prévoir 32 GiB avant ce transfert,
+sans réutiliser le banc négatif comme procédure de retour positif.
+
 ## Préparation du premier essai applicatif — 30 septembre 2026
 
 l’opérateur confirme **France** et décrit son écran comme « Inky Spectra, format
