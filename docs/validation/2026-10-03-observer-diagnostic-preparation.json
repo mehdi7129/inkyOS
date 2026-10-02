@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "scope": "observer-diagnostic-software-preparation",
+  "date": "2026-10-03",
+  "diagnostic_script_sha256": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+  "tests_sha256": "a00ea0f021554b5fc327e1725d1ec01dd311fa1c066ee73e7ebfcd40356a7ae6",
+  "macos_targeted_tests_passed": 18,
+  "linux_arm64_targeted_tests_passed": 18,
+  "fixture_source_sha256": {
+    "scripts/diagnose-enrollment-observers.py": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+    "tests/test_diagnose_enrollment_observers.py": "a00ea0f021554b5fc327e1725d1ec01dd311fa1c066ee73e7ebfcd40356a7ae6",
+    "scripts/test-enrollment-firstboot.py": "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a",
+    "scripts/test-lan-preflight.py": "fdf5a12b7b2c13dce3456531816d634e5bb235e37fdeff8d2efd4edcdb45209b",
+    "scripts/observe-test-panel.py": "6fc6b93e30beeb6c03a3867efeb88cfe30ed7e1fe58f2ea6e5c35db9a4c29164",
+    "scripts/observe-test-radio.py": "a70ea19c0b6121ea103b7a11b6cc863b605992d5b0303620de83195078860944",
+    "overlay/usr/local/lib/inkyos/firstboot.py": "a76a68c1554b279dbf8a95e690a9179e8769def4c3d361f1d5bdeb630a585a35",
+    "overlay/etc/systemd/system/inkyos-firstboot.service": "a707eadd71f2a1dd57d3e83e2bcfd868485660b94391d645435ef3e105555ab6"
+  },
+  "native_generator": {
+    "scope": "native-generator-output-only",
+    "systemd_version": "257.13-1~deb13u1",
+    "checks": {
+      "default_dependencies_retained": true,
+      "default_target_redirect": true,
+      "enrollment_mask_early": true,
+      "execstart_exact": true,
+      "failure_action_poweroff": true,
+      "manager_generator_directories_unchanged": true,
+      "offline_unit_verify_passed": true,
+      "oneshot": true,
+      "only_expected_generator_outputs": true,
+      "real_cmdline_unchanged": true,
+      "success_action_poweroff": true,
+      "sysinit_orders_local_fs": true,
+      "target_after_service": true,
+      "target_requires_service": true
+    },
+    "passed": true,
+    "official_sources": [
+      "https://github.com/systemd/systemd/blob/v257/src/basic/proc-cmdline.c#L100-L123",
+      "https://github.com/systemd/systemd/blob/v257/src/basic/initrd-util.c#L12-L25",
+      "https://github.com/systemd/systemd/blob/v257/src/core/service.c#L683-L716",
+      "https://github.com/systemd/systemd/blob/v257/units/sysinit.target#L12-L13",
+      "https://github.com/systemd/systemd/blob/v257/src/fstab-generator/fstab-generator.c#L585-L588"
+    ],
+    "unit_execution_performed": false,
+    "manager_reload_or_start_performed": false,
+    "fat_mount_success_qualified": false
+  },
+  "host_applier": {
+    "packaged_public_tool": false,
+    "reviewed_private_script_sha256": "38a6002ce8a9723c516677be05e8944b0ca152eb3910c9c183ddb8fbe924d44e",
+    "fixture_checks": {
+      "publish_and_replay_refusal": true,
+      "all_existing_artifacts_preserved": true,
+      "midway_guard_failure_leaves_unarmed_original": true,
+      "changed_original_refused_before_write": true,
+      "symlink_cmdline_refused": true
+    },
+    "requires_isolated_python_without_optimization": true
+  },
+  "sd_written": false,
+  "next_boot_observed": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "Fixtures and generator output do not establish execution on the Pi.",
+    "The diagnostic target differs from the hardened ENROLL service context.",
+    "Partial radio response data is omitted; checks and closed errors are retained.",
+    "The client systemctl timeout does not cancel the firstboot job.",
+    "Poweroff is requested by systemd on either outcome; physical shutdown remains an operator observation."
+  ],
+  "image_readonly_prerequisites": {
+    "systemd_version": "257.13-1~deb13u1",
+    "run_and_debug_generators_present": true,
+    "fat_fstab_present": true,
+    "original_cmdline_has_no_conflicting_hooks": true,
+    "firstboot_script_and_unit_sha256_match": true,
+    "firstboot_script_and_unit_modes": "0644",
+    "seven_persistent_service_masks_match": true,
+    "networkmanager_wireless_enabled": false,
+    "persistent_network_profiles_count": 0,
+    "earlier_partition_mount_attempt_failed": true,
+    "earlier_mount_failure_cause_established": false,
+    "bounded_partition_readonly_mount_succeeded": true,
+    "image_metadata_unchanged": true,
+    "external_mounts_and_loops_removed": true
+  }
+}

@@ -2,7 +2,7 @@
 
 Image Raspberry Pi dédiée aux cadres photo **Inky Studio**.
 
-**État : prototypes expérimentaux, 30 septembre 2026.** Une image officielle
+**État : prototypes expérimentaux, 3 octobre 2026.** Une image officielle
 Lite ARM64 figée est personnalisée offline dans une VM dédiée. Premier boot
 système, compte applicatif verrouillé, services et prérequis matériels sont
 préparés et contrôlés. Le prototype système reste sans app ; une cible opt-in
@@ -12,6 +12,8 @@ un Pi Zero 2 W ; la Qumox conserve son identité au second démarrage.
 La cible produit est une **microSD de 16 Go nominales, marque non fixée**.
 Les essais actifs utilisent la Qumox seule ; l'ancienne SD de 128 Go est retirée
 du périmètre à la demande de l’opérateur. Chaque référence retenue devra être testée.
+Le retour de la SD d'enrôlement passe les 21 contrôles de cohérence ext4/FAT ;
+les sondes écran/radio restent bloquées et un diagnostic dédié est préparé.
 **Le parcours applicatif sans LAN et la qualification complète restent ouverts.**
 
 ```sh
@@ -56,6 +58,8 @@ devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Stud
 - [Diagnostic SD sans LAN](docs/SD-DIAGNOSTIC.md) : variante de test avec rapport automatique sur FAT et arrêt propre.
 - [Variante TEST LAN préparée](docs/TEST-LAN.md) : candidat relu, recette/preflight et conditions avant activation applicative.
 - [Boot privé d'enrôlement](docs/TEST-ENROLLMENT.md) : identification EEPROM/radio, nouvelle clé hôte sur le Pi et rapport local, avant tout accès réseau.
+- [Récupération privée de la SD](docs/SD-RECOVERY.md) : acquisition complète readonly et contrôle du retour ext4/FAT.
+- [Diagnostic des sondes](docs/OBSERVER-DIAGNOSTIC.md) : petit boot temporaire sur la SD enrôlée, sans reflash ni activation.
 - [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
 
 ## Avant l'image complète
