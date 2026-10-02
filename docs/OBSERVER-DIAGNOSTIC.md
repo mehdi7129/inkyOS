@@ -15,6 +15,13 @@ La [preuve de préparation](validation/2026-10-03-observer-diagnostic-preparatio
 lie les sources, les 18 tests ciblés sur Mac et Linux ARM64 et les 14 contrôles
 natifs des generators. Ces essais ne démarrent aucune unité sur le Pi.
 
+**SD préparée et éjectée le 3 octobre 2026.** La CI du commit `93aa88d` est
+verte. Le script et la ligne de démarrage ont été relus après remontage FAT
+readonly ; le rapport d'enrôlement précédent reste identique. L'original de
+`cmdline.txt` est conservé localement. La
+[preuve SD](validation/2026-10-03-observer-diagnostic-sd.json) distingue cette
+préparation du prochain boot physique, encore attendu.
+
 ## Mécanisme limité à la partition FAT
 
 Un script, `scripts/diagnose-enrollment-observers.py`, est copié sous

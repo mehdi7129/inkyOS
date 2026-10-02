@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "scope": "physical-sd-fat-observer-diagnostic-preparation",
+  "source_commit": "93aa88d34b1001c4ab008465c838b7a97853a723",
+  "script_sha256": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+  "sd_capacity_bytes": 15938355200,
+  "original_cmdline_saved_privately": true,
+  "only_script_and_cmdline_written": true,
+  "remounted_readonly": true,
+  "cmdline_readback_matches": true,
+  "script_readback_matches": true,
+  "previous_enrollment_report_unchanged": true,
+  "unexpected_partials_or_reports": false,
+  "ejected": true,
+  "device_absence_confirmed": true,
+  "independent_raw_readback": false,
+  "next_boot_observed": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "date": "2026-10-03",
+  "ci": {
+    "head_sha": "93aa88d34b1001c4ab008465c838b7a97853a723",
+    "conclusion": "success",
+    "url": "inkyOS/actions/runs/37079486824"
+  },
+  "limits": [
+    "Filesystem readback after remount is not an independent raw SD read.",
+    "No subsequent Pi boot or observer result is established by SD preparation.",
+    "The original cmdline is preserved privately and must be restored after diagnostic recovery."
+  ]
+}

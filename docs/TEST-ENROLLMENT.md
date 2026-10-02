@@ -21,6 +21,11 @@ donc ni l'écran ni la radio. Les sources et réglages inspectés sont conformes
 mais aucun journal persistant ne conserve les erreurs initiales.
 Aucun refresh d'écran n'est prévu à ce stade.
 
+La même carte est ensuite [préparée et éjectée pour le diagnostic des sondes](OBSERVER-DIAGNOSTIC.md),
+avec deux petits fichiers FAT seulement et l'original de la ligne de boot
+conservé. Son prochain boot reste à observer ; aucune activation applicative
+n'est effectuée.
+
 Le premier boot doit identifier l'écran, observer la radio et produire la
 clé hôte SSH du Pi. Il ne configure aucun réseau. Le pays demandé `FR`, confirmé
 par l’opérateur, figure dans le profil privé pour nommer la cible des observations ;

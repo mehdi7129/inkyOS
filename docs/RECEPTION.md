@@ -25,6 +25,14 @@ Aucun journal persistant ne permet d'expliquer les refus. La prochaine étape
 est un petit boot dédié qui conservera les erreurs fermées des deux sondes ;
 l'app reste arrêtée et le Wi-Fi désactivé. L'écran reste à identifier.
 
+Le [diagnostic des sondes](OBSERVER-DIAGNOSTIC.md) est livré depuis `93aa88d`,
+avec 18 tests Mac, 18 tests Linux ARM64, relecture indépendante et CI verte.
+La même SD reçoit seulement le script FAT et une ligne `cmdline.txt` temporaire,
+dont l'original est sauvegardé. Les deux fichiers sont relus après remontage
+readonly, le rapport d'enrôlement reste intact et la carte est éjectée.
+Le prochain boot par l’opérateur, puis la récupération du petit rapport FAT et la
+restauration de la ligne originale restent à faire.
+
 La [procédure de récupération](SD-RECOVERY.md) conserve la
 [preuve FAT préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
 et ses limites historiques. l’opérateur a lancé la copie via Terminal après
