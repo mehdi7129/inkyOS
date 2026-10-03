@@ -4,6 +4,7 @@
 Called only by the sealed disposable-image SSH/PAM probe, inside its namespaces.
 This is not an installer or a production runtime entry point.
 """
+import base64
 import hashlib
 import json
 import os
@@ -22,11 +23,46 @@ CHECKS = (
     'concurrent_operation_refused', 'slow_ssh_stdin_bounded',
     'fixture_stop_order_and_projection', 'production_sources_restored',
     'enrollment_bytes_preserved', 'no_activation_permit_created',
+    'valid_signature', 'tampered_message_refused', 'wrong_key_refused', 'changed_binding_refused',
 )
 DISPATCH = '/usr/local/lib/inkyos-test-ssh/dispatch.py'
 RUNNER = '/usr/local/lib/inkyos-test-ssh/runner'
 CONFIG = '/etc/inkyos-test-operator.json'
 RUNTIME = '/run/inkyos-test-ssh'
+CONTRACT = '/usr/local/lib/inkyos/test-access-contract.py'
+CONTRACT_SHA256 = '6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68'
+CAPSULE_CHECKS = {'valid_signature', 'tampered_message_refused', 'wrong_key_refused', 'changed_binding_refused'}
+
+# Executed only by the target Python in the disposable rootfs. Input and output
+# stay in captured pipes; only the four closed booleans reach the bench report.
+CAPSULE_VERIFY = r'''import base64,importlib.util,json,sys
+def verify_cases(module, payload):
+ raw=base64.b64decode(payload['raw'],validate=True)
+ signature=base64.b64decode(payload['signature'],validate=True)
+ wrong_signature=base64.b64decode(payload['wrong_signature'],validate=True)
+ expected=payload['expected'];public=payload['public_key']
+ def outcome(value, passed, error):
+  wanted={'schema_version':1,'kind':'test-access-capsule-verification','passed':passed,
+   'operator_data_authenticated':passed,'physical_identity_verified':False,'connection_authorized':False,
+   'application_activation_authorized':False,'factory_authority':False,'hardware_qualified':False,
+   'release_qualified':False,'replay_protection_enforced':False,'error':error}
+  return (type(value) is dict and value==wanted and type(value['schema_version']) is int
+   and all(type(value[key]) is bool for key in wanted if type(wanted[key]) is bool))
+ def verify(message, signed, bindings):
+  return module.verify_capsule(message,signed,expected=bindings,operator_public_key=public)
+ tampered=json.loads(raw);tampered['wifi']['psk']='tampered-fixture-password'
+ changed=dict(expected,profile_sha256='e'*64)
+ return {'valid_signature':outcome(verify(raw,signature,expected),True,None),
+  'tampered_message_refused':outcome(verify(module.canonical(tampered),signature,expected),False,'signature_invalid'),
+  'wrong_key_refused':outcome(verify(raw,wrong_signature,expected),False,'signature_invalid'),
+  'changed_binding_refused':outcome(verify(raw,signature,changed),False,'bindings_invalid')}
+if __name__=='__main__':
+ spec=importlib.util.spec_from_file_location('capsule_contract','/usr/local/lib/inkyos/test-access-contract.py')
+ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ raw=sys.stdin.buffer.read(16385)
+ if len(raw)>16384:raise ValueError('probe_input_oversize')
+ print(json.dumps(verify_cases(module,json.loads(raw)),sort_keys=True))
+'''
 
 
 def canonical(value):
@@ -35,6 +71,34 @@ def canonical(value):
 
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def capsule_checks(root, target):
+    expected = {'profile_sha256': '1'*64, 'challenge': '2'*64, 'host_public_key_sha256': '3'*64,
+        'application_source_commit': '4'*40, 'application_manifest_sha256': '5'*64,
+        'access_runtime_manifest_sha256': '6'*64}
+    capsule = {key: value for key, value in expected.items() if key != 'challenge'}
+    capsule.update(schema_version=1, kind='test-access-capsule', purpose='operator-ssh-only',
+        nonce=expected['challenge'], country='FR', wifi={'security': 'wpa2-personal', 'band': '2.4GHz',
+            'ssid_hex': b'Inert bench fixture'.hex(), 'psk': 'inert-fixture-password'})
+    raw = canonical(capsule)
+    signatures = []
+    for name in ('good', 'bad'):
+        signed = target(['/usr/bin/ssh-keygen', '-q', '-Y', 'sign', '-f', RUNTIME+'/'+name,
+                         '-n', 'inkyos-test-access-v1'], data=raw, timeout=5)
+        if signed.returncode != 0 or type(signed.stdout) is not bytes or not 0 < len(signed.stdout) <= 2048:
+            raise ValueError('capsule_signing_failed')
+        signatures.append(base64.b64encode(signed.stdout).decode('ascii'))
+    public = ' '.join((root / (RUNTIME+'/good.pub').lstrip('/')).read_text().split()[:2])
+    payload = {'raw': base64.b64encode(raw).decode('ascii'), 'signature': signatures[0],
+               'wrong_signature': signatures[1], 'expected': expected, 'public_key': public}
+    result = target(['/usr/bin/python3', '-I', '-c', CAPSULE_VERIFY], data=canonical(payload), timeout=15)
+    if result.returncode != 0 or type(result.stdout) is not bytes or len(result.stdout) > 1024:
+        raise ValueError('capsule_verifier_failed')
+    value = json.loads(result.stdout)
+    if type(value) is not dict or set(value) != CAPSULE_CHECKS or any(type(item) is not bool for item in value.values()):
+        raise ValueError('capsule_verifier_output_invalid')
+    return value
 
 
 def probe(root, create, target, ssh, sources, client):
@@ -46,6 +110,7 @@ def probe(root, create, target, ssh, sources, client):
         'hardware_qualified': False, 'release_qualified': False,
         'limits': ['Native preflight uses synthetic enrolled files on a disposable image, not a Raspberry Pi.',
             'The production stop algorithm is called with a fixture adapter; no systemctl stop, mask or poweroff is run.',
+            'Capsule signatures use synthetic bindings and credentials with disposable keys; no physical identity or connection is authorized.',
             'No Wi-Fi connection, clock mutation, application, GPIO, display or physical card is exercised.']}
     stage = 'install_sources'
     owned = {}
@@ -74,12 +139,15 @@ def probe(root, create, target, ssh, sources, client):
         return (result.returncode == code and value['passed'] is False and value['status'] == 'BLOCKED'
                 and value['error'] == error)
     try:
+        if sha(sources['test-access-contract.py']) != CONTRACT_SHA256:
+            raise ValueError('capsule_contract_source_changed')
         for path, source in ((DISPATCH, 'test-operator-dispatch.py'), (RUNNER, 'test-operator-runner.py')):
             owned[path] = (root / path.lstrip('/')).read_bytes()
             replace(path, sources[source], 0o555)
         for path, source in (
             ('/usr/local/lib/inkyos/test-lan-preflight.py', 'test-lan-preflight.py'),
             ('/usr/local/lib/inkyos/test-enrollment-firstboot.py', 'test-enrollment-firstboot.py'),
+            (CONTRACT, 'test-access-contract.py'),
             ('/usr/local/share/inkyos/inky-studio-manifest-v1.json', 'application-manifest.json')):
             new(path, sources[source], 0o444 if source.endswith('.json') else 0o555)
         checks['production_sources_installed'] = all((root / path.lstrip('/')).read_bytes() == raw
@@ -216,9 +284,12 @@ print(json.dumps({'passed':code==0 and result['passed'] is True and result['live
 '''
         observed = target(['/usr/bin/python3', '-I', '-c', fixture], timeout=5)
         checks['fixture_stop_order_and_projection'] = observed.returncode == 0 and json.loads(observed.stdout) == {'passed': True}
+        stage = 'target_openssh_capsule_verification'
+        checks.update(capsule_checks(root, target))
         stage = 'final_preservation'
         checks['production_sources_restored'] = ((root / DISPATCH.lstrip('/')).read_bytes() == sources['test-operator-dispatch.py']
-            and (root / RUNNER.lstrip('/')).read_bytes() == sources['test-operator-runner.py'])
+            and (root / RUNNER.lstrip('/')).read_bytes() == sources['test-operator-runner.py']
+            and (root / CONTRACT.lstrip('/')).read_bytes() == sources['test-access-contract.py'])
         checks['enrollment_bytes_preserved'] = (all((root / path.lstrip('/')).read_bytes() == raw
             for path, (raw, _key, _mode) in bindings.items()) and (root / CONFIG.lstrip('/')).read_bytes() == marker_raw)
         checks['no_activation_permit_created'] = not (root / 'run/inkyos-test-operator/activation-permit.json').exists()

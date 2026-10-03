@@ -1,0 +1,135 @@
+{
+  "application_activated": false,
+  "boot_importer_delivered": false,
+  "connection_authorized": false,
+  "date": "2026-10-03",
+  "hardware_qualified": false,
+  "integration": {
+    "capsule_checks": {
+      "changed_binding_refused": true,
+      "tampered_message_refused": true,
+      "valid_signature": true,
+      "wrong_key_refused": true
+    },
+    "capsule_checks_passed": 4,
+    "cleanup_checks": {
+      "disposable_image_removed": true,
+      "loop_detached": true,
+      "mounts_removed": true,
+      "processes_stopped": true
+    },
+    "inputs_sha256": "daf6c20cd1e7116b2111b502c036528b810caecd0e2440a3530340c2afac17bb",
+    "operator_and_capsule_checks_passed": 22,
+    "operator_source_sha256": {
+      "application-manifest.json": "0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551",
+      "probe-test-operator-runtime.py": "741974d5a90fb12c1fe7a2847c4abca053ee39b36e20eb42780e53f083b079ca",
+      "test-access-contract.py": "6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68",
+      "test-enrollment-firstboot.py": "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a",
+      "test-lan-preflight.py": "fdf5a12b7b2c13dce3456531816d634e5bb235e37fdeff8d2efd4edcdb45209b",
+      "test-operator-dispatch.py": "7d2bfe3efc46ba66ad3a6e948d97daebda23300a7380a84448f61997cb124e43",
+      "test-operator-runner.py": "6a683755d6d7acf0113dce0370622679f48024564b1f79215a5ecbed84cfdcf3"
+    },
+    "package_versions": {
+      "libpam-modules": "1.7.0-5",
+      "libpam-runtime": "1.7.0-5",
+      "libpam0g": "1.7.0-5",
+      "openssh-client": "1:10.0p1-7+deb13u4",
+      "openssh-server": "1:10.0p1-7+deb13u4",
+      "passwd": "1:4.17.4-2",
+      "sudo": "1.9.16p2-3+deb13u2"
+    },
+    "parent": {
+      "application_manifest_sha256": "0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551",
+      "application_source_commit": "758a2bf7ed099aad41ef35316e53228e797b0b2b",
+      "filesystem_manifest_sha256": "d92068f46c88e82524a00f8234bf7cf2c04533a484aed9ca61be15f57d9747e2",
+      "image_sha256": "2a7d5d0f6b71b36d9fd59dd4ed66f815210c19d9057ea1f1c75179a46b88706e",
+      "manifest_sha256": "8caab64e615bddd5cc3c996431c91ff3ccde7f74e1038727449c74fc35d9dee0"
+    },
+    "program_sha256": {
+      "etc/pam.d/common-account": "aa8a63d72e79399b6c51ebe4e9f828c954145a799eb4b8f3224724f51cbb9fac",
+      "etc/pam.d/common-auth": "b787b01c7e71c658fa9acb84cbe153f71786cf380af4b01ae9135210cdc0154d",
+      "etc/pam.d/common-session": "674ff86bbb8e19ddb30b4ec12e53c84fd61a5b05621dcc95eccfa5a095fce6cf",
+      "etc/pam.d/sshd": "d72d52e69884891a1ab0a8f377e3d6ee3d74065e08b8537a30235306c0d50e23",
+      "usr/bin/scp": "d6b0c5b4a173ada67377e3d9f5b70cb2a3ddabaa5341005455f131bffcf9d66b",
+      "usr/bin/ssh": "de352e4ace7028d9816fd0ee9d22936bc1b5622c400d5b0b7df660df3426b068",
+      "usr/bin/ssh-keygen": "e974dc0ba94cd38cbb6224ec98564c3c8e5c8255b50eacf1eaeabe8bad4ef0e8",
+      "usr/bin/sudo": "e52d68cffda9da0a303146d7ab1cb015117870c122a08f5a586df3808fec3862",
+      "usr/lib/aarch64-linux-gnu/security/pam_unix.so": "9a34e8077e1668025d1c5bf7d61e2ac4e6ede7e14f7c3bf5099c18d86f0f5619",
+      "usr/sbin/sshd": "92ab0b03133151a40e95fabd42059450ed00ba4de0e07e8f2b73ce320f2bb077",
+      "usr/sbin/visudo": "ee5d327f63f083edc4e77e685e20ab159c159a412714ed122554de7def02172a"
+    },
+    "report_sha256": "23e66abb123dff139014834868f46c01034e06510fb19e577d5cc8a93508ccb5",
+    "scope": "disposable-pinned-arm64-rootfs-loopback-only",
+    "transport_checks_passed": 39
+  },
+  "limits": [
+    "The capsule authenticates operator data against caller-supplied trusted bindings; it does not establish the physical provenance of that context.",
+    "Signatures were exercised on macOS, a Linux ARM64 builder and the exact disposable Raspberry Pi image OpenSSH userspace; no Pi radio or SD was used.",
+    "The preparer writes only local private files. A verification receipt does not imply durable preparation and never acts as a connection permit.",
+    "The boot importer, persistent consumption transaction, NetworkManager startup guard and actual Wi-Fi/SSH connection remain to integrate.",
+    "The existing public key option was tested without any user key or real image build.",
+    "No application activation, display refresh, physical stop or iPhone pairing is qualified."
+  ],
+  "personal_key_used": false,
+  "prepared_commit": "fb26aefeb77b555c581186c587ff139b2b0a296c",
+  "real_ephemeral_keys_only": true,
+  "release_qualified": false,
+  "replay_protection_enforced": false,
+  "schema_version": 1,
+  "scope": "private-test-access-capsule-software-and-target-openssh",
+  "sd_modified": false,
+  "software": {
+    "linux_arm64": {
+      "architecture": "aarch64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "cdfcdff54de05d69bc23c6953db26a23b7a43f644b2b97a936f013e9dcd9ef57",
+      "passed": true,
+      "python": "3.13.5",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 19
+      },
+      "skipped": 1,
+      "system": "Linux",
+      "tests": 699
+    },
+    "macos": {
+      "architecture": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "20b9d5f828ae69ccb86eb42f6d83e69f8e13b1d9d0a05e30ee2f6e28a8c9b635",
+      "passed": true,
+      "python": "3.13.15",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 19
+      },
+      "skipped": 4,
+      "system": "Darwin",
+      "tests": 699
+    }
+  },
+  "source_sha256": {
+    "scripts/build-test-enrollment.sh": "1572f79bf4cfdf78d1749b8c904b5093eff90f76867421d7214126d56f366f0c",
+    "scripts/prepare-test-access-capsule.py": "1a62f2225fd32c60c4eb4fab44b80523724e324be8573b0a24a98982da7d43cb",
+    "scripts/probe-test-operator-runtime.py": "741974d5a90fb12c1fe7a2847c4abca053ee39b36e20eb42780e53f083b079ca",
+    "scripts/probe-test-ssh-linux.sh": "1404502e223e7107323c9cda5961b2c149e042097273522bce8a552ec466bec3",
+    "scripts/probe-test-ssh.sh": "a99c5cfd977feca3eb1741b7a9a7b2352da7d28d9da7161304d60dc15364b0a9",
+    "scripts/test-access-contract.py": "6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68",
+    "tests/test_build_test_enrollment.py": "e78278448e2f5a6f032085234c020044a736442317d793d8287b34778c34fbb7",
+    "tests/test_prepare_test_access_capsule.py": "f7c57f929250cf4260a6227e383cc58eb93ef27392965db893628a06d6273036",
+    "tests/test_test_access_contract.py": "c06387017fc592e8219c8cccf2299d202f5c2d8a6da8719710a2a0d49cf4582f",
+    "tests/test_test_ssh_probe.py": "cacb2a23ad2c787862a58633b1cc3b4f2dfd2cb520098cdc178c532a55184e94"
+  },
+  "sources_tested_before_commit": true,
+  "user_network_data_used": false
+}

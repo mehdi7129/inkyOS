@@ -16,11 +16,11 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 |---|---|
 | Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
-| Application | Candidat épinglé intégré dans une image expérimentale ; services applicatifs et SSH masqués. |
+| Application | Candidat historique intégré, services masqués. Nouveau candidat écran validé offline ARM64 ; image correspondante à reconstruire. |
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
-| Accès opérateur | Runtime preflight/stop et contrôle du pays développés ; intégration SSH/PAM testée en VM. Installation réseau sur SD et arrêt physique encore à réaliser. |
+| Accès opérateur | Runtime preflight/stop et contrôle du pays développés ; intégration SSH/PAM testée en VM. Paramètres privés signés préparables localement ; import au boot, connexion sur Pi et arrêt physique encore à réaliser. |
 | Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
 
 La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
@@ -74,6 +74,7 @@ l’espace disque nécessaire et les limites du builder.
 - [Qualification sur SD](docs/SD-QUALIFICATION.md)
 - [Diagnostic de l’écran et de la radio](docs/OBSERVER-DIAGNOSTIC.md)
 - [Runtime du premier accès opérateur](docs/TEST-ACCESS-RUNTIME.md)
+- [Préparation des paramètres privés signés](docs/TEST-ACCESS-CAPSULE.md)
 - [Reproductibilité et limites](docs/REPRODUCIBILITY.md)
 - [Rapports de validation](docs/validation/)
 

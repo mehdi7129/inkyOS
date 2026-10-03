@@ -1,0 +1,155 @@
+{
+  "active_shutdown_tested": false,
+  "application_lifespan_entered": false,
+  "application_version": "0.5.0-rc.2",
+  "archive_inspection": {
+    "archives": {
+      "application": {
+        "compressed_size_bytes": 966390,
+        "expanded_file_bytes": 3790482,
+        "files": 86,
+        "format": "tar.gz",
+        "gzip_crc_verified": true,
+        "gzip_members": 1,
+        "layout": "flat-application-v1",
+        "members": 86,
+        "required_paths_present": true,
+        "sha256": "c00b6f57026c9b6fae5560b9c457ce70adda15cff6d85255501199116b7c753b",
+        "source_commit_declaration_matches": true,
+        "tar_stream_bytes": 3860480
+      },
+      "wheelhouse": {
+        "compressed_size_bytes": 38247381,
+        "expanded_file_bytes": 38225439,
+        "files": 109,
+        "format": "zip",
+        "layout": "flat-wheelhouse-v1",
+        "members": 109,
+        "provenance_content_interpreted": false,
+        "sha256": "2892a4777109623589f3f506095d667e1637bc72f5c954b02b491eb2568b9718",
+        "wheel_contents_inspected": false,
+        "wheel_files": 40,
+        "zip_crc_verified": true
+      }
+    },
+    "files_extracted_by_inspector": 0,
+    "passed": true,
+    "qualification_granted_by_inspector": false
+  },
+  "assets": [
+    {
+      "filename": "inky-studio-v0.5.0-rc.2.tar.gz",
+      "role": "application",
+      "sha256": "c00b6f57026c9b6fae5560b9c457ce70adda15cff6d85255501199116b7c753b",
+      "size_bytes": 966390
+    },
+    {
+      "filename": "inky-studio-python-arm64-cp313.zip",
+      "role": "wheelhouse",
+      "sha256": "2892a4777109623589f3f506095d667e1637bc72f5c954b02b491eb2568b9718",
+      "size_bytes": 38247381
+    },
+    {
+      "filename": "requirements-arm64-cp313.lock",
+      "role": "python_lock",
+      "sha256": "5e618486d108e306cf5ce0324bf20073a328683986d85723686dad17943e805c",
+      "size_bytes": 4158
+    }
+  ],
+  "bench": {
+    "architecture": "aarch64",
+    "build_uid": 65534,
+    "candidate_smoke_sha256": "d2a927a9c061b2252890c9e89588bf99195306309094e21cc491b2fd6065bba0",
+    "glibc": [
+      "glibc",
+      "2.41"
+    ],
+    "inputs_sha256": "7a4911203bb63580b2d7dc5f7e176866ed9013542b8c8d461dbb4e179b388e6a",
+    "inputs_snapshotted_root_only": true,
+    "passed": true,
+    "python": "3.13.5",
+    "qualification_script_root_owned": true,
+    "recipe_sha256": "b5845bc7789449dd3ac533a862c0ee2f6848128b831c73d82430a2c3117379f8",
+    "result_sha256": "fd0debafda1f5b050e477266f492a3efe1dbf1b11c62e899ca6af87cb3f1d436",
+    "runtime_smoke": {
+      "application_lifespan_entered": false,
+      "application_version": "0.5.0-rc.2",
+      "architecture": "aarch64",
+      "data_created": false,
+      "frontend_status": 200,
+      "hardware_qualified": false,
+      "health_status": 200,
+      "native_imports": [
+        "spidev",
+        "gpiod",
+        "numpy",
+        "dbus_fast",
+        "pydantic_core",
+        "PIL._imaging",
+        "cryptography.hazmat.bindings._rust",
+        "uvloop",
+        "httptools",
+        "watchfiles"
+      ],
+      "network_interfaces": [
+        "lo"
+      ],
+      "passed": true,
+      "protected_status": 401,
+      "python": "3.13.5",
+      "rpi_gpio": {
+        "imported": false,
+        "reason": "Raspberry-specific import/hardware guard",
+        "version": "0.7.1"
+      },
+      "scope": "offline-linux-arm64-import-and-asgi-smoke"
+    },
+    "steps": [
+      {
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "name": "venv"
+      },
+      {
+        "exit_code": 0,
+        "log_sha256": "83de12183dc1cdb44fc5b2206aeef516c91d0d4a868d7be67af003afcd39bfef",
+        "name": "dependencies"
+      },
+      {
+        "exit_code": 0,
+        "log_sha256": "5ed9204fd6a30fce1260603f121c8cb6ba0c0926b9e1dea8d4e65772e6b3e4f0",
+        "name": "editable"
+      },
+      {
+        "exit_code": 0,
+        "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+        "name": "pip-check"
+      },
+      {
+        "exit_code": 0,
+        "log_sha256": "f0df47378e833b62263d1d4bdf5954e6da8af597c238b961ef6c63651ac1341b",
+        "name": "runtime-smoke"
+      }
+    ]
+  },
+  "date": "2026-10-03",
+  "display_refresh_tested": false,
+  "hardware_qualified": false,
+  "image_modified": false,
+  "image_rebuilt": false,
+  "limits": [
+    "This is a disposable Debian ARM64 builder software result, not qualification of a booted Raspberry Pi image or kernel.",
+    "The candidate smoke forbids display initialization and never enters application lifespan; native imports and ASGI requests do not test an e-paper refresh or drain.",
+    "RPi.GPIO remains guarded and was not imported on non-Pi hardware.",
+    "The archive inspector checks top-level archives; this report does not claim independent inner-wheel provenance verification.",
+    "The existing image and TEST runtime retain their previous application pins. New reviewed static unit extraction, image build and hardware tests remain required.",
+    "Hardware startup can already display a welcome screen and must not be treated as a passive diagnostic.",
+    "No SD, real network profile, BLE pairing, private user key or personal frame was used."
+  ],
+  "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+  "os_application_pin_changed": false,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "display-drain-candidate-offline-arm64-software",
+  "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14"
+}

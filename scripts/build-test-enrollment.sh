@@ -69,10 +69,13 @@ class Parser(argparse.ArgumentParser):
 def arguments(argv):
     parser = Parser(prog='build-test-enrollment.sh', allow_abbrev=False,
         description='Prepare a PRIVATE enrollment-and-stop image; requires the marked build VM. '
-                    'Creates one new Mac client key; never copies its private half to the image or VM.')
+                    'Creates one new Mac client key by default, or reuses an explicit public key; '
+                    'never copies its private half to the image or VM.')
     parser.add_argument('parent', type=Path, help='Existing pinned TEST LAN prepared export')
     parser.add_argument('--country', required=True, choices=('FR',),
                         help='Explicit operator request; this phase never applies the country or enables networking')
+    parser.add_argument('--operator-public-key', type=Path, metavar='PATH',
+                        help='Reuse an operator-owned Ed25519 .pub file without comments; no key generation or private-key access')
     return parser.parse_args(argv)
 
 
@@ -111,6 +114,35 @@ def public_key(raw):
     require(len(decoded) == 51 and decoded[:19] == b'\x00\x00\x00\x0bssh-ed25519\x00\x00\x00\x20'
             and base64.b64encode(decoded) == words[1])
     return b' '.join(words).decode('ascii')
+
+
+def read_operator_public_key(path):
+    require(path.name.endswith('.pub') and path.name != '.pub')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1
+                and before.st_uid == os.geteuid() and not before.st_mode & 0o022
+                and 0 < before.st_size <= 1024)
+        raw = stream.read(1025)
+        after = os.fstat(stream.fileno())
+        named = os.stat(path, follow_symlinks=False)
+        stamp = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                              info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink)
+        require(len(raw) == before.st_size and stamp(before) == stamp(after) == stamp(named))
+    return public_key(raw)
+
+
+def select_operator_public_key(work, existing=None):
+    if existing is not None:
+        # This branch never derives or accesses a corresponding private path.
+        return read_operator_public_key(existing)
+    # New path only. Never read, copy, hash or reuse any private key bytes.
+    invoke(['/usr/bin/ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', '', '-f', str(work / PRIVATE_KEY)], timeout=30)
+    info = (work / PRIVATE_KEY).lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.geteuid()
+            and stat.S_IMODE(info.st_mode) == 0o600)
+    return read_operator_public_key(work / (PRIVATE_KEY + '.pub'))
 
 
 def profile(public, challenge, country):
@@ -292,13 +324,8 @@ def main(argv=None):
         require(read_regular(args.parent / 'manifest.json') == parent_raw)
         stage = 'builder_identity'
         require(invoke(guest('cat', '/var/lib/inkyos-build/owner'), capture=True, timeout=30).strip() == b'inkyos-builder-v1')
-        stage = 'new_local_client_key'
-        # New path only. Never read, copy, hash or reuse any private key bytes.
-        invoke(['/usr/bin/ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', '', '-f', str(work / PRIVATE_KEY)], timeout=30)
-        info = (work / PRIVATE_KEY).lstat()
-        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.geteuid()
-                and stat.S_IMODE(info.st_mode) == 0o600)
-        public = public_key(read_regular(work / (PRIVATE_KEY + '.pub'), 1024))
+        stage = 'existing_operator_public_key' if args.operator_public_key is not None else 'new_local_client_key'
+        public = select_operator_public_key(work, args.operator_public_key)
         challenge = os.urandom(32).hex()
         profile_raw = canonical(profile(public, challenge, args.country))
         write_new(work / PROFILE, profile_raw)

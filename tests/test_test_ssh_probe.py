@@ -1,14 +1,17 @@
 """Inert probe-fixture contract tests; no keys, SSH daemon, chroot or namespace."""
 import ast
+import base64
 import copy
+import hashlib
 import io
 import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/probe-test-ssh-linux.sh'
@@ -22,6 +25,8 @@ receipt_ast = ast.parse(receipt_source)
 receipt_function = next(node for node in receipt_ast.body if isinstance(node, ast.FunctionDef) and node.name == 'validate_report')
 receipt = {}
 exec(compile(ast.Module(body=[receipt_function], type_ignores=[]), '<transport-receipt>', 'exec'), receipt)
+operator = {'__name__': 'inert_operator_probe'}
+exec(compile((SCRIPT.parent/'probe-test-operator-runtime.py').read_bytes(), '<operator-probe>', 'exec'), operator)
 
 
 def fixture(name):
@@ -113,8 +118,8 @@ class TestSshProbeTests(unittest.TestCase):
 
     def operator_receipt(self):
         report, inputs = self.transport_receipt()
-        inputs['operator_sources'] = {'runner.py': 'pinned-runner'}
-        inputs['expected_operator_checks'] = ['source_installed', 'activation_refused']
+        inputs['operator_sources'] = {'runner.py': 'pinned-runner', 'test-access-contract.py': operator['CONTRACT_SHA256']}
+        inputs['expected_operator_checks'] = list(operator['CHECKS'])
         report['operator_runtime'] = {
             'scope': 'isolated-test-operator-runtime-probe',
             'source_sha256': dict(inputs['operator_sources']),
@@ -137,7 +142,7 @@ class TestSshProbeTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 receipt['validate_report'](changed, inputs, 0)
         changed = copy.deepcopy(report)
-        changed['operator_runtime']['checks']['activation_refused'] = 1
+        changed['operator_runtime']['checks']['activation_explicitly_refused'] = 1
         with self.assertRaises(ValueError):
             receipt['validate_report'](changed, inputs, 0)
 
@@ -149,10 +154,90 @@ class TestSshProbeTests(unittest.TestCase):
         report.update(passed=False, error_stage='parent_validation')
         self.assertFalse(receipt['validate_report'](report, inputs, 1))
         report, inputs = self.operator_receipt()
-        report['operator_runtime']['checks']['activation_refused'] = False
+        report['operator_runtime']['checks']['activation_explicitly_refused'] = False
         report['operator_runtime'].update(passed=False, error_stage='operator_runtime')
         report.update(passed=False, error_stage='operator_runtime_extension')
         self.assertFalse(receipt['validate_report'](report, inputs, 1))
+
+    def test_capsule_checks_and_source_pin_are_required_without_changing_default_checks(self):
+        self.assertEqual(len(probe['CHECKS']), 39)
+        self.assertEqual(len(operator['CHECKS']), 22)
+        self.assertTrue(operator['CAPSULE_CHECKS'] <= set(operator['CHECKS']))
+        self.assertIn('test-access-contract.py', probe['OPERATOR_INPUTS'])
+        self.assertEqual(hashlib.sha256((SCRIPT.parent/'test-access-contract.py').read_bytes()).hexdigest(),
+                         operator['CONTRACT_SHA256'])
+        for check in operator['CAPSULE_CHECKS']:
+            report, inputs = self.operator_receipt()
+            del report['operator_runtime']['checks'][check]
+            with self.assertRaises(ValueError): receipt['validate_report'](report, inputs, 0)
+        create, target, ssh = Mock(), Mock(), Mock()
+        result = operator['probe'](Path('/unused'), create, target, ssh,
+                                   {'test-access-contract.py': b'changed source'}, [])
+        self.assertIs(result['passed'], False)
+        self.assertEqual(result['error_stage'], 'install_sources')
+        create.assert_not_called(); target.assert_not_called(); ssh.assert_not_called()
+
+    def test_capsule_orchestration_uses_target_keys_and_contract_with_closed_results(self):
+        contract = {'__name__': 'inert_capsule_contract'}
+        exec(compile((SCRIPT.parent/'test-access-contract.py').read_bytes(), '<contract>', 'exec'), contract)
+        verifier = {'__name__': 'inert_capsule_verifier'}
+        exec(compile(operator['CAPSULE_VERIFY'], '<capsule-verifier>', 'exec'), verifier)
+        expected = dict.fromkeys(operator['CAPSULE_CHECKS'], True)
+        wire = b'\x00\x00\x00\x0bssh-ed25519\x00\x00\x00\x20' + bytes(range(32))
+        public = 'ssh-ed25519 '+base64.b64encode(wire).decode()
+        calls = []
+        def fixture_verify(raw, signature, key):
+            self.assertEqual(key, public)
+            if signature != b'synthetic-good-signature' or json.loads(raw)['wifi']['psk'] != 'inert-fixture-password':
+                raise contract['ContractError']('signature_invalid')
+        def target(argv, *, data, timeout):
+            calls.append((argv,data,timeout))
+            if len(calls) <= 2:
+                name = 'good' if len(calls) == 1 else 'bad'
+                self.assertEqual(argv, ['/usr/bin/ssh-keygen','-q','-Y','sign','-f',operator['RUNTIME']+'/'+name,
+                                        '-n','inkyos-test-access-v1'])
+                self.assertEqual(timeout, 5)
+                return types.SimpleNamespace(returncode=0, stdout=('synthetic-'+name+'-signature').encode())
+            self.assertEqual(argv, ['/usr/bin/python3','-I','-c',operator['CAPSULE_VERIFY']])
+            self.assertEqual(timeout, 15)
+            payload = json.loads(data)
+            self.assertEqual(base64.b64decode(payload['raw']), calls[0][1])
+            self.assertEqual(calls[0][1], calls[1][1])
+            with patch.dict(contract, {'_verify': fixture_verify}):
+                checks = verifier['verify_cases'](types.SimpleNamespace(**contract), payload)
+                self.assertEqual(checks, expected)
+                # A producer claiming authorization or adding raw data must not pass.
+                unsafe = dict(contract['verify_capsule'](base64.b64decode(payload['raw']),
+                    b'synthetic-good-signature', expected=payload['expected'], operator_public_key=public),
+                    connection_authorized=True, extra='PRIVATE')
+                bad_module = types.SimpleNamespace(canonical=contract['canonical'], verify_capsule=lambda *a,**k:unsafe)
+                self.assertEqual(verifier['verify_cases'](bad_module,payload), dict.fromkeys(expected,False))
+            return types.SimpleNamespace(returncode=0, stdout=json.dumps(checks).encode())
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); public_path = root/(operator['RUNTIME']+'/good.pub').lstrip('/')
+            public_path.parent.mkdir(parents=True); public_path.write_text(public+'\n')
+            result = operator['capsule_checks'](root,target)
+        self.assertEqual(result, expected)
+        self.assertEqual(len(calls), 3)
+        self.assertNotIn('synthetic-good-signature',json.dumps(result))
+
+    def test_capsule_orchestration_refuses_bad_signing_and_unclosed_verifier_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); path = root/(operator['RUNTIME']+'/good.pub').lstrip('/')
+            path.parent.mkdir(parents=True); path.write_text('synthetic fixture public\n')
+            for code, raw in ((1,b'PRIVATE'),(0,b''),(0,b'x'*2049)):
+                target = Mock(return_value=types.SimpleNamespace(returncode=code,stdout=raw))
+                with self.assertRaisesRegex(ValueError,'^capsule_signing_failed$'):
+                    operator['capsule_checks'](root,target)
+                self.assertEqual(target.call_count,1)
+            good = dict.fromkeys(operator['CAPSULE_CHECKS'],True)
+            for code, raw in ((1,b'PRIVATE'),(0,b'x'*1025),(0,b'[]'),
+                              (0,json.dumps({**good,'extra':'PRIVATE'}).encode()),
+                              (0,json.dumps({**good,'valid_signature':1}).encode())):
+                target = Mock(side_effect=[types.SimpleNamespace(returncode=0,stdout=b'synthetic-signature')]*2
+                    + [types.SimpleNamespace(returncode=code,stdout=raw)])
+                with self.assertRaises(ValueError) as error: operator['capsule_checks'](root,target)
+                self.assertNotIn('PRIVATE',str(error.exception))
 
     def test_help_is_unprivileged_and_documents_disposable_input(self):
         result = subprocess.run(['bash', str(SCRIPT), '--help'], capture_output=True)

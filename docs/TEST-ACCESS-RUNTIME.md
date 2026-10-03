@@ -110,10 +110,16 @@ mount/network/UTS/PID privés et loopback seul. Les clés sont neuves et restent
 sur tmpfs. Le parent et les sources exécutées sont rehashés et liés aux receipts.
 
 Le banc conserve les 39 contrôles SSH/PAM/sudo historiques et ajoute 18 contrôles
-du runtime : preflight natif avec les fichiers d’un enrôlement **synthétique**,
+du runtime ainsi que quatre contrôles de signature des paramètres privés.
+Le runtime couvre : preflight natif avec les fichiers d’un enrôlement **synthétique**,
 refus d’activation, requêtes incorrectes, changements de bindings, verrou réel
 et stdin SSH sans fin transmis pendant plus de cinq secondes. Le preflight
 est natif dans cette copie Linux ; il n’observe pas un Pi.
+
+Les quatre contrôles de signature exécutent le vrai OpenSSH et le vérificateur
+de capsule dans cette même copie : signature valide, message modifié, mauvaise
+clé et binding différent. Les seules clés utilisées sont celles créées pour
+le banc. Aucun profil réseau n’est installé.
 
 L’algorithme `stop` utilise exclusivement un adaptateur fixture dans ce banc.
 Aucun `systemctl stop`, mask ou poweroff réel n’y est exécuté. Le nettoyage
@@ -126,3 +132,7 @@ Réunir le configurateur privé, le profil Wi-Fi initial, l’ordonnancement pay
 connexion et le daemon opérateur dans un candidat TEST cohérent. Le candidat
 écran d’Inky Studio, son pin et les contrôles d’activation restent une livraison
 coordonnée distincte. Aucun nouveau boot de parsing n’est requis par ce travail.
+
+La [préparation locale des paramètres signés](TEST-ACCESS-CAPSULE.md) fournit
+la frontière de données de ce raccord. Elle ne livre pas encore l’importeur
+au boot et son reçu n’est jamais une autorisation de connexion.

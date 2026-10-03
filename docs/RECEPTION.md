@@ -155,20 +155,29 @@ sources : dispatcher SSH, runner preflight/stop avec activation refusée, et
 contrôle TEST du pays distinct de la connexion. Le banc optionnel utilise ces
 mêmes sources. Cela ne les installe pas sur la SD et ne fournit pas encore
 la transition réseau privée complète.
+La [capsule privée signée](TEST-ACCESS-CAPSULE.md) et son préparateur local
+sont également livrés : schéma fermé, bindings et vérification OpenSSH.
+La signature seule ne prouve pas le retour SD et n’empêche pas un replay ;
+l’importeur au boot et sa transaction persistante restent à intégrer.
 
 1. Préparer hors SD un candidat TEST cohérent depuis une image propre :
    correctif radio intégré, [canal opérateur](TEST-OPERATOR.md) réel,
-   application et vérification du pays, heure contrôlée et activation bornée.
+   application et vérification du pays, heure contrôlée et activation explicite.
    Le runtime est testé ; son configurateur privé et la transition vers la
    connexion restent à livrer. Le stop mutateur reste testé avec des fixtures.
 2. Coordonner avec Inky Studio le candidat AC073TC1A, le traitement explicite
    de la couleur EEPROM inconnue, un payload épinglé et une version iOS
    Bluetooth installable. Les anciennes références TestFlight ne suffisent pas.
-   La coordination du 3 octobre confirme que le candidat actuel peut encore
-   basculer vers un écran simulé après une erreur de détection et qu’un timeout
-   du driver ne garantit pas un échec remonté. Ces comportements doivent être
-   rendus explicites avant de valider un affichage physique. Aucun nouveau
-   candidat Bluetooth distribuable n’est confirmé.
+   Le candidat `c31b13afdc957425571810c46230eaaf52fa5d14` fournit le mode
+   hardware explicite, un profil TEST pour le tuple brut et un drain SPI avec
+   unité sans délai de kill arbitraire. Son bundle passe les cinq étapes
+   [offline ARM64](validation/2026-10-03-display-drain-candidate.json), dont
+   installation et smoke ASGI sans lifespan. Il n’est pas encore épinglé
+   dans l’image InkyOS. Les unités/drop-ins et l’arrêt actif restent à qualifier ;
+   un driver bloqué peut laisser le service en `deactivating`. Le welcome au
+   premier démarrage est déjà un refresh : ce démarrage devra donc être
+   explicitement autorisé après les gates. Aucun nouveau candidat Bluetooth
+   distribuable n’est confirmé.
 3. Regrouper la préparation du prochain essai : profil réseau privé 2,4 GHz,
    confiance SSH liée à l’enrôlement, diagnostics et arrêt. Réutiliser un
    enrôlement uniquement si ses bindings restent valides avec le candidat.

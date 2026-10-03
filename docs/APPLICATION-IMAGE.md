@@ -84,3 +84,33 @@ ces résultats au candidat `6a697d1` et à la recette exacte.
 Le second build s'est exécuté depuis une copie propre du même commit, après
 récupération et vérification d'entrées localement indisponibles. Les deux
 exports comparés sont conservés dans le `build/` du checkout utilisé.
+
+## Candidat écran et arrêt du 3 octobre
+
+Le candidat `c31b13afdc957425571810c46230eaaf52fa5d14` est reçu avec le manifeste
+`c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1`.
+Il fournit un mode hardware explicite, un profil TEST AC073 pour le tuple brut
+observé, des erreurs écran visibles et le drain du propriétaire SPI lors de
+l’arrêt. La version Inky reste 2.3.0. Le profil TEST ne doit pas être appliqué
+aux écrans Spectra ni utilisé pour réécrire l’EEPROM.
+
+La [validation offline](validation/2026-10-03-display-drain-candidate.json)
+passe dans une VM ARM64 sous UID non privilégié, sans réseau : création du
+venv, installation des 40 wheels hashées, installation locale de l’application,
+`pip check` et smoke ASGI. Health/frontend retournent 200, une route protégée
+401. Dix imports natifs passent ; RPi.GPIO reste bloqué par sa garde matérielle.
+Le smoke n’entre pas dans le lifespan, n’initialise pas l’écran et ne crée
+aucune identité applicative. Il ne teste pas le drain.
+
+**Les pins de l’image restent inchangés.** Intégrer ce bundle demande une revue
+des sources d’installation par couple source/manifest, de nouveaux units/drop-ins,
+un parent reconstruit et la mise à jour cohérente des contrats TEST. L’unité
+candidate demande SIGTERM, `KillMode=mixed`, `TimeoutStopSec=infinity` et
+`SendSIGKILL=no`. Un driver bloqué peut donc rester en `deactivating` : l’OS ne
+doit pas en déduire qu’il peut arrêter l’hôte. Le runtime opérateur livré garde
+son refus de stop tant que l’app et le helper ne sont pas déjà inactifs et masqués.
+
+Un démarrage hardware peut afficher le welcome. Il exige les gates et une
+autorisation explicite d’affichage ; lire ensuite une API de diagnostic ne
+transforme pas ce démarrage en observation passive. Aucun écran, appairage
+iOS ou arrêt physique n’est qualifié par ce résultat logiciel.

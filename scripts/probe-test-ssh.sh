@@ -49,7 +49,8 @@ blobs = {'parent-manifest.json': raw,
          'parent-filesystem-manifest.json': read(parent/'filesystem-manifest.json'),
          'probe-test-ssh-linux.sh': read(pathlib.Path('scripts/probe-test-ssh-linux.sh'))}
 operator_names = ('probe-test-operator-runtime.py', 'test-operator-dispatch.py',
-                  'test-operator-runner.py', 'test-lan-preflight.py', 'test-enrollment-firstboot.py')
+                  'test-operator-runner.py', 'test-lan-preflight.py', 'test-enrollment-firstboot.py',
+                  'test-access-contract.py')
 if operator_mode:
     blobs.update({name: read(pathlib.Path('scripts') / name) for name in operator_names})
     blobs['application-manifest.json'] = read(parent / 'application-manifest.json')
@@ -87,7 +88,7 @@ rm -- "$run_dir/parent-image-name.txt"
 limactl shell --workdir=/tmp "$vm" mkdir -m 700 -- "$guest_dir"
 names=(parent-manifest.json parent-manifest.sha256 parent-filesystem-manifest.json parent-integrity.json probe-test-ssh-linux.sh)
 if [[ $operator_runtime == 1 ]]; then
-  names+=(probe-test-operator-runtime.py test-operator-dispatch.py test-operator-runner.py test-lan-preflight.py test-enrollment-firstboot.py application-manifest.json)
+  names+=(probe-test-operator-runtime.py test-operator-dispatch.py test-operator-runner.py test-lan-preflight.py test-enrollment-firstboot.py test-access-contract.py application-manifest.json)
 fi
 for name in "${names[@]}"; do
   limactl copy "$run_dir/$name" "$vm:$guest_dir/$name"

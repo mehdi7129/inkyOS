@@ -68,6 +68,13 @@ make test-enrollment PYTHON=python3.13 \
   PARENT_EXPORT=build/test-lan-prepared.wIV9Vjtj TEST_COUNTRY=FR
 ```
 
+Pour une nouvelle construction réutilisant la clé opérateur dédiée déjà créée,
+le builder accepte `--operator-public-key CHEMIN.pub` (fichier Ed25519 sans
+commentaire, propriétaire opérateur et non modifiable par groupe/autres).
+Ce mode ne génère pas de clé et ne lit pas sa moitié privée. Il ne change ni
+l’ancien export ni l’identité d’une SD bootée. La préparation des paramètres
+réseau signés est décrite dans [TEST-ACCESS-CAPSULE.md](TEST-ACCESS-CAPSULE.md).
+
 Cette commande crée une clé opérateur neuve dans le dossier privé et
 assemble une copie ; elle ne touche aucune SD et ne lance aucun runtime du Pi.
 

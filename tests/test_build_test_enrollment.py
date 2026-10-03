@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,12 +40,104 @@ class EnrollmentBuilderTests(unittest.TestCase):
         result = subprocess.run(['bash', str(SCRIPT), '--help'], capture_output=True, timeout=3)
         self.assertEqual(result.returncode, 0)
         self.assertIn(b'--country', result.stdout)
+        self.assertIn(b'--operator-public-key', result.stdout)
         for args in (['PRIVATE_PARENT'], ['PRIVATE_PARENT', '--country', 'PRIVATE_COUNTRY'],
                      ['PRIVATE_PARENT', '--country', 'FR', '--profile', 'PRIVATE_PROFILE']):
             result = subprocess.run(['bash', str(SCRIPT), *args], capture_output=True, timeout=3)
             self.assertNotEqual(result.returncode, 0)
             self.assertNotIn(b'PRIVATE_', result.stdout + result.stderr)
             self.assertNotIn(b'Traceback', result.stderr)
+
+    def test_public_key_option_is_explicit_and_default_remains_generation(self):
+        args = driver['arguments'](['parent', '--country', 'FR'])
+        self.assertIsNone(args.operator_public_key)
+        args = driver['arguments'](['parent', '--country', 'FR', '--operator-public-key', 'dedicated.pub'])
+        self.assertEqual(args.operator_public_key, Path('dedicated.pub'))
+        with self.assertRaises(driver['ClosedError']):
+            driver['arguments'](['parent', '--country', 'FR', '--operator-public', 'dedicated.pub'])
+
+    def test_default_generates_new_key_with_mock_without_reading_private_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            private = work / driver['PRIVATE_KEY']
+            public = work / (driver['PRIVATE_KEY'] + '.pub')
+            def keygen(argv, **kwargs):
+                self.assertEqual(argv, ['/usr/bin/ssh-keygen','-q','-t','ed25519','-N','','-C','','-f',str(private)])
+                self.assertEqual(kwargs, {'timeout': 30})
+                private.write_bytes(b'PRIVATE_SENTINEL_NOT_A_KEY'); private.chmod(0o600)
+                public.write_bytes((public_fixture()+' \n').encode()); public.chmod(0o644)
+            real_open = os.open
+            def guarded_open(path, *args, **kwargs):
+                self.assertNotEqual(Path(path), private, 'Private key content must never be opened')
+                return real_open(path, *args, **kwargs)
+            with patch.dict(driver, {'invoke': Mock(side_effect=keygen)}), patch.object(driver['os'], 'open', side_effect=guarded_open):
+                self.assertEqual(driver['select_operator_public_key'](work), public_fixture())
+                driver['invoke'].assert_called_once()
+
+    def test_reuse_reads_only_explicit_public_file_without_generation_or_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); work = root/'new-work'; work.mkdir(mode=0o700)
+            public = root/'dedicated.pub'; raw = (public_fixture()+' \n').encode()
+            public.write_bytes(raw); public.chmod(0o644)
+            # Even metadata of the matching private path is unnecessary.
+            private = root/'dedicated'; private.symlink_to('/nonexistent/never-access-private')
+            real_open = os.open
+            def guarded_open(path, *args, **kwargs):
+                self.assertEqual(Path(path), public)
+                return real_open(path, *args, **kwargs)
+            with patch.dict(driver, {'invoke': Mock()}), patch.object(driver['os'], 'open', side_effect=guarded_open):
+                self.assertEqual(driver['select_operator_public_key'](work, public), public_fixture())
+                driver['invoke'].assert_not_called()
+            self.assertEqual(list(work.iterdir()), [])
+            self.assertEqual(public.read_bytes(), raw)
+            self.assertTrue(private.is_symlink())
+
+    def test_reused_public_file_rejects_bad_payload_permissions_owner_and_private_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'dedicated.pub'
+            for raw in (b'', b'x'*1025, b'ssh-ed25519 !!!!',
+                        (public_fixture()+' PRIVATE_COMMENT\n').encode(),
+                        public_fixture().replace('ssh-ed25519','ssh-rsa').encode()):
+                path.write_bytes(raw); path.chmod(0o644)
+                with self.assertRaises(ValueError): driver['read_operator_public_key'](path)
+            path.write_bytes(public_fixture().encode())
+            for mode in (0o620, 0o602, 0o666):
+                path.chmod(mode)
+                with self.assertRaises(ValueError): driver['read_operator_public_key'](path)
+            path.chmod(0o644)
+            owner = os.geteuid()
+            with patch.object(driver['os'], 'geteuid', return_value=owner+1):
+                with self.assertRaises(ValueError): driver['read_operator_public_key'](path)
+            with patch.object(driver['os'], 'open') as opened:
+                with self.assertRaises(ValueError): driver['read_operator_public_key'](path.with_suffix(''))
+                opened.assert_not_called()
+
+    def test_reused_public_file_refuses_links_directory_fifo_and_path_replacement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); path = root/'dedicated.pub'
+            raw = public_fixture().encode(); path.write_bytes(raw); path.chmod(0o644)
+            symlink = root/'link.pub'; symlink.symlink_to(path)
+            with self.assertRaises(OSError): driver['read_operator_public_key'](symlink)
+            hardlink = root/'hard.pub'; os.link(path, hardlink)
+            with self.assertRaises(ValueError): driver['read_operator_public_key'](hardlink)
+            hardlink.unlink()
+            folder = root/'directory.pub'; folder.mkdir()
+            with self.assertRaises((OSError,ValueError)): driver['read_operator_public_key'](folder)
+            fifo = root/'fifo.pub'; os.mkfifo(fifo, 0o600)
+            with self.assertRaises(ValueError): driver['read_operator_public_key'](fifo)
+            real_fdopen = os.fdopen
+            class ReplacingReader:
+                def __init__(self, fd, mode): self.stream = real_fdopen(fd, mode)
+                def __enter__(self): return self
+                def __exit__(self, *args): self.stream.close()
+                def fileno(self): return self.stream.fileno()
+                def read(self, limit):
+                    result = self.stream.read(limit)
+                    replacement = root/'replacement'; replacement.write_bytes(raw); replacement.chmod(0o644)
+                    os.replace(replacement, path)
+                    return result
+            with patch.object(driver['os'], 'fdopen', side_effect=ReplacingReader):
+                with self.assertRaises(ValueError): driver['read_operator_public_key'](path)
 
     def test_profile_is_exact_canonical_enrollment_only_with_explicit_country(self):
         result = driver['profile'](public_fixture(), 'a' * 64, 'FR')

@@ -60,7 +60,7 @@ INPUTS = {'probe-test-ssh-linux.sh', 'probe.img', 'parent-manifest.json',
           'parent-manifest.sha256', 'parent-filesystem-manifest.json', 'parent-integrity.json'}
 OPERATOR_INPUTS = {'probe-test-operator-runtime.py', 'test-operator-dispatch.py',
                    'test-operator-runner.py', 'test-lan-preflight.py', 'test-enrollment-firstboot.py',
-                   'application-manifest.json'}
+                   'test-access-contract.py', 'application-manifest.json'}
 PROGRAMS = (
     'usr/sbin/sshd', 'usr/bin/ssh', 'usr/bin/ssh-keygen', 'usr/bin/scp',
     'usr/bin/sudo', 'usr/sbin/visudo', 'etc/pam.d/sshd', 'etc/pam.d/common-auth',
