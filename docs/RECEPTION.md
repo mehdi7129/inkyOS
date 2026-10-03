@@ -91,10 +91,14 @@ boot et d'un arrêt observés, puis du
 
 L'EEPROM déclare **800×480, couleur 4, variante 20** ; le tuple reste non reconnu.
 Upstream choisirait le driver AC073TC1A 7,3 pouces sur la variante, mais le code
-couleur 4 n'a pas de libellé. La référence matérielle communiquée,
-**Inky Impression 7,3″ PIM773**, correspond officiellement à Spectra 6 ; elle
-est en désaccord avec cette déclaration EEPROM. Le driver physique reste à
-établir, sans forcer AC073TC1A ni réécrire l'EEPROM. La radio
+couleur 4 n'a pas de libellé. L’identification initiale **PIM773 / Spectra 6**
+est retirée après examen visuel : le PCB porte **7,3″, 800×480, 170×111 mm**,
+ce qui corrobore l’ancienne famille sept couleurs et la variante 20. La référence
+exacte de la dalle et le driver physique restent à établir ; le code couleur
+4 n’est ni normalisé ni une preuve de corruption. Les rapports historiques
+conservent la déclaration initiale ; ce suivi la remplace pour l’identification
+actuelle. Voir la [matrice de compatibilité](DISPLAY-COMPATIBILITY.md).
+La radio
 retourne firmware `XY/XY`, révision 0, global `00` et PHY `99`, header `plain`.
 Le parser regulatory réussit ; celui des channels rejette 14 tokens de fréquence
 au contrôle d'entier. Aucun pays n'est appliqué ; aucune connexion n'est qualifiée.
@@ -114,8 +118,11 @@ dans [HARDWARE-SOURCES.md](HARDWARE-SOURCES.md) et
 
 1. Intégrer le correctif validé du parser radio, puis recueillir une nouvelle
    observation sur le banc ; conserver les preuves historiques inchangées.
-2. Résoudre l'écart entre la référence PIM773 et la variante EEPROM 20, puis
-   vérifier le driver physique et le payload épinglé avant tout refresh d’écran.
+2. Traiter séparément le candidat AC073TC1A et la couleur EEPROM inconnue,
+   puis vérifier le driver physique et le payload épinglé avant tout refresh.
+   Étendre la qualification aux trois formats Spectra 6 et aux anciens
+   Impression sept couleurs selon la [matrice](DISPLAY-COMPATIBILITY.md) ;
+   coordonner le support 5,7″ et des révisions AC avec Inky Studio.
 3. Finaliser le [canal opérateur](TEST-OPERATOR.md), le pays Wi-Fi effectif et
    l’heure vérifiée avant TLS ; le banc SSH actuel utilise un runner inerte.
 4. Qualifier photos LAN, adoption QR/BLE, changement Wi-Fi et rollback avec

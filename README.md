@@ -18,7 +18,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
 | Application | Candidat épinglé intégré dans une image expérimentale ; services applicatifs et SSH masqués. |
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
-| Écran | Référence PIM773 communiquée, en désaccord avec la variante EEPROM lue. Driver physique et affichage non qualifiés. |
+| Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Réponses firmware et regulatory analysées ; format des fréquences corrigé et testé dans les sources. Pays et connexion non qualifiés. |
 | Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
 
@@ -27,10 +27,15 @@ La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
 doit être vérifiée sur le matériel réel. Les tests logiciels ne remplacent
 pas cette qualification.
 
+La [compatibilité visée](docs/DISPLAY-COMPATIBILITY.md) couvre les **Spectra 6
+4″, 7,3″ et 13,3″**, ainsi que les anciens **Impression sept couleurs 5,7″ et
+7,3″**. Une même recette d’image doit servir ces formats, avec détection du
+panneau par l’application. Cette cible ne signifie pas qu’ils sont déjà qualifiés.
+
 Le [diagnostic complémentaire](docs/OBSERVER-DIAGNOSTIC.md) a démarré sur le
 banc, puis son rapport a été récupéré après l'arrêt observé. La ligne de boot
 originale est restaurée. Le correctif radio passe les tests sur Mac et Linux ARM64.
-Il reste à résoudre l'écart panneau/EEPROM, intégrer le correctif et recueillir
+Il reste à traiter le code couleur EEPROM inconnu, intégrer le correctif et recueillir
 une nouvelle observation sur le banc. Ce correctif n'est pas installé sur la SD.
 
 ## Développer
@@ -58,6 +63,7 @@ l’espace disque nécessaire et les limites du builder.
 
 - [Architecture et plan de réalisation](docs/BUILD-PLAN.md)
 - [Matériel et sources officielles](docs/HARDWARE-SOURCES.md)
+- [Compatibilité des écrans et qualification par modèle](docs/DISPLAY-COMPATIBILITY.md)
 - [Intégration applicative](docs/APPLICATION-IMAGE.md)
 - [Premier démarrage, heure et pays Wi-Fi](docs/FIRST-BOOT.md)
 - [Qualification sur SD](docs/SD-QUALIFICATION.md)

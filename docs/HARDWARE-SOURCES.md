@@ -1,7 +1,8 @@
 # InkyOS — sources matériel et système
 
 Recherche initiale du **27 septembre 2026**, complétée le **3 octobre** par les
-sources EEPROM et `iw` confrontées au retour diagnostic v2. Copie de référence du dossier Inky Studio ;
+sources EEPROM et `iw` confrontées au retour diagnostic v2, puis par la
+[matrice des écrans](DISPLAY-COMPATIBILITY.md). Copie de référence du dossier Inky Studio ;
 les liens applicatifs sont figés au commit `ae61df1`. Ce document prépare la future image InkyOS
 et le maintien d'une installation classique pour utilisateurs avancés. **Aucune
 image InkyOS n'est construite ou qualifiée par ce document.** Les sources externes
@@ -34,6 +35,8 @@ Les tables officielles Pimoroni **v2.3.0** distinguent les variantes suivantes :
 | 20 | `inky_ac073tc1a.Inky` | 800 × 480, 7,3 pouces | 7 couleurs |
 | 22 | `inky_e673.Inky` | 800 × 480, 7,3 pouces | Spectra 6 |
 | 21 | `inky_el133uf1.Inky` | 1600 × 1200, 13,3 pouces | Spectra 6 |
+| 25 | `inky_e640.Inky` | 600 × 400, 4 pouces | Spectra 6 |
+| 14 | `inky_uc8159.Inky` | 600 × 448, 5,7 pouces | 7 couleurs |
 
 Sources : [sélection du pilote, `auto.py` v2.3.0](https://github.com/pimoroni/inky/blob/v2.3.0/inky/auto.py#L20),
 [libellés des variantes, `eeprom.py` v2.3.0](https://github.com/pimoroni/inky/blob/v2.3.0/inky/eeprom.py#L13).
@@ -83,7 +86,7 @@ réellement monté ni que celui-ci fonctionne.
 [auto v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/auto.py#L35),
 [driver AC073TC1A](https://github.com/pimoroni/inky/blob/v2.3.0/inky/inky_ac073tc1a.py#L70).
 
-La référence communiquée pour le matériel est **Inky Impression 7,3″ PIM773**.
+La référence initialement communiquée était **Inky Impression 7,3″ PIM773**.
 La fiche officielle associe PIM773 à **800×480, Spectra 6, six couleurs** ;
 l'ancienne table distingue PIM667, en Gallery Palette sept couleurs. La gamme
 7,3 pouces a aussi changé de waveform en avril 2026 : la référence PIM773
@@ -94,9 +97,12 @@ seule ne précise pas cette révision.
 Les tables upstream désignent le Spectra 6 E673 par la variante **22** en
 v2.3.0, puis **22 ou 26** en v2.4.0, la variante 26 étant libellée AC.
 Aucune de ces sources ne donne la variante 20/couleur 4 comme équivalent
-Spectra 6. **La référence PIM773 et l'EEPROM observée sont donc en désaccord.**
-La cause reste indéterminée ; ne pas prendre l'autosélection AC073TC1A comme
-validation du driver physique, forcer un refresh ou réécrire l'EEPROM.
+Spectra 6. **L’identification PIM773/Spectra 6 a depuis été retirée.** Le PCB
+photographié porte 7,3″, 800×480 et 170×111 mm overall, dimensions cohérentes
+avec l’ancien PIM667. Cette inférence visuelle renforce le candidat AC073TC1A,
+sans confirmer la référence exacte de dalle ni expliquer le code couleur 4.
+Ne pas prendre l’autosélection comme validation du driver physique, forcer un
+refresh ou réécrire l’EEPROM.
 [Variantes v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/eeprom.py#L31),
 [sélection E673 v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/auto.py#L39).
 
@@ -104,6 +110,11 @@ L'analyse doit donc distinguer variante/dimensions reconnues par upstream,
 couleur EEPROM non reconnue et qualification physique. Aucun changement
 de catalogue, réécriture EEPROM ou upgrade de dépendance n'est justifié
 par la seule valeur 4 ; `eeprom_unreviewed` reste le résultat du tuple strict.
+
+Le [suivi de compatibilité](DISPLAY-COMPATIBILITY.md) fixe désormais la cible
+produit : trois formats Spectra 6 et anciens Impression sept couleurs 5,7″
+et 7,3″. Il distingue les révisions AC 26/27 introduites dans la sélection
+v2.4.0, le pin applicatif v2.3.0 actuel et les essais physiques à réaliser.
 
 ## 3. Connexion, GPIO et alimentation
 
@@ -236,10 +247,12 @@ résolu depuis `arm64`. Le SHA `6a0419c1…` du tableau est celui de `master`
 d'abord une image officielle Lite datée et personnalisée offline ; pi-gen reste
 un recours. Aucune de ces bases n'est construite ou qualifiée ici.
 
-## 7. Informations encore nécessaires avant une matrice de compatibilité
+## 7. Informations encore nécessaires avant de qualifier la matrice
 
-- Résoudre l'écart entre la référence PIM773 communiquée et l'EEPROM
-  `(800,480,4,20)` observée ; confirmer le driver du panneau réellement monté.
+- Traiter la couleur inconnue du tuple `(800,480,4,20)` observé sans la
+  normaliser ; confirmer le driver du panneau réellement monté.
+- Aligner le payload et les diagnostics sur la [matrice cible](DISPLAY-COMPATIBILITY.md),
+  notamment pour le 5,7″ et les révisions Spectra AC, en coordination avec l’app.
 - Figer image OS, architecture utilisateur, kernel, firmware et tous les packages
   du couple Pi/panneau effectivement testé.
 - Mesurer plusieurs refreshs consécutifs, redémarrage, erreur GPIO et alimentation

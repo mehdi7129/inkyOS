@@ -15,6 +15,14 @@ Le développement de l'image vient après stabilisation de l'application et du
 Bluetooth. Les sources système et l'étude de reproductibilité peuvent avancer
 sans utiliser une installation hors banc.
 
+**Extension du périmètre — 3 octobre 2026 :** une même recette InkyOS vise les
+Spectra 6 4″, 7,3″ et 13,3″ et les Impression sept couleurs 5,7″ et 7,3″.
+La [matrice des écrans](DISPLAY-COMPATIBILITY.md) sépare catalogue upstream,
+support logiciel à compléter et qualification matérielle. Inky Studio reste
+responsable des drivers, palettes, dimensions et parcours iOS ; l’image intègre
+une version commune épinglée, sans fork du protocole ni sélection par la seule
+résolution. Ce périmètre ne qualifie aucun écran supplémentaire.
+
 ## Répartition des dépôts
 
 | Dépôt | Responsabilité |

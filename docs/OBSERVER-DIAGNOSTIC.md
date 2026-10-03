@@ -98,10 +98,13 @@ observés par l'opérateur ; le rapport, écrit avant poweroff, ne prouve pas
 - **EEPROM** : `width=800`, `height=480`, `color_code=4`, `display_variant=20`,
   `reviewed_catalogue_match=false`, erreur `eeprom_unreviewed`. Upstream
   sélectionnerait AC073TC1A 800×480 d'après la variante 20, mais ne donne aucun
-  libellé EEPROM au code couleur 4. La référence communiquée pour le matériel,
-  **Inky Impression 7,3″ PIM773**, désigne officiellement un Spectra 6 : elle
-  contredit cette sélection EEPROM. Le bon driver physique n'est donc pas
-  établi ; aucun refresh n'a été effectué.
+  libellé EEPROM au code couleur 4. Le rapport conserve la référence initialement
+  communiquée **Inky Impression 7,3″ PIM773**. Cette identification Spectra 6
+  est depuis retirée : l’examen visuel du PCB corrobore l’ancienne famille sept
+  couleurs, cohérente avec la variante 20. Le code couleur reste non interprété,
+  et le bon driver physique non qualifié ; aucun refresh n’a été effectué.
+  Le [suivi d’identification](DISPLAY-COMPATIBILITY.md#identification-du-banc)
+  complète le rapport historique sans en modifier les mesures.
 - **Radio** : firmware `country_abbrev=XY`, `ccode=XY`, `revision=0` ; parser
   regulatory réussi, avec global `00`, PHY `99` et header `plain`. Le parser
   channels échoue : un header Wiphy correspond à la cible, 14 tokens de
