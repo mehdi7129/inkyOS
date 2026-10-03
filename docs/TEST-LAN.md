@@ -1,6 +1,6 @@
 # Variante TEST LAN préparée
 
-État du 30 septembre 2026 : préparation expérimentale autorisée et relue avec
+État du 3 octobre 2026 : préparation expérimentale autorisée et relue avec
 Inky Studio, **aucune activation ni nouvelle opération SD/Pi**. Le premier essai
 visé utilise un LAN initial configuré par l'opérateur. Ce n'est pas le bootstrap
 factory sans LAN suivi par l’issue #15 d’Inky Studio.
@@ -11,19 +11,21 @@ complète de distribution reste distincte de ce premier prototype applicatif.
 
 L’opérateur a confirmé le pays d'essai **France (`FR`)**. Cette valeur reste une
 entrée explicite de la future personnalisation privée ; elle n'est pas ajoutée
-à l'image générique. Le panneau est décrit comme « Inky Spectra, format carte
-postale » : cette description ne fixe pas encore sa référence ni son driver.
+à l'image générique. L'inventaire corrigé du panneau indique un PCB 7,3″,
+800×480, cohérent avec l'ancienne famille sept couleurs. Son tuple EEPROM
+800×480 / variante 20 / couleur 4 demande un profil TEST contrôlé ; le driver
+physique reste à qualifier. Voir le [suivi du panneau](DISPLAY-COMPATIBILITY.md).
 
 ## Entrées et sortie attendue
 
 | Élément | Pin / état |
 |---|---|
 | Parent | Export `application-prototype` vierge, contrôlé avec son image et tous ses rapports. Jamais l'image diagnostic ni une copie de SD initialisée. |
-| Application | Candidat `758a2bf7ed099aad41ef35316e53228e797b0b2b`, backend `0.5.0-rc.2`, correction des métadonnées de panneau. |
-| Manifeste | SHA-256 `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`. Assets/lock immuables, contrôlés sans install.sh/latest/main. |
+| Application | Candidat `c31b13afdc957425571810c46230eaaf52fa5d14`, backend `0.5.0-rc.2`, gestion de l'écran et drain SPI à l'arrêt. |
+| Manifeste | SHA-256 `c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1`. Assets/lock immuables, contrôlés sans install.sh/latest/main. |
 | Export | `kind=test-lan-prepared`, `no_active_application=true`, `ready_for_activation=false`, qualification matérielle/release false. |
-| iOS Bluetooth | Candidat `1.0.0 (5)`, source `80dfc37629fe4d3853ed80bf614c5fad2e8512ba`. La disponibilité du build compatible et sa qualification physique doivent être confirmées avant le banc Bluetooth. |
-| iOS LAN | Build 3 disponible pour les photos ; ne fournit pas le nouveau parcours BLE. |
+| iOS Bluetooth | Un build compatible et effectivement distribuable doit être confirmé par Inky Studio avant le banc Bluetooth ; les anciens numéros de build ne prouvent pas cette disponibilité. |
+| iOS LAN | Le parcours photo LAN reste à tester depuis cette image avec un build iOS disponible et compatible. |
 
 L'assemblage copie le parent dans une image régulière neuve, ajoute un preflight
 readonly et une copie exacte du manifeste, puis masque les mises à jour
@@ -32,15 +34,14 @@ firmware/APT. App, helper et SSH restent masqués. Un marqueur root-owned
 Les métadonnées du payload parent restent inchangées ; le marqueur et le
 manifest d'export distinguent cette variante.
 
-Le candidat exige un **nouveau parent** ; il ne remplace pas les octets du
-prototype historique `6a697d134290ced0214fc74b903f4b3c336d70fa` / manifeste
-`2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f`.
-Les deux couples exacts restent contrôlables ; aucun autre commit/manifeste
-n'est accepté par l'intégration statique. La réception des archives a confirmé
-40 wheels inchangés et seulement deux fichiers source modifiés : `SOURCE_COMMIT`
-et les métadonnées de `display.py`. Elle ne qualifie aucun driver natif ni panneau.
-Le builder de la nouvelle variante TEST exige le couple `758a2bf7` / `0d58…` ;
-la compatibilité du vérificateur avec l'ancien couple conserve les audits historiques.
+Le candidat utilise un **nouveau parent applicatif**, distinct des prototypes
+historiques. Les trois [couples exacts revus](APPLICATION-IMAGE.md) restent
+vérifiables ; les builders TEST acceptent uniquement `758a2bf7` / `0d58…`
+ou `c31b13af` / `c418…`. Un couple croisé ou inconnu est refusé. La sélection
+de la politique statique suit le manifeste validé ; seule l'unité applicative
+diffère dans la table de fichiers parent. Le preflight ajoute le nouveau
+couple sans assouplir les contrôles d'activation. Aucun driver physique ni
+panneau n'est qualifié par cette compatibilité logicielle.
 
 Aucun timer diagnostic, auto-arrêt, hook d'activation ou overlay `disable-wifi`
 n'est ajouté. L'état NetworkManager reste `WirelessEnabled=false` ; aucun pays,
@@ -100,8 +101,8 @@ identifier le matériel :
 | Champ | État actuel |
 |---|---|
 | Pi / kernel | Zero 2 W, kernel `6.18.50+rpt-rpi-v8` observés lors du diagnostic. |
-| Référence PCB/panneau visible | « Inky Spectra, format carte postale » selon l’inventaire de test ; référence exacte à relever sur le banc. |
-| Variante EEPROM / dimensions | À observer par méthode ciblée préparée et relue. |
+| Référence PCB/panneau visible | PCB 7,3″, 800×480, 170×111 mm ; ancienne famille sept couleurs corroborée. Référence exacte de dalle non confirmée. |
+| Variante EEPROM / dimensions | Tuple observé : variante 20, 800×480, couleur 4 non reconnue ; aucune réécriture ni normalisation. |
 | Mapping officiel v2.3.0 | 20 = AC073TC1A, 800×480, 7 couleurs ; 22 = E673, 800×480, Spectra 6 ; 21 = EL133UF1, 1600×1200, Spectra 6 ; 25 = E640, 600×400, Spectra 6. |
 | Classe driver / non-mock | À contrôler après activation autorisée, contre l'inventaire réel. |
 | Alimentation / câble / accès secours | À consigner et vérifier. |
@@ -181,5 +182,31 @@ conservées ; leur cleanup a réussi. La [preuve réduite](validation/2026-09-30
 lie images, recettes, rapports, source du banc et fichiers des suites exécutées.
 Les modifications du banc n'altèrent pas les deux exports construits.
 
-L'accès opérateur et l'activation restent à implémenter ; ces résultats ne
-rendent pas cette image prête à flasher ni à tester l'app iPhone.
+Ce résultat historique ne livre pas l'accès opérateur ni l'activation.
+Le runtime opérateur est désormais développé et testé séparément ; son
+installation, la connexion physique et l'activation restent à intégrer.
+Cette image ne suffit pas encore pour tester l'app iPhone.
+
+## Nouveau parent vérifié le 3 octobre
+
+Le candidat `c31b13af` est installé dans un parent neuf, puis dérivé en
+TEST LAN préparé et inactif. Les deux images mesurent 3 061 841 920 octets :
+
+| Image | SHA-256 |
+|---|---|
+| Parent applicatif | `8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727` |
+| TEST LAN préparé | `0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286` |
+
+Chaque image passe 62 contrôles système et 26 applicatifs. La variante passe
+aussi ses 17 contrôles de préparation ; les dix fichiers boot/grow protégés
+restent identiques. Le nouveau preflight est installé root-owned 0555 ;
+l'unité applicative dérivée mesure 799 octets, hash `c9d7e4c1…`.
+App, helper et SSH restent masqués, Wi-Fi désactivé. Aucun accès opérateur,
+identité ou profil TEST écran n'est ajouté à ces parents.
+
+Les [preuves réduites](validation/2026-10-03-display-drain-images.json)
+consignent les exports, recettes, **709 tests par hôte** macOS/Linux ARM64
+(4/1 ignorés) et **61 contrôles SSH/PAM/runtime/signature**. Ce dernier banc
+utilise une copie du parent historique `758a2bf7`, avec données synthétiques ;
+il ne prouve pas le démarrage du nouveau parent. L'ancien export TEST LAN
+reste vérifiable par le vérificateur actuel. Aucun flash ni essai Pi n'a eu lieu.

@@ -1,4 +1,5 @@
 """Prepared TEST LAN overlay fixtures; no image, service, radio or disk access."""
+import ast
 import hashlib
 import importlib.util
 import json
@@ -58,6 +59,12 @@ class TestLanRootfsTests(unittest.TestCase):
         parent_config = patch.dict(overlay.STATIC_PARENT_FILES, static_fixture)
         parent_config.start()
         self.addCleanup(parent_config.stop)
+        self.legacy_unit = (self.root/'usr/lib/systemd/system/inky-studio.service').read_text()
+        self.drain_unit = self.legacy_unit+'# drain candidate fixture: no active runtime\n'
+        drain_fixture = dict(static_fixture)
+        drain_fixture['usr/lib/systemd/system/inky-studio.service'] = (hashlib.sha256(self.drain_unit.encode()).hexdigest(),0o644)
+        drain_config = patch.dict(overlay.DRAIN_STATIC_PARENT_FILES,drain_fixture)
+        drain_config.start();self.addCleanup(drain_config.stop)
         for name in overlay.PROTECTED_FILES:
             tree, relative = name.split('/', 1)
             self.write(self.root if tree == 'root' else self.boot, relative, 'PRESERVED_' + name + '\n')
@@ -101,6 +108,18 @@ class TestLanRootfsTests(unittest.TestCase):
         self.assertFalse((self.root / overlay.MARKER_PATH).exists())
         self.assertFalse((self.root / 'usr/local/lib/inkyos/test-lan-preflight.py').exists())
         self.assertEqual((self.boot / 'config.txt').read_text(), self.config)
+
+    def select_candidate(self, *, unit=True):
+        raw = (REPOSITORY/'tests/fixtures/application-manifest-c31b13af.json').read_text()
+        app = json.loads(self.release)['application']
+        app.update(source_commit=overlay.DRAIN_SOURCE_COMMIT,manifest_sha256=overlay.DRAIN_MANIFEST_SHA256)
+        release = json.loads(self.release);release['application'] = app
+        self.write(self.root,'etc/inkyos-release.json',json.dumps(release))
+        self.write(self.root,'home/inky/inky-studio/server/SOURCE_COMMIT',app['source_commit']+'\n')
+        self.write(self.source,'application-manifest.json',raw)
+        if unit:self.write(self.root,'usr/lib/systemd/system/inky-studio.service',self.drain_unit)
+        self.refresh_inputs()
+        return app
 
     def test_static_preparation_keeps_app_inactive_and_has_no_automatic_hook(self):
         before = {name: (self.root / name).read_bytes() for name in
@@ -163,7 +182,7 @@ class TestLanRootfsTests(unittest.TestCase):
         app_config = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(app_config)
         self.assertEqual(overlay.REVIEWED_APPLICATIONS, app_config.REVIEWED_APPLICATIONS)
-        self.assertEqual(len(overlay.REVIEWED_APPLICATIONS), 2)
+        self.assertEqual(len(overlay.REVIEWED_APPLICATIONS), 3)
         for source, pin in overlay.REVIEWED_APPLICATIONS.items():
             for other in (*overlay.REVIEWED_APPLICATIONS.values(), 'f' * 64):
                 changed = json.loads(self.release)
@@ -176,6 +195,55 @@ class TestLanRootfsTests(unittest.TestCase):
                 with self.subTest(source=source, digest=other), self.assertRaisesRegex(ValueError, 'Exact inactive parent'):
                     self.configure()
                 self.assert_unprepared()
+
+    def test_candidate_pair_uses_candidate_unit_and_preserves_legacy_default_api(self):
+        self.assertIs(overlay.static_parent_files(),overlay.STATIC_PARENT_FILES)
+        overlay.static_parent(overlay.safe_tree(self.root),owner_uid=os.getuid(),owner_gid=os.getgid())
+        app = self.select_candidate()
+        self.assertIs(overlay.static_parent_files(app),overlay.DRAIN_STATIC_PARENT_FILES)
+        with self.assertRaises(ValueError):
+            overlay.static_parent(overlay.safe_tree(self.root),owner_uid=os.getuid(),owner_gid=os.getgid())
+        overlay.static_parent(overlay.safe_tree(self.root),application=app,owner_uid=os.getuid(),owner_gid=os.getgid())
+        metadata = self.configure()
+        self.assertTrue(self.verify(metadata)['passed'])
+        self.assertEqual(metadata['source_commit'],overlay.DRAIN_SOURCE_COMMIT)
+        self.assertFalse(metadata['activation_authorized'])
+        for unit in overlay.MASKS:
+            self.assertEqual(os.readlink(self.root/'etc/systemd/system'/unit),'/dev/null')
+        self.assertFalse((self.root/'etc/inkyos-panel.json').exists())
+        self.write(self.root,'usr/lib/systemd/system/inky-studio.service',self.legacy_unit)
+        with self.assertRaises(ValueError):self.verify(metadata)
+
+    def test_legacy_and_drain_units_cannot_be_exchanged_or_selected_by_marker_alone(self):
+        self.write(self.root,'usr/lib/systemd/system/inky-studio.service',self.drain_unit)
+        with self.assertRaises(ValueError):self.configure()
+        self.assert_unprepared()
+        self.write(self.root,'usr/lib/systemd/system/inky-studio.service',self.legacy_unit)
+        app = self.select_candidate(unit=False)
+        with self.assertRaises(ValueError):self.configure()
+        self.assert_unprepared()
+        for field in ('source_commit','manifest_sha256'):
+            crossed = dict(app);crossed[field] = json.loads(self.release)['application'][field]
+            with self.assertRaises(ValueError):overlay.static_parent_files(crossed)
+        self.write(self.root,'usr/lib/systemd/system/inky-studio.service',self.drain_unit)
+        metadata = self.configure()
+        metadata.update(source_commit=overlay.SOURCE_COMMIT,manifest_sha256=overlay.MANIFEST_SHA256)
+        with self.assertRaisesRegex(ValueError,'parent application pairs differ'):self.verify(metadata)
+
+    def test_both_builders_admit_only_previous_build_pair_and_drain_pair(self):
+        for filename in ('build-test-lan.sh','build-test-lan-linux.sh'):
+            source = (REPOSITORY/'scripts'/filename).read_text().split("<<'PY'\n",1)[1].split('\nPY\n',1)[0]
+            tree = ast.parse(source)
+            function = next(node for node in tree.body if isinstance(node,ast.FunctionDef)
+                            and node.name=='reviewed_build_application')
+            namespace = {};exec(compile(ast.Module(body=[function],type_ignores=[]),'<builder-pin-fixture>','exec'),namespace)
+            accepted = namespace['reviewed_build_application']
+            for commit, pin in overlay.REVIEWED_APPLICATIONS.items():
+                for candidate_pin in (*overlay.REVIEWED_APPLICATIONS.values(),'f'*64):
+                    expected = commit in {overlay.SOURCE_COMMIT,overlay.DRAIN_SOURCE_COMMIT} and candidate_pin==pin
+                    self.assertIs(accepted({'source_commit':commit,'manifest_sha256':candidate_pin}),expected)
+            for bad in (None,[],{}, {'source_commit':[],'manifest_sha256':'f'*64}):
+                self.assertIs(accepted(bad),False)
 
     def test_verification_has_exact_checks_and_does_not_authorize_activation(self):
         metadata = self.configure()

@@ -160,7 +160,7 @@ def validate_inventory(parent, filesystem, configuration, source_blobs, protecte
     root, boot = filesystem['rootfs'], filesystem['bootfs']
     oldroot, oldboot = parent['rootfs'], parent['bootfs']
     no_runtime_or_diagnostic(filesystem)
-    for path, (digest, mode) in overlay.STATIC_PARENT_FILES.items():
+    for path, (digest, mode) in overlay.static_parent_files(application).items():
         regular(root.get(path), digest, format(mode, '04o'))
     for path, data in (
         ('etc/machine-id', b'uninitialized\n'),

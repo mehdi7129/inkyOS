@@ -12,7 +12,8 @@ python3 - "$run_dir" <<'PY'
 import hashlib,io,json,pathlib,subprocess,sys,tarfile
 root=pathlib.Path.cwd()
 names={'Makefile', 'overlay/usr/local/lib/inkyos/firstboot.py',
-       'overlay/etc/systemd/system/inkyos-firstboot.service'}
+       'overlay/etc/systemd/system/inkyos-firstboot.service',
+       'tests/fixtures/preflight-fdf5a12.py.txt'}
 for pattern in ('scripts/*.py','scripts/*.sh','tests/test_*.py','tests/fixtures/*.json','config/*.json',
                 'diagnostic/*.py','diagnostic/*.service','diagnostic/*.timer',
                 'overlay-test-enrollment/*.service'):

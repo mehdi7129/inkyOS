@@ -30,19 +30,28 @@ inspection = module('_inkyos_application_inspection', 'inspect-rootfs.py')
 manifest_verifier = module('_inkyos_application_manifest', 'verify-application.py')
 APP = 'home/inky/inky-studio'
 DATA = 'var/lib/inky-studio'
-SOURCE_COMMIT = '758a2bf7ed099aad41ef35316e53228e797b0b2b'
-MANIFEST_SHA256 = '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'
+SOURCE_COMMIT = 'c31b13afdc957425571810c46230eaaf52fa5d14'
+MANIFEST_SHA256 = 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1'
 # Retain the original pair for old exports. Sharing a version or a source alone
 # does not authorize a repackaged payload; each manifest is pinned in full.
 REVIEWED_APPLICATIONS = {
     '6a697d134290ced0214fc74b903f4b3c336d70fa': '2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f',
+    '758a2bf7ed099aad41ef35316e53228e797b0b2b': '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551',
     SOURCE_COMMIT: MANIFEST_SHA256,
 }
-SOURCE_HASHES = {
+LEGACY_SOURCE_HASHES = {
     'install.sh': '541a98b9f3dc220b0dc89162e98affb97be200360ec7ad8e0650960d7d15944d',
     'scripts/install-bluetooth.sh': 'e0f301c97830860bcc1778579d7f4181370fb4cef8d64aeac4c226ab8aeafb69',
     'scripts/inky-studio-launcher': 'cce76b87092a9186085ed1ee422437ee208fa478ba527f863134dcaf1e9a0d4e',
     'scripts/inky-network-helper.py': '6e5c00862bff1d02c575b422f2d1e1112cd20f2c9e9141894557a698e2d5f431',
+}
+SOURCE_HASHES = {
+    (source, manifest): dict(LEGACY_SOURCE_HASHES)
+    for source, manifest in REVIEWED_APPLICATIONS.items() if source != SOURCE_COMMIT
+}
+SOURCE_HASHES[(SOURCE_COMMIT, MANIFEST_SHA256)] = {
+    **LEGACY_SOURCE_HASHES,
+    'install.sh': '0d91f8016dd2eebf8619bdaa4c54b7afe1ee8e41f13d4f7cbb68f85810ff4e26',
 }
 SERVICES = ('inky-studio.service', 'inky-network.service')
 STARTUP = 'masked-pending-firstboot-contract'
@@ -95,9 +104,14 @@ def installer_repository(source):
     return match[1]
 
 
-def expected_files(tree):
+def expected_files(tree, *, source_commit, manifest_sha256):
+    # The caller supplies the exact pair already authenticated by load_manifest;
+    # neither installed metadata nor a source declaration selects this policy.
+    hashes = SOURCE_HASHES.get((source_commit, manifest_sha256))
+    require(hashes is not None and REVIEWED_APPLICATIONS.get(source_commit) == manifest_sha256,
+            'Static integration requires an exact reviewed source/manifest pair')
     sources = {}
-    for name, digest in SOURCE_HASHES.items():
+    for name, digest in hashes.items():
         path = APP + '/' + name
         info = tree.metadata(path)
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, 'Source must be an unlinked regular file')
@@ -186,7 +200,7 @@ def configure(rootfs, manifest_path, digest, *, _app_uid=1000, _app_gid=1000):
     manifest = load_manifest(manifest_path, digest)
     source = inspection.SafeTree(rootfs)
     try:
-        files = expected_files(source)
+        files = expected_files(source, source_commit=manifest['source_commit'], manifest_sha256=digest)
         accounts(source)
         require(source.read(APP + '/server/SOURCE_COMMIT', 256).strip() == manifest['source_commit'], 'App source pin mismatch')
         release = json.loads(source.read('etc/inkyos-release.json', 1024 * 1024))

@@ -80,7 +80,7 @@ def fixture(path, manifest_name='application-manifest-758a2bf7.json'):
         protected[name] = digest(raw)
     config_raw = b'[all]\ninclude inkyos.txt\n'
     put(boot, 'config.txt', record(config_raw))
-    for name, (pin, mode) in verify.overlay.STATIC_PARENT_FILES.items():
+    for name, (pin, mode) in verify.overlay.static_parent_files(app).items():
         item = record(mode=format(mode, '04o')); item['sha256'] = pin
         put(root, name, item)
     for name, raw in (
@@ -204,6 +204,29 @@ class TestLanExportTests(unittest.TestCase):
         self.assertTrue(result['report']['passed'])
         self.assertEqual(result['manifest']['application'], manifest['application'])
         self.assertNotEqual(manifest['application']['source_commit'], verify.overlay.SOURCE_COMMIT)
+
+    def test_candidate_export_uses_exact_drain_unit_and_stays_unqualified(self):
+        manifest, _ = fixture(self.path,'application-manifest-c31b13af.json')
+        result = verify.load_export(self.path)
+        self.assertTrue(result['report']['passed'])
+        self.assertEqual(result['manifest']['application'],manifest['application'])
+        self.assertEqual(result['manifest']['application']['source_commit'],verify.overlay.DRAIN_SOURCE_COMMIT)
+        unit = result['filesystem']['rootfs']['usr/lib/systemd/system/inky-studio.service']
+        self.assertEqual(unit['sha256'],'c9d7e4c16ec08c3b5e51af584a2ed1d70f66ebd3dcfd1d9e42d2d5abd751aef8')
+        for field in ('ready_for_activation','hardware_qualified','release_qualified'):
+            self.assertIs(result['report'][field],False)
+
+    def test_inventory_rejects_exchanged_legacy_and_drain_units(self):
+        path = 'usr/lib/systemd/system/inky-studio.service'
+        for manifest_name, wrong_policy in (
+            ('application-manifest-758a2bf7.json',verify.overlay.DRAIN_STATIC_PARENT_FILES),
+            ('application-manifest-c31b13af.json',verify.overlay.STATIC_PARENT_FILES)):
+            fixture(self.path,manifest_name)
+            filesystem = self.read('filesystem-manifest.json')
+            filesystem['rootfs'][path]['sha256'] = wrong_policy[path][0]
+            rehash_report(self.path,'filesystem-manifest.json',filesystem)
+            with self.assertRaisesRegex(verify.ArtifactError,'Installed prepared file differs'):
+                verify.load_export(self.path)
 
     def test_crossed_reviewed_pairs_and_unknown_manifest_are_refused(self):
         for source, pin in verify.overlay.REVIEWED_APPLICATIONS.items():

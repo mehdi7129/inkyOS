@@ -3,6 +3,8 @@
 set -Eeuo pipefail
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo"
+PYTHON=${PYTHON:-python3}
+"$PYTHON" -c 'import sys; sys.exit("Python 3.11+ required; select it with PYTHON.") if sys.version_info < (3, 11) else None'
 application_manifest=
 application_sha256=
 application_assets=
@@ -25,13 +27,13 @@ if (( $# )); then
 fi
 vm=inkyos-build
 [[ $(limactl shell --workdir=/tmp "$vm" cat /var/lib/inkyos-build/owner) == inkyos-builder-v1 ]] || exit 1
-python3 scripts/fetch-base.py --extract build/base.img > /dev/null
-python3 scripts/fetch-packages.py --cache-dir cache/packages > /dev/null
+"$PYTHON" scripts/fetch-base.py --extract build/base.img > /dev/null
+"$PYTHON" scripts/fetch-packages.py --cache-dir cache/packages > /dev/null
 mkdir -p build
 run_dir=$(mktemp -d build/prototype.XXXXXXXX)
 guest_dir="/var/tmp/inkyos-work/$(basename "$run_dir")"
 # Whitelist source inputs, never recursively archive the working tree/home.
-python3 - "$run_dir" "$application_manifest" "$application_sha256" "$application_assets" <<'PY'
+"$PYTHON" - "$run_dir" "$application_manifest" "$application_sha256" "$application_assets" <<'PY'
 import hashlib,importlib.util,io,json,os,pathlib,shutil,stat,subprocess,sys,tarfile
 files = ['config/base-image.lock.json','config/system-packages.lock.json',
          'scripts/build-prototype.sh','scripts/fetch-base.py','scripts/fetch-packages.py',
@@ -98,7 +100,7 @@ if (( application_mode )); then
 fi
 while IFS= read -r package; do
   limactl copy "cache/packages/$package" "$vm:$guest_dir/packages/$package"
-done < <(python3 -c 'import json; print("\n".join(p["filename"] for p in json.load(open("config/system-packages.lock.json"))["packages"]))')
+done < <("$PYTHON" -c 'import json; print("\n".join(p["filename"] for p in json.load(open("config/system-packages.lock.json"))["packages"]))')
 limactl copy build/base.img "$vm:$guest_dir/prototype.img"
 limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/check-builder.sh" > "$run_dir/builder.json"
 limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/smoke-firstboot-linux.sh" > "$run_dir/firstboot-smoke.json"
@@ -122,7 +124,7 @@ if (( application_mode )); then
   done
 fi
 limactl copy "$vm:$guest_dir/prototype.img" "$run_dir/$image_name"
-python3 - "$run_dir" "$image_name" <<'PY'
+"$PYTHON" - "$run_dir" "$image_name" <<'PY'
 import hashlib,json,pathlib,sys
 out=pathlib.Path(sys.argv[1]); image=out/sys.argv[2]
 h=hashlib.sha256()
@@ -150,7 +152,7 @@ manifest={'schema_version':1,'kind':'application-prototype' if application else 
 (out/'manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
 (out/'SHA256SUMS').write_text(h.hexdigest()+'  '+image.name+'\n')
 PY
-python3 scripts/verify-artifacts.py "$run_dir" --output "$run_dir.integrity.json"
+"$PYTHON" scripts/verify-artifacts.py "$run_dir" --output "$run_dir.integrity.json"
 # Successful export only: preserve failed working copies for diagnosis.
 limactl shell --workdir=/tmp "$vm" rm -- "$guest_dir/prototype.img"
 echo "Prototype and evidence: $repo/$run_dir"

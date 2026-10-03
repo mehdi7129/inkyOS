@@ -1,4 +1,5 @@
 """Inactive app integration fixtures: no app execution, chroot, mount or network."""
+import copy
 import hashlib
 import importlib.util
 import json
@@ -6,7 +7,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,6 +21,7 @@ def module(name, filename):
 
 configure = module('configure_app_fixture', 'configure-application-rootfs.py')
 verify = module('verify_app_fixture', 'verify-application-rootfs.py')
+PRODUCTION_SOURCE_HASHES = copy.deepcopy(configure.SOURCE_HASHES)
 
 
 class ApplicationRootfsTests(unittest.TestCase):
@@ -79,7 +81,13 @@ class ApplicationRootfsTests(unittest.TestCase):
         }
         for path, content in self.sources.items():
             self.write(configure.APP + '/' + path, content)
-        hashes = {path: hashlib.sha256(content.encode()).hexdigest() for path, content in self.sources.items()}
+        candidate_install = self.sources['install.sh'].replace(
+            'ExecStart=${INSTALL_DIR}', 'Environment="INKY_STUDIO_DISPLAY_MODE=hardware"\nExecStart=${INSTALL_DIR}').replace(
+            '\n\n[Install]', '\nKillSignal=SIGTERM\nKillMode=mixed\nTimeoutStopSec=infinity\nSendSIGKILL=no\n\n[Install]')
+        self.candidate_sources = dict(self.sources, **{'install.sh': candidate_install})
+        hashes = {pair: {path: hashlib.sha256(content.encode()).hexdigest() for path, content in
+                  (self.candidate_sources if pair[0] == configure.SOURCE_COMMIT else self.sources).items()}
+                  for pair in configure.SOURCE_HASHES}
         self.patches = [patch.dict(configure.SOURCE_HASHES, hashes), patch.dict(verify.configuration.SOURCE_HASHES, hashes)]
         for item in self.patches:
             item.start()
@@ -116,6 +124,17 @@ class ApplicationRootfsTests(unittest.TestCase):
     def report(self):
         return verify.verify(self.root, self.manifest, self.digest, _owner_uid=os.getuid(), _owner_gid=os.getgid(),
                              _app_uid=os.getuid(), _app_gid=os.getgid())
+
+    def select_candidate(self):
+        raw = (ROOT/'tests/fixtures/application-manifest-c31b13af.json').read_bytes()
+        self.manifest.write_bytes(raw)
+        self.digest = hashlib.sha256(raw).hexdigest()
+        release = json.loads((self.root/'etc/inkyos-release.json').read_bytes())
+        release['recipe_inputs']['files']['application-manifest.json'] = self.digest
+        self.write('etc/inkyos-release.json',json.dumps(release))
+        self.write(configure.APP+'/server/SOURCE_COMMIT',json.loads(raw)['source_commit']+'\n')
+        for path, content in self.candidate_sources.items():
+            self.write(configure.APP+'/'+path,content)
 
     def test_static_integration_is_pinned_inactive_and_identity_free(self):
         self.configure()
@@ -164,10 +183,11 @@ class ApplicationRootfsTests(unittest.TestCase):
 
     def test_exact_reviewed_pairs_reject_crossed_and_repackaged_manifests(self):
         fixtures = [ROOT / 'tests/fixtures' / name for name in
-                    ('application-manifest-6a697d1.json', 'application-manifest-758a2bf7.json')]
+                    ('application-manifest-6a697d1.json', 'application-manifest-758a2bf7.json',
+                     'application-manifest-c31b13af.json')]
         pins = {json.loads(path.read_bytes())['source_commit']: hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in fixtures}
-        self.assertEqual(len(pins), 2)
+        self.assertEqual(len(pins), 3)
         self.assertEqual(configure.REVIEWED_APPLICATIONS, pins)
         self.assertEqual(verify.configuration.REVIEWED_APPLICATIONS, pins)
         for path in fixtures:
@@ -183,6 +203,68 @@ class ApplicationRootfsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'reviewed source/manifest pair'):
                 configure.load_manifest(self.manifest, hashlib.sha256(self.manifest.read_bytes()).hexdigest())
 
+    def test_source_hash_policy_preserves_both_historical_pairs_and_is_selected_explicitly(self):
+        self.assertEqual(set(PRODUCTION_SOURCE_HASHES), set(configure.REVIEWED_APPLICATIONS.items()))
+        old = [hashes for pair,hashes in PRODUCTION_SOURCE_HASHES.items() if pair[0] != configure.SOURCE_COMMIT]
+        self.assertEqual(len(old),2)
+        self.assertEqual(old[0],old[1])
+        self.assertEqual(old[0]['install.sh'],'541a98b9f3dc220b0dc89162e98affb97be200360ec7ad8e0650960d7d15944d')
+        candidate = PRODUCTION_SOURCE_HASHES[(configure.SOURCE_COMMIT,configure.MANIFEST_SHA256)]
+        self.assertEqual(candidate['install.sh'],'0d91f8016dd2eebf8619bdaa4c54b7afe1ee8e41f13d4f7cbb68f85810ff4e26')
+        self.assertEqual({name:value for name,value in candidate.items() if name!='install.sh'},
+                         {name:value for name,value in old[0].items() if name!='install.sh'})
+        tree = Mock()
+        with self.assertRaises(TypeError): configure.expected_files(tree)
+        with self.assertRaises(ValueError):
+            configure.expected_files(tree,source_commit='758a2bf7ed099aad41ef35316e53228e797b0b2b',
+                                     manifest_sha256=configure.MANIFEST_SHA256)
+        tree.metadata.assert_not_called();tree.read.assert_not_called()
+
+    def test_candidate_static_unit_preserves_drain_settings_and_remains_masked_without_panel_profile(self):
+        self.select_candidate();self.configure()
+        report = self.report()
+        self.assertTrue(report['passed'],report['failed_checks'])
+        self.assertEqual(report['source_commit'],configure.SOURCE_COMMIT)
+        self.assertEqual(report['manifest_sha256'],configure.MANIFEST_SHA256)
+        path = self.root/'usr/lib/systemd/system/inky-studio.service'
+        original = path.read_text()
+        for line in ('Environment="INKY_STUDIO_DISPLAY_MODE=hardware"','KillSignal=SIGTERM','KillMode=mixed',
+                     'TimeoutStopSec=infinity','SendSIGKILL=no'):
+            self.assertEqual(original.splitlines().count(line),1)
+            path.write_text(original.replace(line,'# removed by fixture'))
+            self.assertIn('EXACT_USR_LIB_SYSTEMD_SYSTEM_INKY_STUDIO_SERVICE',self.report()['failed_checks'])
+            path.write_text(original)
+        for unit in configure.SERVICES:
+            self.assertEqual(os.readlink(self.root/'etc/systemd/system'/unit),'/dev/null')
+        self.assertFalse((self.root/'etc/inkyos-panel.json').exists())
+        self.assertNotIn('AC073',original)
+        self.assertFalse(report['release_qualified'])
+
+    def test_installers_cannot_be_exchanged_between_old_and_candidate_pairs(self):
+        self.write(configure.APP+'/install.sh',self.candidate_sources['install.sh'])
+        with self.assertRaisesRegex(ValueError,'installer source hash mismatch'):self.configure()
+        self.assertFalse((self.root/'usr/local/bin/inky-studio').exists())
+        self.select_candidate()
+        self.write(configure.APP+'/install.sh',self.sources['install.sh'])
+        with self.assertRaisesRegex(ValueError,'installer source hash mismatch'):self.configure()
+        self.assertFalse((self.root/'usr/local/bin/inky-studio').exists())
+        self.write(configure.APP+'/install.sh',self.candidate_sources['install.sh']);self.configure()
+        self.write(configure.APP+'/install.sh',self.sources['install.sh'])
+        self.assertIn('REVIEWED_INSTALLER_SOURCES',self.report()['failed_checks'])
+
+    def test_installed_metadata_cannot_select_a_different_reviewed_source_policy(self):
+        self.configure()
+        release = json.loads((self.root/'etc/inkyos-release.json').read_bytes())
+        release['application']['source_commit'] = configure.SOURCE_COMMIT
+        release['application']['manifest_sha256'] = configure.MANIFEST_SHA256
+        self.write('etc/inkyos-release.json',json.dumps(release))
+        self.write(configure.APP+'/server/SOURCE_COMMIT',configure.SOURCE_COMMIT+'\n')
+        self.write(configure.APP+'/install.sh',self.candidate_sources['install.sh'])
+        failed = self.report()['failed_checks']
+        self.assertIn('APPLICATION_METADATA',failed)
+        self.assertIn('SOURCE_COMMIT_PIN',failed)
+        self.assertIn('REVIEWED_INSTALLER_SOURCES',failed)
+
     def test_tampered_source_or_manifest_is_rejected_before_configuration(self):
         with self.assertRaises(ValueError):
             configure.configure(self.root, self.manifest, 'f' * 64)
@@ -195,7 +277,7 @@ class ApplicationRootfsTests(unittest.TestCase):
         self.write(configure.APP + '/server/SOURCE_COMMIT', 'b' * 40)
         with self.assertRaises(ValueError):
             self.configure()
-        self.write(configure.APP + '/server/SOURCE_COMMIT', configure.SOURCE_COMMIT)
+        self.write(configure.APP + '/server/SOURCE_COMMIT', json.loads(self.manifest.read_bytes())['source_commit'])
         release = json.loads((self.root / 'etc/inkyos-release.json').read_text())
         release['recipe_inputs']['files']['application-manifest.json'] = 'b' * 64
         self.write('etc/inkyos-release.json', json.dumps(release))

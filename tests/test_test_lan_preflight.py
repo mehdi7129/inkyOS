@@ -40,10 +40,11 @@ class FixtureAdapter:
 
 
 class PreflightTests(unittest.TestCase):
-    def test_allowlist_is_exactly_two_reviewed_source_manifest_pairs(self):
+    def test_allowlist_is_exactly_three_reviewed_source_manifest_pairs(self):
         self.assertEqual(preflight.REVIEWED_APPLICATIONS, {
             "6a697d134290ced0214fc74b903f4b3c336d70fa": "2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f",
             "758a2bf7ed099aad41ef35316e53228e797b0b2b": "0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551",
+            "c31b13afdc957425571810c46230eaaf52fa5d14": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
         })
 
     def inputs(self):
@@ -274,9 +275,10 @@ class FilesystemLiveAdapterTests(unittest.TestCase):
         self.assertFalse(value["checks"]["exact_payload_pin"]["passed"])
         self.assertEqual(self.calls, [])
 
-    def test_both_exact_pins_pass_and_crossed_unknown_or_source_declaration_mismatches_block(self):
+    def test_all_exact_pins_pass_and_crossed_unknown_or_source_declaration_mismatches_block(self):
         cases = (("6a697d134290ced0214fc74b903f4b3c336d70fa", "application-manifest-6a697d1.json"),
-                 ("758a2bf7ed099aad41ef35316e53228e797b0b2b", "application-manifest-758a2bf7.json"))
+                 ("758a2bf7ed099aad41ef35316e53228e797b0b2b", "application-manifest-758a2bf7.json"),
+                 ("c31b13afdc957425571810c46230eaaf52fa5d14", "application-manifest-c31b13af.json"))
         for source, filename in cases:
             with self.subTest(source=source):
                 raw = (Path(__file__).resolve().parent / "fixtures" / filename).read_bytes()
@@ -286,7 +288,10 @@ class FilesystemLiveAdapterTests(unittest.TestCase):
                 self.put(preflight.MARKER, json.dumps(marker).encode())
                 self.put(preflight.MANIFEST, raw)
                 self.put(preflight.SOURCE_FILE, (source + "\n").encode())
-                self.assertTrue(preflight.preflight(self.adapter, **self.inputs)["checks"]["exact_payload_pin"]["passed"])
+                value = preflight.preflight(self.adapter, **self.inputs)
+                self.assertTrue(value["checks"]["exact_payload_pin"]["passed"])
+                self.assertFalse(value['checks']['panel_runtime_evidence_verified']['passed'])
+                self.assertFalse(value['activation_authorized']);self.assertFalse(value['passed'])
                 other = next(value for value in preflight.REVIEWED_APPLICATIONS if value != source)
                 changes = (
                     (dict(marker, manifest_sha256=preflight.REVIEWED_APPLICATIONS[other]), (source + "\n").encode(), raw),

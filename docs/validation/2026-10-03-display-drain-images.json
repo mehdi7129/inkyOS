@@ -1,0 +1,580 @@
+{
+  "application_activated": false,
+  "application_parent": {
+    "application": {
+      "application_version": "0.5.0-rc.2",
+      "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+      "release_qualified": false,
+      "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+      "startup": "masked-pending-firstboot-contract"
+    },
+    "firstboot_fixtures": {
+      "checks": {
+        "child_completed": true,
+        "fixture_files_reconciled": true,
+        "fixtures_removed": true,
+        "kernel_entropy": true,
+        "linux_arm64_builder": true,
+        "machine_id_unchanged": true,
+        "parent_hostname_unchanged": true,
+        "parent_namespace_unchanged": true,
+        "private_permissions": true,
+        "private_uts_namespace": true,
+        "repeat_stable_without_entropy": true,
+        "runtime_hostname_applied": true,
+        "two_distinct_identities": true
+      },
+      "passed": true
+    },
+    "image": {
+      "filename": "inkyos-application-prototype.img",
+      "sha256": "8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727",
+      "size_bytes": 3061841920
+    },
+    "integrity": {
+      "authenticity_verified": false,
+      "declared_reports_verified": [
+        "application-archives.json",
+        "application-install-dependencies.txt",
+        "application-install-editable.txt",
+        "application-install-pip-check.txt",
+        "application-install-venv.txt",
+        "application-installation.json",
+        "application-manifest.json",
+        "boot-preserved.sha256",
+        "builder.json",
+        "filesystem-manifest.json",
+        "firstboot-smoke.json",
+        "fsck-ext4.txt",
+        "fsck-fat.txt",
+        "image-inspection.json",
+        "qualification-application.json",
+        "qualification-static.json",
+        "sudoers-verify.txt",
+        "systemd-verify.txt"
+      ],
+      "filesystem_manifest_schema": 2,
+      "firstboot_smoke_consistent_pass": true,
+      "hardware_qualified": false,
+      "image_regular_file_and_size_verified": true,
+      "image_sha256_verified": true,
+      "limits": [
+        "Hashes are checked against this unsigned local manifest, not an independent trust anchor.",
+        "Reports are checked for integrity and consistency; their tests are not rerun.",
+        "Filesystem records are not regenerated from the image; no mounting, extraction or image execution occurs.",
+        "No boot or hardware qualification is established."
+      ],
+      "passed": true,
+      "recipe_inputs_consistent": true,
+      "schema_version": 1,
+      "scope": "local-export-integrity",
+      "static_gate_consistent_pass": true
+    },
+    "manifest_sha256": "58edb8701527831b20397b142f0e0ea04bddcdf582535a4d017e101a3bddaf68",
+    "offline_installation": {
+      "app_started": false,
+      "build_gid": 1000,
+      "build_uid": 1000,
+      "free_bytes_after": 161435648,
+      "network_interfaces": [
+        "lo"
+      ],
+      "passed": true,
+      "steps": [
+        {
+          "exit_code": 0,
+          "log": "application-installation.logs/venv.txt",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "name": "venv"
+        },
+        {
+          "exit_code": 0,
+          "log": "application-installation.logs/dependencies.txt",
+          "log_sha256": "7df7457226997f91587179522d3711bec768eb628ec9d86127aaa2187039073e",
+          "name": "dependencies"
+        },
+        {
+          "exit_code": 0,
+          "log": "application-installation.logs/editable.txt",
+          "log_sha256": "830433a101adc6d8db3e64426b56e702361a7894dd60e51132f9eb6280793bbb",
+          "name": "editable"
+        },
+        {
+          "exit_code": 0,
+          "log": "application-installation.logs/pip-check.txt",
+          "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+          "name": "pip-check"
+        }
+      ]
+    },
+    "recipe": {
+      "files": {
+        "Makefile": "aada1f8016128e9bf588d5cf8039c36a5148fc10b4d5ce1ddcab90f3c86dcf3d",
+        "application-manifest.json": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+        "config/base-image.lock.json": "b8dfe442703d1b2063f7006a28353427aa526858c31a2d9f73f4090dc86add18",
+        "config/system-packages.lock.json": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+        "infra/lima.yaml": "6bcdda8367b915c662f9e5cd1d35eb0ba3baae43acd31aa33fa066ec508f3883",
+        "overlay/etc/systemd/system/inkyos-firstboot.service": "a707eadd71f2a1dd57d3e83e2bcfd868485660b94391d645435ef3e105555ab6",
+        "overlay/usr/local/lib/inkyos/firstboot.py": "a76a68c1554b279dbf8a95e690a9179e8769def4c3d361f1d5bdeb630a585a35",
+        "scripts/build-image-linux.sh": "bd4ccc6b11b973d43f573d64742a91d386264b03a7864383e2973c8febdbf834",
+        "scripts/build-prototype.sh": "1ec990634d39d967977217735eb66ce383974c2c0a16b016aa61d66e46d88f3f",
+        "scripts/check-builder.sh": "1843e22434e37c4c999008317fae7baed1b2d507ccf8c4ef0f19c141077c894e",
+        "scripts/compare-builds.py": "283162fb28f52ea9c55693c030265cd5402b1c3884dfb7fbdd4600a96cdd3b1d",
+        "scripts/configure-application-rootfs.py": "fa5c76cc8edcdf6978e856ace9a3e4d391b6429556f5a9f63d3009238c706c3f",
+        "scripts/configure-rootfs.py": "f0b3c6202b51018ff2bd74f2788f6ec899a3a29911e947c45db5ad27f300a3a4",
+        "scripts/fetch-base.py": "cd2af10bacce92d17ec51c937fa3841fa11d1bad93e4290cfb67fe222194bcd4",
+        "scripts/fetch-packages.py": "05612769da3dacd59c0040baf9063447982ffb8b8e20d9382d8cd130dab1d847",
+        "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+        "scripts/inspect-image.sh": "b36d7273defa63581caa87084dcd7f5903b3e7d2a7bfd78d385643e4032e771d",
+        "scripts/inspect-rootfs.py": "11dc85e0cb811eef25968804bc26e049fbc0ff9a8b2f18cfadd9fb41eecf16af",
+        "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+        "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+        "scripts/run-unit-tests.py": "75e65f26ae6710d80bad23e0f4056c23f1c41b3afa0de8cb091be0735e91c660",
+        "scripts/smoke-firstboot-linux.sh": "25466a0afbfdd1688775dbbe7572b80ca67753bb9fa6890265cb01f2bb02f002",
+        "scripts/test-linux.sh": "6fd7c39d34ffa0ca3d5a81f2922f1a204f4b8d973eec066f29df750db39590f4",
+        "scripts/verify-application-rootfs.py": "4e9cfd600646ae6d8ebc4775a4f3b518e933d3776f097312ee67ac390251307b",
+        "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+        "scripts/verify-artifacts.py": "bc03aba16eb7d7ea2844e26a4423206143d000a54cd1461bce1b4e87d369f019",
+        "scripts/verify-prototype.py": "479b3de9d2d50e5322fee35e67264d3fef5c376561f182033766bec6db246931"
+      },
+      "schema_version": 1,
+      "source_commit": "05c92d01ad732310643ade9cbf06e40252a71851",
+      "worktree_dirty": true
+    },
+    "reports_sha256": {
+      "application-archives.json": "11f317b9d8565d706a47986c61dcd269d7c6cb6f6c4b5b9ba77cbd8c826cf88e",
+      "application-install-dependencies.txt": "7df7457226997f91587179522d3711bec768eb628ec9d86127aaa2187039073e",
+      "application-install-editable.txt": "830433a101adc6d8db3e64426b56e702361a7894dd60e51132f9eb6280793bbb",
+      "application-install-pip-check.txt": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+      "application-install-venv.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "application-installation.json": "d41b880559cdc23b9faaed544d21abebe7ca3913ad9823edefd2ca4acdb2394e",
+      "application-manifest.json": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+      "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+      "builder.json": "167add686167db2eea3ae36070773f3e3ce9e342909ed8923e65d12f6a89e28c",
+      "filesystem-manifest.json": "11802d15795b8adca75098641102996ab7cb0b9b154342541cf9723ac81e121a",
+      "firstboot-smoke.json": "62a450e80dcecbb5f8ab8a8dea184bdbf6783c34b4f166abb53fe6d3c138f560",
+      "fsck-ext4.txt": "0fe89af54568da0ffda122775f3254864917259abacf337a909b06cd19b0bf21",
+      "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+      "image-inspection.json": "68d895645b13b40505bd36126e3a3686d859d5735012d6be80e4799bc3bff6de",
+      "qualification-application.json": "08809e578be4e8d99f0502e5946768bb7dbd3b28d65c1a4ee3b1ca1c7be01b6f",
+      "qualification-static.json": "e241885fcc29a48486a695b1928a45941cf333c5117c4942e1dd3fc367e120f4",
+      "sudoers-verify.txt": "59f7ee8a877aa72c3c2982d462da7d1902baa672cb90f4beaf89fc461057e194",
+      "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "selected_files": {
+      "etc/systemd/system/inky-network.service": {
+        "gid": 0,
+        "mode": "0777",
+        "target": "/dev/null",
+        "type": "symlink",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "etc/systemd/system/inky-studio.service": {
+        "gid": 0,
+        "mode": "0777",
+        "target": "/dev/null",
+        "type": "symlink",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "etc/systemd/system/ssh.service": {
+        "gid": 0,
+        "mode": "0777",
+        "target": "/dev/null",
+        "type": "symlink",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "usr/lib/systemd/system/inky-studio.service": {
+        "gid": 0,
+        "mode": "0644",
+        "sha256": "c9d7e4c16ec08c3b5e51af584a2ed1d70f66ebd3dcfd1d9e42d2d5abd751aef8",
+        "size_bytes": 799,
+        "type": "file",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      }
+    },
+    "static": {
+      "qualification-application.json": {
+        "checks": 26,
+        "passed": true
+      },
+      "qualification-static.json": {
+        "checks": 62,
+        "passed": true
+      }
+    }
+  },
+  "date": "2026-10-03",
+  "hardware_qualified": false,
+  "legacy_lan_export": {
+    "integrity": {
+      "authenticity_verified": false,
+      "declared_reports_verified": [
+        "application-manifest.json",
+        "boot-preserved.sha256",
+        "build.log",
+        "filesystem-manifest.json",
+        "fsck-ext4.txt",
+        "fsck-fat.txt",
+        "image-inspection.json",
+        "parent-filesystem-manifest.json",
+        "parent-integrity.json",
+        "parent-manifest.json",
+        "qualification-application.json",
+        "qualification-static.json",
+        "recipe.tar",
+        "systemd-verify.txt",
+        "test-lan-configuration.json"
+      ],
+      "filesystem_delta_allowlist_verified": true,
+      "hardware_qualified": false,
+      "image_sha256_verified": true,
+      "limits": [
+        "Unsigned local hashes establish consistency, not independent authenticity.",
+        "The parent image was checked when building; its bytes are not retained or rehashed here.",
+        "Reports and archived recipe sources are checked; build commands and static tests are not rerun.",
+        "Filesystem inventories are not regenerated from image bytes by this verifier.",
+        "No boot, SD, Pi, display, radio, operator access or application activation is qualified."
+      ],
+      "no_active_application": true,
+      "parent_image_sha256": "2a7d5d0f6b71b36d9fd59dd4ed66f815210c19d9057ea1f1c75179a46b88706e",
+      "passed": true,
+      "protected_boot_grow_files_verified": 10,
+      "ready_for_activation": false,
+      "recipe_source_hashes_verified": true,
+      "release_qualified": false,
+      "schema_version": 1,
+      "scope": "local-test-lan-prepared-export-integrity"
+    },
+    "report_sha256": "72f472e5c802c3c63bddc151d594d275c8cbe56214c558c4cd8b7543d85d48b8"
+  },
+  "limits": [
+    "Images were assembled offline and checked statically; neither image was booted on a Pi.",
+    "App/helper/SSH remain masked; no TEST display profile is forced into the generic application image.",
+    "The real SSH/PAM and operator regression used a disposable historical 758a2bf image and synthetic enrollment, not the new c31b13af images.",
+    "Stop mutations used fixture adapters; the active application drain and physical shutdown remain unqualified.",
+    "The boot importer, replay-consumption transaction, NetworkManager startup guard and Wi-Fi/SSH connection orchestration remain to integrate.",
+    "Initial image Wi-Fi disabled state alone is not a guard for subsequent NetworkManager starts after a connection.",
+    "Current SD enrollment pins remain unchanged; its identity is not migrated to the new parents.",
+    "Unsigned manifests establish consistency rather than independent authenticity; filesystem inventories are not regenerated by the export verifier.",
+    "Builds record the pre-commit HEAD and dirty worktree plus exact source hashes; the later test-runner fixture whitelist differs from that archived in the earlier application recipe.",
+    "No reproducibility comparison between two builds of this candidate, physical display, Wi-Fi, BLE or iPhone pairing is qualified."
+  ],
+  "operator_access_installed_in_images": false,
+  "prepared_commit": "05c92d01ad732310643ade9cbf06e40252a71851",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "offline-display-drain-image-parents-and-operator-regression",
+  "sd_modified": false,
+  "software": {
+    "linux_arm64": {
+      "architecture": "aarch64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "a9da67f79d93079ec758dc9ed423e01273cb72216cd15fbc148963a5df6d8c4a",
+      "passed": true,
+      "python": "3.13.5",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 19
+      },
+      "skipped": 1,
+      "system": "Linux",
+      "tests": 709
+    },
+    "linux_inputs_sha256": "972961715a91a56d71f6e220b87a452388b6b82bb83e60ddb9e9075219b9ad64",
+    "macos": {
+      "architecture": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "05e2d08359807080997aff73fc9fae25f763aff1fbd5781dfd8193cadd5ca048",
+      "passed": true,
+      "python": "3.13.15",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 19
+      },
+      "skipped": 4,
+      "system": "Darwin",
+      "tests": 709
+    },
+    "macos_inputs_sha256": "a4f654061ffb1c45e222d487b6124a0481899d20360853364e191696834fad1b"
+  },
+  "source_sha256": {
+    "scripts/build-prototype.sh": "1ec990634d39d967977217735eb66ce383974c2c0a16b016aa61d66e46d88f3f",
+    "scripts/build-test-lan-linux.sh": "0cf8552c7a6da7b25f8601cf753c53dfd2151f2f23fc5361c1ded9e3c31f930d",
+    "scripts/build-test-lan.sh": "abc5aac820b471af13890a5e4fce189800d19c3c2a8244c4a56954c1652907d9",
+    "scripts/configure-application-rootfs.py": "fa5c76cc8edcdf6978e856ace9a3e4d391b6429556f5a9f63d3009238c706c3f",
+    "scripts/configure-test-lan-rootfs.py": "df97b8ab00229961e8b59315c2f4c9dd1193eba9f0f9b5dceabfd8d4c0486485",
+    "scripts/test-access-network.py": "c61f51f701344b9be98116799224de9aa6de48b7ba25f66808fbc3c80f085da1",
+    "scripts/test-lan-preflight.py": "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba",
+    "scripts/test-linux.sh": "3b9d71f6a979bcd8d84b330055975eb4e7436dfd834cf597568a8c4434886027",
+    "scripts/test-operator-runner.py": "0c44b81aa4a3b70490f64e6631b4daf5a8f0b6e2854f6febc22e8a0f2d0bb53a",
+    "scripts/verify-application-rootfs.py": "4e9cfd600646ae6d8ebc4775a4f3b518e933d3776f097312ee67ac390251307b",
+    "scripts/verify-test-lan.py": "d0d540b4087fce2dd63e12bf44aa4d94b06e65e71451a1bd6dfa36ec032f52ce",
+    "tests/fixtures/README.md": "1136e0a58b9a748ef51f14cb680b9c974a0dad35a5c0496a57dfe03c70812ba0",
+    "tests/fixtures/application-manifest-c31b13af.json": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+    "tests/fixtures/preflight-fdf5a12.py.txt": "fdf5a12b7b2c13dce3456531816d634e5bb235e37fdeff8d2efd4edcdb45209b",
+    "tests/test_application_rootfs.py": "08160a51797bb3aa06dde27868278ce207facc01f6319b981edfa764e3131bc0",
+    "tests/test_diagnose_enrollment_observers.py": "133ddf2b2894ac7336aa27a4f66cf93492061dcfc8510c29affca8a4b64f2064",
+    "tests/test_test_lan_preflight.py": "2796912616cef80a4cfa9830d1c1dffd5d90d3547bbc0e62247df62a9d95ea0f",
+    "tests/test_test_lan_rootfs.py": "d60917f26473346aeb6c3111157dc8d7f1109d3310ff24d26051a0b18a343004",
+    "tests/test_verify_test_lan.py": "e4940efde5ac5b3e7569ed27e85e8cdb5fbbdfd41d344586ca0f90dedd091a9f"
+  },
+  "sources_tested_before_commit": true,
+  "ssh_regression": {
+    "existing_keys_used": false,
+    "external_network_used": false,
+    "inputs_sha256": "71efe09e63ee5465f158c6be1790d3c44a01f7217606068481cd257cd341fcce",
+    "operator_and_capsule_checks": 22,
+    "operator_source_sha256": {
+      "application-manifest.json": "0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551",
+      "probe-test-operator-runtime.py": "741974d5a90fb12c1fe7a2847c4abca053ee39b36e20eb42780e53f083b079ca",
+      "test-access-contract.py": "6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68",
+      "test-enrollment-firstboot.py": "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a",
+      "test-lan-preflight.py": "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba",
+      "test-operator-dispatch.py": "7d2bfe3efc46ba66ad3a6e948d97daebda23300a7380a84448f61997cb124e43",
+      "test-operator-runner.py": "0c44b81aa4a3b70490f64e6631b4daf5a8f0b6e2854f6febc22e8a0f2d0bb53a"
+    },
+    "parent": {
+      "application_manifest_sha256": "0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551",
+      "application_source_commit": "758a2bf7ed099aad41ef35316e53228e797b0b2b",
+      "filesystem_manifest_sha256": "d92068f46c88e82524a00f8234bf7cf2c04533a484aed9ca61be15f57d9747e2",
+      "image_sha256": "2a7d5d0f6b71b36d9fd59dd4ed66f815210c19d9057ea1f1c75179a46b88706e",
+      "manifest_sha256": "8caab64e615bddd5cc3c996431c91ff3ccde7f74e1038727449c74fc35d9dee0"
+    },
+    "passed": true,
+    "report_sha256": "4fac0ee55b74a9d9646d358993a3184dc08ff9ca736a90a23cee762f38c6ae9e",
+    "stop_mutations_fixture_only": true,
+    "transport_checks": 39
+  },
+  "test_lan_parent": {
+    "application": {
+      "application_version": "0.5.0-rc.2",
+      "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+      "release_qualified": false,
+      "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+      "startup": "masked-pending-firstboot-contract"
+    },
+    "image": {
+      "filename": "inkyos-test-lan-prepared.img",
+      "sha256": "0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286",
+      "size_bytes": 3061841920
+    },
+    "integrity": {
+      "authenticity_verified": false,
+      "declared_reports_verified": [
+        "application-manifest.json",
+        "boot-preserved.sha256",
+        "build.log",
+        "filesystem-manifest.json",
+        "fsck-ext4.txt",
+        "fsck-fat.txt",
+        "image-inspection.json",
+        "parent-filesystem-manifest.json",
+        "parent-integrity.json",
+        "parent-manifest.json",
+        "qualification-application.json",
+        "qualification-static.json",
+        "recipe.tar",
+        "systemd-verify.txt",
+        "test-lan-configuration.json"
+      ],
+      "filesystem_delta_allowlist_verified": true,
+      "hardware_qualified": false,
+      "image_sha256_verified": true,
+      "limits": [
+        "Unsigned local hashes establish consistency, not independent authenticity.",
+        "The parent image was checked when building; its bytes are not retained or rehashed here.",
+        "Reports and archived recipe sources are checked; build commands and static tests are not rerun.",
+        "Filesystem inventories are not regenerated from image bytes by this verifier.",
+        "No boot, SD, Pi, display, radio, operator access or application activation is qualified."
+      ],
+      "no_active_application": true,
+      "parent_image_sha256": "8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727",
+      "passed": true,
+      "protected_boot_grow_files_verified": 10,
+      "ready_for_activation": false,
+      "recipe_source_hashes_verified": true,
+      "release_qualified": false,
+      "schema_version": 1,
+      "scope": "local-test-lan-prepared-export-integrity"
+    },
+    "manifest_sha256": "897782e20897c31a295fd6816390d16050f3f8e840c89aa36288670c0de15746",
+    "parent": {
+      "image_sha256": "8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727",
+      "kind": "application-prototype",
+      "manifest_sha256": "58edb8701527831b20397b142f0e0ea04bddcdf582535a4d017e101a3bddaf68",
+      "size_bytes": 3061841920
+    },
+    "preparation": {
+      "checks": {
+        "application_runtime_masked": true,
+        "boot_config_delta_matches": true,
+        "bootloader_update_disabled_directly": true,
+        "metadata_matches": true,
+        "no_diagnostic_or_test_runtime_hooks": true,
+        "no_disable_wifi_overlay": true,
+        "no_generated_app_data": true,
+        "not_booted": true,
+        "parent_static_files_unchanged": true,
+        "payload_hashes_match": true,
+        "payload_modes_match": true,
+        "pending_bootloader_artifacts_absent": true,
+        "prepared_inactive_nonfactory": true,
+        "protected_boot_grow_files_unchanged": true,
+        "ssh_masked": true,
+        "updates_masked": true,
+        "wifi_remains_disabled_in_networkmanager": true
+      },
+      "passed": true,
+      "protected_boot_grow_sha256": {
+        "boot/cmdline.txt": "5e625ecdde38d3574877e349def95e869906018f50151f18d107a854928b8f76",
+        "boot/initramfs8": "490067c7e352e2c16cfc95f0db2931b039212637a46a64e54e689cef3d12fba5",
+        "boot/initramfs_2712": "d5f69f2212d6899d2de0a211365a6f6401db663fa9c2398df1a66342a55953e8",
+        "boot/kernel8.img": "c9f5af153236ec42eb012700e39ff43d02bc7c5f2ab71abad6da1f20880343e0",
+        "boot/kernel_2712.img": "154f0ea1e14bb1075077dfd1bdc63c1502bc0b17b0354628d515b4fbd3a4198d",
+        "root/etc/fstab": "fa6436d00ec7e117a702fe1698285b618b4e03b276898a44d49f0f3d1660ed88",
+        "root/usr/lib/systemd/system/rpi-resize.service": "07e49b83133fa2cbe360d0a7da3c3cd66f61f6a3f26945a45854984db45e4488",
+        "root/usr/lib/systemd/system/systemd-growfs-root.service": "61d53bd0f8f544c342f8ef725fd950586b94a04147a7961d1ad78a5ac7af346f",
+        "root/usr/share/initramfs-tools/scripts/local-bottom/set_partuuid": "9e6bcb4762e2a8eade3dda10df2ab99537416b81e7769dbe4c4b57eb669a8be2",
+        "root/usr/share/initramfs-tools/scripts/local-premount/resize_early": "0150e1a3235e40c9d3d35cc1972f938e92225f13dc26ef33a76a75c8963c5a07"
+      }
+    },
+    "recipe": {
+      "files": {
+        "application-manifest.json": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+        "config/base-image.lock.json": "b8dfe442703d1b2063f7006a28353427aa526858c31a2d9f73f4090dc86add18",
+        "config/system-packages.lock.json": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+        "parent-manifest.json": "58edb8701527831b20397b142f0e0ea04bddcdf582535a4d017e101a3bddaf68",
+        "scripts/build-test-lan-linux.sh": "0cf8552c7a6da7b25f8601cf753c53dfd2151f2f23fc5361c1ded9e3c31f930d",
+        "scripts/build-test-lan.sh": "abc5aac820b471af13890a5e4fce189800d19c3c2a8244c4a56954c1652907d9",
+        "scripts/configure-application-rootfs.py": "fa5c76cc8edcdf6978e856ace9a3e4d391b6429556f5a9f63d3009238c706c3f",
+        "scripts/configure-rootfs.py": "f0b3c6202b51018ff2bd74f2788f6ec899a3a29911e947c45db5ad27f300a3a4",
+        "scripts/configure-test-lan-rootfs.py": "df97b8ab00229961e8b59315c2f4c9dd1193eba9f0f9b5dceabfd8d4c0486485",
+        "scripts/inspect-image.sh": "b36d7273defa63581caa87084dcd7f5903b3e7d2a7bfd78d385643e4032e771d",
+        "scripts/inspect-rootfs.py": "11dc85e0cb811eef25968804bc26e049fbc0ff9a8b2f18cfadd9fb41eecf16af",
+        "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+        "scripts/test-lan-preflight.py": "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba",
+        "scripts/verify-application-rootfs.py": "4e9cfd600646ae6d8ebc4775a4f3b518e933d3776f097312ee67ac390251307b",
+        "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+        "scripts/verify-artifacts.py": "bc03aba16eb7d7ea2844e26a4423206143d000a54cd1461bce1b4e87d369f019",
+        "scripts/verify-prototype.py": "479b3de9d2d50e5322fee35e67264d3fef5c376561f182033766bec6db246931",
+        "scripts/verify-sd-diagnostic.py": "0a34fcfe58965e9487999b2d306476fd7f40f1780f3509340a168f76def7265a",
+        "scripts/verify-test-lan.py": "d0d540b4087fce2dd63e12bf44aa4d94b06e65e71451a1bd6dfa36ec032f52ce"
+      },
+      "schema_version": 1,
+      "source_commit": "05c92d01ad732310643ade9cbf06e40252a71851",
+      "worktree_dirty": true
+    },
+    "reports_sha256": {
+      "application-manifest.json": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+      "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+      "build.log": "7dd0d93f149c98f0896c52fb1f239f3c0c0f5004124507dd0e88252f11ace8ba",
+      "filesystem-manifest.json": "68da0d78c3fb33e3f1cc6c325b24d215b9f9eae352ffb254445ae23b7f3b456f",
+      "fsck-ext4.txt": "b797f144456cff33708d60a09503758ed22dfe9c7bed9936356ba3507d810cda",
+      "fsck-fat.txt": "30c3985e8e96e3a55a52f21f3521ad4708a75b339e64b987fd81a9b4bfc7ecd8",
+      "image-inspection.json": "b07b40865f8f8bcfbce0c8dc40d444ab71cb3106e27f151d963650b1c4b817bf",
+      "parent-filesystem-manifest.json": "11802d15795b8adca75098641102996ab7cb0b9b154342541cf9723ac81e121a",
+      "parent-integrity.json": "71f30a64fca72f4c86c0f896004b8aa7b2d06ed5544002e3a56990a9fff269e9",
+      "parent-manifest.json": "58edb8701527831b20397b142f0e0ea04bddcdf582535a4d017e101a3bddaf68",
+      "qualification-application.json": "08809e578be4e8d99f0502e5946768bb7dbd3b28d65c1a4ee3b1ca1c7be01b6f",
+      "qualification-static.json": "e241885fcc29a48486a695b1928a45941cf333c5117c4942e1dd3fc367e120f4",
+      "recipe.tar": "75fe1a2c396258286e1801a5551817cec589e024ef6ccadbde253a90bdf570f6",
+      "systemd-verify.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test-lan-configuration.json": "06464a3739a642f32195660b6c22329656a3efb75ba507618755b87dcd162311"
+    },
+    "selected_files": {
+      "etc/systemd/system/inky-network.service": {
+        "gid": 0,
+        "mode": "0777",
+        "target": "/dev/null",
+        "type": "symlink",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "etc/systemd/system/inky-studio.service": {
+        "gid": 0,
+        "mode": "0777",
+        "target": "/dev/null",
+        "type": "symlink",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "etc/systemd/system/ssh.service": {
+        "gid": 0,
+        "mode": "0777",
+        "target": "/dev/null",
+        "type": "symlink",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "usr/lib/systemd/system/inky-studio.service": {
+        "gid": 0,
+        "mode": "0644",
+        "sha256": "c9d7e4c16ec08c3b5e51af584a2ed1d70f66ebd3dcfd1d9e42d2d5abd751aef8",
+        "size_bytes": 799,
+        "type": "file",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      },
+      "usr/local/lib/inkyos/test-lan-preflight.py": {
+        "gid": 0,
+        "mode": "0555",
+        "sha256": "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba",
+        "size_bytes": 29837,
+        "type": "file",
+        "uid": 0,
+        "xattrs": {
+          "entries": {},
+          "status": "inspected"
+        }
+      }
+    },
+    "static": {
+      "qualification-application.json": {
+        "checks": 26,
+        "passed": true
+      },
+      "qualification-static.json": {
+        "checks": 62,
+        "passed": true
+      }
+    }
+  }
+}

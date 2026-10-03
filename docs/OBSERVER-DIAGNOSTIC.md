@@ -136,6 +136,13 @@ hashes. Une nouvelle observation matérielle sera nécessaire après intégratio
 
 ## Comparaison radio v3 sur la carte déjà enrôlée
 
+Le pin du preflight conservé par le diagnostic d'observation est `fdf5a12b…`,
+celui de l'ancien rootfs d'enrôlement. Le prochain parent applicatif `c31b13af`
+utilise un nouveau preflight `9cda15bf…` ; il ne remplace pas ce pin historique.
+Une fixture exacte conserve les anciens octets pour les tests, qui vérifient
+aussi le refus du nouveau helper avant tout import. Cette compatibilité de
+hash ne rend pas les diagnostics interchangeables entre les images.
+
 Le [comparateur](../scripts/compare-enrollment-radio.py) prépare une nouvelle
 observation du correctif radio sans reflasher la SD ni remplacer les sondes
 installées. Il charge le **v2 historique** au hash `33421c00…`, qui charge le

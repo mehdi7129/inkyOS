@@ -16,7 +16,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 |---|---|
 | Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
-| Application | Candidat historique intégré, services masqués. Nouveau candidat écran validé offline ARM64 ; image correspondante à reconstruire. |
+| Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
@@ -40,8 +40,14 @@ et la ligne de boot normale est restaurée. L’incident FAT antérieur et son
 contournement sont conservés dans le [suivi](docs/OBSERVER-DIAGNOSTIC.md).
 Le correctif reste à intégrer au système installé. La prochaine étape est un
 candidat TEST avec accès opérateur réseau, puis affichage et appairage iOS ;
-le raccord réseau de l’accès opérateur et le traitement du code couleur EEPROM
-restent à livrer.
+le raccord réseau de l’accès opérateur reste à livrer. Le profil TEST prévu
+pour le code couleur EEPROM observé doit encore être sélectionné et vérifié
+sur le panneau réel.
+
+La dernière [intégration logicielle](docs/validation/2026-10-03-display-drain-images.json)
+comprend deux images vérifiées (parent applicatif et TEST LAN inactif),
+709 tests sur chacun des hôtes macOS/Linux ARM64 et 61 contrôles SSH/runtime
+sur un rootfs jetable. Elle n'ajoute aucun essai physique ni accès réseau au Pi.
 
 ## Développer
 

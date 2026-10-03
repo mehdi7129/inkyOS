@@ -26,15 +26,20 @@ limites de reproductibilité et tests sont décrits dans
 et les [sources matérielles](HARDWARE-SOURCES.md).
 
 Le candidat applicatif pour les nouveaux builds TEST est épinglé à
-`758a2bf7ed099aad41ef35316e53228e797b0b2b`, manifeste
-`0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`.
-Cette livraison corrige les métadonnées des panneaux sans changement de
-protocole. Le candidat historique `6a697d1` reste réservé à ses audits datés.
+`c31b13afdc957425571810c46230eaaf52fa5d14`, manifeste
+`c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1`.
+Le nouveau parent applicatif est construit et vérifié ; ses services restent
+masqués. Les candidats historiques `6a697d1` et `758a2bf7` restent contrôlables
+avec leurs couples exacts, sans remplacer les images ni les preuves datées.
 
 La [variante TEST LAN](TEST-LAN.md) conserve app/helper/SSH masqués.
-Sa [preuve de préparation](validation/2026-09-30-test-lan-prepared.json)
-lie les images, recettes, contrôles statiques et le banc SSH/PAM **39/39**
-avec runner inerte. Ce banc ne livre pas un canal d’activation applicative.
+Le [nouveau parent et son dérivé](validation/2026-10-03-display-drain-images.json)
+passent les contrôles système/app/préparation (**62+26+17**), et l'ancien
+export reste vérifiable. Les suites passent **709 tests par hôte** ; le banc
+SSH/PAM/runtime/signature passe **61 contrôles** sur une copie jetable de
+l'ancien parent. Il ne livre pas un canal d'activation installé sur le Pi.
+La [preuve du 30 septembre](validation/2026-09-30-test-lan-prepared.json)
+conserve les résultats et images historiques.
 
 L’[image d’enrôlement](TEST-ENROLLMENT.md), construite depuis `2c54070`,
 mesure 3 061 841 920 octets et porte le SHA-256
@@ -164,7 +169,9 @@ l’importeur au boot et sa transaction persistante restent à intégrer.
    correctif radio intégré, [canal opérateur](TEST-OPERATOR.md) réel,
    application et vérification du pays, heure contrôlée et activation explicite.
    Le runtime est testé ; son configurateur privé et la transition vers la
-   connexion restent à livrer. Le stop mutateur reste testé avec des fixtures.
+   connexion restent à livrer, avec une garde avant chaque démarrage de
+   NetworkManager : son état initial Wi-Fi off ne suffit pas après une première
+   connexion. Le stop mutateur reste testé avec des fixtures.
 2. Coordonner avec Inky Studio le candidat AC073TC1A, le traitement explicite
    de la couleur EEPROM inconnue, un payload épinglé et une version iOS
    Bluetooth installable. Les anciennes références TestFlight ne suffisent pas.
@@ -172,8 +179,8 @@ l’importeur au boot et sa transaction persistante restent à intégrer.
    hardware explicite, un profil TEST pour le tuple brut et un drain SPI avec
    unité sans délai de kill arbitraire. Son bundle passe les cinq étapes
    [offline ARM64](validation/2026-10-03-display-drain-candidate.json), dont
-   installation et smoke ASGI sans lifespan. Il n’est pas encore épinglé
-   dans l’image InkyOS. Les unités/drop-ins et l’arrêt actif restent à qualifier ;
+   installation et smoke ASGI sans lifespan. Son intégration dans le parent
+   InkyOS est maintenant vérifiée statiquement. L'arrêt actif reste à qualifier ;
    un driver bloqué peut laisser le service en `deactivating`. Le welcome au
    premier démarrage est déjà un refresh : ce démarrage devra donc être
    explicitement autorisé après les gates. Aucun nouveau candidat Bluetooth

@@ -161,7 +161,7 @@ def verify(rootfs, manifest_path, digest, *, _owner_uid=0, _owner_gid=0, _app_ui
         check('APPLICATION_METADATA', metadata, 'Pinned inactive application-prototype, unqualified release and manifest recorded in recipe inputs')
 
         def reviewed():
-            files.update(configuration.expected_files(tree))
+            files.update(configuration.expected_files(tree, source_commit=manifest['source_commit'], manifest_sha256=digest))
             return True
 
         check('REVIEWED_INSTALLER_SOURCES', reviewed, 'All declarative installer inputs match the reviewed source hashes; no installer runs')

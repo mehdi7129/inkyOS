@@ -10,6 +10,10 @@ a réussi le 27 septembre 2026 ; aucune qualification SD.
 
 Prérequis : Python 3.11+ côté Mac, Lima 2.0+ et Git. Le Python Linux du builder
 est 3.13. Les tests locaux ne nécessitent aucune dépendance Python externe.
+Le builder honore `PYTHON` pour tous ses appels côté Mac et refuse une version
+antérieure à 3.11. Si `python3` désigne encore le Python système 3.9, utiliser
+par exemple `make prototype PYTHON=python3.13`. Le Python invité reste celui
+de la recette Linux figée.
 
 ```sh
 make test
@@ -24,8 +28,9 @@ rapports. Aucun target ne flashe ni ne publie l'image. `cache/` et `build/` sont
 exclus de Git. Le premier passage télécharge environ 516 Mio pour la base Pi,
 plus Debian et les outils du builder. Chaque image décompressée fait 2,85 Gio.
 Prévoir la source, les exports conservés et une copie transitoire dans la VM.
-La VM utilise 2 CPU, 3 Gio RAM et un disque sparse de 16 Gio maximum. Sa copie
-est retirée après export réussi ; les runs échoués restent pour diagnostic.
+Le gabarit VM prévoit 2 CPU, 3 Gio RAM et un disque sparse de 16 Gio ; le banc
+de validation actuel dispose de 32 Gio. Sa copie de travail est retirée après
+export réussi ; les runs échoués restent pour diagnostic.
 
 `make test-linux` copie uniquement les scripts, tests, locks et l'overlay
 explicitement sélectionnés dans un dossier VM distinct. Il vérifie les hashes

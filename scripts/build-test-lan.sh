@@ -46,14 +46,19 @@ def read_regular(path, limit=64 * 1024**2):
         raise ValueError('Snapshot source changed while reading')
     return raw
 
+def reviewed_build_application(app):
+    return (type(app) is dict and type(app.get('source_commit')) is str
+        and type(app.get('manifest_sha256')) is str and (app['source_commit'], app['manifest_sha256']) in {
+            ('758a2bf7ed099aad41ef35316e53228e797b0b2b', '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'),
+            ('c31b13afdc957425571810c46230eaaf52fa5d14', 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1'),
+        })
+
 parent_raw = read_regular(parent / 'manifest.json')
 data = json.loads(parent_raw)
 if data['kind'] != 'application-prototype' or data['application']['startup'] != 'masked-pending-firstboot-contract':
     raise ValueError('Only the masked application prototype is an accepted test-lan-prepared parent')
-if (data['application']['source_commit'], data['application']['manifest_sha256']) != (
-        '758a2bf7ed099aad41ef35316e53228e797b0b2b',
-        '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'):
-    raise ValueError('The current TEST LAN build requires the reviewed panel-metadata candidate')
+if not reviewed_build_application(data['application']):
+    raise ValueError('The TEST LAN build requires an exact reviewed build candidate')
 blobs = {name: read_regular(pathlib.Path(name)) for name in files}
 blobs['parent-manifest.json'] = parent_raw
 blobs['application-manifest.json'] = read_regular(parent / 'application-manifest.json')

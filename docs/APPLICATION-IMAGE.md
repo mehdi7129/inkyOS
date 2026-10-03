@@ -7,19 +7,23 @@ Elle ne télécharge pas une release mobile et n'active pas le backend.
 ```sh
 make application-prototype \
   APPLICATION_MANIFEST=/chemin/candidat/inky-studio-manifest-v1.json \
-  APPLICATION_SHA256=0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551 \
+  APPLICATION_SHA256=c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1 \
   APPLICATION_ASSETS=/chemin/candidat
 ```
 
-Cette intégration déclarative accepte uniquement deux couples exacts revus :
-le candidat `758a2bf7ed099aad41ef35316e53228e797b0b2b` et le manifeste ci-dessus,
-ou l'ancien `6a697d134290ced0214fc74b903f4b3c336d70fa` avec
-`2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f`.
+Cette intégration déclarative accepte uniquement trois couples exacts revus :
+
+| Source | SHA-256 du manifeste |
+|---|---|
+| `c31b13afdc957425571810c46230eaaf52fa5d14` — candidat actuel | `c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1` |
+| `758a2bf7ed099aad41ef35316e53228e797b0b2b` — historique | `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551` |
+| `6a697d134290ced0214fc74b903f4b3c336d70fa` — historique | `2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f` |
+
 Un commit seul, une version commune ou un autre manifeste sont refusés.
 Pour changer de candidat, revoir le manifeste, les installers et leurs hashes,
-puis adapter les tests d'équivalence. Le nouveau candidat conserve exactement
-les quatre sources auditées d'installation, launcher et helper ; il corrige
-uniquement les métadonnées de panneau. Il exige un nouveau build parent.
+puis adapter les tests d'équivalence. Le candidat actuel change `install.sh` ;
+les trois autres sources auditées (Bluetooth, launcher, helper) sont inchangées.
+Les hashes attendus sont sélectionnés par le couple complet validé.
 Le candidat est une entrée expérimentale, **pas la release finale qualifiée**.
 
 ## Assemblage
@@ -102,10 +106,16 @@ venv, installation des 40 wheels hashées, installation locale de l’applicatio
 Le smoke n’entre pas dans le lifespan, n’initialise pas l’écran et ne crée
 aucune identité applicative. Il ne teste pas le drain.
 
-**Les pins de l’image restent inchangés.** Intégrer ce bundle demande une revue
-des sources d’installation par couple source/manifest, de nouveaux units/drop-ins,
-un parent reconstruit et la mise à jour cohérente des contrats TEST. L’unité
-candidate demande SIGTERM, `KillMode=mixed`, `TimeoutStopSec=infinity` et
+**Le parent applicatif est reconstruit et vérifié.** Son image de
+3 061 841 920 octets porte le SHA-256
+`8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727`.
+Les 62 contrôles système, 26 contrôles applicatifs, 13 fixtures firstboot Linux,
+systemd, visudo et fsck passent. Les dix fichiers boot/grow protégés sont
+préservés. App et helper restent masqués ; aucun profil écran TEST n'est imposé
+à cette image générique. Les contrôles et leurs limites sont consignés dans
+la [preuve d'intégration](validation/2026-10-03-display-drain-images.json).
+
+L’unité dérivée du candidat demande SIGTERM, `KillMode=mixed`, `TimeoutStopSec=infinity` et
 `SendSIGKILL=no`. Un driver bloqué peut donc rester en `deactivating` : l’OS ne
 doit pas en déduire qu’il peut arrêter l’hôte. Le runtime opérateur livré garde
 son refus de stop tant que l’app et le helper ne sont pas déjà inactifs et masqués.

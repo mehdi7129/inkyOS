@@ -37,12 +37,17 @@ for name, digest in recipe['files'].items():
     assert stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == 0 and not info.st_mode & 0o022
     with path.open('rb') as stream:
         assert hashlib.file_digest(stream, 'sha256').hexdigest() == digest, 'Recipe hash mismatch'
+def reviewed_build_application(app):
+    return (type(app) is dict and type(app.get('source_commit')) is str
+        and type(app.get('manifest_sha256')) is str and (app['source_commit'], app['manifest_sha256']) in {
+            ('758a2bf7ed099aad41ef35316e53228e797b0b2b', '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'),
+            ('c31b13afdc957425571810c46230eaaf52fa5d14', 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1'),
+        })
+
 parent = json.load(open('recipe/parent-manifest.json'))
 assert parent['kind'] == 'application-prototype' and parent['hardware_qualified'] is False
 assert parent['application']['startup'] == 'masked-pending-firstboot-contract'
-assert (parent['application']['source_commit'], parent['application']['manifest_sha256']) == (
-    '758a2bf7ed099aad41ef35316e53228e797b0b2b',
-    '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'), 'Current TEST LAN candidate mismatch'
+assert reviewed_build_application(parent['application']), 'Current TEST LAN candidate mismatch'
 image = pathlib.Path('test-lan-prepared.img'); info = image.lstat()
 assert stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == 0 and not info.st_mode & 0o022
 assert info.st_size == parent['image']['size_bytes']

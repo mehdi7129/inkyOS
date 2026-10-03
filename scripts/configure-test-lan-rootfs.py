@@ -22,9 +22,12 @@ spec.loader.exec_module(configuration)
 
 SOURCE_COMMIT = '758a2bf7ed099aad41ef35316e53228e797b0b2b'
 MANIFEST_SHA256 = '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'
+DRAIN_SOURCE_COMMIT = 'c31b13afdc957425571810c46230eaaf52fa5d14'
+DRAIN_MANIFEST_SHA256 = 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1'
 REVIEWED_APPLICATIONS = {
     '6a697d134290ced0214fc74b903f4b3c336d70fa': '2424fb9c32234ad7d359799f6b137e98298734023f0039afd1a57fbf265c250f',
     SOURCE_COMMIT: MANIFEST_SHA256,
+    DRAIN_SOURCE_COMMIT: DRAIN_MANIFEST_SHA256,
 }
 MASKS = ('rpi-eeprom-update.service', 'apt-daily.timer', 'apt-daily.service',
          'apt-daily-upgrade.timer', 'apt-daily-upgrade.service',
@@ -60,6 +63,12 @@ STATIC_PARENT_FILES = {
     'etc/polkit-1/rules.d/49-inky-network.rules': ('894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3', 0o644),
     'etc/sudoers.d/inky-studio': ('79ea3a78f22dad52f851a982dfa96e370743598dd3b5fe3199473a0a5bbd001a', 0o440),
     'usr/local/bin/inky-studio': ('1abbb94b61281473bad2ea194d58b614aa8dd98128957791379d1ddb89835492', 0o755),
+}
+# Keep the legacy mapping and no-argument static_parent API intact for the
+# historical enrollment recipe. LAN callers explicitly select their pair.
+DRAIN_STATIC_PARENT_FILES = {
+    **STATIC_PARENT_FILES,
+    'usr/lib/systemd/system/inky-studio.service': ('c9d7e4c16ec08c3b5e51af584a2ed1d70f66ebd3dcfd1d9e42d2d5abd751aef8', 0o644),
 }
 CHECKS = frozenset((
     'metadata_matches', 'prepared_inactive_nonfactory', 'application_runtime_masked', 'ssh_masked',
@@ -145,8 +154,17 @@ def protected_hashes(root, boot):
     return {name: digest(root if name.startswith('root/') else boot, name.split('/', 1)[1]) for name in PROTECTED_FILES}
 
 
-def static_parent(root, *, owner_uid=0, owner_gid=0):
-    for name, (expected, mode) in STATIC_PARENT_FILES.items():
+def static_parent_files(application=None):
+    if application is None:
+        return STATIC_PARENT_FILES
+    require(reviewed_application(application), 'Exact reviewed application pair required for static files')
+    if (application['source_commit'], application['manifest_sha256']) == (DRAIN_SOURCE_COMMIT, DRAIN_MANIFEST_SHA256):
+        return DRAIN_STATIC_PARENT_FILES
+    return STATIC_PARENT_FILES
+
+
+def static_parent(root, *, application=None, owner_uid=0, owner_gid=0):
+    for name, (expected, mode) in static_parent_files(application).items():
         info = root.path(name).lstat()
         require(digest(root, name) == expected and stat.S_IMODE(info.st_mode) == mode
                 and info.st_uid == owner_uid and info.st_gid == owner_gid, 'Pinned application configuration differs')
@@ -169,7 +187,7 @@ def pristine(root, boot, *, owner_uid=0, owner_gid=0, app_uid=1000, app_gid=1000
     source_info = root.path('home/inky/inky-studio/server/SOURCE_COMMIT').lstat()
     require(source_info.st_uid == app_uid and source_info.st_gid == app_gid
             and stat.S_IMODE(source_info.st_mode) == 0o644, 'Parent app source pin ownership or mode differs')
-    static_parent(root, owner_uid=owner_uid, owner_gid=owner_gid)
+    static_parent(root, application=app, owner_uid=owner_uid, owner_gid=owner_gid)
     require(masked(root, ('inky-studio.service', 'inky-network.service', 'ssh.service', 'ssh.socket', 'sshswitch.service')),
             'App, helper and SSH must remain masked')
     require(app_data_empty(root, app_uid=app_uid, app_gid=app_gid), 'Private app data must be empty and app-owned')
@@ -284,6 +302,10 @@ def configure(root, boot, source, parent_sha256, *, _owner_uid=0, _owner_gid=0, 
 
 def verification(root, boot, metadata, *, _owner_uid=0, _owner_gid=0, _app_uid=1000, _app_gid=1000):
     root, boot = (safe_tree(path) for path in (root, boot))
+    application = json.loads(root.read('etc/inkyos-release.json'))['application']
+    parent_files = static_parent_files(application)
+    require(metadata['source_commit'] == application['source_commit']
+            and metadata['manifest_sha256'] == application['manifest_sha256'], 'Prepared and parent application pairs differ')
     def owned_mode(path, mode):
         info = root.path(path).lstat()
         return (stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and stat.S_IMODE(info.st_mode) == mode
@@ -305,7 +327,7 @@ def verification(root, boot, metadata, *, _owner_uid=0, _owner_gid=0, _app_uid=1
         'no_generated_app_data': app_data_empty(root, app_uid=_app_uid, app_gid=_app_gid),
         'payload_hashes_match': all(digest(root, path) == metadata['source_file_sha256'][name] for name, (path, _mode) in PAYLOADS.items()),
         'payload_modes_match': all(owned_mode(path, mode) for path, mode in PAYLOADS.values()),
-        'parent_static_files_unchanged': all(digest(root, path) == pin for path, (pin, _mode) in STATIC_PARENT_FILES.items()),
+        'parent_static_files_unchanged': all(digest(root, path) == pin for path, (pin, _mode) in parent_files.items()),
         'protected_boot_grow_files_unchanged': protected_hashes(root, boot) == metadata['protected_boot_grow_sha256'],
         'boot_config_delta_matches': digest(boot, 'config.txt') == metadata['boot_config_delta']['configured_sha256'],
     }

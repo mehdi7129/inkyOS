@@ -86,11 +86,13 @@ class FixtureAdapter:
 
 
 class DiagnosticTests(unittest.TestCase):
-    def test_checked_in_sources_match_all_immutable_pins(self):
+    def test_diagnostic_sources_match_current_and_historical_immutable_pins(self):
         paths = {diag.RUNTIME: ROOT / "scripts/test-enrollment-firstboot.py",
                  diag.FIRSTBOOT: ROOT / "overlay/usr/local/lib/inkyos/firstboot.py",
                  diag.UNIT: ROOT / "overlay/etc/systemd/system/inkyos-firstboot.service",
-                 diag.HELPER: ROOT / "scripts/test-lan-preflight.py",
+                 # This diagnostic targets the already-enrolled historical SD.
+                 # New image parents may carry a separately reviewed preflight.
+                 diag.HELPER: ROOT / "tests/fixtures/preflight-fdf5a12.py.txt",
                  diag.PANEL: ROOT / "scripts/observe-test-panel.py",
                  diag.RADIO: ROOT / "scripts/observe-test-radio.py"}
         for target, source in paths.items():
@@ -269,6 +271,18 @@ class DiagnosticTests(unittest.TestCase):
     def test_native_bad_source_pin_fails_before_any_helper_import(self):
         native = diag.NativeAdapter.__new__(diag.NativeAdapter)
         native.files = SimpleNamespace(read=lambda path, **kwargs: b"raise Exception('SECRET')")
+        with self.assertRaisesRegex(diag.DiagnosticError, "source_pin_invalid"):
+            native.pin_sources()
+        self.assertFalse(hasattr(native, "helpers"))
+        self.assertFalse(hasattr(native, "radio"))
+
+    def test_new_parent_preflight_refused_by_historical_diagnostic_before_import(self):
+        paths = {diag.RUNTIME: ROOT / "scripts/test-enrollment-firstboot.py",
+                 diag.FIRSTBOOT: ROOT / "overlay/usr/local/lib/inkyos/firstboot.py",
+                 diag.UNIT: ROOT / "overlay/etc/systemd/system/inkyos-firstboot.service",
+                 diag.HELPER: ROOT / "scripts/test-lan-preflight.py"}
+        native = diag.NativeAdapter.__new__(diag.NativeAdapter)
+        native.files = SimpleNamespace(read=lambda path, **kwargs: paths[path].read_bytes())
         with self.assertRaisesRegex(diag.DiagnosticError, "source_pin_invalid"):
             native.pin_sources()
         self.assertFalse(hasattr(native, "helpers"))
