@@ -158,6 +158,12 @@ Les contrôles du writer FAT passent dix fixtures ; une revue indépendante
 couvre le comparateur et ce writer. Ces résultats n’établissent aucun nouveau
 boot physique ni qualification radio.
 
+**SD préparée et éjectée le 3 octobre 2026.** La CI de `88782a6` est verte.
+Les deux nouvelles sources et la ligne de boot temporaire sont relues après
+remontage FAT readonly ; les sept artefacts antérieurs restent identiques.
+La [preuve de préparation SD](validation/2026-10-03-radio-compare-sd.json)
+ne revendique ni nouvelle acquisition raw/ext4 ni boot v3 observé.
+
 Deux nouveaux fichiers sont nécessaires sur FAT : `inkyos-radio-compare.py`
 et `inkyos-radio-parser.py`. Le rapport `inkyos-radio-compare.json` et la
 réservation `.inkyos-radio-compare.started` ont leurs propres noms ; les anciens

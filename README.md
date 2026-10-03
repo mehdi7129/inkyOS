@@ -32,11 +32,12 @@ La [compatibilité visée](docs/DISPLAY-COMPATIBILITY.md) couvre les **Spectra 6
 7,3″**. Une même recette d’image doit servir ces formats, avec détection du
 panneau par l’application. Cette cible ne signifie pas qu’ils sont déjà qualifiés.
 
-Le [diagnostic complémentaire](docs/OBSERVER-DIAGNOSTIC.md) a démarré sur le
-banc, puis son rapport a été récupéré après l'arrêt observé. La ligne de boot
-originale est restaurée. Le correctif radio passe les tests sur Mac et Linux ARM64.
-Il reste à traiter le code couleur EEPROM inconnu, intégrer le correctif et recueillir
-une nouvelle observation sur le banc. Ce correctif n'est pas installé sur la SD.
+Les deux premiers [diagnostics](docs/OBSERVER-DIAGNOSTIC.md) ont démarré sur le
+banc et leurs rapports sont récupérés. La SD est désormais préparée et éjectée
+pour une comparaison radio v3 : l’ancien parser et le correctif analyseront
+la même collecte. Les 616 tests passent sur Mac et Linux ARM64 ; ce nouveau
+boot reste à observer. Le correctif est présent sur FAT pour cette comparaison,
+mais n’est pas installé dans le rootfs. Le code couleur EEPROM reste à traiter.
 
 ## Développer
 

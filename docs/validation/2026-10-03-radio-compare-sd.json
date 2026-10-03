@@ -1,0 +1,34 @@
+{
+  "ci": {
+    "conclusion": "success",
+    "run_id": 37119059752
+  },
+  "date": "2026-10-03",
+  "fat_readonly_remount_readback_verified": true,
+  "hardware_qualified": false,
+  "identity_files_modified": false,
+  "independent_raw_readback": false,
+  "installed_rootfs_modified": false,
+  "limits": [
+    "The next boot and its report remain to be observed.",
+    "Filesystem readback is not an independent raw SD acquisition.",
+    "No EEPROM read, refresh, application activation or radio configuration is added.",
+    "The corrected parser is used only in the FAT comparison; the installed observer remains unchanged."
+  ],
+  "new_ext4_verification": false,
+  "new_fat_source_files": 2,
+  "original_cmdline_preserved_privately": true,
+  "physical_boot_observed": false,
+  "prepared_and_ejected": true,
+  "previous_fat_artifacts_preserved": 7,
+  "release_qualified": false,
+  "report_claim_and_temps_absent": true,
+  "schema_version": 1,
+  "scope": "sd-radio-parser-comparison-preparation",
+  "source_commit": "88782a603a3eaf6e2dea3e9ee6c96510fa55d504",
+  "sources_sha256": {
+    "inkyos-radio-compare.py": "9bfdebc6d9baa36c1d98deb446387f52780626adfb6591d7e16a5dbab517abae",
+    "inkyos-radio-parser.py": "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315"
+  },
+  "temporary_boot_hook_armed": true
+}

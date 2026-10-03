@@ -114,10 +114,19 @@ d'affirmer que les 14 tokens portaient ce suffixe. Les sources et limites figure
 dans [HARDWARE-SOURCES.md](HARDWARE-SOURCES.md) et
 [OBSERVER-DIAGNOSTIC.md](OBSERVER-DIAGNOSTIC.md).
 
+La carte est ensuite [préparée et éjectée pour la comparaison radio v3](validation/2026-10-03-radio-compare-sd.json),
+depuis `88782a6` et sa CI verte. Deux nouveaux fichiers FAT permettent de
+comparer les parsers sur une collecte unique ; les sondes rootfs et l’identité
+ne sont pas modifiées. Les sept artefacts antérieurs restent identiques après
+relecture FAT readonly. Le [banc logiciel](validation/2026-10-03-radio-compare-preparation.json)
+passe 616 tests sur chacun des deux hôtes et vérifie les sources historiques
+exactes avec I/O inertées. Le boot v3 et son résultat physique restent à observer.
+
 ## Prochaines étapes
 
-1. Intégrer le correctif validé du parser radio, puis recueillir une nouvelle
-   observation sur le banc ; conserver les preuves historiques inchangées.
+1. Effectuer le boot de comparaison radio v3, recueillir son rapport et restaurer
+   la ligne de boot ; intégrer ensuite le correctif dans une image cohérente,
+   en conservant les preuves historiques inchangées.
 2. Traiter séparément le candidat AC073TC1A et la couleur EEPROM inconnue,
    puis vérifier le driver physique et le payload épinglé avant tout refresh.
    Étendre la qualification aux trois formats Spectra 6 et aux anciens
