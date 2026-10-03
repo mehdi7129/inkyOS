@@ -58,6 +58,9 @@ RUNTIME = '/run/inkyos-test-ssh'
 SUDOERS = 'inky-test ALL=(root) NOPASSWD: /usr/local/lib/inkyos-test-ssh/runner ""\n'
 INPUTS = {'probe-test-ssh-linux.sh', 'probe.img', 'parent-manifest.json',
           'parent-manifest.sha256', 'parent-filesystem-manifest.json', 'parent-integrity.json'}
+OPERATOR_INPUTS = {'probe-test-operator-runtime.py', 'test-operator-dispatch.py',
+                   'test-operator-runner.py', 'test-lan-preflight.py', 'test-enrollment-firstboot.py',
+                   'application-manifest.json'}
 PROGRAMS = (
     'usr/sbin/sshd', 'usr/bin/ssh', 'usr/bin/ssh-keygen', 'usr/bin/scp',
     'usr/bin/sudo', 'usr/sbin/visudo', 'etc/pam.d/sshd', 'etc/pam.d/common-auth',
@@ -380,7 +383,11 @@ def main(work):
         info = work.lstat()
         require(stat.S_ISDIR(info.st_mode) and info.st_uid == info.st_gid == 0 and stat.S_IMODE(info.st_mode) == 0o700,
                 'unsafe_staging_directory')
-        require({entry.name for entry in work.iterdir()} == INPUTS, 'unexpected_staging_files')
+        names = {entry.name for entry in work.iterdir()}
+        operator_mode = 'probe-test-operator-runtime.py' in names
+        require(names == INPUTS | (OPERATOR_INPUTS if operator_mode else set()), 'unexpected_staging_files')
+        operator_sources = ({name: regular(work / name, 0o444, 1024**2) for name in OPERATOR_INPUTS}
+                            if operator_mode else {})
         staging_valid = True
         manifest_raw = regular(work / 'parent-manifest.json', 0o444, 64 * 1024**2)
         expected = regular(work / 'parent-manifest.sha256', 0o444, 65).decode('ascii').strip()
@@ -623,6 +630,15 @@ def main(work):
         checks['sudo_zero_arguments_only'] = zero.returncode == 0 and extra.returncode != 0 and invocations() == before + [b'preflight']
         checks['sudo_other_commands_refused'] = all(target(['/usr/sbin/runuser', '-u', USER, '--',
             '/usr/bin/sudo', '-n', '--', *argv]).returncode != 0 for argv in (['/usr/bin/id', '-u'], ['/bin/sh', '-c', 'id -u']))
+        if operator_mode:
+            stage = 'operator_runtime_extension'
+            namespace = {'__name__': 'isolated_operator_runtime_probe'}
+            exec(compile(operator_sources['probe-test-operator-runtime.py'],
+                         str(work / 'probe-test-operator-runtime.py'), 'exec'), namespace)
+            client = ['chroot', str(root), '/usr/bin/ssh', *options, '-p', str(port),
+                      '-i', RUNTIME + '/good', USER + '@127.0.0.1']
+            report['operator_runtime'] = namespace['probe'](root, create, target, ssh, operator_sources, client)
+            require(report['operator_runtime']['passed'] is True, 'operator_runtime_failed')
         checks['application_still_masked'] = all(os.readlink(root / 'etc/systemd/system' / unit) == '/dev/null'
                                                 for unit in ('inky-studio.service', 'inky-network.service'))
         stage = 'complete'

@@ -150,10 +150,17 @@ avec treize fichiers conservés. Aucun nouveau boot de parsing n’est armé.
 
 ## Prochaines étapes
 
+Le [runtime opérateur](TEST-ACCESS-RUNTIME.md) est maintenant livré dans les
+sources : dispatcher SSH, runner preflight/stop avec activation refusée, et
+contrôle TEST du pays distinct de la connexion. Le banc optionnel utilise ces
+mêmes sources. Cela ne les installe pas sur la SD et ne fournit pas encore
+la transition réseau privée complète.
+
 1. Préparer hors SD un candidat TEST cohérent depuis une image propre :
    correctif radio intégré, [canal opérateur](TEST-OPERATOR.md) réel,
    application et vérification du pays, heure contrôlée et activation bornée.
-   Le runner SSH du banc est encore inerte ; ces fonctions restent à livrer.
+   Le runtime est testé ; son configurateur privé et la transition vers la
+   connexion restent à livrer. Le stop mutateur reste testé avec des fixtures.
 2. Coordonner avec Inky Studio le candidat AC073TC1A, le traitement explicite
    de la couleur EEPROM inconnue, un payload épinglé et une version iOS
    Bluetooth installable. Les anciennes références TestFlight ne suffisent pas.

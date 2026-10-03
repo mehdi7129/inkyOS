@@ -20,6 +20,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
+| Accès opérateur | Runtime preflight/stop et contrôle du pays développés ; intégration SSH/PAM testée en VM. Installation réseau sur SD et arrêt physique encore à réaliser. |
 | Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
 
 La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
@@ -39,7 +40,8 @@ et la ligne de boot normale est restaurée. L’incident FAT antérieur et son
 contournement sont conservés dans le [suivi](docs/OBSERVER-DIAGNOSTIC.md).
 Le correctif reste à intégrer au système installé. La prochaine étape est un
 candidat TEST avec accès opérateur réseau, puis affichage et appairage iOS ;
-l’accès opérateur et le traitement du code couleur EEPROM restent à livrer.
+le raccord réseau de l’accès opérateur et le traitement du code couleur EEPROM
+restent à livrer.
 
 ## Développer
 
@@ -71,6 +73,7 @@ l’espace disque nécessaire et les limites du builder.
 - [Premier démarrage, heure et pays Wi-Fi](docs/FIRST-BOOT.md)
 - [Qualification sur SD](docs/SD-QUALIFICATION.md)
 - [Diagnostic de l’écran et de la radio](docs/OBSERVER-DIAGNOSTIC.md)
+- [Runtime du premier accès opérateur](docs/TEST-ACCESS-RUNTIME.md)
 - [Reproductibilité et limites](docs/REPRODUCIBILITY.md)
 - [Rapports de validation](docs/validation/)
 

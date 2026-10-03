@@ -1,7 +1,11 @@
 # Accès opérateur privé pour le premier essai
 
-Proposition du 30 septembre 2026, séparée de la [variante préparée](TEST-LAN.md).
-**Canal et activation non livrés à ce stade.** Le banc OpenSSH/PAM réel avec
+Proposition initiale du 30 septembre 2026, séparée de la [variante préparée](TEST-LAN.md).
+Le [runtime livré le 3 octobre](TEST-ACCESS-RUNTIME.md) fournit le dispatcher,
+le preflight authentifié, l’arrêt borné et le contrôle séparé du pays. Son
+installation dans le candidat privé, la connexion et le daemon opérateur
+restent à raccorder ; l’activation app reste explicitement indisponible.
+Le banc OpenSSH/PAM historique avec
 dispatcher inerte a passé 39/39 contrôles dans la VM sur une copie jetable
 du parent épinglé. Il ne qualifie ni le Pi, ni l'activation applicative.
 Les échecs, corrections et hashes sont conservés dans la

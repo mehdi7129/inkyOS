@@ -111,6 +111,49 @@ class TestSshProbeTests(unittest.TestCase):
         report.update(passed=False, failed_checks=['loop_detached'], error_stage='cleanup_failed')
         self.assertFalse(receipt['validate_report'](report, inputs, 1))
 
+    def operator_receipt(self):
+        report, inputs = self.transport_receipt()
+        inputs['operator_sources'] = {'runner.py': 'pinned-runner'}
+        inputs['expected_operator_checks'] = ['source_installed', 'activation_refused']
+        report['operator_runtime'] = {
+            'scope': 'isolated-test-operator-runtime-probe',
+            'source_sha256': dict(inputs['operator_sources']),
+            'application_activated': False, 'stop_mutations_fixture_only': True,
+            'hardware_qualified': False, 'release_qualified': False,
+            'checks': dict.fromkeys(inputs['expected_operator_checks'], True),
+            'passed': True, 'error_stage': None,
+        }
+        return report, inputs
+
+    def test_operator_receipt_binds_executed_sources_and_every_check(self):
+        report, inputs = self.operator_receipt()
+        self.assertTrue(receipt['validate_report'](report, inputs, 0))
+        self.assertFalse(receipt['validate_report'](report, inputs, 124))
+        for field, value in (('source_sha256', {'runner.py': 'other'}), ('checks', {}),
+                             ('stop_mutations_fixture_only', False), ('application_activated', True),
+                             ('passed', 1), ('hardware_qualified', True)):
+            changed = copy.deepcopy(report)
+            changed['operator_runtime'][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                receipt['validate_report'](changed, inputs, 0)
+        changed = copy.deepcopy(report)
+        changed['operator_runtime']['checks']['activation_refused'] = 1
+        with self.assertRaises(ValueError):
+            receipt['validate_report'](changed, inputs, 0)
+
+    def test_operator_receipt_preserves_early_failure_but_rejects_missing_success(self):
+        report, inputs = self.operator_receipt()
+        del report['operator_runtime']
+        with self.assertRaises(ValueError):
+            receipt['validate_report'](report, inputs, 0)
+        report.update(passed=False, error_stage='parent_validation')
+        self.assertFalse(receipt['validate_report'](report, inputs, 1))
+        report, inputs = self.operator_receipt()
+        report['operator_runtime']['checks']['activation_refused'] = False
+        report['operator_runtime'].update(passed=False, error_stage='operator_runtime')
+        report.update(passed=False, error_stage='operator_runtime_extension')
+        self.assertFalse(receipt['validate_report'](report, inputs, 1))
+
     def test_help_is_unprivileged_and_documents_disposable_input(self):
         result = subprocess.run(['bash', str(SCRIPT), '--help'], capture_output=True)
         self.assertEqual(result.returncode, 0)
