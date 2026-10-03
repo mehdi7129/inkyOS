@@ -218,6 +218,19 @@ et les deux fichiers récupérés, restent identiques. La carte est éjectée po
 un contrôle de retrait/réinsertion **au Mac**. Le hook de diagnostic reste
 désactivé ; cette préparation ne demande pas encore un boot du Pi.
 
+Le [contrôle après réinsertion et l’armement suivant](validation/2026-10-03-radio-short-armed.json)
+sont ensuite terminés. Une nouvelle identité média est figée ; les douze
+fichiers relus en FAT readonly correspondent au stage, dont `INKYCMP.PY`
+(`d851db37…`) et la ligne de boot normale. Aucun nouveau nom de récupération,
+claim ou rapport de comparaison n’est présent. Seule `cmdline.txt` est ensuite
+remplacée pour exécuter `/usr/bin/python3 -I /boot/firmware/INKYCMP.PY`, avec
+ENROLL masqué et poweroff demandé en succès comme en échec. Un fichier
+temporaire à nom court `INKYRUN.TMP` est créé exclusivement puis renommé.
+Après remontage readonly, la ligne préparée et les onze autres fichiers sont
+vérifiés, puis la carte est éjectée. Le prochain boot du Pi et son rapport
+restent attendus ; ni relecture raw indépendante ni nouvelle inspection ext4
+ne sont revendiquées.
+
 ## Mécanisme v1 limité à la partition FAT
 
 Un script, `scripts/diagnose-enrollment-observers.py`, est copié sous

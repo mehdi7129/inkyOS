@@ -34,11 +34,12 @@ panneau par l’application. Cette cible ne signifie pas qu’ils sont déjà qu
 
 Les deux premiers [diagnostics](docs/OBSERVER-DIAGNOSTIC.md) ont produit leurs
 rapports. La tentative radio v3 n’en a pas produit : le script est retrouvé
-intact sous un nom de récupération FAT. La ligne de boot normale est restaurée.
-Le candidat à nom court passe les 616 tests sur Mac et Linux ARM64. Il est
-écrit sur la SD, relu et éjecté, avec le boot normal conservé : sa persistance
-doit être vérifiée par réinsertion au Mac avant un autre boot. Le correctif radio
-n’est pas installé dans le rootfs. Le code couleur EEPROM reste à traiter.
+intact sous un nom de récupération FAT. Le candidat à nom court passe les
+616 tests sur Mac et Linux ARM64 ; sa persistance après retrait/réinsertion
+au Mac est vérifiée. Le nouveau boot de comparaison est préparé, relu et la
+SD éjectée : son exécution sur le Pi et son rapport restent attendus.
+Le correctif radio n’est pas installé dans le rootfs. Le code couleur EEPROM
+reste à traiter.
 
 ## Développer
 

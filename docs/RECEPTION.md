@@ -133,10 +133,17 @@ persistance doit être contrôlée après réinsertion avant un nouveau boot.
 Ce [fichier est préparé et la carte éjectée](validation/2026-10-03-radio-short-sd.json)
 pour une réinsertion au Mac, avec la ligne de boot normale conservée.
 
+Le [contrôle de réinsertion puis l’armement](validation/2026-10-03-radio-short-armed.json)
+sont maintenant vérifiés : douze fichiers identiques à la préparation après
+retrait/réinsertion au Mac, puis modification de la seule ligne de boot.
+Elle lance `INKYCMP.PY`, masque ENROLL et demande l’arrêt automatique.
+La relecture FAT readonly contrôle cette ligne et les onze fichiers conservés,
+avant éjection. Le boot de comparaison sur le Pi et son rapport sont attendus.
+
 ## Prochaines étapes
 
-1. Vérifier la persistance du candidat à nom court après réinsertion au Mac,
-   puis armer et effectuer le boot de comparaison radio. Recueillir son rapport
+1. Effectuer le boot de comparaison radio préparé avec le candidat à nom court.
+   Recueillir son rapport et restaurer la ligne de boot originale au retour
    avant d’intégrer le correctif dans une image cohérente ; conserver les preuves
    historiques inchangées.
 2. Traiter séparément le candidat AC073TC1A et la couleur EEPROM inconnue,

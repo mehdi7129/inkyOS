@@ -27,7 +27,9 @@ et restauration de la ligne de boot originale. Le comparateur radio v3 décrit
 dans ce suivi prépare la vérification du correctif sur une même collecte,
 en conservant l’enrôlement et les rapports antérieurs. Sa première tentative
 n’a pas produit de rapport ; le [suivi](OBSERVER-DIAGNOSTIC.md) décrit le script
-retrouvé sous un nom de récupération FAT et le candidat à nom court.
+retrouvé sous un nom de récupération FAT et le candidat à nom court. Celui-ci
+est vérifié après réinsertion au Mac ; le nouveau boot est armé et la carte
+éjectée, en attente de son essai sur le Pi et de son rapport.
 Aucune activation applicative n’est effectuée.
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
@@ -67,7 +69,7 @@ make test-enrollment PYTHON=python3.13 \
 Cette commande crée une clé opérateur neuve dans le dossier privé et
 assemble une copie ; elle ne touche aucune SD et ne lance aucun runtime du Pi.
 
-L'export local `private/test-enrollment.23b4736c` est construit depuis les
+L’export local d’enrôlement est construit depuis les
 sources propres `2c540701fb222dde0437edd47002f6a49945da5b` (CI verte).
 L'image fait 3 061 841 920 octets, SHA-256
 `7a1b70463e5501830f67e9c4b2ffcb69d8970a154115a8e9f8aa2e27eeb9d86e`.
