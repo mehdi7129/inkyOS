@@ -149,6 +149,40 @@ class ObserverDetailTests(unittest.TestCase):
         huge_channel = b" * 2412 MHz [" + b"9" * 5000 + b"] (20.0 dBm)\n"
         self.assertEqual(detail.channel_structure(huge_channel, 3)["channel_frequency_mismatch_count"], 1)
 
+    def test_zero_khz_offset_structure_matches_integer_rows_without_rounding(self):
+        raw = (b"Wiphy phy3\n\t* 2412.0 MHz [1] (20.0 dBm)\n"
+               b"\t* 2472.0 MHz [13] (disabled)\n\t* 2484.0 MHz [14] (disabled)\n")
+        expected = detail.channel_structure(raw.replace(b".0 MHz", b" MHz"), 3)
+        observed = detail.channel_structure(raw, 3)
+        self.assertEqual(observed, expected)
+        self.assertEqual(observed["noninteger_frequency_count"], 0)
+        self.assertEqual(observed["rows_2_4ghz_count"], 3)
+        self.assertEqual(observed["enabled_rows"], 1)
+        self.assertEqual(observed["disabled_rows"], 2)
+        duplicate = raw + b"\t* 2412 MHz [1] (20.0 dBm)\n"
+        self.assertEqual(detail.channel_structure(duplicate, 3)["duplicate_frequency_count"], 1)
+
+    def test_structure_rejects_nonzero_offsets_and_malformed_frequency_tokens(self):
+        tokens = (b"2412.1", b"2412.100", b"2412.00", b"2412.", b"2412.0.0", b"+2412",
+                  b"-2412", b"2412e0", b"02412", b" 2412", b"2412 ", b"4294967296", b"NaN")
+        for token in tokens:
+            raw = b"Wiphy phy3\n\t* " + token + b" MHz [1] (20.0 dBm)\n"
+            with self.subTest(token=token):
+                result = detail.channel_structure(raw, 3)
+                self.assertEqual(result["noninteger_frequency_count"], 1)
+                self.assertEqual(result["rows_2_4ghz_count"], 0)
+        malformed = b"Wiphy phy3\n\t* 2412.0MHz [1] (20.0 dBm)\n"
+        self.assertEqual(detail.channel_structure(malformed, 3)["noninteger_frequency_count"], 1)
+
+    def test_structure_ignores_source_faithful_ht_capability_prose(self):
+        frequency = b"Wiphy phy3\n\tFrequencies:\n\t\t* 2412.0 MHz [1] (20.0 dBm)\n"
+        capabilities = (b"\tHT Capability overrides:\n"
+                        b"\t\t * short GI for 20 MHz\n\t\t * short GI for 40 MHz\n")
+        result = detail.channel_structure(frequency + capabilities, 3)
+        self.assertEqual(result, detail.channel_structure(frequency, 3))
+        self.assertEqual(result["noninteger_frequency_count"], 0)
+        self.assertEqual(result["rows_2_4ghz_count"], 1)
+
     def test_replay_uses_new_names_and_preserves_v1_artifacts(self):
         v1 = detail.compile_v1(V1_BYTES)
         names = (detail.REPORT, "." + detail.REPORT + ".tmp", detail.CLAIM, "." + detail.CLAIM + ".tmp")

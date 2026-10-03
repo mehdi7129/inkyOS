@@ -136,6 +136,16 @@ def parse_regulatory(raw, index):
             "phy_custom": sections[index]["custom"], "phy_self_managed": sections[index]["self_managed"]}
 
 
+def frequency_mhz(token):
+    # iw 6.9-1 info.c:409-415 prints FREQ.OFFSET when the optional kHz
+    # attribute exists, even for zero. Accept only exact whole-MHz forms;
+    # interpreting this printed pair as a decimal float would be incorrect.
+    matched = re.fullmatch(r"(0|[1-9][0-9]{0,9})(?:\.0)?", token) if type(token) is str else None
+    if matched is None or int(matched[1]) > 0xffffffff:
+        raise ObservationError("kernel_observation_invalid")
+    return int(matched[1])
+
+
 def parse_channels(raw, index):
     """Export only 2.4 GHz frequency/power/known flags, never MACs or raw text."""
     value = text(raw)
@@ -144,15 +154,20 @@ def parse_channels(raw, index):
     channels = {}
     known_flags = {"no IR", "passive scan", "no ibss", "radar detection"}
     for line in value.splitlines():
-        if not re.match(r"[ \t]*\* [0-9.]+ MHz", line):
+        # Other iw lists include prose such as "* short GI for 40 MHz".
+        # Numeric-looking MHz entries, or MHz followed by a channel bracket,
+        # remain frequency candidates so malformed values cannot disappear.
+        if (re.match(r"[ \t]*\* ", line) is None
+                or not (re.match(r"[ \t]*\* [ \t]*[0-9+.-]", line) and "MHz" in line
+                        or re.search(r"MHz[ \t]*\[", line))):
             continue
-        frequency = re.match(r"[ \t]*\* ([0-9.]+) MHz", line)[1]
-        if not frequency.isdigit():
+        prefix = re.match(r"[ \t]*\* (.*) MHz(?:[ \t]|$)", line)
+        if prefix is None:
             raise ObservationError("kernel_observation_invalid")
-        frequency = int(frequency)
+        frequency = frequency_mhz(prefix[1])
         if not 2400 <= frequency <= 2500:
             continue
-        matched = re.fullmatch(r"[ \t]*\* ([0-9]+) MHz \[([0-9]+)\] \((disabled|[0-9]{1,2}\.[0-9] dBm)\)(?: \(([^()]*)\))?", line)
+        matched = re.fullmatch(r"[ \t]*\* ((?:0|[1-9][0-9]{0,9})(?:\.0)?) MHz \[([0-9]+)\] \((disabled|[0-9]{1,2}\.[0-9] dBm)\)(?: \(([^()]*)\))?", line)
         if matched is None or frequency in channels:
             raise ObservationError("kernel_observation_invalid")
         channel = int(matched[2])

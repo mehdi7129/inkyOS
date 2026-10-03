@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "scope": "physical-observer-detail-fat-return",
+  "date": "2026-10-03",
+  "diagnostic_source_commit": "dcfedebfbc9b450f905b9b06b9c12e9d58458d6d",
+  "diagnostic_source_sha256": "33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512",
+  "required_v1_sha256": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+  "operator_observed_boot_and_shutdown": true,
+  "fat_readonly_recovery": true,
+  "source_and_cmdline_match_preparation": true,
+  "previous_files_unchanged": true,
+  "closed_report_and_claim_validated": true,
+  "runtime_checks": {
+    "existing_enrollment": true,
+    "existing_firstboot_identity": true,
+    "firstboot_started": true,
+    "firstboot_success": true,
+    "fresh_diagnostic": true,
+    "inactive_guards_after": true,
+    "inactive_guards_before": true,
+    "sources_pinned": true,
+    "state_unchanged": true,
+    "target_verified": true
+  },
+  "devices": {
+    "i2c1_present": true,
+    "wlan0_present": true
+  },
+  "probes": {
+    "guards": {
+      "app_stopped_and_masked": true,
+      "exact_payload_pin": true,
+      "firstboot_success": true,
+      "helper_stopped_and_masked": true,
+      "prepared_profile": true
+    },
+    "panel": {
+      "data": {
+        "color_code": 4,
+        "display_variant": 20,
+        "height": 480,
+        "reviewed_catalogue_match": false,
+        "width": 800
+      },
+      "error": "eeprom_unreviewed"
+    },
+    "radio": {
+      "channels": {
+        "data": null,
+        "error": "kernel_observation_invalid",
+        "structure": {
+          "channel_frequency_mismatch_count": 0,
+          "disabled_rows": 0,
+          "disabled_with_flags_count": 0,
+          "duplicate_flag_count": 0,
+          "duplicate_frequency_count": 0,
+          "enabled_rows": 0,
+          "input_valid": true,
+          "known_flag_counts": {
+            "no_ibss": 0,
+            "no_ir": 0,
+            "passive_scan": 0,
+            "radar_detection": 0
+          },
+          "malformed_row_count": 0,
+          "mapped_header_count": 1,
+          "multiple_flag_groups_count": 0,
+          "noninteger_frequency_count": 14,
+          "power_out_of_range_count": 0,
+          "rows_2_4ghz_count": 0,
+          "unknown_flag_count": 0,
+          "wiphy_header_count": 1
+        }
+      },
+      "firmware": {
+        "data": {
+          "ccode": "XY",
+          "country_abbrev": "XY",
+          "revision": 0
+        },
+        "error": null
+      },
+      "firmware_tuple_qualified": false,
+      "regulatory": {
+        "data": {
+          "global_country": "00",
+          "phy_country_label": "99",
+          "phy_custom": false,
+          "phy_self_managed": false
+        },
+        "error": null,
+        "structure": {
+          "country_without_section_count": 0,
+          "duplicate_country_count": 0,
+          "global_country": "00",
+          "global_header_count": 1,
+          "input_valid": true,
+          "malformed_country_count": 0,
+          "malformed_phy_header_count": 0,
+          "mapped_phy_country": "99",
+          "mapped_phy_header_count": 1,
+          "mapped_phy_header_style": "plain",
+          "other_phy_header_count": 0
+        }
+      },
+      "sample_error": null
+    }
+  },
+  "original_cmdline_restored": true,
+  "restoration_readonly_remount_readback_verified": true,
+  "preserved_files_verified": 7,
+  "new_ext4_verification": false,
+  "country_applied": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "The unsigned FAT report is a local observation, not independent attestation.",
+    "EEPROM color code 4 is undefined in pinned upstream tables; variant 20 alone does not qualify the physical panel.",
+    "The firmware country tuple XY/XY/0 and kernel labels 00/99 do not establish FR configuration.",
+    "Fourteen noninteger-format frequency tokens were counted before band filtering; exact raw tokens, channels and powers were not retained.",
+    "The original boot command line is restored; no corrected parser is installed on this SD.",
+    "No new full ext4 acquisition or independent raw reread was performed."
+  ],
+  "reported_board_reference": {
+    "source": "operator-read-board-marking",
+    "product": "Inky Impression 7.3 inch",
+    "sku": "PIM773",
+    "upstream_product_family": "Spectra 6",
+    "product_source": "https://shop.pimoroni.com/products/inky-impression?variant=55186435244411",
+    "consistent_with_observed_variant": false,
+    "physical_panel_revision_verified": false
+  }
+}

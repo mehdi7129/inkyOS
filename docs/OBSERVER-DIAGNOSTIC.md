@@ -42,18 +42,19 @@ Les anciens rapports, la réservation et le script sont préservés. Aucune
 nouvelle acquisition ext4 n'est réalisée pour ce retour FAT ; les contrôles
 ne constituent donc pas une nouvelle inspection exhaustive du filesystem.
 
-## Complément v2 — SD préparée, retour attendu
+## Complément v2 — retour physique récupéré
 
-Le script [detail-enrollment-observers.py](../scripts/detail-enrollment-observers.py)
-est relu au SHA-256
+La version du commit `dcfedeb` de
+[detail-enrollment-observers.py](../scripts/detail-enrollment-observers.py),
+utilisée pour ce boot, est relue au SHA-256
 `33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512`.
 Les suites ciblées v1/v2 passent **30 tests sur Mac et 30 sur Linux ARM64**.
 La [preuve de préparation v2](validation/2026-10-03-observer-detail-preparation.json)
 consigne les pins et le périmètre des essais.
 Ces fixtures vérifient notamment les sorties fermées, le pin v1, la conservation
 des gardes et le refus du rejeu ; elles ne constituent pas un boot du Pi.
-**La v2 est installée sur la SD de test et la carte est éjectée. Son boot
-et son retour restent à observer ; aucune qualification matérielle n'en découle.**
+**Le boot et l'arrêt v2 sont observés sur le banc ; le rapport est récupéré.
+Le panneau et la radio restent non qualifiés.**
 La [preuve SD v2](validation/2026-10-03-observer-detail-sd.json) consigne la CI
 verte du commit `dcfedeb`, la relecture FAT readonly et la conservation exacte
 des quatre fichiers antérieurs. Seuls le nouveau script et `cmdline.txt` sont
@@ -62,8 +63,8 @@ des quatre fichiers antérieurs. Seuls le nouveau script et `cmdline.txt` sont
 Ce boot utilise `/boot/firmware/inkyos-observer-detail.py`, écrit
 `inkyos-observer-detail.json` et réserve `.inkyos-observer-detail.started`.
 Il conserve le mécanisme systemd décrit plus bas, avec le chemin du script v2.
-Après l'arrêt et le retour de la carte, il faudra récupérer le rapport puis
-restaurer la ligne de boot originale, en conservant les artefacts des deux essais.
+Après l'arrêt et le retour de la carte, le rapport est récupéré et la ligne de
+boot originale restaurée, en conservant les artefacts des deux essais.
 
 Le script charge uniquement le diagnostic v1 épinglé par SHA-256 et conserve
 ses gardes système, profil, identité et services. Ses noms de script, rapport
@@ -85,6 +86,50 @@ Les accès matériel restent ceux des sondes épinglées. Aucun country setter,
 scan, association Wi-Fi, refresh écran, accès SSH ou lancement applicatif
 n'est ajouté. Les résultats gardent `firmware_tuple_qualified=false` et
 n'autorisent aucune activation ou qualification.
+
+### Résultats et restauration — 3 octobre 2026
+
+Le [retour v2](validation/2026-10-03-observer-detail-return.json) passe les
+**10 contrôles de cohérence**, dont l'état inchangé, et les **cinq gardes des
+sondes**. `/dev/i2c-1` et `wlan0` sont présents. Le démarrage et l'arrêt sont
+observés par l'opérateur ; le rapport, écrit avant poweroff, ne prouve pas
+à lui seul cet arrêt.
+
+- **EEPROM** : `width=800`, `height=480`, `color_code=4`, `display_variant=20`,
+  `reviewed_catalogue_match=false`, erreur `eeprom_unreviewed`. Upstream
+  sélectionnerait AC073TC1A 800×480 d'après la variante 20, mais ne donne aucun
+  libellé EEPROM au code couleur 4. La référence communiquée pour le matériel,
+  **Inky Impression 7,3″ PIM773**, désigne officiellement un Spectra 6 : elle
+  contredit cette sélection EEPROM. Le bon driver physique n'est donc pas
+  établi ; aucun refresh n'a été effectué.
+- **Radio** : firmware `country_abbrev=XY`, `ccode=XY`, `revision=0` ; parser
+  regulatory réussi, avec global `00`, PHY `99` et header `plain`. Le parser
+  channels échoue : un header Wiphy correspond à la cible, 14 tokens de
+  fréquence sont rejetés par le contrôle d'entier, aucune ligne de bande
+  2,4 GHz n'atteint l'analyse détaillée. Cela ne signifie pas que le matériel
+  ne propose aucun canal. Aucun pays n'est appliqué.
+
+Les bytes originaux de `cmdline.txt` sont restaurés puis relus en FAT readonly ;
+les **sept fichiers** de rapports, scripts et réservations sont conservés.
+La SD reste connectée en lecture seule au terme de ce contrôle. Aucune nouvelle
+acquisition complète ext4 n'est réalisée et aucune clé privée n'est ouverte.
+
+Le [comparatif avec les sources officielles](HARDWARE-SOURCES.md) établit un
+défaut de compatibilité du parser : `iw 6.9` peut imprimer une fréquence avec
+le suffixe `.0`, rejeté par la version installée sur la SD. Les données brutes n'étant pas conservées,
+les 14 rejets ne prouvent pas 14 suffixes `.0` et ne permettent pas de reconstruire
+canaux, puissances ou flags. Le correctif strict, sans conversion `float`, est
+livré dans les sources seulement ; il n'est pas installé sur la SD. La
+[preuve logicielle](validation/2026-10-03-iw-frequency-parser.json) consigne
+**595 tests sur Mac et Linux ARM64**, sans échec, avec respectivement quatre
+et un tests ignorés. Elle couvre aussi les lignes de capacités `short GI for
+40 MHz`, qui doivent être ignorées par le parser des fréquences.
+
+Les pins radio → diagnostic v1 → détail v2 des sources sont mis à jour ensemble
+pour les prochains builds. Ils ne désignent plus les fichiers historiques de
+cette SD : ne pas copier isolément un diagnostic actuel sur l'ancien rootfs.
+Les 30 tests cités plus haut et les preuves du boot conservent leurs anciens
+hashes. Une nouvelle observation matérielle sera nécessaire après intégration.
 
 ## Mécanisme v1 limité à la partition FAT
 

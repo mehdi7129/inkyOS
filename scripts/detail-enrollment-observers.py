@@ -13,7 +13,7 @@ import struct
 
 
 V1_PATH = "/boot/firmware/inkyos-observer-diag.py"
-V1_SHA256 = "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee"
+V1_SHA256 = "225509992ad4f263b05e81b65529d9492b0aa29c0a884a80aff6a53e8c88a002"
 REPORT = "inkyos-observer-detail.json"
 CLAIM = ".inkyos-observer-detail.started"
 KIND = "enrollment-observer-detail"
@@ -141,20 +141,28 @@ def channel_structure(raw, index):
         if line.startswith("Wiphy "):
             output["wiphy_header_count"] += 1
             output["mapped_header_count"] += line == "Wiphy phy" + str(index)
-        prefix = re.match(r"[ \t]*\* ([0-9.]+) MHz", line)
-        if prefix is None:
+        if (re.match(r"[ \t]*\* ", line) is None
+                or not (re.match(r"[ \t]*\* [ \t]*[0-9+.-]", line) and "MHz" in line
+                        or re.search(r"MHz[ \t]*\[", line))):
             continue
-        if len(prefix[1]) > 8 or not prefix[1].isdigit():
+        prefix = re.match(r"[ \t]*\* (.*) MHz(?:[ \t]|$)", line)
+        if prefix is None:
             output["noninteger_frequency_count"] += 1
             continue
-        frequency = int(prefix[1])
+        # Same whole-MHz policy as the pinned observer: integer or exact
+        # FREQ.0 from iw's optional zero kHz offset; never decimal rounding.
+        frequency_match = re.fullmatch(r"(0|[1-9][0-9]{0,9})(?:\.0)?", prefix[1])
+        if frequency_match is None or int(frequency_match[1]) > 0xffffffff:
+            output["noninteger_frequency_count"] += 1
+            continue
+        frequency = int(frequency_match[1])
         if not 2400 <= frequency <= 2500:
             continue
         output["rows_2_4ghz_count"] += 1
         if frequency in frequencies:
             output["duplicate_frequency_count"] += 1
         frequencies.add(frequency)
-        row = re.fullmatch(r"[ \t]*\* ([0-9]+) MHz \[([0-9]+)\] \((disabled|[0-9]{1,2}\.[0-9] dBm)\)(.*)", line)
+        row = re.fullmatch(r"[ \t]*\* ((?:0|[1-9][0-9]{0,9})(?:\.0)?) MHz \[([0-9]+)\] \((disabled|[0-9]{1,2}\.[0-9] dBm)\)(.*)", line)
         if row is None:
             output["malformed_row_count"] += 1
             continue

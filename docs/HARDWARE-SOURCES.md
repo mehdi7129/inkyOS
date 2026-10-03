@@ -1,12 +1,13 @@
 # InkyOS — sources matériel et système
 
-Recherche du **27 septembre 2026**. Copie de référence du dossier Inky Studio ;
+Recherche initiale du **27 septembre 2026**, complétée le **3 octobre** par les
+sources EEPROM et `iw` confrontées au retour diagnostic v2. Copie de référence du dossier Inky Studio ;
 les liens applicatifs sont figés au commit `ae61df1`. Ce document prépare la future image InkyOS
 et le maintien d'une installation classique pour utilisateurs avancés. **Aucune
 image InkyOS n'est construite ou qualifiée par ce document.** Les sources externes
 ci-dessous sont celles des fabricants ou des mainteneurs officiels ; les constats
-du projet sont identifiés séparément. Aucun accès SPI, lecture EEPROM, changement
-réseau ou installation n'a été effectué pour cette recherche.
+du projet sont identifiés séparément. La recherche documentaire n'effectue aucun
+accès matériel ; les observations physiques citées proviennent des rapports de banc.
 
 ## 1. Ce que le projet a effectivement constaté
 
@@ -37,18 +38,21 @@ Les tables officielles Pimoroni **v2.3.0** distinguent les variantes suivantes :
 Sources : [sélection du pilote, `auto.py` v2.3.0](https://github.com/pimoroni/inky/blob/v2.3.0/inky/auto.py#L20),
 [libellés des variantes, `eeprom.py` v2.3.0](https://github.com/pimoroni/inky/blob/v2.3.0/inky/eeprom.py#L13).
 
-**À corriger dans l'identification du projet :** le fallback de `display.py`
-associe actuellement le nom de module AC073TC1A à Spectra 6. Cette association
+**Écart identifié au commit `ae61df1` :** le fallback de `display.py`
+associe le nom de module AC073TC1A à Spectra 6. Cette association
 contredit upstream. Le driver reste choisi par `inky.auto` ; l'erreur concerne
 au minimum le libellé et potentiellement le nombre de couleurs annoncé lorsque
 l'attribut explicite du pilote est absent. Ne pas utiliser ce libellé comme
-preuve physique du modèle installé. Aucun correctif de code n'est inclus ici.
+preuve physique du modèle installé. Le candidat applicatif décrit dans
+[RECEPTION.md](RECEPTION.md) corrige ces métadonnées ; cette correction ne
+constitue pas une qualification physique.
 
 Le [guide officiel Pimoroni](https://learn.pimoroni.com/article/getting-started-with-inky-impression)
 explique l'autodétection par EEPROM et la distinction Gallery Palette/Spectra.
 Le lecteur upstream utilise I²C bus 1, adresse `0x50`, et retourne les champs de
-variante. **Ces champs du cadre réel n'ont pas été lus dans cette recherche.**
-Un futur inventaire doit conserver le résultat daté, les références du PCB/panneau
+variante. Ces champs n'avaient pas été lus lors de la recherche initiale du
+27 septembre ; le retour v2 ci-dessous apporte une observation distincte.
+L'inventaire doit conserver le résultat daté, les références du PCB/panneau
 et la classe Python effectivement sélectionnée, sans déclencher de refresh.
 
 La [fiche produit actuelle](https://shop.pimoroni.com/products/inky-impression)
@@ -58,6 +62,48 @@ déduire la révision d'un ancien cadre à partir de sa seule taille. Le constru
 mentionne notamment des boutons arrière depuis novembre 2025 et une évolution
 du panneau 7,3 pouces depuis avril 2026. Les temps de refresh indiqués pour ces
 révisions ne sont pas des mesures du matériel du banc.
+
+### EEPROM v2 observée et interprétation upstream — 3 octobre
+
+Le [rapport de retour v2](validation/2026-10-03-observer-detail-return.json)
+déclare `(width=800, height=480, color_code=4, display_variant=20)`.
+La table `valid_colors` de Pimoroni donne **4 → `None`, 5 → `7colour`,
+6 → `spectra6`**, dans les deux versions étudiées. Le tuple local strict
+`(800,480,5,20)` n'a donc pas d'erreur d'index démontrée ; remplacer simplement
+5 par 4 ferait perdre la distinction entre couleur connue et inconnue.
+[EEPROM v2.3.0](https://github.com/pimoroni/inky/blob/v2.3.0/inky/eeprom.py#L42),
+[EEPROM v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/eeprom.py#L44).
+
+En revanche, `auto.py` sélectionne `InkyAC073TC1A(resolution=(800,480))` dès
+que `display_variant==20`, sans tester le code couleur. Le driver correspondant
+décrit un écran 7,3 pouces à sept couleurs. Ce choix logiciel est établi pour
+la déclaration observée ; il ne prouve pas que ce driver convient au panneau
+réellement monté ni que celui-ci fonctionne.
+[Auto v2.3.0](https://github.com/pimoroni/inky/blob/v2.3.0/inky/auto.py#L35),
+[auto v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/auto.py#L35),
+[driver AC073TC1A](https://github.com/pimoroni/inky/blob/v2.3.0/inky/inky_ac073tc1a.py#L70).
+
+La référence communiquée pour le matériel est **Inky Impression 7,3″ PIM773**.
+La fiche officielle associe PIM773 à **800×480, Spectra 6, six couleurs** ;
+l'ancienne table distingue PIM667, en Gallery Palette sept couleurs. La gamme
+7,3 pouces a aussi changé de waveform en avril 2026 : la référence PIM773
+seule ne précise pas cette révision.
+[Fiche PIM773 actuelle](https://shop.pimoroni.com/products/inky-impression?variant=55186435244411),
+[table PIM667/PIM773](https://shop.pimoroni.com/products/inky-impression-7-3?variant=55186435211643).
+
+Les tables upstream désignent le Spectra 6 E673 par la variante **22** en
+v2.3.0, puis **22 ou 26** en v2.4.0, la variante 26 étant libellée AC.
+Aucune de ces sources ne donne la variante 20/couleur 4 comme équivalent
+Spectra 6. **La référence PIM773 et l'EEPROM observée sont donc en désaccord.**
+La cause reste indéterminée ; ne pas prendre l'autosélection AC073TC1A comme
+validation du driver physique, forcer un refresh ou réécrire l'EEPROM.
+[Variantes v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/eeprom.py#L31),
+[sélection E673 v2.4.0](https://github.com/pimoroni/inky/blob/v2.4.0/inky/auto.py#L39).
+
+L'analyse doit donc distinguer variante/dimensions reconnues par upstream,
+couleur EEPROM non reconnue et qualification physique. Aucun changement
+de catalogue, réécriture EEPROM ou upgrade de dépendance n'est justifié
+par la seule valeur 4 ; `eeprom_unreviewed` reste le résultat du tuple strict.
 
 ## 3. Connexion, GPIO et alimentation
 
@@ -144,6 +190,30 @@ les tests restant à effectuer sont suivis dans
 `inky-studio/docs/ios/BLUETOOTH-INTEGRATION.md` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`), pas déduits de cette
 liste de références.
 
+### Format des fréquences `iw 6.9-1` — 3 octobre
+
+Le retour v2 valide séparément les réponses firmware et regulatory, mais
+compte 14 tokens rejetés par le parser des fréquences. Dans la source officielle
+Debian `iw 6.9-1`, `info.c` imprime une fréquence entière si l'attribut OFFSET
+est absent, et utilise le format `%d.%d MHz` s'il est présent. Un offset nul
+produit donc par exemple `2412.0 MHz`, forme rejetée par le `isdigit()` de la
+version observée sur le Pi.
+L'offset est défini en kHz : il ne faut pas convertir arbitrairement ce texte
+en nombre flottant de MHz.
+[Impression des fréquences](https://sources.debian.org/src/iw/6.9-1/info.c/#L409),
+[unité de l'offset](https://sources.debian.org/src/iw/6.9-1/nl80211.h/#L4251).
+
+Le correctif livré dans les sources accepte un entier ASCII borné et son éventuel
+suffixe exact `.0`, puis conserve la comparaison canal/fréquence et les
+contrôles de puissance, flags et doublons. Les autres offsets et formats
+restent refusés. Les lignes de capacités contenant aussi « MHz » sont ignorées.
+La [preuve de tests](validation/2026-10-03-iw-frequency-parser.json) couvre le
+correctif sur Mac et Linux ARM64 ; aucune installation sur SD ou validation
+matérielle du correctif n'est revendiquée.
+Les données brutes du retour v2 ne sont pas conservées : les 14 rejets ne
+prouvent pas 14 suffixes `.0`, ni les canaux et restrictions correspondants.
+Une nouvelle observation sera nécessaire après intégration du correctif.
+
 ## 6. Deux outils officiels à comparer pour la future image
 
 | Outil | Documentation/version consultée | Ce qui est établi |
@@ -168,14 +238,15 @@ un recours. Aucune de ces bases n'est construite ou qualifiée ici.
 
 ## 7. Informations encore nécessaires avant une matrice de compatibilité
 
-- Identifier physiquement le panneau du cadre et relever sa variante EEPROM ;
-  corriger les métadonnées du projet à partir de cette identification.
+- Résoudre l'écart entre la référence PIM773 communiquée et l'EEPROM
+  `(800,480,4,20)` observée ; confirmer le driver du panneau réellement monté.
 - Figer image OS, architecture utilisateur, kernel, firmware et tous les packages
   du couple Pi/panneau effectivement testé.
 - Mesurer plusieurs refreshs consécutifs, redémarrage, erreur GPIO et alimentation
   sur ce matériel, puis qualifier chaque autre panneau annoncé séparément.
-- Construire et tester InkyOS sur SD dédiée ; identité unique au premier boot,
-  provisioning, mises à jour et récupération restent du travail futur.
+- Achever la qualification InkyOS sur SD dédiée : les premiers boots et la
+  persistance sont observés, mais provisioning, mises à jour et récupération
+  complète restent à qualifier.
 
 Une résolution identique, la compatibilité du connecteur 40 broches et des tests
 en mock ne suffisent pas à déclarer tous les modèles compatibles.

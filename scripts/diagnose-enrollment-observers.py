@@ -29,7 +29,7 @@ PINS = {
     UNIT: "a707eadd71f2a1dd57d3e83e2bcfd868485660b94391d645435ef3e105555ab6",
     HELPER: "fdf5a12b7b2c13dce3456531816d634e5bb235e37fdeff8d2efd4edcdb45209b",
     PANEL: "6fc6b93e30beeb6c03a3867efeb88cfe30ed7e1fe58f2ea6e5c35db9a4c29164",
-    RADIO: "a70ea19c0b6121ea103b7a11b6cc863b605992d5b0303620de83195078860944",
+    RADIO: "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
 }
 REPORT = "inkyos-observer-diag.json"
 CLAIM = ".inkyos-observer-diag.started"

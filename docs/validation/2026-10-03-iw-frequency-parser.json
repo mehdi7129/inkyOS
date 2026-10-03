@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "scope": "iw-whole-mhz-parser-compatibility",
+  "date": "2026-10-03",
+  "files_sha256": {
+    "scripts/observe-test-radio.py": "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
+    "scripts/diagnose-enrollment-observers.py": "225509992ad4f263b05e81b65529d9492b0aa29c0a884a80aff6a53e8c88a002",
+    "scripts/detail-enrollment-observers.py": "4053563c617e90a5306806b6259fdc9461bcef95e96dddb6aab54e0269dea560",
+    "tests/test_observe_test_radio.py": "c0f66f31d3bb7b09a4721484340b8dea2c14d518a5a4f3b1807c8b9637244612",
+    "tests/test_detail_enrollment_observers.py": "c70c25107f85aa56be3480a8588b9e1747ed612c359bd76eace216f189adbd4d"
+  },
+  "official_format_source": "https://sources.debian.org/src/iw/6.9-1/info.c/#L409",
+  "official_offset_units_source": "https://sources.debian.org/src/iw/6.9-1/nl80211.h/#L4251",
+  "macos": {
+    "scope": "software-fixtures-only",
+    "passed": true,
+    "tests": 595,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 4,
+    "python": "3.13.15",
+    "system": "Darwin",
+    "architecture": "arm64",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 19
+    },
+    "hardware_qualified": false
+  },
+  "linux_arm64": {
+    "scope": "software-fixtures-only",
+    "passed": true,
+    "tests": 595,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "python": "3.13.5",
+    "system": "Linux",
+    "architecture": "aarch64",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 19
+    },
+    "hardware_qualified": false
+  },
+  "linux_transferred_inputs_verified": true,
+  "accepted_forms": [
+    "unsigned ASCII integer MHz",
+    "same integer with exact .0 suffix"
+  ],
+  "nonzero_offsets_rejected": true,
+  "float_conversion_used": false,
+  "mixed_notation_duplicate_rejected": true,
+  "all_activation_and_qualification_guards_preserved": true,
+  "historical_proofs_modified": false,
+  "installed_on_returned_sd": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "Fixtures verify the documented iw 6.9 format, not the omitted raw tokens from the physical return.",
+    "Firmware country remains unqualified and no country is applied.",
+    "Current source pins form a new coherent chain; the returned SD still contains its historical pinned sources."
+  ],
+  "unrelated_iw_capability_lines_ignored": true,
+  "independent_source_review_passed": true
+}

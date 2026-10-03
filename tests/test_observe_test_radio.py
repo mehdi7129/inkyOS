@@ -151,6 +151,45 @@ class KernelParserTests(unittest.TestCase):
             with self.subTest(raw=raw[:40]), self.assertRaises(observer.ObservationError):
                 observer.parse_channels(raw, 0)
 
+    def test_iw_zero_khz_offset_and_absent_offset_preserve_exact_observations(self):
+        # iw 6.9-1 info.c:409-415 emits %d.%d for present OFFSET=0,
+        # including disabled rows; absent OFFSET emits only %d.
+        zero_offset = (b"Wiphy phy0\n"
+            b"\t\t\t* 2412.0 MHz [1] (20.0 dBm)\n"
+            b"\t\t\t* 2467.0 MHz [12] (18.5 dBm) (no IR, radar detection)\n"
+            b"\t\t\t* 2472.0 MHz [13] (disabled)\n"
+            b"\t\t\t* 2484.0 MHz [14] (disabled)\n"
+            b"\t\t\t* 5180.0 MHz [36] (20.0 dBm)\n")
+        self.assertEqual(observer.parse_channels(zero_offset, 0), observer.parse_channels(channels(), 0))
+        self.assertEqual(observer.frequency_mhz("0.0"), 0)
+        self.assertEqual(observer.frequency_mhz("4294967295.0"), 4294967295)
+
+    def test_iw_ht_capability_prose_is_not_a_frequency_row(self):
+        # iw 6.9-1 info.c prints these entries under HT Capability overrides.
+        raw = (b"Wiphy phy0\n\tFrequencies:\n"
+               b"\t\t\t* 2412.0 MHz [1] (20.0 dBm)\n"
+               b"\tHT Capability overrides:\n"
+               b"\t\t * short GI for 20 MHz\n\t\t * short GI for 40 MHz\n")
+        result = observer.parse_channels(raw, 0)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["frequency_mhz"], 2412)
+
+    def test_nonzero_khz_offset_noncanonical_tokens_and_mixed_duplicates_are_rejected(self):
+        invalid = ("2412.1", "2412.5", "2412.100", "2412.00", "2412.", "2412.0.0",
+                   "+2412", "-2412", "2412e0", "2.412e3", "02412", " 2412", "2412 ",
+                   "4294967296", "9" * 5000, "٢٤١٢", "NaN", "", None, 2412.0)
+        for token in invalid:
+            with self.subTest(token_type=type(token).__name__), self.assertRaises(observer.ObservationError):
+                observer.frequency_mhz(token)
+            if type(token) is str:
+                # A malformed row must not disappear behind other valid rows.
+                raw = channels() + ("\t* " + token + " MHz [1] (20.0 dBm)\n").encode()
+                with self.assertRaises(observer.ObservationError):
+                    observer.parse_channels(raw, 0)
+        for row in (b"\t* 2412.0 MHz [1] (20.0 dBm)\n", b"\t* 2412.0MHz [1] (20.0 dBm)\n"):
+            with self.assertRaises(observer.ObservationError):
+                observer.parse_channels(channels() + row, 0)
+
 
 class ObserverTests(unittest.TestCase):
     def test_default_and_missing_country_never_touch_host_or_adapters(self):

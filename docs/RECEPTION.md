@@ -83,18 +83,39 @@ n’inclut pas de nouvelle acquisition ext4. Le complément
 les suites ciblées v1/v2 passent **30 tests sur Mac et 30 sur Linux ARM64**.
 Il conserve les gardes v1 et les identités, exporte quatre entiers EEPROM
 et un booléen de catalogue, puis analyse indépendamment les trois observations
-radio issues d’une seule collecte. **Il est installé sur la SD de test et la
-carte est éjectée, après relecture FAT readonly et CI verte du commit `dcfedeb`.
-Son boot et son retour restent à observer ; il n'est pas qualifié matériellement.**
-La [preuve SD v2](validation/2026-10-03-observer-detail-sd.json) et les limites figurent dans
+radio issues d’une seule collecte. La
+[préparation SD v2](validation/2026-10-03-observer-detail-sd.json) est suivie d'un
+boot et d'un arrêt observés, puis du
+[retour physique v2](validation/2026-10-03-observer-detail-return.json) :
+**10 contrôles de cohérence et cinq gardes réussis**, les deux devices présents.
+
+L'EEPROM déclare **800×480, couleur 4, variante 20** ; le tuple reste non reconnu.
+Upstream choisirait le driver AC073TC1A 7,3 pouces sur la variante, mais le code
+couleur 4 n'a pas de libellé. La référence matérielle communiquée,
+**Inky Impression 7,3″ PIM773**, correspond officiellement à Spectra 6 ; elle
+est en désaccord avec cette déclaration EEPROM. Le driver physique reste à
+établir, sans forcer AC073TC1A ni réécrire l'EEPROM. La radio
+retourne firmware `XY/XY`, révision 0, global `00` et PHY `99`, header `plain`.
+Le parser regulatory réussit ; celui des channels rejette 14 tokens de fréquence
+au contrôle d'entier. Aucun pays n'est appliqué ; aucune connexion n'est qualifiée.
+
+La ligne de boot originale est restaurée et relue en FAT readonly ; sept fichiers
+des essais sont préservés. La SD reste connectée en lecture seule. Aucun nouveau
+contrôle exhaustif ext4 ni lecture de clé privée n'est effectué. Le correctif
+de compatibilité du parser avec le suffixe officiel `.0` est livré dans les
+sources, **pas installé sur la SD**. Il passe les
+[595 tests sur Mac et Linux ARM64](validation/2026-10-03-iw-frequency-parser.json),
+avec quatre et un tests ignorés respectivement. Les sorties brutes omises ne permettent pas
+d'affirmer que les 14 tokens portaient ce suffixe. Les sources et limites figurent
+dans [HARDWARE-SOURCES.md](HARDWARE-SOURCES.md) et
 [OBSERVER-DIAGNOSTIC.md](OBSERVER-DIAGNOSTIC.md).
 
 ## Prochaines étapes
 
-1. Observer le boot du diagnostic v2 sur le banc dédié, récupérer son rapport
-   FAT et restaurer la ligne de boot, sans publier d’identifiant.
-2. Identifier le panneau et vérifier la compatibilité avec le payload épinglé
-   avant tout refresh d’écran.
+1. Intégrer le correctif validé du parser radio, puis recueillir une nouvelle
+   observation sur le banc ; conserver les preuves historiques inchangées.
+2. Résoudre l'écart entre la référence PIM773 et la variante EEPROM 20, puis
+   vérifier le driver physique et le payload épinglé avant tout refresh d’écran.
 3. Finaliser le [canal opérateur](TEST-OPERATOR.md), le pays Wi-Fi effectif et
    l’heure vérifiée avant TLS ; le banc SSH actuel utilise un runner inerte.
 4. Qualifier photos LAN, adoption QR/BLE, changement Wi-Fi et rollback avec

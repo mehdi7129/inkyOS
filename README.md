@@ -18,8 +18,8 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
 | Application | Candidat épinglé intégré dans une image expérimentale ; services applicatifs et SSH masqués. |
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
-| Écran | Lecture EEPROM effectuée ; tuple hors du catalogue validé. Référence exacte et affichage à confirmer. |
-| Wi-Fi | Interface détectée et réponse firmware lue ; analyse réglementaire incomplète. Connexion non qualifiée. |
+| Écran | Référence PIM773 communiquée, en désaccord avec la variante EEPROM lue. Driver physique et affichage non qualifiés. |
+| Wi-Fi | Réponses firmware et regulatory analysées ; format des fréquences corrigé et testé dans les sources. Pays et connexion non qualifiés. |
 | Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
 
 La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
@@ -27,9 +27,11 @@ La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
 doit être vérifiée sur le matériel réel. Les tests logiciels ne remplacent
 pas cette qualification.
 
-Le prochain essai est prêt sur une SD de test : un
-[diagnostic complémentaire](docs/OBSERVER-DIAGNOSTIC.md) doit préciser les
-observations écran et radio. Son retour physique reste attendu.
+Le [diagnostic complémentaire](docs/OBSERVER-DIAGNOSTIC.md) a démarré sur le
+banc, puis son rapport a été récupéré après l'arrêt observé. La ligne de boot
+originale est restaurée. Le correctif radio passe les tests sur Mac et Linux ARM64.
+Il reste à résoudre l'écart panneau/EEPROM, intégrer le correctif et recueillir
+une nouvelle observation sur le banc. Ce correctif n'est pas installé sur la SD.
 
 ## Développer
 
