@@ -120,13 +120,23 @@ comparer les parsers sur une collecte unique ; les sondes rootfs et l’identit�
 ne sont pas modifiées. Les sept artefacts antérieurs restent identiques après
 relecture FAT readonly. Le [banc logiciel](validation/2026-10-03-radio-compare-preparation.json)
 passe 616 tests sur chacun des deux hôtes et vérifie les sources historiques
-exactes avec I/O inertées. Le boot v3 et son résultat physique restent à observer.
+exactes avec I/O inertées.
+
+Le [retour v3](validation/2026-10-03-radio-compare-return.json) ne contient ni
+claim ni rapport de comparaison. Le script est retrouvé intact sous un nom
+`FSCK`, tandis que le parser, les sept anciennes preuves et la ligne de boot
+correspondent à la préparation. Le boot et l’arrêt observés ne valident donc
+pas l’exécution du diagnostic. Le contrôle FAT readonly passe ; la ligne de
+boot normale est restaurée en conservant dix fichiers, dont les deux fichiers
+récupérés. Le candidat `INKYCMP.PY` à nom court passe les tests, mais sa
+persistance doit être contrôlée après réinsertion avant un nouveau boot.
 
 ## Prochaines étapes
 
-1. Effectuer le boot de comparaison radio v3, recueillir son rapport et restaurer
-   la ligne de boot ; intégrer ensuite le correctif dans une image cohérente,
-   en conservant les preuves historiques inchangées.
+1. Vérifier la persistance du candidat à nom court après réinsertion au Mac,
+   puis armer et effectuer le boot de comparaison radio. Recueillir son rapport
+   avant d’intégrer le correctif dans une image cohérente ; conserver les preuves
+   historiques inchangées.
 2. Traiter séparément le candidat AC073TC1A et la couleur EEPROM inconnue,
    puis vérifier le driver physique et le payload épinglé avant tout refresh.
    Étendre la qualification aux trois formats Spectra 6 et aux anciens

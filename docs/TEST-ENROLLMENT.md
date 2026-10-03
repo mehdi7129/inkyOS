@@ -25,8 +25,10 @@ La même carte a ensuite effectué les deux
 [diagnostics des sondes](OBSERVER-DIAGNOSTIC.md), avec retours FAT contrôlés
 et restauration de la ligne de boot originale. Le comparateur radio v3 décrit
 dans ce suivi prépare la vérification du correctif sur une même collecte,
-en conservant l’enrôlement et les rapports antérieurs. Aucune activation
-applicative n’est effectuée.
+en conservant l’enrôlement et les rapports antérieurs. Sa première tentative
+n’a pas produit de rapport ; le [suivi](OBSERVER-DIAGNOSTIC.md) décrit le script
+retrouvé sous un nom de récupération FAT et le candidat à nom court.
+Aucune activation applicative n’est effectuée.
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
 clé hôte SSH du Pi. Il ne configure aucun réseau. Le pays demandé `FR`, confirmé

@@ -1,0 +1,72 @@
+{
+  "comparison_claim_present": false,
+  "comparison_execution_established": false,
+  "comparison_report_present": false,
+  "corrected_parser_matched": true,
+  "date": "2026-10-03",
+  "expected_wrapper_name_present": false,
+  "fat_readonly_check": {
+    "exit_code": 0,
+    "repair_requested": false,
+    "tool": "macOS diskutil verifyVolume / fsck_msdos -n"
+  },
+  "hardware_qualified": false,
+  "independent_raw_readback": false,
+  "limits": [
+    "Shutdown alone does not establish execution of the diagnostic.",
+    "The expected wrapper was found intact under an FSCK recovery name; the rename cause is not established.",
+    "The read-only FAT check reports its current condition, not its earlier directory state.",
+    "Raw partition access was denied; no independent raw or new ext4 verification was performed.",
+    "The short-name candidate needs SD staging and physical reinsertion before its boot hook is armed."
+  ],
+  "new_ext4_verification": false,
+  "operator_observed_boot_and_shutdown": true,
+  "original_cmdline_restored": true,
+  "prepared_cmdline_matched": true,
+  "prepared_source_commit": "88782a603a3eaf6e2dea3e9ee6c96510fa55d504",
+  "prepared_wrapper_sha256": "9bfdebc6d9baa36c1d98deb446387f52780626adfb6591d7e16a5dbab517abae",
+  "preserved_files_verified_after_restore": 10,
+  "previous_fat_artifacts_matched": 7,
+  "radio_parser_result_available": false,
+  "readonly_remount_readback_verified": true,
+  "recovered_entries_preserved": 2,
+  "recovered_wrapper": {
+    "exact_prepared_source_bytes": true,
+    "filename": "FSCK0000.000",
+    "size_bytes": 8057
+  },
+  "release_qualified": false,
+  "root_cause_established": false,
+  "schema_version": 1,
+  "scope": "incomplete-radio-comparison-return",
+  "short_name_candidate": {
+    "deployed_to_sd": false,
+    "destination": "INKYCMP.PY",
+    "historical_chain_fixture": {
+      "cases_per_host": 3,
+      "exact_source_hashes_match": true,
+      "hardware_access": false,
+      "passed": true
+    },
+    "physical_reinsertion_verified": false,
+    "software_tests": {
+      "linux_arm64": {
+        "errors": 0,
+        "failures": 0,
+        "passed": true,
+        "python": "3.13.5",
+        "skipped": 1,
+        "tests": 616
+      },
+      "macos": {
+        "errors": 0,
+        "failures": 0,
+        "passed": true,
+        "python": "3.13.15",
+        "skipped": 4,
+        "tests": 616
+      }
+    },
+    "source_sha256": "d851db37bdab9d93e08f6347620728cedf8ab4df8ec4d1122ac617e208b828e2"
+  }
+}

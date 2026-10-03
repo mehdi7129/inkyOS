@@ -179,6 +179,38 @@ vérifier les sources et les contrôles fermés, puis restaurer la ligne de boot
 originale. Un rapport de comparaison réussi ne qualifie ni le pays Wi-Fi, ni
 une connexion, ni l’écran ou l’appairage iOS.
 
+### Retour v3 incomplet et candidat à nom court — 3 octobre 2026
+
+Le [retour conservé](validation/2026-10-03-radio-compare-return.json) confirme
+la ligne de boot préparée, les sept artefacts antérieurs et le parser corrigé.
+L’opérateur observe le boot et l’arrêt, mais **aucun claim ni rapport v3 n’est
+présent**. Le script manque sous le nom attendu. Ses **8 057 octets sont
+retrouvés à l’identique sous `FSCK0000.000`**, hash `9bfdebc6…` ; un second
+fichier `FSCK0000.001` est aussi conservé. L’exécution du comparateur et le
+résultat radio ne sont donc pas établis.
+
+Dans [dosfstools 4.2](https://github.com/dosfstools/dosfstools/blob/v4.2/src/check.c#L237),
+`auto_rename` produit ce type de nom et retire le nom long associé, notamment
+pour un nom court invalide ou un alias dupliqué. Cette correspondance indique
+une piste de renommage ; sans l’ancien répertoire brut ni journal fsck, le
+motif précis n’est pas démontré. Elle ne prouve pas des clusters orphelins,
+une carte défectueuse ou une suppression par le diagnostic.
+
+Le contrôle Mac `diskutil verifyVolume`, qui exécute **`fsck_msdos -n`**, termine
+à zéro sans réparation demandée. Il vérifie l’état actuel, pas l’état avant
+renommage. L’accès raw à la partition reste refusé par les permissions macOS.
+Les deux fichiers récupérés sont sauvegardés en privé et conservés sur la carte.
+Seule la ligne de boot normale est restaurée, puis relue en FAT readonly ;
+les dix autres fichiers contrôlés restent identiques.
+
+Le candidat actuel utilise **`/boot/firmware/INKYCMP.PY`**, nom court 8.3
+explicite, à la place de l’ancien nom long. Les pins v1/v2/rootfs/parser et le
+comportement de comparaison restent inchangés. Les 616 tests et les trois cas
+du banc historique passent à nouveau sur Mac et Linux ARM64. Ce contournement
+n’établit pas la cause de l’incident : préparer d’abord ce fichier avec le boot
+normal conservé, puis contrôler sa persistance après retrait/réinsertion au Mac
+avant d’armer un nouveau boot du Pi. Aucune preuve historique n’est réécrite.
+
 ## Mécanisme v1 limité à la partition FAT
 
 Un script, `scripts/diagnose-enrollment-observers.py`, est copié sous

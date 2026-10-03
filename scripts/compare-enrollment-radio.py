@@ -12,7 +12,9 @@ import stat
 
 V2_PATH = "/boot/firmware/inkyos-observer-detail.py"
 V2_SHA256 = "33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512"
-SELF_PATH = "/boot/firmware/inkyos-radio-compare.py"
+# Explicit 8.3 name: the previous Mac-written long-name entry was recovered
+# as FSCK0000.000 on the bench. Do not rely on its generated short-name alias.
+SELF_PATH = "/boot/firmware/INKYCMP.PY"
 PARSER_PATH = "/boot/firmware/inkyos-radio-parser.py"
 PARSER_SHA256 = "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315"
 REPORT = "inkyos-radio-compare.json"
