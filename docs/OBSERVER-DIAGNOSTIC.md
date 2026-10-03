@@ -42,7 +42,7 @@ Les anciens rapports, la réservation et le script sont préservés. Aucune
 nouvelle acquisition ext4 n'est réalisée pour ce retour FAT ; les contrôles
 ne constituent donc pas une nouvelle inspection exhaustive du filesystem.
 
-## Complément v2 — sources et tests prêts
+## Complément v2 — SD préparée, retour attendu
 
 Le script [detail-enrollment-observers.py](../scripts/detail-enrollment-observers.py)
 est relu au SHA-256
@@ -52,7 +52,18 @@ La [preuve de préparation v2](validation/2026-10-03-observer-detail-preparation
 consigne les pins et le périmètre des essais.
 Ces fixtures vérifient notamment les sorties fermées, le pin v1, la conservation
 des gardes et le refus du rejeu ; elles ne constituent pas un boot du Pi.
-**La v2 n'est pas installée sur la SD, ni bootée, ni qualifiée matériellement.**
+**La v2 est installée sur la SD de test et la carte est éjectée. Son boot
+et son retour restent à observer ; aucune qualification matérielle n'en découle.**
+La [preuve SD v2](validation/2026-10-03-observer-detail-sd.json) consigne la CI
+verte du commit `dcfedeb`, la relecture FAT readonly et la conservation exacte
+des quatre fichiers antérieurs. Seuls le nouveau script et `cmdline.txt` sont
+écrits ; l'original de la ligne de boot reste sauvegardé en privé.
+
+Ce boot utilise `/boot/firmware/inkyos-observer-detail.py`, écrit
+`inkyos-observer-detail.json` et réserve `.inkyos-observer-detail.started`.
+Il conserve le mécanisme systemd décrit plus bas, avec le chemin du script v2.
+Après l'arrêt et le retour de la carte, il faudra récupérer le rapport puis
+restaurer la ligne de boot originale, en conservant les artefacts des deux essais.
 
 Le script charge uniquement le diagnostic v1 épinglé par SHA-256 et conserve
 ses gardes système, profil, identité et services. Ses noms de script, rapport

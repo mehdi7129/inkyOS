@@ -27,6 +27,10 @@ La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
 doit être vérifiée sur le matériel réel. Les tests logiciels ne remplacent
 pas cette qualification.
 
+Le prochain essai est prêt sur une SD de test : un
+[diagnostic complémentaire](docs/OBSERVER-DIAGNOSTIC.md) doit préciser les
+observations écran et radio. Son retour physique reste attendu.
+
 ## Développer
 
 Le chemin de build testé utilise **macOS Apple Silicon**, **Python 3.11+**,

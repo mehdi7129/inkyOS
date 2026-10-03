@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "scope": "observer-detail-fat-sd-preparation",
+  "date": "2026-10-03",
+  "repository_scope": "current_repository",
+  "source_commit": "dcfedebfbc9b450f905b9b06b9c12e9d58458d6d",
+  "script_sha256": "33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512",
+  "ci_run_id": 37084544983,
+  "ci_conclusion": "success",
+  "new_script_and_cmdline_only": true,
+  "original_cmdline_preserved_privately": true,
+  "readonly_filesystem_readback_verified": true,
+  "preserved_v1_files_verified": 4,
+  "report_claim_and_temps_absent": true,
+  "independent_raw_readback": false,
+  "ejected": true,
+  "ext4_modified_by_host": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "physical_return_observed": false,
+  "limits": [
+    "Preparation and FAT readback do not establish a Raspberry Pi boot.",
+    "The original boot command line must be restored after recovering the additional report.",
+    "Existing v1 script, report, replay claim and enrollment report remain byte-identical.",
+    "No raw reread or new full ext4 acquisition was performed."
+  ]
+}
