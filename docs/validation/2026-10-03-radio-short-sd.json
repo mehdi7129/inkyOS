@@ -1,0 +1,26 @@
+{
+  "boot_hook_armed": false,
+  "ci_run": 37120422251,
+  "date": "2026-10-03",
+  "destination": "INKYCMP.PY",
+  "hardware_qualified": false,
+  "independent_raw_readback": false,
+  "limits": [
+    "No diagnostic boot hook is armed.",
+    "Physical removal and reinsertion on the Mac must be verified before arming another Pi boot.",
+    "Readback after a filesystem remount is not independent raw SD verification."
+  ],
+  "new_ext4_verification": false,
+  "only_new_file_written": "INKYCMP.PY",
+  "original_cmdline_preserved": true,
+  "physical_reinsertion_verified": false,
+  "preserved_files_verified": 11,
+  "readonly_remount_readback_verified": true,
+  "recovered_files_preserved": true,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "unarmed-short-name-source-staging",
+  "sd_ejected": true,
+  "source_commit": "72143c73d79bc2c92c21b1f32c8334262465f9a7",
+  "source_sha256": "d851db37bdab9d93e08f6347620728cedf8ab4df8ec4d1122ac617e208b828e2"
+}

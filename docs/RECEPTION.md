@@ -130,6 +130,8 @@ pas l’exécution du diagnostic. Le contrôle FAT readonly passe ; la ligne de
 boot normale est restaurée en conservant dix fichiers, dont les deux fichiers
 récupérés. Le candidat `INKYCMP.PY` à nom court passe les tests, mais sa
 persistance doit être contrôlée après réinsertion avant un nouveau boot.
+Ce [fichier est préparé et la carte éjectée](validation/2026-10-03-radio-short-sd.json)
+pour une réinsertion au Mac, avec la ligne de boot normale conservée.
 
 ## Prochaines étapes
 

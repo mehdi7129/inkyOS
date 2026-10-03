@@ -211,6 +211,13 @@ n’établit pas la cause de l’incident : préparer d’abord ce fichier avec 
 normal conservé, puis contrôler sa persistance après retrait/réinsertion au Mac
 avant d’armer un nouveau boot du Pi. Aucune preuve historique n’est réécrite.
 
+Le [stage à nom court](validation/2026-10-03-radio-short-sd.json) est réalisé
+depuis `72143c7`, CI verte : seul `INKYCMP.PY` est ajouté, puis relu après
+remontage readonly. Les onze fichiers contrôlés, dont la ligne de boot normale
+et les deux fichiers récupérés, restent identiques. La carte est éjectée pour
+un contrôle de retrait/réinsertion **au Mac**. Le hook de diagnostic reste
+désactivé ; cette préparation ne demande pas encore un boot du Pi.
+
 ## Mécanisme v1 limité à la partition FAT
 
 Un script, `scripts/diagnose-enrollment-observers.py`, est copié sous
