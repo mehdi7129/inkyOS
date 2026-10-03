@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "scope": "short-name-radio-comparison-return",
+  "date": "2026-10-03",
+  "prepared_commit": "d8df835613d3222490cc3befb394b25cd0b406fb",
+  "operator_observed_boot_and_shutdown": true,
+  "prepared_files_matched": 12,
+  "acquired_files_verified": 14,
+  "comparison_claim_present": true,
+  "comparison_report_present": true,
+  "no_new_recovery_names": true,
+  "diagnostic_completed": true,
+  "live_evidence": true,
+  "checks_passed": 10,
+  "guards_passed": 5,
+  "state_unchanged": true,
+  "source_pins": {
+    "v1_source_sha256": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+    "v2_source_sha256": "33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512",
+    "corrected_parser_sha256": "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
+    "comparison_source_sha256": "d851db37bdab9d93e08f6347620728cedf8ab4df8ec4d1122ac617e208b828e2"
+  },
+  "same_sample": true,
+  "baseline_channels_error": "kernel_observation_invalid",
+  "corrected_channels_error": null,
+  "corrected_channels_count": 14,
+  "enabled_channels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+  ],
+  "disabled_channels": [
+    14
+  ],
+  "enabled_channels_reported_max_tx_power_mbm": 2000,
+  "firmware_country": {
+    "ccode": "XY",
+    "country_abbrev": "XY",
+    "revision": 0
+  },
+  "kernel_country": {
+    "global": "00",
+    "phy": "99"
+  },
+  "panel_observation_requested": false,
+  "original_cmdline_restored": true,
+  "only_cmdline_modified_on_return": true,
+  "preserved_files_verified_after_restore": 13,
+  "readonly_remount_readback_verified": true,
+  "boot_hook_armed": false,
+  "sd_ejected": false,
+  "rootfs_radio_parser_updated": false,
+  "independent_raw_readback": false,
+  "new_ext4_verification": false,
+  "radio_qualified": false,
+  "activation_authorized": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "This validates the corrected channel parser on this read-only Pi sample, not a country setting, Wi-Fi connection or regulatory qualification.",
+    "Channel enablement and power are driver-reported observations, not measured transmissions or authorization to transmit.",
+    "The corrected parser was loaded from FAT for comparison; the installed rootfs observer is unchanged.",
+    "The short-name wrapper survived this boot; the cause of the earlier FAT rename remains unknown.",
+    "The report precedes shutdown; poweroff is separately reported by the operator.",
+    "Raw command output is omitted; no independent raw SD readback or new ext4 inspection was performed.",
+    "Application, display refresh and iPhone enrollment were not exercised."
+  ]
+}

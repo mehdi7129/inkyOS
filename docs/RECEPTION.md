@@ -138,25 +138,43 @@ sont maintenant vérifiés : douze fichiers identiques à la préparation après
 retrait/réinsertion au Mac, puis modification de la seule ligne de boot.
 Elle lance `INKYCMP.PY`, masque ENROLL et demande l’arrêt automatique.
 La relecture FAT readonly contrôle cette ligne et les onze fichiers conservés,
-avant éjection. Le boot de comparaison sur le Pi et son rapport sont attendus.
+avant éjection.
+
+Le [retour du comparateur à nom court](validation/2026-10-03-radio-short-return.json)
+réussit : douze fichiers préparés identiques, nouveau claim et rapport,
+quatre pins conformes, dix contrôles et cinq gardes vrais. Sur la même collecte,
+l’ancien parser échoue et le corrigé lit quatorze canaux, dont 1–13 annoncés
+actifs et 14 désactivé. L’état reste inchangé ; aucun pays ni connexion n’est
+qualifié. La ligne de boot originale est restaurée, puis relue en FAT readonly
+avec treize fichiers conservés. Aucun nouveau boot de parsing n’est armé.
 
 ## Prochaines étapes
 
-1. Effectuer le boot de comparaison radio préparé avec le candidat à nom court.
-   Recueillir son rapport et restaurer la ligne de boot originale au retour
-   avant d’intégrer le correctif dans une image cohérente ; conserver les preuves
-   historiques inchangées.
-2. Traiter séparément le candidat AC073TC1A et la couleur EEPROM inconnue,
-   puis vérifier le driver physique et le payload épinglé avant tout refresh.
-   Étendre la qualification aux trois formats Spectra 6 et aux anciens
-   Impression sept couleurs selon la [matrice](DISPLAY-COMPATIBILITY.md) ;
-   coordonner le support 5,7″ et des révisions AC avec Inky Studio.
-3. Finaliser le [canal opérateur](TEST-OPERATOR.md), le pays Wi-Fi effectif et
-   l’heure vérifiée avant TLS ; le banc SSH actuel utilise un runner inerte.
-4. Qualifier photos LAN, adoption QR/BLE, changement Wi-Fi et rollback avec
-   une version iOS compatible, puis figer la release applicative.
-5. Poursuivre la matrice SD, les redémarrages et la récupération avant toute
-   affirmation de qualification complète ou de distribution.
+1. Préparer hors SD un candidat TEST cohérent depuis une image propre :
+   correctif radio intégré, [canal opérateur](TEST-OPERATOR.md) réel,
+   application et vérification du pays, heure contrôlée et activation bornée.
+   Le runner SSH du banc est encore inerte ; ces fonctions restent à livrer.
+2. Coordonner avec Inky Studio le candidat AC073TC1A, le traitement explicite
+   de la couleur EEPROM inconnue, un payload épinglé et une version iOS
+   Bluetooth installable. Les anciennes références TestFlight ne suffisent pas.
+   La coordination du 3 octobre confirme que le candidat actuel peut encore
+   basculer vers un écran simulé après une erreur de détection et qu’un timeout
+   du driver ne garantit pas un échec remonté. Ces comportements doivent être
+   rendus explicites avant de valider un affichage physique. Aucun nouveau
+   candidat Bluetooth distribuable n’est confirmé.
+3. Regrouper la préparation du prochain essai : profil réseau privé 2,4 GHz,
+   confiance SSH liée à l’enrôlement, diagnostics et arrêt. Réutiliser un
+   enrôlement uniquement si ses bindings restent valides avec le candidat.
+   Une fois l’accès établi, garder la SD dans le Pi pour vérifier à distance
+   le preflight, l’activation, l’affichage et une photo LAN, puis tester
+   l’adoption QR/BLE depuis la session LAN authentifiée.
+4. Éprouver la récupération avant changement Wi-Fi et rollback. Étendre
+   ensuite les essais aux autres [formats d’écran](DISPLAY-COMPATIBILITY.md),
+   aux modèles de SD et aux redémarrages, puis figer la release applicative.
+
+Ce regroupement vise à réduire les manipulations physiques. Le nombre de
+boots restant dépend des résultats ; la qualification de tous les formats
+n’est pas un prérequis au premier essai iPhone sur ce banc.
 
 Le bootstrap factory entièrement sans LAN reste un contrat conjoint à livrer.
 Le parcours existant qui ouvre une fenêtre QR depuis une session LAN

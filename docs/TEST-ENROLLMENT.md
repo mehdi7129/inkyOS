@@ -27,9 +27,11 @@ et restauration de la ligne de boot originale. Le comparateur radio v3 décrit
 dans ce suivi prépare la vérification du correctif sur une même collecte,
 en conservant l’enrôlement et les rapports antérieurs. Sa première tentative
 n’a pas produit de rapport ; le [suivi](OBSERVER-DIAGNOSTIC.md) décrit le script
-retrouvé sous un nom de récupération FAT et le candidat à nom court. Celui-ci
-est vérifié après réinsertion au Mac ; le nouveau boot est armé et la carte
-éjectée, en attente de son essai sur le Pi et de son rapport.
+retrouvé sous un nom de récupération FAT et le candidat à nom court. Le
+[retour de ce candidat](validation/2026-10-03-radio-short-return.json) valide
+la comparaison sur une collecte réelle : ancien parser en échec, corrigé
+acceptant quatorze canaux. La ligne de boot normale est restaurée et les
+treize autres fichiers sont conservés ; la carte reste en FAT readonly.
 Aucune activation applicative n’est effectuée.
 
 Le premier boot doit identifier l'écran, observer la radio et produire la

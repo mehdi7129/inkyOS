@@ -227,9 +227,33 @@ remplacée pour exécuter `/usr/bin/python3 -I /boot/firmware/INKYCMP.PY`, avec
 ENROLL masqué et poweroff demandé en succès comme en échec. Un fichier
 temporaire à nom court `INKYRUN.TMP` est créé exclusivement puis renommé.
 Après remontage readonly, la ligne préparée et les onze autres fichiers sont
-vérifiés, puis la carte est éjectée. Le prochain boot du Pi et son rapport
-restent attendus ; ni relecture raw indépendante ni nouvelle inspection ext4
+vérifiés, puis la carte est éjectée. Cette preuve porte uniquement sur la
+préparation ; ni relecture raw indépendante ni nouvelle inspection ext4
 ne sont revendiquées.
+
+### Retour du comparateur à nom court — 3 octobre 2026
+
+Le [nouveau retour physique](validation/2026-10-03-radio-short-return.json)
+contient cette fois le claim et le rapport. Les douze fichiers préparés sont
+identiques, `INKYCMP.PY` garde son nom et aucun nouveau fichier `FSCK` n’est
+apparu. Les quatre pins correspondent aux sources attendues ; dix contrôles
+et cinq gardes passent, avec `completed=true`, `live_evidence=true` et
+`state_unchanged=true`.
+
+Sur **une même collecte** (`same_sample=true`), l’ancien parser renvoie
+`kernel_observation_invalid`, tandis que le corrigé accepte quatorze canaux :
+1–13 annoncés actifs à 2 000 mBm et 14 désactivé. Il s’agit des valeurs
+rapportées par le driver, pas de transmissions mesurées. Le firmware reste
+`XY/XY`, révision 0, et le kernel global `00` / PHY `99` ; aucun pays n’est
+appliqué et aucune connexion n’est qualifiée. L’observation écran n’est pas
+demandée. Cette preuve clôt la comparaison du parser sur ce banc, sans
+installer le correctif dans le rootfs ni établir la cause du renommage FAT.
+
+Après sauvegarde privée et validation du retour, seule la ligne de boot
+originale est restaurée. Les treize autres fichiers, dont le nouveau rapport,
+le claim et les deux fichiers récupérés, restent identiques après remontage
+FAT readonly. La carte reste sur le Mac en lecture seule ; aucun autre boot
+de diagnostic de parsing n’est préparé.
 
 ## Mécanisme v1 limité à la partition FAT
 

@@ -19,7 +19,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Candidat épinglé intégré dans une image expérimentale ; services applicatifs et SSH masqués. |
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Réponses firmware et regulatory analysées ; format des fréquences corrigé et testé dans les sources. Pays et connexion non qualifiés. |
+| Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
 | Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
 
 La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
@@ -32,14 +32,14 @@ La [compatibilité visée](docs/DISPLAY-COMPATIBILITY.md) couvre les **Spectra 6
 7,3″**. Une même recette d’image doit servir ces formats, avec détection du
 panneau par l’application. Cette cible ne signifie pas qu’ils sont déjà qualifiés.
 
-Les deux premiers [diagnostics](docs/OBSERVER-DIAGNOSTIC.md) ont produit leurs
-rapports. La tentative radio v3 n’en a pas produit : le script est retrouvé
-intact sous un nom de récupération FAT. Le candidat à nom court passe les
-616 tests sur Mac et Linux ARM64 ; sa persistance après retrait/réinsertion
-au Mac est vérifiée. Le nouveau boot de comparaison est préparé, relu et la
-SD éjectée : son exécution sur le Pi et son rapport restent attendus.
-Le correctif radio n’est pas installé dans le rootfs. Le code couleur EEPROM
-reste à traiter.
+Le dernier [diagnostic radio](docs/validation/2026-10-03-radio-short-return.json)
+est terminé : sur la même collecte, l’ancien parser échoue et le correctif lit
+les 14 canaux. Les dix contrôles et cinq gardes passent, l’état reste inchangé
+et la ligne de boot normale est restaurée. L’incident FAT antérieur et son
+contournement sont conservés dans le [suivi](docs/OBSERVER-DIAGNOSTIC.md).
+Le correctif reste à intégrer au système installé. La prochaine étape est un
+candidat TEST avec accès opérateur réseau, puis affichage et appairage iOS ;
+l’accès opérateur et le traitement du code couleur EEPROM restent à livrer.
 
 ## Développer
 
