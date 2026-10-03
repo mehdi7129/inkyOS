@@ -2,8 +2,9 @@
   "application_activated": false,
   "ci": {
     "conclusion": "success",
-    "documentation_run_url": "inkyOS/actions/runs/36778519796",
-    "run_url": "inkyOS/actions/runs/36777334386"
+    "documentation_run_id": 36778519796,
+    "run_id": 36777334386,
+    "repository_scope": "current_repository"
   },
   "cleanup": {
     "no_staging_mounts": true,

@@ -21,7 +21,8 @@
   "ci": {
     "head_sha": "93aa88d34b1001c4ab008465c838b7a97853a723",
     "conclusion": "success",
-    "url": "inkyOS/actions/runs/37079486824"
+    "run_id": 37079486824,
+    "repository_scope": "current_repository"
   },
   "limits": [
     "Filesystem readback after remount is not an independent raw SD read.",

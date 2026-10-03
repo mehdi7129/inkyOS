@@ -45,9 +45,10 @@
   },
   "date": "2026-09-27",
   "github_actions": {
-    "note": "GitHub rejected the job before any step due to account billing/spending limit; no settings read or changed.",
-    "run_url": "inkyOS/actions/runs/36336690630",
-    "status": "not_started_account_limit"
+    "note": "GitHub Actions did not start; isolated local validation is recorded separately.",
+    "run_id": 36336690630,
+    "status": "not_started",
+    "repository_scope": "current_repository"
   },
   "hardware_qualified": false,
   "kind": "system-prototype",

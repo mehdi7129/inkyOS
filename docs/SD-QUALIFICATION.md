@@ -3,13 +3,13 @@
 Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
 **3 octobre 2026**. **Premiers boots du prototype système observés sur deux SD,
 identités initiales distinctes, persistance observée sur Qumox ; qualification
-complète encore ouverte.** l’opérateur a fourni
-une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac, et
-confirmé le modèle Raspberry Pi Zero 2 W. Sa SD personnelle reste hors des essais.
-Une seconde carte, Qumox 16 Go selon l’opérateur, a ensuite été insérée dans le Mac :
+complète encore ouverte.** Le banc initial associe
+une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac,
+et un Raspberry Pi Zero 2 W. Les autres installations restent hors des essais.
+Une seconde carte, Qumox 16 Go selon l’inventaire de test, a ensuite été insérée dans le Mac :
 15938355200 octets détectés. La comparaison des identités initiales A/B passe ;
 le second boot Qumox conserve son identité. **La campagne active se poursuit
-uniquement sur Qumox ; A est retirée du périmètre à la demande de l’opérateur.**
+uniquement sur Qumox ; A est retirée du périmètre pour cette campagne.**
 La série complète et la récupération restent à réaliser. Après un
 [premier essai ambigu](validation/2026-09-30-sd-qumox-flash-observation.json),
 une écriture unique avec Imager 2.0.11.1 termine sans erreur et éjecte la SD.
@@ -22,7 +22,7 @@ Le **3 octobre**, la même capacité de SD dédiée est identifiée puis reçoit
 l'[image privée d'enrôlement](TEST-ENROLLMENT.md). La
 [preuve de ce nouveau flash](validation/2026-10-03-sd-enrollment-flash.json)
 consigne la vérification Imager observée, la fin sans erreur et l'éjection.
-l’opérateur confirme ensuite son boot et son arrêt, puis rapporte la SD. Le
+L’opérateur confirme ensuite son boot et son arrêt, puis rapporte la SD. Le
 [contrôle FAT préliminaire](validation/2026-10-03-sd-enrollment-return-preliminary.json)
 correspond aux pins attendus. La [récupération privée](SD-RECOVERY.md) est ensuite
 terminée : copie complète et relecture locale vérifiées, puis contrôle natif
@@ -75,7 +75,7 @@ pas une durée de boot. Ce snapshot ne mesure ni charge ni consommation.
 | A01–A06 | BLOQUÉ | App/helper inactifs ; écran, iPhone et transactions réseau non testés. |
 
 Le rapport est écrit avant la demande d'arrêt ; le collecteur y apparaît
-normalement `activating/start`. l’opérateur a confirmé séparément que le Pi était
+normalement `activating/start`. L’opérateur a confirmé séparément que le Pi était
 arrêté avant de retirer la SD. À ce stade, un redémarrage restait nécessaire
 pour vérifier la persistance ; A a ensuite été retirée des essais actifs.
 
@@ -113,7 +113,7 @@ SHA-256 des artefacts et les résultats booléens.
 | A01–A06 | BLOQUÉ | Release applicative et runtime sans LAN non qualifiés. |
 
 Au prélèvement Qumox : 282222592 octets de RAM disponibles, 37,014 °C et
-`get_throttled=0`. L'uptime de 56 secondes n'est pas une durée de boot. l’opérateur
+`get_throttled=0`. L'uptime de 56 secondes n'est pas une durée de boot. L’opérateur
 a répondu « c'est fait » aux étapes de boot, arrêt, débranchement et retour
 de la carte ; aucun constat indépendant de l'arrêt n'est déduit du rapport
 écrit avant poweroff. Le second démarrage manuel de la même installation
@@ -143,8 +143,8 @@ premiers boots avaient nommé la mesure du volume `boot_partition_bytes` :
 le champ est corrigé en `boot_volume_mac_total_bytes`, sans changer sa valeur
 ni déduire rétroactivement la taille de partition de A.
 
-l’opérateur demande ensuite de ne plus utiliser la SD de 128 Go (A) : le contrôle
-de persistance prévu sur A n'est pas exécuté et sort des travaux actifs.
+La SD de 128 Go (A) est ensuite retirée du périmètre : le contrôle de persistance
+prévu sur A n'est pas exécuté et sort des travaux actifs.
 La Qumox conserve son installation actuelle. Pour S06, B compte un redémarrage
 manuel observé : il en reste neuf pour la série de dix ; le premier boot et
 un éventuel reboot interne de resize ne sont pas comptés.
@@ -179,8 +179,8 @@ Le prototype système et les premiers essais applicatifs peuvent avancer sur
 la carte retenue sans terminer la matrice de distribution.
 
 1. Réserver deux SD de test, étiquetées **A** et **B**, et un banc dédié. Elles
-   peuvent être démarrées successivement sur le même Pi de test. La SD et le
-   cadre personnels ne servent pas aux essais de coupure.
+   peuvent être démarrées successivement sur le même Pi de test. Les installations
+   hors banc ne servent pas aux essais de coupure.
 2. Partir deux fois du **même artefact vierge**, jamais d'une copie de A après
    son premier boot. Vérifier SHA-256, manifeste, rapport d'inspection final et
    absence d'identités/profils/photos avant tout essai physique.
@@ -252,7 +252,7 @@ et ne conserver que les événements nécessaires, sans export complet non relu.
 
 ## Campagne applicative coordonnée avec Inky Studio
 
-La session Inky Studio conserve la responsabilité app iOS/backend/BLE, écran,
+Inky Studio conserve la responsabilité app iOS/backend/BLE, écran,
 changement Wi-Fi et rollback. InkyOS fournit le manifeste OS et le banc SD ; les
 résultats applicatifs sont référencés dans la fiche, sans modifier le protocole
 pour faire passer un test.

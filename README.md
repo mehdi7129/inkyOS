@@ -1,81 +1,72 @@
 # InkyOS
 
-Image Raspberry Pi dédiée aux cadres photo **Inky Studio**.
+Une image Raspberry Pi dédiée aux cadres photo à écran e-paper **Inky Studio**.
 
-**État : prototypes expérimentaux, 3 octobre 2026.** Une image officielle
-Lite ARM64 figée est personnalisée offline dans une VM dédiée. Premier boot
-système, compte applicatif verrouillé, services et prérequis matériels sont
-préparés et contrôlés. Le prototype système reste sans app ; une cible opt-in
-intègre un candidat Inky Studio épinglé avec ses services masqués.
-Les premiers boots de la variante diagnostic sont observés sur deux SD et
-un Pi Zero 2 W ; la Qumox conserve son identité au second démarrage.
-La cible produit est une **microSD de 16 Go nominales, marque non fixée**.
-Les essais actifs utilisent la Qumox seule ; l'ancienne SD de 128 Go est retirée
-du périmètre à la demande de l’opérateur. Chaque référence retenue devra être testée.
-Le retour de la SD d'enrôlement passe les 21 contrôles de cohérence ext4/FAT ;
-les sondes écran/radio restent bloquées et un diagnostic dédié est préparé.
-**Le parcours applicatif sans LAN et la qualification complète restent ouverts.**
+InkyOS prépare le système, ses dépendances et son premier démarrage. À terme,
+une carte microSD flashée permettra de configurer le cadre depuis l’application
+iOS. L’application et son protocole restent communs avec Inky Studio.
+
+> **Prototype expérimental — état au 3 octobre 2026.**
+> Aucune image prête à l’emploi n’est publiée. L’installation complète et le
+> premier appairage iPhone depuis InkyOS restent à qualifier.
+
+## État actuel
+
+| Composant | État vérifié |
+|---|---|
+| Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
+| Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
+| Application | Candidat épinglé intégré dans une image expérimentale ; services applicatifs et SSH masqués. |
+| Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
+| Écran | Lecture EEPROM effectuée ; tuple hors du catalogue validé. Référence exacte et affichage à confirmer. |
+| Wi-Fi | Interface détectée et réponse firmware lue ; analyse réglementaire incomplète. Connexion non qualifiée. |
+| Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
+
+La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
+**microSD de 16 Go**. La compatibilité d’un écran ou d’une référence de carte
+doit être vérifiée sur le matériel réel. Les tests logiciels ne remplacent
+pas cette qualification.
+
+## Développer
+
+Le chemin de build testé utilise **macOS Apple Silicon**, **Python 3.11+**,
+**Git** et **Lima 2.0+**. Les tests locaux utilisent la bibliothèque standard
+Python. La VM de build utilise Linux ARM64 et Python 3.13.
 
 ```sh
-make test
-make test-linux
-make inspect
-make prototype
+make test          # tests locaux
+make test-linux    # tests dans la VM ARM64 dédiée
+make inspect       # inspection de la base figée
+make prototype     # construction du prototype système sans application
 make vm-stop
 ```
 
-Voir [le guide de développement et les résultats](docs/DEVELOPMENT.md) pour les
-prérequis, rapports, limites et prochaines adaptations.
+Les images et rapports sont créés sous `build/`. Ces commandes ne flashent
+pas de carte SD et ne publient aucun artefact. L’intégration d’Inky Studio
+demande un payload applicatif vérifié séparément.
 
-## Deux façons d'installer son cadre
+Voir le [guide de développement](docs/DEVELOPMENT.md) pour les prérequis,
+l’espace disque nécessaire et les limites du builder.
 
-| Parcours | Usage prévu |
-|---|---|
-| Installation avancée | Installer Raspberry Pi OS, puis l'application depuis Inky Studio (`inky-studio`). |
-| InkyOS | Flasher une image SD incluant l'application et ses dépendances ; configurer le cadre depuis l'iPhone au premier démarrage. Ce parcours reste à développer. |
+## Documentation
 
-La même application, le même protocole et les mêmes mises à jour applicatives
-devront servir les deux parcours. InkyOS ne doit pas devenir un fork d'Inky Studio.
+- [Architecture et plan de réalisation](docs/BUILD-PLAN.md)
+- [Matériel et sources officielles](docs/HARDWARE-SOURCES.md)
+- [Intégration applicative](docs/APPLICATION-IMAGE.md)
+- [Premier démarrage, heure et pays Wi-Fi](docs/FIRST-BOOT.md)
+- [Qualification sur SD](docs/SD-QUALIFICATION.md)
+- [Diagnostic de l’écran et de la radio](docs/OBSERVER-DIAGNOSTIC.md)
+- [Reproductibilité et limites](docs/REPRODUCIBILITY.md)
+- [Rapports de validation](docs/validation/)
 
-## Documents de départ
+## Avant une release
 
-- [Transmission à la session InkyOS](docs/HANDOFF.md) : état réel, contrats, étapes et critères de validation.
-- [Matériel et sources officielles](docs/HARDWARE-SOURCES.md) : Pimoroni, Raspberry Pi, NetworkManager, BlueZ et builders.
-- [Réception du relais](docs/RECEPTION.md) : périmètre pris en charge et points ouverts.
-- [Plan de réalisation de l'image](docs/BUILD-PLAN.md) : comparaison des builders, recette proposée et qualification.
-- [Développement sans SD](docs/DEVELOPMENT.md) : outils exécutables, environnement isolé et observations vérifiées.
-- [Delta système vérifié](docs/BASE-CUSTOMIZATION.md) : premier boot et croissance SD de la base exacte.
-- [Payload applicatif commun](docs/APPLICATION-PAYLOAD.md) : contrat relu avec Inky Studio, candidat livré et release finale encore attendue.
-- [Compatibilité Python ARM64](docs/PYTHON-COMPATIBILITY.md) : audit initial des dépendances et limites de résolution depuis PyPI.
-- [Compilation des wheels natives](docs/NATIVE-WHEELS.md) : essai ARM64 réussi et artefacts expérimentaux transmis à Inky Studio.
-- [Contrôle des archives](docs/ARCHIVE-CONTRACT.md) : contrat commun et inspection inerte avant extraction.
-- [Qualification logicielle offline](docs/OFFLINE-QUALIFICATION.md) : candidat applicatif installé et testé dans une VM isolée, hors image.
-- [Intégration applicative dans l'image](docs/APPLICATION-IMAGE.md) : installation offline et fichiers système du candidat, startup masqué.
-- [Premier démarrage sans LAN](docs/FIRST-BOOT.md) : contrat partagé, heure, pays Wi-Fi et limites restant à résoudre.
-- [Banc privilégié Linux](docs/BOOTSTRAP-PROBE.md) : UID kernel, reçu root et perte de réponse ; heure/radio simulées.
-- [Gate Wi-Fi au boot](docs/WIFI-BOOT-GATE.md) : préparation durable de l'état NM sur fixtures, intégration encore inactive.
-- [Qualification SD](docs/SD-QUALIFICATION.md) : procédure, premier boot physique observé et essais restant à effectuer.
-- [Diagnostic SD sans LAN](docs/SD-DIAGNOSTIC.md) : variante de test avec rapport automatique sur FAT et arrêt propre.
-- [Variante TEST LAN préparée](docs/TEST-LAN.md) : candidat relu, recette/preflight et conditions avant activation applicative.
-- [Boot privé d'enrôlement](docs/TEST-ENROLLMENT.md) : identification EEPROM/radio, nouvelle clé hôte sur le Pi et rapport local, avant tout accès réseau.
-- [Récupération privée de la SD](docs/SD-RECOVERY.md) : acquisition complète readonly et contrôle du retour ext4/FAT.
-- [Diagnostic des sondes](docs/OBSERVER-DIAGNOSTIC.md) : petit boot temporaire sur la SD enrôlée, sans reflash ni activation.
-- [Reproductibilité mesurée](docs/REPRODUCIBILITY.md) : différences des images, causes identifiées et limite de la garantie.
+Il reste à identifier et tester le panneau, qualifier le Wi-Fi et l’appairage
+iOS, éprouver les redémarrages et la récupération, puis figer une release
+applicative compatible. La redistribution de l’image demande également la
+vérification des licences de ses composants.
 
-## Avant l'image complète
-
-Terminer la qualification Bluetooth iPhone/Raspberry dans le projet Inky Studio,
-figer une release compatible et identifier exactement le panneau. Le premier
-propriétaire n'est actuellement adopté qu'après connexion réseau authentifiée :
-le premier démarrage entièrement hors ligne est une nouvelle fonctionnalité,
-pas une simple option du générateur d'image.
-
-Aucun mot de passe, clé privée, identité de cadre, profil Wi-Fi ou image issue de
-la carte SD personnelle de développement ne doit entrer dans les sources ou
-les artefacts distribués. Construire une image vierge, puis créer chaque identité
-au premier démarrage.
-
-Dépôt public depuis le 28 septembre 2026, à la demande de l’opérateur. Les images
-restent expérimentales : aucune release d'image qualifiée n'est publiée.
-La publication d'une image nécessite encore sa qualification et la vérification
-des licences de redistribution.
+Les clés, identités de cadres, profils Wi-Fi, photos et copies de SD bootées
+restent hors des sources et des artefacts publics. Les dossiers de travail
+`private/`, `build/` et `cache/` sont exclus de Git. Les identités propres à
+chaque cadre doivent être créées au premier démarrage.

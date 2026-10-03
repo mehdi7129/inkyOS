@@ -63,7 +63,7 @@
     "Image hashes differ; no bit-for-bit reproducibility claimed.",
     "Unsigned local manifests attest integrity, not independent authenticity.",
     "Interrupted-write tests use exceptions, not electrical power loss.",
-    "GitHub Actions job did not start because of account billing/spending-limit block; Linux tests ran in the isolated local builder."
+    "GitHub Actions did not start; Linux tests ran in the isolated local builder."
   ],
   "raw_image_audit": {
     "different_ext4_blocks": 888,

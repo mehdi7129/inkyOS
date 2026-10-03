@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "scope": "physical-observer-diagnostic-fat-return",
+  "date": "2026-10-03",
+  "source_script_sha256": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+  "operator_observed_boot_and_shutdown": true,
+  "fat_readonly_recovery": true,
+  "script_and_cmdline_match_preparation": true,
+  "previous_enrollment_report_unchanged": true,
+  "closed_report_validated": true,
+  "runtime_checks": {
+    "existing_enrollment": true,
+    "existing_firstboot_identity": true,
+    "firstboot_started": true,
+    "firstboot_success": true,
+    "fresh_diagnostic": true,
+    "inactive_guards_after": true,
+    "inactive_guards_before": true,
+    "sources_pinned": true,
+    "state_unchanged": true,
+    "target_verified": true
+  },
+  "devices": {
+    "i2c1_present": true,
+    "wlan0_present": true
+  },
+  "probes": {
+    "panel": {
+      "checks": {
+        "app_stopped_and_masked": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "exact_payload_pin": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "firstboot_success": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "helper_stopped_and_masked": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "prepared_profile": {
+          "passed": true,
+          "status": "PASS"
+        }
+      },
+      "error": "eeprom_unreviewed",
+      "exit_code": 1,
+      "live_evidence": false,
+      "live_selected": true,
+      "observation": {
+        "data": null,
+        "live_evidence": false,
+        "status": "blocked"
+      },
+      "observation_source": "live-system",
+      "observations_complete": false,
+      "outcome": "reported",
+      "status": "BLOCKED"
+    },
+    "radio": {
+      "checks": {
+        "app_stopped_and_masked": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "exact_payload_pin": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "firmware_country_matches": {
+          "passed": false,
+          "status": "BLOCKED"
+        },
+        "firmware_response_valid": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "firmware_tuple_qualified": {
+          "passed": false,
+          "status": "BLOCKED"
+        },
+        "firstboot_success": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "helper_stopped_and_masked": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "kernel_2_4ghz_limits_observed": {
+          "passed": false,
+          "status": "BLOCKED"
+        },
+        "kernel_global_country_matches": {
+          "passed": false,
+          "status": "BLOCKED"
+        },
+        "prepared_profile": {
+          "passed": true,
+          "status": "PASS"
+        },
+        "wlan0_driver_and_wiphy_verified": {
+          "passed": true,
+          "status": "PASS"
+        }
+      },
+      "error": "kernel_observation_invalid",
+      "exit_code": 1,
+      "live_evidence": false,
+      "live_selected": true,
+      "observation": {
+        "data": null,
+        "live_evidence": false,
+        "status": "blocked"
+      },
+      "observation_source": "live-system",
+      "observations_complete": false,
+      "outcome": "reported",
+      "status": "BLOCKED"
+    }
+  },
+  "original_cmdline_restored_and_readback_verified": true,
+  "reports_and_replay_claim_preserved": true,
+  "new_ext4_verification": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "Unsigned FAT report is a local observation, not independent attestation.",
+    "EEPROM lookup refused the decoded tuple; panel model remains unestablished.",
+    "Firmware country abbreviation differs from requested FR; no country was applied.",
+    "The kernel error may arise from regulatory or channel parsing; their flags do not locate the failure.",
+    "This FAT-only return does not reverify the full ext4 filesystem."
+  ]
+}

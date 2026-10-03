@@ -12,7 +12,8 @@
   },
   "ci": {
     "conclusion": "success",
-    "url": "inkyOS/actions/runs/37075892740"
+    "run_id": 37075892740,
+    "repository_scope": "current_repository"
   },
   "native_runner_smoke": {
     "platform": "Linux ARM64",

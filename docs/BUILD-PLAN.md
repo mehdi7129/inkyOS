@@ -9,7 +9,7 @@ applicative finale n'est sélectionnée ici.
 
 ## 1. Réexamen : éprouver la solution la plus simple
 
-À la demande de l’opérateur, seconde lecture du plan le 27 septembre : **le choix de
+Après seconde lecture du plan le 27 septembre : **le choix de
 pi-gen n'est pas figé**. L'option prioritaire à éprouver est une **image officielle
 Raspberry Pi OS Lite ARM64 datée et conservée avec son SHA-256, personnalisée
 hors ligne sur une copie**. La cible initiale reste le Pi Zero 2 W, avec le panneau
@@ -143,7 +143,7 @@ ensuite doivent être incluses dans la recette auditée.
 
 ### Payload applicatif commun
 
-Lecture seule au commit ae61df1 (`inky-studio/tree/ae61df1c0f01408861ccb1210ec85986768d6784`) :
+Lecture du dépôt `inky-studio` au commit `ae61df1c0f01408861ccb1210ec85986768d6784` :
 
 | Constat du code | Conséquence pour la recette |
 |---|---|
@@ -154,11 +154,11 @@ Lecture seule au commit ae61df1 (`inky-studio/tree/ae61df1c0f01408861ccb1210ec85
 | Le défaut Python des données est `server/data` ; l'unité fixe `/var/lib/inky-studio`. | Définir `INKY_STUDIO_DATA_DIR` de façon cohérente pour service, CLI et contrôles. |
 | Le helper utilise Python système et D-Bus, avec NetworkManager requis. | Inclure explicitement `python3-dbus`, BlueZ, NetworkManager, rfkill et outils systemd nécessaires ; vérifier IPC/polkit. |
 
-Sources : installer (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/install.sh`),
-Bluetooth (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/scripts/install-bluetooth.sh`),
-pyproject (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/pyproject.toml`),
-updater (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/services/updater.py`),
-données (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/db.py`).
+Sources : `inky-studio/install.sh` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/scripts/install-bluetooth.sh` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/server/pyproject.toml` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/server/inky_web/services/updater.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/server/inky_web/db.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`).
 
 Proposition de layout : compte de service `inky`, login verrouillé,
 `/home/inky/inky-studio` pour le payload/venv et `/var/lib/inky-studio` pour les
@@ -284,10 +284,10 @@ doit survivre aux coupures même lorsque le « premier boot » systemd est termi
 | Packaging offline et compatibilité | Payload sans installation mouvante ; unité, wrapper, helper/polkit et lock de dépendances versionnés. Définir quelles mises à jour app sont compatibles avec chaque image/helper. |
 | Recovery physique et restauration | Moyen utilisable sur le panneau réellement identifié, sans supposer la présence d'un bouton. Reset explicite, preuve physique et sort des photos/identités documentés. |
 
-Sources du blocage : main.py (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/main.py`),
-identity.py (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/provisioning/identity.py`),
-API adoption (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/provisioning/api.py`),
-runtime BLE (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/provisioning/runtime.py`).
+Sources du blocage : `inky-studio/server/inky_web/main.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/server/inky_web/provisioning/identity.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/server/inky_web/provisioning/api.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`),
+`inky-studio/server/inky_web/provisioning/runtime.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`).
 
 Ces lignes définissent des besoins, **pas un nouveau protocole décidé par InkyOS**.
 Le choix du mécanisme de temps exige une conception conjointe avant tout code OS
@@ -305,7 +305,7 @@ Mise à jour du 30 septembre : la cible produit est **microSD de 16 Go nominales
 marque non fixée**, choisie selon disponibilité/prix puis qualifiée. L'image
 diagnostic actuelle mesure 3061841920 octets et tient sur la Qumox observée à
 15938355200 octets ; chaque flash vérifie la capacité réelle. L'ancienne SD
-de 128 Go est retirée des essais à la demande de l’opérateur. La campagne active
+de 128 Go est retirée des essais pour cette campagne. La campagne active
 reste sur Qumox seule ; les résultats A/B initiaux sont conservés, sans
 exiger un nouveau boot de A ni déclarer ses essais manquants réussis.
 La matrice étendue reste une condition de qualification/distribution,
@@ -360,12 +360,12 @@ Ordre de travail proposé :
 
 L'hôte de build Linux ARM64 est maintenant éprouvé. Restent ouverts : identification
 du panneau/banc, release app définitive et contrats listés en section 6. Aucun de ces éléments n'est
-implicitement remplacé par le Pi personnel ou par une valeur arbitraire.
+implicitement remplacé par un matériel hors banc ou par une valeur arbitraire.
 
 **Disponibilité au 30 septembre : Qumox 16 Go de test fournie**, premier boot
 et un redémarrage avec identité conservée observés. L'ancienne SD de test
-128 Go sort du périmètre actif à la demande de l’opérateur ; sa SD personnelle reste
-intacte. La campagne complète et les essais applicatifs restent ouverts.
+128 Go sort du périmètre actif pour cette campagne. La campagne complète et
+les essais applicatifs restent ouverts.
 
 Pour v0, conserver une seule cible, boot FAT + root ext4 et récupération par
 reflash de secours. A/B, partitionnement spécial, service cloud et mécanisme

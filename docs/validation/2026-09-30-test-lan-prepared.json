@@ -10,7 +10,8 @@
   "ci": {
     "conclusion": "success",
     "source_commit": "2f168ec8a57ba9f2f81ae08f872cdf3d7e278cf7",
-    "url": "inkyOS/actions/runs/36764306460"
+    "run_id": 36764306460,
+    "repository_scope": "current_repository"
   },
   "date": "2026-09-30",
   "hardware_qualified": false,

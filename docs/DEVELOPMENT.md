@@ -3,7 +3,7 @@
 Un **prototype système sans Inky Studio** est assemblé depuis une base officielle
 Lite ARM64 figée. Une [cible applicative expérimentale](APPLICATION-IMAGE.md)
 installe maintenant un candidat épinglé avec services masqués. Aucun accès au
-Pi, à sa SD personnelle ou à un disque physique. Le premier assemblage système
+Pi ni à un disque physique lors de la construction. Le premier assemblage système
 a réussi le 27 septembre 2026 ; aucune qualification SD.
 
 ## Utilisation sur Mac Apple Silicon
@@ -138,10 +138,9 @@ y compris les vrais xattrs/ACL et nœuds spéciaux jetables. Aucun accès matér
 
 La CI GitHub est configurée pour ces fixtures et la syntaxe shell, sans build
 privilégié ni matériel, avec actions officielles épinglées et permissions de
-lecture seules. Son premier job (`inkyOS/actions/runs/36336690630`)
-n'a toutefois pas démarré : GitHub signale un blocage de facturation/plafond
-du compte. Aucun réglage administratif lu ou modifié ; ne pas présenter cette
-CI comme verte.
+lecture seules. La CI n° `36336690630`
+n'a toutefois pas démarré ; les validations locales sont consignées séparément.
+Ce résultat historique ne doit pas être présenté comme une CI réussie.
 
 Pour deux builds du même commit propre :
 
@@ -213,4 +212,4 @@ sur Mac/Linux, sans preuve de démarrage matériel.
    mémoire, coupures, adoption et rollback selon [SD-QUALIFICATION.md](SD-QUALIFICATION.md).
 
 Aucun boot du kernel Pi, service en fonctionnement, écran, Wi-Fi ou Bluetooth
-physique n'est qualifié par ces contrôles. La SD personnelle reste intacte.
+physique n'est qualifié par ces contrôles. Les installations hors banc restent intactes.

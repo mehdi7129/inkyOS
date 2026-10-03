@@ -1,6 +1,6 @@
 # Payload commun Inky Studio / InkyOS — proposition v1
 
-Proposition du 27 septembre 2026, à valider avec la session Inky Studio.
+Proposition du 27 septembre 2026, à valider avec Inky Studio.
 **Aucune release finale qualifiée sélectionnée.** Un candidat et son lock sont
 maintenant livrés et [testés offline en VM](OFFLINE-QUALIFICATION.md), depuis
 `6a697d1`. Le prototype système InkyOS reste sans backend. Ce contrat ne change
@@ -75,10 +75,10 @@ une source implicite de dépendances.
 L'OS fournit uniquement les prérequis système et une identité hostname propre
 au premier boot. Il n'ouvre pas une fenêtre QR à la place du backend et ne
 contourne pas les contrôles de temps/TLS existants. La qualification SD attend
-une carte dédiée ; la SD personnelle reste hors de ce chantier.
+une carte dédiée ; les installations hors banc restent exclues.
 
-La session Inky Studio a relu cette proposition le 27 septembre : direction
-acceptée pour poursuivre le prototype, sous réserve des points ci-dessus.
+La revue Inky Studio du 27 septembre accepte cette direction
+pour poursuivre le prototype, sous réserve des points ci-dessus.
 Cette revue ne constitue ni livraison d'assets ni qualification.
 
 L'[audit de disponibilité des wheels](PYTHON-COMPATIBILITY.md) précise le travail

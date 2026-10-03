@@ -1,9 +1,9 @@
-# Transmission à la session InkyOS
+# Contrats et responsabilités InkyOS
 
 État du **27 septembre 2026**, avant qualification finale du Bluetooth. Ce dossier
 prépare le travail ; il ne donne pas le statut « prêt à flasher » à une image.
 
-## Intention validée par l’opérateur
+## Objectif du projet
 
 Deux parcours doivent rester disponibles : un utilisateur avancé installe son
 Raspberry Pi OS puis Inky Studio ; un autre flashe InkyOS avec l'application et
@@ -13,22 +13,21 @@ est un nom de projet ; aucune affiliation Raspberry Pi n'est revendiquée.
 
 Le développement de l'image vient après stabilisation de l'application et du
 Bluetooth. Les sources système et l'étude de reproductibilité peuvent avancer
-sans toucher au cadre personnel.
+sans utiliser une installation hors banc.
 
 ## Répartition des dépôts
 
 | Dépôt | Responsabilité |
 |---|---|
-| inky-studio (`inky-studio`) | App iOS, backend, UI web, protocole BLE/HTTPS, écran, helper réseau, installation classique et updates applicatives. |
-| inkyOS (`inkyOS`) | Recette d'image, base OS figée, intégration premier boot, configuration système, qualification SD, maintenance et récupération OS. |
+| `inky-studio` | App iOS, backend, UI web, protocole BLE/HTTPS, écran, helper réseau, installation classique et updates applicatives. |
+| `inkyOS` | Recette d'image, base OS figée, intégration premier boot, configuration système, qualification SD, maintenance et récupération OS. |
 
-Dossiers locaux : `~/Desktop/inkyOS` pour ce projet ; checkout actif de
-l'intégration app dans `~/Desktop/inky-studio-ios`. L'ancien checkout
-`~/Desktop/inky-studio` est distinct. Ne pas y recopier des changements sans
-vérifier branche, worktree et état Git.
+Conserver des checkouts distincts pour InkyOS et Inky Studio. Vérifier la
+branche, le worktree et l'état Git avant toute intégration entre composants.
 
-Utiliser une release applicative publiée et vérifiée, jamais une copie du Pi
-personnel ou un téléchargement non figé de `main`/`latest` pendant le build OS.
+Utiliser une release applicative publiée et vérifiée, jamais une copie d’une
+installation existante ou un téléchargement non figé de `main`/`latest` pendant
+le build OS.
 Le code applicatif reste maintenu dans son dépôt ; toute extension de son
 protocole demande une modification testée des deux côtés, pas un fork caché.
 
@@ -37,9 +36,9 @@ protocole demande une modification testée des deux côtés, pas un fork caché.
 - Le backend `0.5.0-rc.2`, source `ae61df1`, est désormais déployé sur le cadre
   de qualification. HTTP/HTTPS, auth obligatoire, détection du driver et
   enregistrement BlueZ passent ; ce n’est pas encore une release publique.
-- L'app disponible dans TestFlight est `1.0.0 (3)`, sans Bluetooth. Le build 4
-  Bluetooth a été traité par Apple mais attend la conformité chiffrement.
-- La PR #11 (`inky-studio/pull/11`) est draft.
+- Le candidat iOS `1.0.0 (3)` ne prend pas en charge Bluetooth. Le build 4
+  Bluetooth n'est pas qualifié pour la release décrite ici.
+- La PR #11 d’Inky Studio est draft.
   CI backend et iOS verte ; banc radio Mac/Pi et bancs synthétiques passés.
   L'adoption QR par iPhone et le changement/rollback Wi-Fi physiques restent
   à qualifier. Ces preuves ne sont pas interchangeables.
@@ -55,7 +54,7 @@ réutiliser cette étiquette comme preuve de matériel.
 
 ## Contrats applicatifs à préserver
 
-Référence de code pour cet inventaire : ae61df1 (`inky-studio/tree/ae61df1c0f01408861ccb1210ec85986768d6784`).
+Référence de code pour cet inventaire : `inky-studio`, commit `ae61df1c0f01408861ccb1210ec85986768d6784`.
 Les valeurs par défaut ne sont pas des chemins imposés à tous les utilisateurs.
 
 | Élément | Contrat existant |
@@ -70,8 +69,8 @@ Les valeurs par défaut ne sont pas des chemins imposés à tous les utilisateur
 | IPC réseau | Socket `/run/inky-network/control.sock` 0660 ; état privé `/var/lib/inky-network` 0700. Permissions NetworkManager limitées au helper. |
 | Portée Wi-Fi | `wlan0`, WPA2 personnel, 2,4 GHz, IPv4 ; tentative de 180 secondes, confirmation HTTPS, rollback à défaut. |
 
-Lire les scripts install.sh (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/install.sh`)
-et install-bluetooth.sh (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/scripts/install-bluetooth.sh`).
+Lire les scripts `inky-studio/install.sh` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`)
+et `inky-studio/scripts/install-bluetooth.sh` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`).
 L'installateur classique n'est pas directement un stage de build d'image : il
 attend un utilisateur normal et peut installer des paquets, agir sur les services
 ou redémarrer. Concevoir des étapes adaptées à une image hors ligne et qualifier
@@ -111,7 +110,7 @@ Définir puis implémenter conjointement avec l'app :
 Conserver le design iOS arrondi clair/sombre et les parcours déjà acceptés.
 Les portails captifs d'hôtel, WPA Enterprise, réseaux ouverts, 5 GHz et l'envoi
 Internet distant de photos ne sont pas couverts par la fonction actuelle. Le
-partage de connexion 2,4 GHz est le scénario de test choisi par l’opérateur.
+partage de connexion 2,4 GHz fait partie des scénarios du banc.
 
 ## Identités et image générique
 
@@ -132,7 +131,7 @@ définir le parcours avancé de support sans créer de compte universel.
 
 ## Mises à jour : deux responsabilités
 
-L'updater app reste lié à `inky-studio`. Il sélectionne actuellement
+L'updater app reste lié au dépôt applicatif Inky Studio. Il sélectionne actuellement
 la dernière release puis un asset `.tar.gz`, remplace du code et installe les
 packages Python dans le venv. Le payload doit contenir `server`, `client/dist`,
 `shared` et `scripts`.
@@ -159,18 +158,13 @@ pour le faire pointer sur les images InkyOS.
 | 5. Distribution | Image compressée, SHA-256, provenance/licences, guide Imager, limites et maintenance | Flash d'une SD vierge par une seconde personne, installation et restauration réussies. |
 
 Le Zero 2 W est la première cible à confirmer ; aucun autre Pi ou écran n'est
-annoncé compatible sans test. Ne pas utiliser le cadre personnel comme seule
+annoncé compatible sans test. Ne pas utiliser une installation hors banc comme seule
 carte de qualification d'image ou de coupure électrique.
 
-## Relais à l'autre conversation
+## Coordination des composants
 
-Dossier préparé localement et dans ce dépôt. L'autre fenêtre Cursor peut le lire
-sans accès aux archives personnelles de cette session. Aucun formulaire ANSSI,
-coordonnée privée, mot de passe ou secret réseau n'est nécessaire à ce travail.
-
-La transmission à la session InkyOS a été effectuée et reçue le **27 septembre
-2026**. Un accusé a été envoyé à la session Inky Studio, qui a répondu par le
-canal inter-session ; voir [la réception et les points ouverts](RECEPTION.md).
-Cette réception ne qualifie pas l'application ou l'image. Une fois la base
-applicative qualifiée, mettre à jour l'état ci-dessus et transmettre le commit,
-les artefacts de release et les preuves de tests.
+L'[état d'intégration et les points ouverts](RECEPTION.md) distinguent les
+travaux système et applicatifs. Une fois la base applicative qualifiée,
+mettre à jour ce contrat avec le commit, les artefacts de release et les
+preuves de tests. La documentation de coordination ne qualifie pas à elle
+seule l'application ou l'image.

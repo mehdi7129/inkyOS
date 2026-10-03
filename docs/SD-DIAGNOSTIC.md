@@ -145,7 +145,7 @@ boot physique restait NON TESTÉ.
 
 ## Rapport du premier boot récupéré le 30 septembre
 
-l’opérateur a démarré le Pi Zero 2 W sur cette carte puis confirmé son arrêt avant
+L’opérateur a démarré le Pi Zero 2 W sur cette carte puis confirmé son arrêt avant
 de la remettre dans le Mac. Un rapport a été récupéré et conservé localement ;
 seule la [preuve réduite](validation/2026-09-30-sd-first-boot.json) est publiée,
 sans empreintes d'identités ni identifiant de boot.
@@ -158,19 +158,19 @@ constituent pas une mesure de durée de boot. L'arrêt est une observation
 distincte de l'utilisateur, puisque le rapport précède poweroff.
 
 Le redémarrage manuel, la comparaison de deux installations vierges et la
-campagne applicative restent à faire. l’opérateur prévoit de remplacer cette carte
-par une SD plus adaptée : repartir du même artefact vierge évite de recopier
+campagne applicative restent à faire. Le remplacement de cette carte
+est prévu : repartir du même artefact vierge évite de recopier
 une identité déjà générée. À la fin de cette première observation, aucun
 changement de carte ni nouveau flash n'avait encore été effectué.
 
 ## Remplacement par la Qumox 16 Go — 30 septembre
 
-l’opérateur a fourni cette seconde carte ; le Mac a relevé 15938355200 octets,
+L’inventaire de cette seconde carte relève 15938355200 octets,
 média SD physique amovible inscriptible. Le premier flash avec Imager 2.0.6
 a présenté une vérification à 31 %, une fin avec éjection et une erreur
 d'ouverture raw simultanée. Il reste **non accepté** ; la
 [preuve d'observation](validation/2026-09-30-sd-qumox-flash-observation.json)
-conserve cette ambiguïté. l’opérateur a seulement fermé l'erreur, sans relancer
+conserve cette ambiguïté. L’opérateur a seulement fermé l'erreur, sans relancer
 manuellement l'écriture.
 
 Cette séquence est compatible avec le [bug upstream #1511](https://github.com/raspberrypi/rpi-imager/issues/1511),
@@ -253,8 +253,8 @@ le nom du champ historique pour le volume FAT : `diskutil info` donne
 528593408 octets de volume, tandis que `diskutil list` mesure une partition
 de 536870912 octets. Les valeurs historiques ne sont pas remplacées.
 
-S05 est documenté sur B dans ce périmètre. l’opérateur demande ensuite de ne plus
-utiliser A : son redémarrage prévu n'est pas exécuté. B compte un seul
+S05 est documenté sur B dans ce périmètre. A est ensuite retirée de la campagne :
+son redémarrage prévu n'est pas exécuté. B compte un seul
 redémarrage manuel pour S06. Aucune série de
 dix, erreur transitoire exhaustive, coupure, adoption ou transaction réseau
 n'est déduite des deux snapshots. Conserver la Qumox pour les essais suivants,

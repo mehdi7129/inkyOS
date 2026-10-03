@@ -96,4 +96,4 @@ Un tel échec dans une VM ne suffirait pas à diagnostiquer une incompatibilité
 L'installation offline du graphe complet, les imports adaptés, la compatibilité
 de l'application et les essais GPIO/SPI restent à exécuter séparément. Les droits
 sur `/dev/gpiomem`, la carte, le panneau et le comportement sous charge ne sont
-pas déduits de cette compilation. La SD personnelle reste hors des essais.
+pas déduits de cette compilation. Les installations hors banc restent exclues.

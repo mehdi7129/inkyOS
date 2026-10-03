@@ -65,7 +65,7 @@
     "qualification-application.json": 26,
     "qualification-static.json": 62
   },
-  "github_ci": "inkyOS/actions/runs/36715622143",
+  "github_ci_run_id": 36715622143,
   "hardware_qualified": false,
   "image": {
     "filename": "inkyos-sd-diagnostic.img",
@@ -154,5 +154,6 @@
       "tests": 305
     }
   },
-  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715"
+  "source_commit": "196733aaef458df6b7d5fba8d20cb3ea3717c715",
+  "github_ci_repository_scope": "current_repository"
 }

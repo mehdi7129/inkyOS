@@ -12,14 +12,14 @@ réseau ou installation n'a été effectué pour cette recherche.
 
 | Élément | Preuve disponible dans le dépôt | Portée |
 |---|---|---|
-| Raspberry Pi Zero 2 W Rev 1.0 | Banc matériel du 27 septembre (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/docs/ios/BLUETOOTH-BENCH.md#matériel-et-accès-vérifiés`) | Identification SSH antérieure, pas une nouvelle mesure ici. |
+| Raspberry Pi Zero 2 W Rev 1.0 | `inky-studio/docs/ios/BLUETOOTH-BENCH.md#matériel-et-accès-vérifiés` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) | Identification SSH antérieure, pas une nouvelle mesure ici. |
 | Debian 13 Trixie, kernel `6.12.75+rpt-rpi-v8`, Python 3.13.5 | Même banc | Ne désigne pas le fichier image d'origine ni son checksum ; ne suffit pas à reproduire l'installation. |
 | BlueZ 5.82 et NetworkManager 1.52.1 | Même banc | Versions de la machine qualifiée, pas versions minimales universelles. |
-| Écran 800 × 480 | Validation de l'API native sur le Pi (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/docs/ios/VALIDATION.md`) | La résolution seule ne distingue pas un ancien panneau 7 couleurs d'un Spectra 6. |
-| Pilote Python `inky==2.3.0` | Extras Pi (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/pyproject.toml`) et plan existant (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/docs/ios/PRODUCT-EVOLUTION-PLAN.md`) | Pin volontaire du projet ; les dépendances transitives et le kernel font aussi partie de la qualification. |
-| Installation classique | install.sh (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/install.sh`), installateur Bluetooth (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/scripts/install-bluetooth.sh`) | L'existant active SPI/I²C, prépare le venv et les services ; ce n'est pas un générateur d'image système. |
+| Écran 800 × 480 | `inky-studio/docs/ios/VALIDATION.md` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) | La résolution seule ne distingue pas un ancien panneau 7 couleurs d'un Spectra 6. |
+| Pilote Python `inky==2.3.0` | `inky-studio/server/pyproject.toml` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) et `inky-studio/docs/ios/PRODUCT-EVOLUTION-PLAN.md` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) | Pin volontaire du projet ; les dépendances transitives et le kernel font aussi partie de la qualification. |
+| Installation classique | `inky-studio/install.sh` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`), `inky-studio/scripts/install-bluetooth.sh` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) | L'existant active SPI/I²C, prépare le venv et les services ; ce n'est pas un générateur d'image système. |
 
-Le contrôleur display.py (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/server/inky_web/inky/display.py`) utilise
+Le contrôleur `inky-studio/server/inky_web/inky/display.py` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) utilise
 `inky.auto.auto(ask_user=False)` puis conserve le pilote choisi. Son fallback mock
 permet le développement sans matériel ; un écran mock ne prouve jamais que le
 cadre physique est correctement détecté.
@@ -57,7 +57,7 @@ lien `inky-impression-7-3` redirige vers cette gamme. Elle ne permet donc pas de
 déduire la révision d'un ancien cadre à partir de sa seule taille. Le constructeur
 mentionne notamment des boutons arrière depuis novembre 2025 et une évolution
 du panneau 7,3 pouces depuis avril 2026. Les temps de refresh indiqués pour ces
-révisions ne sont pas des mesures du matériel de l’opérateur.
+révisions ne sont pas des mesures du matériel du banc.
 
 ## 3. Connexion, GPIO et alimentation
 
@@ -141,7 +141,7 @@ second processus d'affichage peut contredire la propriété exclusive du matéri
 Les API documentées ne constituent pas une preuve de rollback après coupure
 électrique. La qualification applicative, les limites WPA2/2,4 GHz actuelles et
 les tests restant à effectuer sont suivis dans
-BLUETOOTH-INTEGRATION.md (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/docs/ios/BLUETOOTH-INTEGRATION.md`), pas déduits de cette
+`inky-studio/docs/ios/BLUETOOTH-INTEGRATION.md` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`), pas déduits de cette
 liste de références.
 
 ## 6. Deux outils officiels à comparer pour la future image
@@ -152,7 +152,7 @@ liste de références.
 | `pi-gen` | [README au commit 6a0419c1](https://github.com/RPi-Distro/pi-gen/blob/6a0419c199dbb1f561c3b372d2e2c7d496461d8c/README.md), [branche arm64](https://github.com/RPi-Distro/pi-gen/tree/arm64) | Outil utilisé pour les images Raspberry Pi OS. Le README distingue `master` pour 32 bits et `arm64` pour 64 bits ; configuration et étapes permettent la personnalisation. |
 
 Ces références ne sélectionnent pas un builder, une version OS ou une architecture
-pour InkyOS. Le plan produit (`inky-studio/blob/ae61df1c0f01408861ccb1210ec85986768d6784/docs/ios/PRODUCT-EVOLUTION-PLAN.md`) prévoit cette
+pour InkyOS. Le plan produit `inky-studio/docs/ios/PRODUCT-EVOLUTION-PLAN.md` (commit `ae61df1c0f01408861ccb1210ec85986768d6784`) prévoit cette
 comparaison avec un build reproductible et une carte de test dédiée. L'installation
 classique et la future image doivent conserver la même application et les mêmes
 contrats, sans présenter le premier démarrage Bluetooth entièrement hors ligne
@@ -162,7 +162,7 @@ Complément du relais InkyOS du 27 septembre : la comparaison ARM64 utilise
 [`pi-gen` au SHA `74d08a337bd29da289b9aedbe5b48c79fb2e5a03`](https://github.com/RPi-Distro/pi-gen/tree/74d08a337bd29da289b9aedbe5b48c79fb2e5a03),
 résolu depuis `arm64`. Le SHA `6a0419c1…` du tableau est celui de `master`
 (32 bits). Le [plan de réalisation](BUILD-PLAN.md) détaille cette piste et
-`rpi-image-gen`. Après seconde lecture demandée par l’opérateur, il prévoit d'éprouver
+`rpi-image-gen`. Après seconde lecture du projet, il prévoit d'éprouver
 d'abord une image officielle Lite datée et personnalisée offline ; pi-gen reste
 un recours. Aucune de ces bases n'est construite ou qualifiée ici.
 

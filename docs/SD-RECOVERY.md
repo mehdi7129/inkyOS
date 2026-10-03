@@ -91,7 +91,7 @@ suppression dans la VM. L'export privé original reste conservé sur le Mac.
 
 ## Retour physique du 3 octobre 2026
 
-l’opérateur confirme avoir démarré le Pi avec la SD écrite, constaté son arrêt puis
+L’opérateur confirme avoir démarré le Pi avec la SD écrite, constaté son arrêt puis
 remis la carte dans le Mac. Le rapport FAT est récupéré dans une copie privée.
 Son schéma passe ; le challenge, le profil, les pins et le runtime correspondent
 à l'export local. Il déclare `enrolled`, mais **la lecture FAT seule ne vérifie

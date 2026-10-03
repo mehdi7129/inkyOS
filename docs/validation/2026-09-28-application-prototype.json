@@ -121,11 +121,11 @@
     }
   ],
   "ci": {
-    "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the Billing & plans section in your settings",
-    "billing_configuration_read_or_changed": false,
+    "annotation": "GitHub Actions did not start; isolated local validation is recorded separately.",
     "conclusion": "failure",
     "steps_started": 0,
-    "url": "inkyOS/actions/runs/36398861253"
+    "run_id": 36398861253,
+    "repository_scope": "current_repository"
   },
   "comparison": {
     "content_equal": true,

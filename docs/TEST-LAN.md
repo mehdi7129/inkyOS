@@ -3,13 +3,13 @@
 État du 30 septembre 2026 : préparation expérimentale autorisée et relue avec
 Inky Studio, **aucune activation ni nouvelle opération SD/Pi**. Le premier essai
 visé utilise un LAN initial configuré par l'opérateur. Ce n'est pas le bootstrap
-factory sans LAN de l'issue #15 (`inky-studio/issues/15`).
+factory sans LAN suivi par l’issue #15 d’Inky Studio.
 
 La cible active est Pi Zero 2 W + SD de 16 Go nominales. La Qumox est le média
 d'essai actuel ; l'ancienne carte de 128 Go n'est plus utilisée. La qualification
 complète de distribution reste distincte de ce premier prototype applicatif.
 
-l’opérateur a confirmé le pays d'essai **France (`FR`)**. Cette valeur reste une
+L’opérateur a confirmé le pays d'essai **France (`FR`)**. Cette valeur reste une
 entrée explicite de la future personnalisation privée ; elle n'est pas ajoutée
 à l'image générique. Le panneau est décrit comme « Inky Spectra, format carte
 postale » : cette description ne fixe pas encore sa référence ni son driver.
@@ -22,7 +22,7 @@ postale » : cette description ne fixe pas encore sa référence ni son driver.
 | Application | Candidat `758a2bf7ed099aad41ef35316e53228e797b0b2b`, backend `0.5.0-rc.2`, correction des métadonnées de panneau. |
 | Manifeste | SHA-256 `0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551`. Assets/lock immuables, contrôlés sans install.sh/latest/main. |
 | Export | `kind=test-lan-prepared`, `no_active_application=true`, `ready_for_activation=false`, qualification matérielle/release false. |
-| iOS Bluetooth | `1.0.0 (5)`, source `80dfc37629fe4d3853ed80bf614c5fad2e8512ba`. Selon la vérification App Store Connect de la session app du 30 septembre : traité, Internal Only, conformité manquante, aucun groupe ; pas distribué. |
+| iOS Bluetooth | Candidat `1.0.0 (5)`, source `80dfc37629fe4d3853ed80bf614c5fad2e8512ba`. La disponibilité du build compatible et sa qualification physique doivent être confirmées avant le banc Bluetooth. |
 | iOS LAN | Build 3 disponible pour les photos ; ne fournit pas le nouveau parcours BLE. |
 
 L'assemblage copie le parent dans une image régulière neuve, ajoute un preflight
@@ -100,7 +100,7 @@ identifier le matériel :
 | Champ | État actuel |
 |---|---|
 | Pi / kernel | Zero 2 W, kernel `6.18.50+rpt-rpi-v8` observés lors du diagnostic. |
-| Référence PCB/panneau visible | « Inky Spectra, format carte postale » selon l’opérateur ; référence exacte à relever sur le banc. |
+| Référence PCB/panneau visible | « Inky Spectra, format carte postale » selon l’inventaire de test ; référence exacte à relever sur le banc. |
 | Variante EEPROM / dimensions | À observer par méthode ciblée préparée et relue. |
 | Mapping officiel v2.3.0 | 20 = AC073TC1A, 800×480, 7 couleurs ; 22 = E673, 800×480, Spectra 6 ; 21 = EL133UF1, 1600×1200, Spectra 6 ; 25 = E640, 600×400, Spectra 6. |
 | Classe driver / non-mock | À contrôler après activation autorisée, contre l'inventaire réel. |

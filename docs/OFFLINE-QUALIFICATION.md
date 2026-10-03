@@ -95,4 +95,4 @@ Le packaging ne règle pas les contrats de premier démarrage : horloge/TLS,
 premier QR sans LAN, pays Wi-Fi, authentification après adoption et reprise
 après coupure. Aucun de ces protocoles n'a été modifié ici. L'intégration de
 l'image et les essais physiques attendent leur conception/qualification
-commune et une SD dédiée ; la SD personnelle reste intacte.
+commune et une SD dédiée ; les installations hors banc restent intactes.

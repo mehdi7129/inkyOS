@@ -6,7 +6,7 @@ a réduit leurs erreurs à cet état ; aucun journal persistant ne permet
 d'en retrouver la cause. L'inspection readonly confirme les scripts installés,
 la configuration I²C/SPI et la présence de `iw`.
 
-Le prochain boot exécute les deux sondes existantes et conserve leurs erreurs
+Le boot diagnostic exécute les deux sondes existantes et conserve leurs erreurs
 et checks fermés. Il utilise la même Qumox 16 Go, sans reflash, changement
 de protocole, régénération de clé ou lancement applicatif. Ce diagnostic
 ne qualifie ni le panneau, ni la radio, ni le parcours iOS.
@@ -20,7 +20,33 @@ verte. Le script et la ligne de démarrage ont été relus après remontage FAT
 readonly ; le rapport d'enrôlement précédent reste identique. L'original de
 `cmdline.txt` est conservé localement. La
 [preuve SD](validation/2026-10-03-observer-diagnostic-sd.json) distingue cette
-préparation du prochain boot physique, encore attendu.
+préparation du retour physique décrit ci-dessous.
+
+## Retour physique v1 — 3 octobre 2026
+
+Le [rapport récupéré](validation/2026-10-03-observer-diagnostic-return.json)
+passe les **10 contrôles de cohérence**, avec `state_unchanged=true`. Le script,
+la ligne de boot préparée et l'ancien rapport d'enrôlement sont identiques
+aux valeurs attendues. `/dev/i2c-1` et `wlan0` sont présents.
+
+- **Écran** : les cinq gardes passent et 29 octets sont reçus. L'erreur
+  `eeprom_unreviewed` signifie que le tuple EEPROM ne figure pas dans le
+  catalogue accepté ; elle n'établit aucun modèle de panneau.
+- **Radio** : `firmware_response_valid=true`, mapping `wlan0` valide et
+  `country_abbrev` différent de `FR`, puis `kernel_observation_invalid`.
+  Le rapport v1 ne distingue pas l'échec du parseur regulatory de celui des
+  channels. Aucun pays n'est appliqué et la radio reste non qualifiée.
+
+Les bytes originaux de `cmdline.txt` sont restaurés puis relus en FAT readonly.
+Les anciens rapports, la réservation et le script sont préservés. Aucune
+nouvelle acquisition ext4 n'est réalisée pour ce retour FAT ; les contrôles
+ne constituent donc pas une nouvelle inspection exhaustive du filesystem.
+
+Un complément **v2 est préparé dans les sources, mais n'est pas installé sur
+la SD**. Il doit préciser l'en-tête EEPROM par des champs numériques fermés
+et isoler les observations radio en échec, sans exporter de données brutes
+ou d'identifiant. Aucun refresh écran ou lancement applicatif n'est autorisé
+par ces résultats.
 
 ## Mécanisme limité à la partition FAT
 
@@ -95,7 +121,7 @@ ne distingue pas timeout et sortie indisponible ; cette limite est conservée.
 3. Remonter FAT readonly, relire les deux fichiers et le rapport d'enrôlement,
    puis éjecter proprement. La relecture filesystem ne devient pas une relecture
    raw indépendante de la SD.
-4. l’opérateur insère la carte dans le Pi, l'alimente, constate l'arrêt puis remet
+4. L’opérateur insère la carte dans le Pi, l'alimente, constate l'arrêt puis remet
    la carte dans le Mac. Le rapport précède l'arrêt demandé et ne l'atteste pas.
 5. Récupérer uniquement le petit rapport FAT, contrôler son schéma et le script
    préparé, puis restaurer les bytes originaux de `cmdline.txt` depuis leur

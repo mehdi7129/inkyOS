@@ -1,6 +1,6 @@
 {
   "application_commit": "6a697d134290ced0214fc74b903f4b3c336d70fa",
-  "application_pr": "inky-studio/pull/13",
+  "application_pr": "Inky Studio PR #13",
   "archive_report_sha256": "8f94f85b129a89d375dcb64ff8cd6c552b37b7c5ff1e83a98b3404e6e0c28997",
   "bench_report": {
     "application_version": "0.5.0-rc.2",

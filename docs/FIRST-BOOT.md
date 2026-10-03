@@ -1,21 +1,21 @@
 # Premier démarrage sans LAN
 
-État au 28 septembre 2026 : chantier autorisé par l’opérateur, **pas encore un parcours
+État au 28 septembre 2026 : développement en cours, **pas encore un parcours
 utilisable de bout en bout**. Le candidat applicatif `6a697d1` ne sait pas ouvrir
 sa première fenêtre QR sans session LAN authentifiée. Son intégration dans
 l'image reste expérimentale, avec services applicatifs masqués.
 
-Le 30 septembre, la session Inky Studio a confirmé que sa tête
+Le 30 septembre, la revue Inky Studio a confirmé que sa tête
 `codex/ios-demo-onboarding` reste
 `30aed843c9389f590eae9f78d41bf12423698fe7`. Le coordinator n'est pas raccordé
 au démarrage ; dispatcher/bootstrap GATT, création initiale durable des
 credentials et parcours iOS sans LAN restent dans
-#15 (`inky-studio/issues/15`). Aucun nouveau pin
+Inky Studio issue #15. Aucun nouveau pin
 qualifié n'autorise l'activation. Le premier boot
 [diagnostic système observé](validation/2026-09-30-sd-first-boot.json) ne change
 pas ce statut : le payload `6a697d1` et ses services masqués sont conservés.
 
-Le contrat commun de besoins (`inky-studio/blob/4bdaf6b12f550f8c3fd19a58c04294ba5221e8c3/docs/inkyos/FIRST-BOOT-CONTRACT.md`)
+Le contrat `inky-studio/docs/inkyos/FIRST-BOOT-CONTRACT.md` (commit `4bdaf6b12f550f8c3fd19a58c04294ba5221e8c3`)
 porte les cas FB-01 à FB-12. Cette révision ne définit ni wire format ni nouvelle
 permission système. Inky Studio possède le backend, iOS, BLE, les helpers,
 l'identité TLS, les credentials et l'affichage ; InkyOS possède la recette,
@@ -47,7 +47,7 @@ sont sur `codex/first-boot-contract`, distincts du candidat de packaging PR #13.
 
 ## Heure : profil TLS et opération système
 
-La décision TLS commune (`inky-studio/blob/efda86e4e759039fd6045afc57f0dbcadc7c7879/docs/inkyos/BOOTSTRAP-TLS-DECISION.md`)
+La décision `inky-studio/docs/inkyos/BOOTSTRAP-TLS-DECISION.md` (commit `efda86e4e759039fd6045afc57f0dbcadc7c7879`)
 retient un profil bootstrap distinct, épinglé sur la clé du QR physique ou sur
 celle du propriétaire connu. Il doit conserver la preuve de possession de clé
 TLS 1.3 et limiter l'exception aux dates du certificat de ce profil. Le claim
@@ -56,8 +56,8 @@ owner toujours autorisé. Après renouvellement du certificat sous la même clé
 une nouvelle connexion TLS normale précède le pays et toute opération Wi-Fi.
 Ce choix est un prototype applicatif séparé, encore absent du payload `6a697d1`.
 
-Les sessions HTTP sont passées à monotonic dans le commit applicatif
-`ce4ab47` (`inky-studio/commit/ce4ab473e669e31502d4b697949289238ebce7a4`).
+Les sessions HTTP sont passées à monotonic dans le commit
+`ce4ab473e669e31502d4b697949289238ebce7a4` d’`inky-studio`.
 Cela ne qualifie pas à lui seul tous les consommateurs d'heure, notamment le
 scheduler et le cycle certificat. Les politiques numériques et l'autorisation
 de chaque mutation restent à raccorder avant activation système.
@@ -137,7 +137,7 @@ uniquement de rouvrir un magasin existant. Une coupure entre consommation OS
 et création de la DB applicative exige une récupération explicite. L'absence
 de DB n'autorise aucune nouvelle émission.
 
-Le lot applicatif état/receipt (`inky-studio/blob/2c03466464f1b45f4baf1763e0416da52a8bef24/docs/inkyos/FACTORY-STATE.md`)
+Le contrat `inky-studio/docs/inkyos/FACTORY-STATE.md` (commit `2c03466464f1b45f4baf1763e0416da52a8bef24`)
 fournit les assertions internes `InitializationReceipt(UUID, digest)` et
 `FactoryIdentity(UUID, SPKI)`, puis `pending → factory → adopted`. Les formats
 UUID canoniques et digest hex64 concordent ; le raccord réel privilégié reste

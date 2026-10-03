@@ -12,7 +12,7 @@ Le refus natif sur l'image non bootée reste une preuve négative distincte.
 La [preuve du flash](validation/2026-10-03-sd-enrollment-flash.json) porte sur
 l'image épinglée ci-dessous, écrite une seule fois avec Imager 2.0.11.1,
 sans personnalisation supplémentaire. Elle ne revendique pas de relecture raw
-indépendante ni de qualification du Pi. l’opérateur a effectué le boot puis rapporté
+indépendante ni de qualification du Pi. L’opérateur a effectué le boot puis rapporté
 la carte après l'arrêt. La [récupération privée](SD-RECOVERY.md) vérifie le retour
 offline : état ext4, rapport FAT, profil, pins et clé publique hôte concordent.
 Les deux observations panneau/radio sont `blocked` sans détail de cause ;

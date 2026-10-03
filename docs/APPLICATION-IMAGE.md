@@ -65,7 +65,7 @@ payload épinglé et tests correspondants, ou dans la [variante TEST avec LAN
 initial](TEST-LAN.md) après réception de ses contrôles propres. Cette variante
 reste préparée et inactive à ce stade. Le banc offline applicatif précédent
 prouve des imports/API dans la VM ; il ne prouve pas le boot du rootfs Raspberry
-Pi. Le cadre personnel et sa SD restent hors des essais.
+Pi. Les installations hors banc restent exclues.
 
 ## Résultat vérifié le 28 septembre
 
@@ -81,8 +81,6 @@ images brutes ont des SHA-256 différents : aucune garantie octet pour octet.
 Les [preuves et hashes](validation/2026-09-28-application-prototype.json) lient
 ces résultats au candidat `6a697d1` et à la recette exacte.
 
-Le second build s'est exécuté depuis une copie propre du même commit dans
-`~/Library/Caches/inkyos-checkout`. macOS avait évincé des
-fichiers du Bureau (`dataless`), bloquant leur lecture. Les entrées ont été
-récupérées/revérifiées, sans changement de configuration iCloud. Les deux
-exports comparés sont maintenant dans le `build/` de ce checkout local.
+Le second build s'est exécuté depuis une copie propre du même commit, après
+récupération et vérification d'entrées localement indisponibles. Les deux
+exports comparés sont conservés dans le `build/` du checkout utilisé.

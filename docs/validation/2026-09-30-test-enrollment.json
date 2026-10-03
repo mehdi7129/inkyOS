@@ -39,7 +39,8 @@
   },
   "ci": {
     "conclusion": "success",
-    "source_run": "inkyOS/actions/runs/36774063172"
+    "source_run_id": 36774063172,
+    "repository_scope": "current_repository"
   },
   "date": "2026-09-30",
   "filesystem_probe": {

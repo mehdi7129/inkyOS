@@ -136,6 +136,17 @@ class ApplicationRootfsTests(unittest.TestCase):
         sudoers = (self.root / 'etc/sudoers.d/inky-studio').read_text()
         self.assertEqual(sudoers.count('/usr/bin/systemctl'), 4)
         self.assertNotIn('timedate', sudoers)
+        app_unit = (self.root / 'usr/lib/systemd/system/inky-studio.service').read_text()
+        self.assertIn('INKY_STUDIO_REPO_SLUG=example/inky-studio', app_unit)
+
+    def test_repository_declaration_is_unique_literal_and_never_evaluated(self):
+        declaration = 'REPO_SLUG="${INKY_STUDIO_REPO_SLUG:-example/inky-studio}"\n'
+        self.assertEqual(configure.installer_repository(declaration), 'example/inky-studio')
+        for source in ('', declaration * 2, declaration + 'REPO_SLUG="$UNREVIEWED"\n',
+                       declaration.replace('example', '$(id)'),
+                       declaration.replace('example', 'https://example')):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                configure.installer_repository(source)
 
     def test_original_manifest_still_configures_and_verifies_without_repinning(self):
         self.manifest.write_bytes((ROOT / 'tests/fixtures/application-manifest-6a697d1.json').read_bytes())

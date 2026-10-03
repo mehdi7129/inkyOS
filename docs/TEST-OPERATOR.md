@@ -16,7 +16,7 @@ contient aucun compte opérateur, profil Wi-Fi, pays ou clé hôte.
 ## Personnalisation distincte
 
 PERSONALIZED sera construite depuis le candidat courant neuf, non booté et
-rehashé. Jamais depuis la SD diagnostic ou le cadre personnel. Les entrées
+rehashé. Jamais depuis la SD diagnostic ou une installation hors banc. Les entrées
 privées sont fournies localement par l'opérateur, hors de Git, preuves publiques
 et logs : profil initial WPA2 Personal 2,4 GHz, pays confirmé `FR`, clé publique
 unique du compte `inky-test` et consentement TEST avancé. La clé privée reste

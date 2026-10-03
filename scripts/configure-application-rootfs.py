@@ -107,7 +107,8 @@ def expected_files(tree):
     install, bluetooth, launcher = (sources[name] for name in
                                     ('install.sh', 'scripts/install-bluetooth.sh', 'scripts/inky-studio-launcher'))
     values = {'RUN_USER': 'inky', 'SERVICE_NAME': 'inky-studio.service',
-              'INSTALL_DIR': '/' + APP, 'DATA_DIR': '/' + DATA, 'REPO_SLUG': installer_repository(install)}
+              'INSTALL_DIR': '/' + APP, 'DATA_DIR': '/' + DATA,
+              'REPO_SLUG': installer_repository(install)}
     app_unit = substitute(section(install, 'sudo tee "/etc/systemd/system/${SERVICE_NAME}" >/dev/null <<EOF\n', '\nEOF\n'), values) + '\n'
     sudoers = substitute(section(install, 'cat > "${SUDOERS_TMP}" <<EOF\n', '\nEOF\n'), values).replace('\\`', '`') + '\n'
     network_unit = section(bluetooth, "cat > /etc/systemd/system/inky-network.service <<'UNIT'\n", '\nUNIT\n') + '\n'
