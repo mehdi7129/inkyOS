@@ -15,7 +15,7 @@ La [preuve de préparation](validation/2026-10-03-observer-diagnostic-preparatio
 lie les sources, les 18 tests ciblés sur Mac et Linux ARM64 et les 14 contrôles
 natifs des generators. Ces essais ne démarrent aucune unité sur le Pi.
 
-**SD préparée et éjectée le 3 octobre 2026.** La CI du commit `93aa88d` est
+**SD v1 préparée et éjectée le 3 octobre 2026.** La CI du commit `93aa88d` est
 verte. Le script et la ligne de démarrage ont été relus après remontage FAT
 readonly ; le rapport d'enrôlement précédent reste identique. L'original de
 `cmdline.txt` est conservé localement. La
@@ -42,13 +42,40 @@ Les anciens rapports, la réservation et le script sont préservés. Aucune
 nouvelle acquisition ext4 n'est réalisée pour ce retour FAT ; les contrôles
 ne constituent donc pas une nouvelle inspection exhaustive du filesystem.
 
-Un complément **v2 est préparé dans les sources, mais n'est pas installé sur
-la SD**. Il doit préciser l'en-tête EEPROM par des champs numériques fermés
-et isoler les observations radio en échec, sans exporter de données brutes
-ou d'identifiant. Aucun refresh écran ou lancement applicatif n'est autorisé
-par ces résultats.
+## Complément v2 — sources et tests prêts
 
-## Mécanisme limité à la partition FAT
+Le script [detail-enrollment-observers.py](../scripts/detail-enrollment-observers.py)
+est relu au SHA-256
+`33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512`.
+Les suites ciblées v1/v2 passent **30 tests sur Mac et 30 sur Linux ARM64**.
+La [preuve de préparation v2](validation/2026-10-03-observer-detail-preparation.json)
+consigne les pins et le périmètre des essais.
+Ces fixtures vérifient notamment les sorties fermées, le pin v1, la conservation
+des gardes et le refus du rejeu ; elles ne constituent pas un boot du Pi.
+**La v2 n'est pas installée sur la SD, ni bootée, ni qualifiée matériellement.**
+
+Le script charge uniquement le diagnostic v1 épinglé par SHA-256 et conserve
+ses gardes système, profil, identité et services. Ses noms de script, rapport
+et réservation sont distincts ; les artefacts v1 restent conservés. Le profil,
+l'état d'enrôlement et l'identité existante doivent toujours rester inchangés.
+
+- **EEPROM** : export limité à `width`, `height`, `color_code`,
+  `display_variant` et au booléen `reviewed_catalogue_match`. Un tuple inconnu
+  reste accompagné de `eeprom_unreviewed` ; aucune entrée de catalogue ou
+  sélection de driver n'est ajoutée. Révision PCB et timestamp sont omis.
+- **Radio** : une collecte par l'adapter existant alimente trois parsers
+  indépendants : firmware, regulatory et channels. Un parser en échec ne
+  supprime plus les données validées par les autres. Les résumés structurels
+  exposent seulement compteurs, flags connus et libellés pays validés ; aucun
+  texte brut, identifiant radio ou message d'exception arbitraire n'est copié.
+  Une requête indisponible bloque encore la collecte complète de l'adapter.
+
+Les accès matériel restent ceux des sondes épinglées. Aucun country setter,
+scan, association Wi-Fi, refresh écran, accès SSH ou lancement applicatif
+n'est ajouté. Les résultats gardent `firmware_tuple_qualified=false` et
+n'autorisent aucune activation ou qualification.
+
+## Mécanisme v1 limité à la partition FAT
 
 Un script, `scripts/diagnose-enrollment-observers.py`, est copié sous
 `/boot/firmware/inkyos-observer-diag.py`. Les bytes originaux de `cmdline.txt`

@@ -1,5 +1,12 @@
 # Reproductibilité : mesure des deux prototypes système
 
+Les identifiants de commits cités dans les preuves historiques désignent les
+sources au moment des essais. L'historique public a été anonymisé le 3 octobre
+2026 : ses identifiants ont changé. Les références des essais et les SHA-256
+des sources, payloads et images sont conservés tels qu'observés ; ils ne sont
+pas remplacés par des identifiants de sources modifiées. Les archives originales
+et la correspondance des commits sont conservées hors du dépôt public.
+
 Audit du 27 septembre 2026 : **les entrées et le contenu inventorié sont
 identiques ; les images disque ne sont pas identiques octet pour octet**.
 Pour cette étape, viser une recette figée, des attestations de contenu complètes

@@ -78,14 +78,19 @@ regulatory ou channels en échec. Aucun pays n’est appliqué.
 
 La ligne de boot originale est restaurée et relue en FAT readonly. Les
 anciens rapports, la réservation et le script sont conservés. Ce retour
-n’inclut pas de nouvelle acquisition ext4. Le complément diagnostic v2
-est préparé dans les sources, **pas installé sur la SD** ; les limites et
-la suite figurent dans [OBSERVER-DIAGNOSTIC.md](OBSERVER-DIAGNOSTIC.md).
+n’inclut pas de nouvelle acquisition ext4. Le complément
+[diagnostic v2](../scripts/detail-enrollment-observers.py) est préparé et relu :
+les suites ciblées v1/v2 passent **30 tests sur Mac et 30 sur Linux ARM64**.
+Il conserve les gardes v1 et les identités, exporte quatre entiers EEPROM
+et un booléen de catalogue, puis analyse indépendamment les trois observations
+radio issues d’une seule collecte. **Il n’est pas installé sur la SD, ni booté,
+ni qualifié matériellement.** Les limites figurent dans
+[OBSERVER-DIAGNOSTIC.md](OBSERVER-DIAGNOSTIC.md).
 
 ## Prochaines étapes
 
-1. Compléter le diagnostic avec un en-tête EEPROM numérique fermé et une
-   analyse bornée du format des observations radio, sans publier d’identifiant.
+1. Installer puis observer le diagnostic v2 sur le banc dédié, avec relecture
+   FAT et restauration de la ligne de boot, sans publier d’identifiant.
 2. Identifier le panneau et vérifier la compatibilité avec le payload épinglé
    avant tout refresh d’écran.
 3. Finaliser le [canal opérateur](TEST-OPERATOR.md), le pays Wi-Fi effectif et
