@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-03",
+  "earlier_unsupported_macos_test_launch": {
+    "passed": false,
+    "python": "3.9.6",
+    "reason": "tomllib unavailable; project requires Python 3.11 or newer"
+  },
+  "hardware_qualified": false,
+  "historical_chain_fixture": {
+    "cases_per_host": 3,
+    "exact_source_hashes_match": true,
+    "hardware_access": false,
+    "hosts": [
+      "macOS ARM64",
+      "Linux ARM64"
+    ],
+    "passed": true,
+    "service_access": false
+  },
+  "historical_radio_sha256": "a70ea19c0b6121ea103b7a11b6cc863b605992d5b0303620de83195078860944",
+  "historical_v1_sha256": "1a7e96e5ff9a307bc8ae967ddcb2021af79650088abfef5bcbd5450c0e9478ee",
+  "historical_v2_sha256": "33421c00f8368ef92e09141b10f28ec33c3392afbba9e53bf6bf776c3e858512",
+  "independent_review_passed": true,
+  "installed_rootfs_changed": false,
+  "limits": [
+    "Software and inert historical-chain tests are not a physical boot.",
+    "The FAT comparison does not install the corrected observer into the rootfs.",
+    "No EEPROM read, display refresh, radio country setter, scan or connection is added.",
+    "One historical-adapter sample feeds both parsers; raw radio output is not exported.",
+    "Preparation and later SD return need separate evidence."
+  ],
+  "mac_fat_applier_fixtures": {
+    "checks": 10,
+    "passed": true,
+    "sd_access": false
+  },
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "radio-parser-comparison-preparation",
+  "sd_prepared": false,
+  "software_tests": {
+    "linux_arm64": {
+      "architecture": "aarch64",
+      "errors": 0,
+      "failures": 0,
+      "passed": true,
+      "python": "3.13.5",
+      "skipped": 1,
+      "tests": 616
+    },
+    "macos": {
+      "architecture": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "passed": true,
+      "python": "3.13.15",
+      "skipped": 4,
+      "tests": 616
+    }
+  },
+  "sources_sha256": {
+    "scripts/compare-enrollment-radio.py": "9bfdebc6d9baa36c1d98deb446387f52780626adfb6591d7e16a5dbab517abae",
+    "scripts/observe-test-radio.py": "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
+    "tests/test_compare_enrollment_radio.py": "2755332ff41715bbedbafd82fcabae614aa386c47b688b134d9360e53b0cae15"
+  }
+}

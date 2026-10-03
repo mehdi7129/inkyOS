@@ -134,6 +134,45 @@ cette SD : ne pas copier isolément un diagnostic actuel sur l'ancien rootfs.
 Les 30 tests cités plus haut et les preuves du boot conservent leurs anciens
 hashes. Une nouvelle observation matérielle sera nécessaire après intégration.
 
+## Comparaison radio v3 sur la carte déjà enrôlée
+
+Le [comparateur](../scripts/compare-enrollment-radio.py) prépare une nouvelle
+observation du correctif radio sans reflasher la SD ni remplacer les sondes
+installées. Il charge le **v2 historique** au hash `33421c00…`, qui charge le
+v1 historique `1a7e96e5…` et garde ses pins rootfs. Le parser corrigé
+`8423207c…` est une source FAT distincte : seule sa fonction `parse_channels`
+est utilisée, jamais son adapter matériel. Ce montage est volontairement lié
+à ce banc historique ; ce n’est pas l’installation du correctif dans l’image.
+
+L’adapter radio historique collecte **un seul échantillon**. L’analyse v2 reste
+dans les champs existants ; `corrected_channels` contient le résultat du parser
+corrigé sur les mêmes bytes. `same_sample=true` indique ce partage seulement
+si la collecte a été validée. Une erreur de collecte ne déclenche aucun second
+essai. Aucun texte brut, identifiant radio, scan ou setter de pays n’est ajouté.
+L’EEPROM n’est pas relue par ce diagnostic radio.
+
+La [preuve de préparation logicielle](validation/2026-10-03-radio-compare-preparation.json)
+consigne **616 tests sur Mac et Linux ARM64**, sans échec, et trois cas de
+comparaison par hôte utilisant les sources historiques exactes avec I/O inertées.
+Les contrôles du writer FAT passent dix fixtures ; une revue indépendante
+couvre le comparateur et ce writer. Ces résultats n’établissent aucun nouveau
+boot physique ni qualification radio.
+
+Deux nouveaux fichiers sont nécessaires sur FAT : `inkyos-radio-compare.py`
+et `inkyos-radio-parser.py`. Le rapport `inkyos-radio-compare.json` et la
+réservation `.inkyos-radio-compare.started` ont leurs propres noms ; les anciens
+scripts, rapports et réservations restent conservés. Les sources supplémentaires
+sont vérifiées avant les sondes et à la vérification finale de l’état inchangé.
+Les gardes d’enrôlement, identité, firstboot et services masqués restent celles
+du v1 ; l’application, le helper, SSH et NetworkManager ne sont pas activés.
+
+Le boot temporaire conserve le mécanisme systemd ci-dessous en remplaçant
+uniquement le chemin du script par `/boot/firmware/inkyos-radio-compare.py`.
+Succès et échec demandent toujours poweroff. Au retour, conserver le rapport,
+vérifier les sources et les contrôles fermés, puis restaurer la ligne de boot
+originale. Un rapport de comparaison réussi ne qualifie ni le pays Wi-Fi, ni
+une connexion, ni l’écran ou l’appairage iOS.
+
 ## Mécanisme v1 limité à la partition FAT
 
 Un script, `scripts/diagnose-enrollment-observers.py`, est copié sous

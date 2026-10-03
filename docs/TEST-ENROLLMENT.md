@@ -21,19 +21,23 @@ donc ni l'écran ni la radio. Les sources et réglages inspectés sont conformes
 mais aucun journal persistant ne conserve les erreurs initiales.
 Aucun refresh d'écran n'est prévu à ce stade.
 
-La même carte est ensuite [préparée et éjectée pour le diagnostic des sondes](OBSERVER-DIAGNOSTIC.md),
-avec deux petits fichiers FAT seulement et l'original de la ligne de boot
-conservé. Son prochain boot reste à observer ; aucune activation applicative
-n'est effectuée.
+La même carte a ensuite effectué les deux
+[diagnostics des sondes](OBSERVER-DIAGNOSTIC.md), avec retours FAT contrôlés
+et restauration de la ligne de boot originale. Le comparateur radio v3 décrit
+dans ce suivi prépare la vérification du correctif sur une même collecte,
+en conservant l’enrôlement et les rapports antérieurs. Aucune activation
+applicative n’est effectuée.
 
 Le premier boot doit identifier l'écran, observer la radio et produire la
 clé hôte SSH du Pi. Il ne configure aucun réseau. Le pays demandé `FR`, confirmé
 par l’opérateur, figure dans le profil privé pour nommer la cible des observations ;
 aucun `iw reg set`, scan, association ou déblocage radio n'est exécuté.
 
-L'écran décrit comme « Inky Spectra, format carte postale » ne reçoit toujours
-aucun modèle présumé. L'EEPROM doit fournir le tuple effectivement reconnu.
-Une lecture bloquée ne devient pas un résultat positif ; l'app reste arrêtée.
+L’identification initiale Spectra est retirée : les marquages du PCB 7,3″
+corroborent l’ancienne famille sept couleurs. Le tuple EEPROM observé
+`(800,480,4,20)` reste non reconnu, car son code couleur n’a pas de libellé.
+La [matrice des écrans](DISPLAY-COMPATIBILITY.md) sépare candidat et
+qualification ; l’app reste arrêtée.
 
 ## Séparation des artefacts
 
