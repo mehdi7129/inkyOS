@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-04",
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-test-access.img",
+    "integration_evidence": "2026-10-04-test-access-lifecycle-image.json",
+    "sha256": "542a73de8ba49ef6ed7d70d714acab9f51b214046760fdb5268d97bce0a8cab9",
+    "size_bytes": 3061841920
+  },
+  "image_booted": false,
+  "limits": [
+    "This records Imager completion and ejection, not an independently measured raw readback.",
+    "The verification phase was not directly observed while macOS authentication was handled by the operator.",
+    "No Pi boot, display refresh, active drain, Wi-Fi connection or iPhone pairing is established for this image.",
+    "The first boot enrolls and requests shutdown; the returned card must then be verified before preparing the signed LAN capsule.",
+    "Private image, operator key, profile, nonce and target registry identity remain local."
+  ],
+  "observations": {
+    "automatic_ejection_ui_observed": true,
+    "custom_image_selected": true,
+    "customization_stage_skipped": true,
+    "image_sha256_rechecked_before_write": true,
+    "imager_completion_observed": true,
+    "independent_raw_readback_sha256_acquired": false,
+    "target_absent_after_completion": true,
+    "verification_progress_directly_observed": false,
+    "write_requested_once": true
+  },
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "test-access-sd-flash-ui-observation",
+  "target": {
+    "board": "Raspberry Pi Zero 2 W",
+    "media_identity_rechecked_before_write": true,
+    "medium": "dedicated 16 GB test microSD",
+    "observed_capacity_bytes": 15938355200
+  },
+  "tool": {
+    "name": "Raspberry Pi Imager",
+    "official_download_and_signature_previously_verified": true,
+    "version_observed": "2.0.11.1"
+  }
+}

@@ -60,8 +60,9 @@ seule. Le [raccord activation/drain](docs/TEST-ACCESS-LIFECYCLE.md) est ensuite
 implémenté, avec [965 tests macOS/Linux et 28 contrôles systemd sur processus
 inertes](docs/validation/2026-10-04-test-access-lifecycle.json). Le
 [candidat correspondant est construit et vérifié](docs/validation/2026-10-04-test-access-lifecycle-image.json).
-Son premier boot d’enrôlement, son affichage et son arrêt sur le Pi restent
-à exercer avant le test complet d’appairage.
+Le [flash sur la SD de test est terminé](docs/validation/2026-10-04-sd-test-access-flash.json)
+et son éjection est observée. Son premier boot d’enrôlement, son affichage
+et son arrêt sur le Pi restent à exercer avant le test complet d’appairage.
 Les outils de retour et le client opérateur portent la suite finale à
 **997 tests sur chaque hôte**, sans échec (4 skips macOS, 1 skip Linux).
 
