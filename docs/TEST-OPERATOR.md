@@ -1,6 +1,10 @@
 # Accès opérateur privé pour le premier essai
 
-Proposition initiale du 30 septembre 2026, séparée de la [variante préparée](TEST-LAN.md).
+Proposition historique du 30 septembre 2026, séparée de la [variante préparée](TEST-LAN.md).
+L’état courant est décrit dans [l’image d’accès](TEST-ACCESS-IMAGE.md) et le
+[contrat activation/drain](TEST-ACCESS-LIFECYCLE.md). Les étapes ci-dessous
+conservent le contexte et les limites du premier banc ; elles ne sont pas un
+mode d’emploi actualisé.
 Le [runtime livré le 3 octobre](TEST-ACCESS-RUNTIME.md) fournit le dispatcher,
 le preflight authentifié, l’arrêt borné et le contrôle séparé du pays. Son
 installation dans le candidat privé, la connexion et le daemon opérateur

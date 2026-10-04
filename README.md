@@ -56,8 +56,11 @@ et 33 contrôles avec le NetworkManager exact du parent. L’application reste
 masquée. Cette image n’est pas encore prête pour le test complet d’appairage.
 La [validation d’accès et de retour](docs/validation/2026-10-04-test-access-transport-return.json)
 ajoute 64 contrôles SSH/runtime v2 et un vérificateur de retour en lecture
-seule. Les 870 tests passent sur macOS et Linux ARM64. Le démarrage explicite
-de l’application et son arrêt pendant un refresh restent à intégrer.
+seule. Le [raccord activation/drain](docs/TEST-ACCESS-LIFECYCLE.md) est ensuite
+implémenté, avec [965 tests macOS/Linux et 28 contrôles systemd sur processus
+inertes](docs/validation/2026-10-04-test-access-lifecycle.json). Il reste à
+construire le candidat avec ce raccord et à exercer son boot, son affichage
+et son arrêt sur le Pi avant le test complet d’appairage.
 
 ## Développer
 

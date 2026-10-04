@@ -142,6 +142,11 @@ class ConfigureAccessTests(unittest.TestCase):
         self.assertEqual((self.root / overlay.AUTHORIZED_KEYS).read_text(), 'restrict ' + self.value['operator_public_key'] + '\n')
         self.assertEqual(stat.S_IMODE((self.root / overlay.AUTHORIZED_KEYS).stat().st_mode), 0o644)
         self.assertEqual(os.readlink(self.root / overlay.ENABLE_PATH), overlay.UNIT_TARGET)
+        for unit in ('inkyos-test-activate.service', 'inkyos-test-drain.service'):
+            self.assertFalse((self.root / 'etc/systemd/system/multi-user.target.wants' / unit).exists())
+        for unit in ('inky-studio.service', 'inky-network.service'):
+            self.assertFalse((self.root / 'etc/systemd/system' / (unit + '.d') / '10-inkyos-test-access.conf').exists())
+            self.assertEqual(os.readlink(self.root / 'etc/systemd/system' / unit), '/dev/null')
         self.assertEqual(stat.S_IMODE((self.root / 'usr/local/lib/inkyos').stat().st_mode), 0o700)
         for key in ('application_started', 'ssh_started', 'network_connected', 'ready_for_activation',
                     'hardware_qualified', 'release_qualified'):

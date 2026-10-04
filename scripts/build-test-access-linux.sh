@@ -102,6 +102,7 @@ python3 -I recipe/scripts/configure-test-access-rootfs.py --rootfs "$work/root" 
 chroot root /usr/bin/env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin LC_ALL=C \
   /usr/bin/systemd-analyze --man=no verify /usr/lib/systemd/system/inky-studio.service \
   /usr/lib/systemd/system/inky-network.service /usr/lib/systemd/system/inkyos-test-access.service \
+  /usr/lib/systemd/system/inkyos-test-activate.service /usr/lib/systemd/system/inkyos-test-drain.service \
   /usr/lib/systemd/system/inkyos-test-ssh.service /usr/lib/systemd/system/NetworkManager.service \
   > systemd-verify.txt 2>&1 || { cat systemd-verify.txt >&2; exit 1; }
 chroot root /usr/sbin/visudo -c > sudoers-verify.txt 2>&1 || exit 1

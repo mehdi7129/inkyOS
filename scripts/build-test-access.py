@@ -26,10 +26,12 @@ RECIPE_FILES = (
     'scripts/configure-test-access-rootfs.py', 'scripts/verify-test-access.py',
     'scripts/test-enrollment-firstboot.py',
     *('scripts/test-access-' + name + '.py' for name in (
-        'policy', 'enrollment', 'contract', 'import', 'connect', 'boot', 'network', 'wifi-gate')),
+        'policy', 'enrollment', 'contract', 'import', 'connect', 'boot', 'network', 'wifi-gate',
+        'activation-gate', 'activation', 'drain')),
     'scripts/wifi-boot-gate.py', 'scripts/test-operator-dispatch.py', 'scripts/test-operator-runner.py',
     *('overlay-test-access/' + name for name in (
         'inkyos-test-access.service', 'inkyos-test-ssh.service', 'sshd_config', 'sudoers',
+        'inkyos-test-activate.service', 'inkyos-test-drain.service', 'inky-studio.conf', 'inky-network.conf',
         'NetworkManager.service.d/10-inkyos-test-wifi.conf',
         'NetworkManager.conf.d/10-inkyos-test-loopback.conf')),
     'scripts/observe-test-panel.py', 'scripts/observe-test-radio.py',

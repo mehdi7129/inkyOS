@@ -116,6 +116,19 @@ class ProtocolTests(unittest.TestCase):
             changed = {**request, key: value}
             with self.assertRaises(ValueError): dispatch.request(canonical(changed), "preflight")
             with self.assertRaises(runner.Refused): runner.parse_envelope(canonical(envelope(request=changed)))
+
+    def test_refresh_requires_explicit_true_and_complete_fresh_reference(self):
+        request = {"schema_version": 1, "confirm_test_refresh": True, **REFERENCE}
+        self.assertEqual(dispatch.request(canonical(request), "activate"), request)
+        self.assertEqual(runner.parse_envelope(canonical(envelope("activate", request)))["request"], request)
+        for key, value in (("confirm_test_refresh", 1), ("confirm_test_refresh", False),
+                           ("utc_reference_age", 61), ("utc_reference", True)):
+            changed = {**request, key: value}
+            with self.assertRaises(ValueError): dispatch.request(canonical(changed), "activate")
+            with self.assertRaises(runner.Refused): runner.parse_envelope(canonical(envelope("activate", changed)))
+        for verb in ("stop", "status", "preflight"):
+            with self.assertRaises(ValueError): dispatch.request(canonical(request), verb)
+            with self.assertRaises(runner.Refused): runner.parse_envelope(canonical(envelope(verb, request)))
         for key in REFERENCE:
             changed = dict(request); del changed[key]
             with self.assertRaises(ValueError): dispatch.request(canonical(changed), "preflight")
@@ -220,7 +233,7 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(fixture.calls, expected[:4]+['close'])
         self.assertIsNone(result['stop'])
 
-    def test_stop_order_and_poweroff_survive_individual_failures_without_preflight(self):
+    def test_legacy_stop_never_powers_off_after_any_incomplete_prerequisite(self):
         expected = ['authenticate','bind','acquire','unchanged','stop_ready','invalidate']
         expected += [prefix + ':' + unit for prefix in ('stop','mask','verify') for unit in runner.UNITS]
         expected += ['unchanged','poweroff','close']
@@ -232,10 +245,41 @@ class OperationTests(unittest.TestCase):
             adapter = FixtureAdapter(); adapter.failures[step] = RuntimeError('PRIVATE')
             code, result = runner.operate(envelope('stop'), adapter)
             self.assertEqual(code, 1); self.assertEqual(result['error'], 'stop_incomplete')
-            self.assertEqual(adapter.calls, expected); self.assertNotIn('PRIVATE', json.dumps(result))
+            self.assertEqual(adapter.calls, expected if step == 'poweroff' else [x for x in expected if x != 'poweroff'])
+            self.assertNotIn('PRIVATE', json.dumps(result))
         adapter = FixtureAdapter(); adapter.unchanged = Mock(side_effect=[True, False])
         code, result = runner.operate(envelope('stop'), adapter)
-        self.assertEqual(code, 1); self.assertTrue(result['stop']['poweroff_requested'])
+        self.assertEqual(code, 1); self.assertFalse(result['stop']['poweroff_requested'])
+        self.assertNotIn('poweroff', adapter.calls)
+
+    def test_lifecycle_routes_only_explicit_requests_and_never_claims_physical_readiness(self):
+        for verb in ('activate', 'stop', 'status'):
+            adapter = FixtureAdapter()
+            adapter.lifecycle_available = lambda: True
+            reply = {'schema_version': 1, 'kind': {'activate': 'test-access-activation-result',
+                'stop': 'test-access-drain-enqueue', 'status': 'test-access-lifecycle-status'}[verb],
+                'hardware_qualified': False, 'release_qualified': False}
+            adapter.lifecycle = Mock(return_value=(0, reply))
+            request = ({'schema_version': 1, 'confirm_test_refresh': True, **REFERENCE}
+                       if verb == 'activate' else {'schema_version': 1})
+            code, result = runner.operate(envelope(verb, request), adapter)
+            self.assertEqual(code, 0); self.assertTrue(result['passed'])
+            adapter.lifecycle.assert_called_once_with(verb, request)
+            for key in ('activation_authorized', 'live_evidence', 'hardware_qualified', 'release_qualified'):
+                self.assertFalse(result[key])
+            self.assertNotIn('poweroff', adapter.calls); self.assertNotIn('stop_ready', adapter.calls)
+        adapter = FixtureAdapter(); adapter.lifecycle_available = lambda: True; adapter.lifecycle = Mock()
+        self.assertEqual(runner.operate(envelope('activate'), adapter)[1]['error'], 'activation_unavailable')
+        adapter.lifecycle.assert_not_called()
+
+    def test_lifecycle_failure_and_status_on_legacy_are_closed(self):
+        self.assertEqual(runner.operate(envelope('status'), FixtureAdapter())[1]['error'], 'lifecycle_unavailable')
+        for reply in ((True, {}), (0, {'schema_version': 1, 'hardware_qualified': True, 'release_qualified': False})):
+            adapter = FixtureAdapter(); adapter.lifecycle_available = lambda: True
+            adapter.lifecycle = Mock(return_value=reply)
+            code, result = runner.operate(envelope('status'), adapter)
+            self.assertNotEqual(code, 0); self.assertEqual(result['error'], 'lifecycle_failed')
+            self.assertIsNone(result['lifecycle_status'])
 
 
 class NativeFixture(runner.NativeAdapter):
@@ -392,6 +436,39 @@ class NativeBindingTests(unittest.TestCase):
                 self.adapter.bind()
             execute.assert_not_called()
 
+    def test_lifecycle_requires_complete_manifest_set_before_loading_any_worker(self):
+        manifest = self.install_v2()
+        self.assertTrue(self.adapter.bind())
+        self.assertFalse(self.adapter.lifecycle_available())
+        for path, mode in runner.LIFECYCLE_PATHS.items():
+            raw = b"raise RuntimeError('must never execute while binding')\n"
+            self.put(path, raw, mode)
+            manifest['files'][path[1:]] = {'sha256': hashlib.sha256(raw).hexdigest(), 'mode': f'{mode:04o}'}
+        self.install_v2(manifest); self.assertTrue(self.adapter.bind())
+        with patch('builtins.exec') as execute:
+            self.assertTrue(self.adapter.lifecycle_available())
+            execute.assert_not_called()
+        self.assertTrue(set(runner.LIFECYCLE_PATHS) <= set(self.adapter.snapshot))
+        for path in runner.LIFECYCLE_PATHS:
+            partial = copy.deepcopy(manifest); del partial['files'][path[1:]]
+            self.install_v2(partial); self.assertTrue(self.adapter.bind())
+            with self.subTest(path=path), self.assertRaises(runner.Refused): self.adapter.lifecycle_available()
+
+    def test_lifecycle_source_tamper_refuses_before_exec_and_is_monitored(self):
+        manifest = self.install_v2()
+        for path, mode in runner.LIFECYCLE_PATHS.items():
+            raw = b'fixture = True\n'
+            self.put(path, raw, mode)
+            manifest['files'][path[1:]] = {'sha256': hashlib.sha256(raw).hexdigest(), 'mode': f'{mode:04o}'}
+        self.install_v2(manifest); self.assertTrue(self.adapter.bind()); self.assertTrue(self.adapter.lifecycle_available())
+        path = '/usr/local/lib/inkyos/test-access-activation.py'
+        self.put(path, b"raise RuntimeError('PRIVATE')\n", 0o555)
+        self.assertFalse(self.adapter.unchanged())
+        with patch('builtins.exec') as execute:
+            with self.assertRaises(runner.Refused): self.adapter.lifecycle_available()
+            with self.assertRaisesRegex(runner.Refused, 'state_changed'): self.adapter.lifecycle('status', {'schema_version': 1})
+            execute.assert_not_called()
+
     def test_v2_profile_and_manifest_bindings_refuse_crossed_candidates(self):
         for key,value in (('application_source_commit',runtime.SOURCE),
                           ('application_manifest_sha256',runtime.MANIFEST_HASH),
@@ -472,7 +549,7 @@ class NativeBindingTests(unittest.TestCase):
         def command(argv,**kwargs):
             calls.append((argv,kwargs))
             if 'show' in argv:
-                return 0,b'ActiveState=inactive\nSubState=dead\nLoadState=masked\nUnitFileState=masked\n'
+                return 0,b'ActiveState=inactive\nSubState=dead\nLoadState=masked\nUnitFileState=masked\nMainPID=0\nControlPID=0\nJob=\n'
             return 0,b''
         self.adapter.runtime['command']=command
         self.adapter.preflight_module=vars(preflight)
@@ -486,7 +563,7 @@ class NativeBindingTests(unittest.TestCase):
 
     def test_stop_readiness_uses_exact_masked_inactive_states_with_one_budget(self):
         self.adapter.preflight_module = vars(preflight)
-        good = b'ActiveState=inactive\nSubState=dead\nLoadState=masked\nUnitFileState=masked\n'
+        good = b'ActiveState=inactive\nSubState=dead\nLoadState=masked\nUnitFileState=masked\nMainPID=0\nControlPID=0\nJob=\n'
         calls = []
         def command(argv, **kwargs):
             self.assertEqual(self.adapter.stop_deadline, 90+runner.STOP_BUDGET)
@@ -496,7 +573,7 @@ class NativeBindingTests(unittest.TestCase):
         with patch.object(runner.time, 'monotonic', return_value=90):
             self.assertTrue(self.adapter.stop_ready())
         self.assertEqual(calls, [('/usr/bin/systemctl','--no-pager','show',unit,
-            '--property=ActiveState,SubState,LoadState,UnitFileState') for unit in runner.UNITS])
+            '--property=ActiveState,SubState,LoadState,UnitFileState,MainPID,ControlPID,Job') for unit in runner.UNITS])
         self.assertTrue(self.adapter.bind()); self.assertTrue(self.adapter.acquire())
         with patch.object(runner.time, 'monotonic', return_value=95):
             self.assertTrue(self.adapter.invalidate_permit())

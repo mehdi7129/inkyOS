@@ -54,11 +54,16 @@ PAYLOADS = {
         'test-enrollment-firstboot', 'test-access-policy', 'test-access-enrollment',
         'test-access-contract', 'test-access-import', 'test-access-connect', 'test-access-boot',
         'test-access-network', 'test-access-wifi-gate', 'wifi-boot-gate', 'test-lan-preflight',
+        'test-access-activation-gate', 'test-access-activation', 'test-access-drain',
         'observe-test-panel', 'observe-test-radio')},
     'scripts/test-operator-dispatch.py': ('usr/local/lib/inkyos-test-ssh/dispatch.py', 0o555),
     'scripts/test-operator-runner.py': ('usr/local/lib/inkyos-test-ssh/runner', 0o555),
     'overlay-test-access/inkyos-test-access.service': ('usr/lib/systemd/system/' + UNIT, 0o644),
     'overlay-test-access/inkyos-test-ssh.service': ('usr/lib/systemd/system/inkyos-test-ssh.service', 0o644),
+    **{'overlay-test-access/inkyos-test-' + name + '.service': (
+        'usr/lib/systemd/system/inkyos-test-' + name + '.service', 0o644) for name in ('activate', 'drain')},
+    **{'overlay-test-access/' + name + '.conf': (
+        'usr/local/share/inkyos/test-access/' + name + '.conf', 0o644) for name in ('inky-studio', 'inky-network')},
     'overlay-test-access/NetworkManager.service.d/10-inkyos-test-wifi.conf': (
         'etc/systemd/system/NetworkManager.service.d/10-inkyos-test-wifi.conf', 0o644),
     'overlay-test-access/NetworkManager.conf.d/10-inkyos-test-loopback.conf': (

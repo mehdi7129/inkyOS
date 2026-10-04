@@ -38,12 +38,15 @@ STATIC_PATHS = frozenset({
         "test-enrollment-firstboot", "test-access-policy", "test-access-enrollment",
         "test-access-contract", "test-access-import", "test-access-connect", "test-access-boot",
         "test-access-network", "test-access-wifi-gate", "wifi-boot-gate", "test-lan-preflight",
+        "test-access-activation-gate", "test-access-activation", "test-access-drain",
         "observe-test-panel", "observe-test-radio")),
     "usr/local/lib/inkyos-test-ssh/dispatch.py", "usr/local/lib/inkyos-test-ssh/runner",
     "usr/lib/systemd/system/inkyos-test-access.service", "usr/lib/systemd/system/inkyos-test-ssh.service",
     "etc/systemd/system/NetworkManager.service.d/10-inkyos-test-wifi.conf",
     "etc/NetworkManager/conf.d/10-inkyos-test-loopback.conf",
     "etc/inkyos-test-ssh/sshd_config", "etc/sudoers.d/inkyos-test-ssh",
+    "usr/lib/systemd/system/inkyos-test-activate.service", "usr/lib/systemd/system/inkyos-test-drain.service",
+    "usr/local/share/inkyos/test-access/inky-studio.conf", "usr/local/share/inkyos/test-access/inky-network.conf",
 })
 STATE_FIELDS = {"schema_version", "kind", "state", "profile_sha256", "host_public_key_sha256",
                 "access_runtime_manifest_sha256", "capsule_sha256", "signature_sha256", "network_sha256"}

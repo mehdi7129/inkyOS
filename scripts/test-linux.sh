@@ -17,6 +17,7 @@ names={'Makefile', 'overlay/usr/local/lib/inkyos/firstboot.py',
 for pattern in ('scripts/*.py','scripts/*.sh','tests/test_*.py','tests/fixtures/*.json','config/*.json',
                 'diagnostic/*.py','diagnostic/*.service','diagnostic/*.timer',
                 'overlay-test-enrollment/*.service', 'overlay-test-access/*.service',
+                'overlay-test-access/*.conf',
                 'overlay-test-access/sshd_config', 'overlay-test-access/sudoers',
                 'overlay-test-access/NetworkManager.service.d/*.conf',
                 'overlay-test-access/NetworkManager.conf.d/*.conf'):

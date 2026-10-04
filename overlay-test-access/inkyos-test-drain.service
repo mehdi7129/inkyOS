@@ -1,0 +1,27 @@
+[Unit]
+Description=Explicit TEST asynchronous display drain and guarded poweroff
+After=local-fs.target
+RefuseManualStop=yes
+IgnoreOnIsolate=yes
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I /usr/local/lib/inkyos/test-access-drain.py
+Restart=no
+TimeoutStartSec=infinity
+TimeoutStopSec=infinity
+KillSignal=SIGTERM
+KillMode=mixed
+SendSIGKILL=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/run/inkyos-test-operator
+RestrictAddressFamilies=AF_UNIX
+StandardInput=null
+StandardOutput=null
+StandardError=null

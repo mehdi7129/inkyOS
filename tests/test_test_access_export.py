@@ -201,7 +201,7 @@ class AccessExportTests(unittest.TestCase):
             self.assertIs(report[key], False)
         self.assertEqual(report['pristine_parent_constraints_verified_before_changes'], 17)
         self.assertEqual(report['protected_boot_grow_files_verified'], 10)
-        self.assertEqual(len(verify.overlay.PAYLOADS), 21)
+        self.assertEqual(len(verify.overlay.PAYLOADS), 28)
         self.assertEqual(set(verify.builder.REPORTS), verify.REQUIRED_REPORTS)
         self.assertTrue(any('not regenerated from image bytes' in item for item in report['limits']))
         self.assertTrue(any('Account append content' in item for item in report['limits']))
@@ -251,6 +251,9 @@ class AccessExportTests(unittest.TestCase):
                      verify.overlay.CACHE_DIRECTORY + '/capsule.json',
                      'var/lib/inkyos/system.json', 'run/NetworkManager/system-connections/secret.nmconnection',
                      'etc/systemd/system/multi-user.target.wants/inkyos-test-ssh.service',
+                     'etc/systemd/system/multi-user.target.wants/inkyos-test-activate.service',
+                     'etc/systemd/system/multi-user.target.wants/inkyos-test-drain.service',
+                     'etc/systemd/system/inky-studio.service.d/10-inkyos-test-access.conf',
                      'usr/lib/systemd/system/inkyos-test-other.service'):
             bad = self.read('filesystem-manifest.json'); put(bad['rootfs'], name, seed.record())
             with self.subTest(name=name): self.assert_report_rejected('filesystem-manifest.json', bad)

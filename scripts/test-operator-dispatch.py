@@ -17,7 +17,7 @@ INPUT_TIMEOUT = 5.0
 RUNNER_TIMEOUT = 35.0
 OUTPUT_LIMIT = 32768
 ENV = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LC_ALL": "C"}
-VERBS = ("preflight", "activate", "stop")
+VERBS = ("preflight", "activate", "stop", "status")
 
 
 def operation(command):
@@ -43,9 +43,12 @@ def request(raw, verb):
                        parse_float=invalid, parse_constant=invalid)
     fields = {"schema_version"}
     reference = {"utc_reference", "utc_reference_age", "utc_reference_source"}
+    allowed = ([fields, fields | reference] if verb == "preflight" else
+               [fields, fields | reference | {"confirm_test_refresh"}] if verb == "activate" else [fields])
     if (type(value) is not dict or type(value.get("schema_version")) is not int
             or value["schema_version"] != 1
-            or set(value) not in ([fields, fields | reference] if verb == "preflight" else [fields])):
+            or set(value) not in allowed
+            or ("confirm_test_refresh" in value and value["confirm_test_refresh"] is not True)):
         raise ValueError("invalid_request")
     if reference <= set(value):
         if (type(value["utc_reference"]) is not int or not 1767225600 <= value["utc_reference"] <= 2524608000

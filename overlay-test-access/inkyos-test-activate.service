@@ -1,0 +1,19 @@
+[Unit]
+Description=Explicit asynchronous InkyOS TEST activation
+Requires=inkyos-test-access.service
+After=inkyos-test-access.service
+RefuseManualStop=yes
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I /usr/local/lib/inkyos/test-access-activation.py --activate
+Restart=no
+TimeoutStartSec=infinity
+TimeoutStopSec=infinity
+KillMode=control-group
+SendSIGKILL=no
+PrivateTmp=true
+ProtectHome=read-only

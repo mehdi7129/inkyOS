@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-"""Authenticated TEST operator preflight/stop. Activation is unavailable.
+"""Authenticated TEST operator with manifest-bound asynchronous lifecycle.
 
 Only the API accepts fixture adapters. The production CLI has zero arguments.
 Neither a command-client timeout nor a poweroff acknowledgement proves shutdown.
@@ -28,6 +28,14 @@ PREFLIGHT_SHA256 = "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e
 ACCESS_POLICY = "/usr/local/lib/inkyos/test-access-policy.py"
 ACCESS_POLICY_SHA256 = "4f493e5fe1948b7f5c4c4db8d7ba6814a04af07da5e265cd4044f2d6b6139b89"
 ACCESS_MANIFEST = "/usr/local/share/inkyos/test-access-manifest.json"
+LIFECYCLE_PATHS = {
+    **{"/usr/local/lib/inkyos/test-access-" + name + ".py": 0o555
+       for name in ("activation", "activation-gate", "drain")},
+    **{"/usr/lib/systemd/system/inkyos-test-" + name + ".service": 0o644
+       for name in ("activate", "drain")},
+    **{"/usr/local/share/inkyos/test-access/" + name + ".conf": 0o644
+       for name in ("inky-studio", "inky-network")},
+}
 PROFILE = "/etc/inkyos-test-enrollment/profile.json"
 STATE = "/var/lib/inkyos-test-enrollment/state.json"
 SYSTEM = "/var/lib/inkyos/system.json"
@@ -43,6 +51,7 @@ STOP_BUDGET = 24.0
 ERRORS = {"invalid_request", "target_unverified", "caller_unverified", "binding_invalid", "operation_busy",
           "preflight_unavailable", "preflight_blocked", "activation_unavailable", "stop_incomplete", "state_changed",
           "stop_requires_inactive_runtime"}
+ERRORS |= {"lifecycle_unavailable", "lifecycle_failed"}
 PREFLIGHT_CHECKS = (
     "prepared_profile", "exact_payload_pin", "operator_access_confirmed", "firstboot_success",
     "app_stopped_and_masked", "helper_stopped_and_masked", "networkmanager_manages_connected_wlan0",
@@ -82,10 +91,13 @@ def parse_envelope(raw):
     value = strict_json(raw)
     require(type(value) is dict and set(value) == {"schema_version", "operation", "request"}
             and type(value["schema_version"]) is int and value["schema_version"] == 1
-            and type(value["operation"]) is str and value["operation"] in {"preflight", "activate", "stop"}, "invalid_request")
+            and type(value["operation"]) is str and value["operation"] in {"preflight", "activate", "stop", "status"}, "invalid_request")
     request = value["request"]
     base, utc = {"schema_version"}, {"utc_reference", "utc_reference_age", "utc_reference_source"}
-    require(type(request) is dict and set(request) in ([base, base | utc] if value["operation"] == "preflight" else [base])
+    allowed = ([base, base | utc] if value["operation"] == "preflight" else
+               [base, base | utc | {"confirm_test_refresh"}] if value["operation"] == "activate" else [base])
+    require(type(request) is dict and set(request) in allowed
+            and ("confirm_test_refresh" not in request or request["confirm_test_refresh"] is True)
             and type(request.get("schema_version")) is int and request["schema_version"] == 1, "invalid_request")
     if utc <= set(request):
         require(type(request["utc_reference"]) is int and 1767225600 <= request["utc_reference"] <= 2524608000
@@ -273,6 +285,42 @@ class NativeAdapter:
             panel_inventory="/" + ns["PANEL_INVENTORY"],
             **{k: request[k] for k in ("utc_reference", "utc_reference_age", "utc_reference_source") if k in request})
 
+    def lifecycle_available(self):
+        if self.profile["schema_version"] != 2:
+            return False
+        manifest = self.runtime["strict_json"](self.snapshot[ACCESS_MANIFEST][0])
+        present = {path for path in LIFECYCLE_PATHS if path[1:] in manifest["files"]}
+        if not present:
+            return False  # The previous v2 access-only image remains verifiable.
+        require(present == set(LIFECYCLE_PATHS))
+        for path, mode in LIFECYCLE_PATHS.items():
+            raw = self.files.read(path, mode=mode, limit=65536)
+            require(manifest["files"][path[1:]] == {"sha256": hashlib.sha256(raw).hexdigest(),
+                    "mode": f"{mode:04o}"})
+            self.snapshot[path] = (raw, mode, False)
+        return True
+
+    def lifecycle(self, operation, request):
+        def load(name):
+            path = "/usr/local/lib/inkyos/test-access-" + name + ".py"
+            require(path in self.snapshot and self.unchanged() is True, "state_changed")
+            namespace = {"__name__": "inkyos_operator_" + name, "__file__": path}
+            exec(compile(self.snapshot[path][0], path, "exec"), namespace)
+            return namespace
+        if operation == "activate":
+            return load("activation")["enqueue"](request, self)
+        if operation == "stop":
+            return load("drain")["enqueue"](self)
+        require(operation == "status", "invalid_request")
+        activation_code, activation = load("activation")["status"](self)
+        drain_code, drain = load("drain")["status"](self)
+        require(type(activation_code) is int and activation_code in {0, 1}
+                and type(drain_code) is int and drain_code in {0, 1}, "lifecycle_failed")
+        return (0 if activation_code == drain_code == 0 else 1), {
+            "schema_version": 1, "kind": "test-access-lifecycle-status",
+            "activation": activation, "drain": drain,
+            "hardware_qualified": False, "release_qualified": False}
+
     def stop_ready(self):
         # An active refresh cannot safely use the current service stop timeout.
         # Include these observations in the single budget for this operation.
@@ -305,12 +353,14 @@ class NativeAdapter:
 
     def verify_unit(self, unit):
         result = self.command(("/usr/bin/systemctl", "--no-pager", "show", unit,
-            "--property=ActiveState,SubState,LoadState,UnitFileState"), 2)
+            "--property=ActiveState,SubState,LoadState,UnitFileState,MainPID,ControlPID,Job"), 2)
         if result is None or result[0] != 0:
             return False
         value = self.preflight_module["_properties"](result[1].decode("ascii"),
-                    {"ActiveState", "SubState", "LoadState", "UnitFileState"})
-        return value == {"ActiveState": "inactive", "SubState": "dead", "LoadState": "masked", "UnitFileState": "masked"}
+                    {"ActiveState", "SubState", "LoadState", "UnitFileState", "MainPID", "ControlPID", "Job"})
+        return (type(value) is dict and value.get("Job") in {"", "0"} and {k: v for k, v in value.items() if k != "Job"} == {
+            "ActiveState": "inactive", "SubState": "dead", "LoadState": "masked", "UnitFileState": "masked",
+            "MainPID": "0", "ControlPID": "0"})
 
     def poweroff(self):
         return self.command(("/usr/bin/systemctl", "--no-block", "poweroff"), 3, poweroff=True) == (0, b"")
@@ -351,10 +401,11 @@ def preflight_projection(value, live):
 def operate(envelope, adapter):
     result = {"schema_version": 1, "kind": "test-operator-result", "operation": None,
         "passed": False, "status": "BLOCKED", "error": None, "live_evidence": False,
-        "preflight": None, "stop": None, "activation_authorized": False,
+        "preflight": None, "stop": None, "activation": None, "lifecycle_status": None, "activation_authorized": False,
         "hardware_qualified": False, "release_qualified": False,
-        "limits": ["Activation is unavailable even when preflight succeeds.",
-            "Stop requires both services already inactive and persistently masked; an active or unknown runtime is refused.",
+        "limits": ["Lifecycle admission is not application readiness, refresh completion or physical shutdown.",
+            "Activation requires an explicit refresh request and manifest-bound lifecycle workers; older images refuse it.",
+            "Legacy stop requires inactive masked services; lifecycle stop queues a separate unbounded drain worker.",
             "Command client timeouts do not attest cancellation of systemd jobs.",
             "Poweroff acknowledgement does not attest shutdown or delivery of this reply.",
             "The runtime lock and permit are coordination artifacts; no key or application data is removed."]}
@@ -369,8 +420,24 @@ def operate(envelope, adapter):
         result["live_evidence"] = type(adapter) is NativeAdapter
         verb = envelope["operation"]
         code = 1
-        if verb == "activate":
+        lifecycle = (verb in {"activate", "stop", "status"}
+                     and getattr(adapter, "lifecycle_available", lambda: False)() is True)
+        if lifecycle and (verb != "activate" or envelope["request"].get("confirm_test_refresh") is True):
+            lifecycle_code, payload = adapter.lifecycle(verb, envelope["request"])
+            require(type(lifecycle_code) is int and lifecycle_code in {0, 1}
+                    and type(payload) is dict and type(payload.get("schema_version")) is int and payload["schema_version"] == 1
+                    and payload.get("kind") == {"activate": "test-access-activation-result",
+                        "stop": "test-access-drain-enqueue", "status": "test-access-lifecycle-status"}[verb]
+                    and payload.get("hardware_qualified") is False and payload.get("release_qualified") is False
+                    and len(json.dumps(payload).encode()) <= 16384, "lifecycle_failed")
+            require(adapter.unchanged() is True, "state_changed")
+            result[{"activate": "activation", "stop": "stop", "status": "lifecycle_status"}[verb]] = payload
+            result["passed"] = lifecycle_code == 0
+            result["error"] = None if result["passed"] else "lifecycle_failed"
+        elif verb == "activate":
             result["error"] = "activation_unavailable"
+        elif verb == "status":
+            result["error"] = "lifecycle_unavailable"
         elif verb == "preflight":
             result["preflight"] = preflight_projection(adapter.preflight(envelope["request"]), result["live_evidence"])
             require(adapter.unchanged() is True, "state_changed")
@@ -397,7 +464,9 @@ def operate(envelope, adapter):
                 for unit in UNITS:
                     stopped["units"][unit][name] = attempt(lambda unit=unit, action=action: action(unit))
             stopped["bindings_unchanged"] = attempt(adapter.unchanged)
-            stopped["poweroff_requested"] = attempt(adapter.poweroff)
+            safe = (stopped["permit_invalidated"] and stopped["bindings_unchanged"]
+                    and all(all(row.values()) for row in stopped["units"].values()))
+            stopped["poweroff_requested"] = safe and attempt(adapter.poweroff)
             result["passed"] = (stopped["permit_invalidated"] and stopped["bindings_unchanged"]
                 and stopped["poweroff_requested"] and all(all(row.values()) for row in stopped["units"].values()))
             result["error"] = None if result["passed"] else "stop_incomplete"
