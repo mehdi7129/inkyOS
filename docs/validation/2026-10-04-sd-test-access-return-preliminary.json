@@ -1,0 +1,40 @@
+{
+  "application_activation_authorized": false,
+  "checks": {
+    "activation_network_and_qualification_false": true,
+    "challenge_and_application_pins": true,
+    "declares_enrolled": true,
+    "live_claim": true,
+    "observations_closed": true,
+    "profile_binding": true,
+    "public_host_key_self_consistent": true,
+    "report_schema": true,
+    "runtime_pin": true
+  },
+  "date": "2026-10-04",
+  "ext4_checked": false,
+  "hardware_qualified": false,
+  "host_binding_verified": false,
+  "image_sha256": "542a73de8ba49ef6ed7d70d714acab9f51b214046760fdb5268d97bce0a8cab9",
+  "limits": [
+    "FAT alone does not verify ext4 enrollment state, installed payloads or SSH identity.",
+    "This preliminary report does not authorize a signed capsule or network access."
+  ],
+  "observation_states": {
+    "panel": {
+      "live_evidence": false,
+      "status": "blocked"
+    },
+    "radio": {
+      "live_evidence": true,
+      "status": "observed-unqualified"
+    }
+  },
+  "operator_reports_shutdown": true,
+  "passed": true,
+  "private_report_published": false,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "test-access-fat-return-preliminary-consistency",
+  "source_image_evidence": "2026-10-04-sd-test-access-flash.json"
+}

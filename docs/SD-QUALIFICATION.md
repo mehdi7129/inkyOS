@@ -37,7 +37,12 @@ d’activation/drain reçoit à son tour un [flash terminé avec éjection
 observée](validation/2026-10-04-sd-test-access-flash.json) sur la SD dédiée
 de 16 Go. Le hash de l’image est contrôlé avant écriture. La phase de
 vérification Imager n’a pas été observée directement et aucune relecture raw
-indépendante n’est revendiquée. Le premier boot de cette variante reste à faire.
+indépendante n’est revendiquée. Le boot et l’arrêt sont ensuite confirmés par
+l’opérateur. Le [rapport FAT retourné](validation/2026-10-04-sd-test-access-return-preliminary.json)
+déclare l’enrôlement et passe neuf contrôles de cohérence avec l’export privé.
+La radio possède une observation non qualifiée ; l’observation panneau reste
+bloquée. L’état ext4, les payloads installés et la liaison SSH hôte restent
+à vérifier avant de préparer la capsule réseau.
 
 La cible produit est une **microSD de 16 Go nominales**, sans marque imposée.
 La référence sera choisie selon disponibilité/prix, puis qualifiée sur le banc.
