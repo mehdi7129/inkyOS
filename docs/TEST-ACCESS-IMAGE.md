@@ -1,10 +1,12 @@
 # Image privée pour le premier accès TEST
 
 État du 4 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
-le contrôle du pays, la connexion Wi-Fi et un accès SSH restreint. L’activation
-de l’application reste indisponible dans cette tranche. La
-[construction et ses vérifications](validation/2026-10-04-test-access-image.json)
+le contrôle du pays, la connexion Wi-Fi, un accès SSH restreint et les workers
+d’[activation explicite et d’arrêt](TEST-ACCESS-LIFECYCLE.md). La
+[construction courante et ses vérifications](validation/2026-10-04-test-access-lifecycle-image.json)
 passent ; les essais sur le Pi et l’appairage iPhone restent à effectuer.
+La [première construction d’accès seule](validation/2026-10-04-test-access-image.json)
+reste une preuve historique distincte.
 
 ## Parent et séparation des états
 
@@ -70,7 +72,7 @@ sans home ni groupe privilégié. Une collision de nom ou d’identifiant est
 refusée. La clé publique autorisée est root-owned ; la clé privée opérateur
 reste sur le poste qui construit l’image.
 
-Le daemon dédié écoute sur le port **2222**. Seuls les trois verbes du
+Le daemon dédié écoute sur le port **2222**. Seuls les quatre verbes du
 [runtime opérateur](TEST-ACCESS-RUNTIME.md) sont admis. Shell, transfert de
 fichiers, forwarding, TTY, connexion root et authentification par mot de passe
 sont désactivés. Les services SSH génériques restent masqués.
@@ -81,10 +83,12 @@ PID de NetworkManager. Le résultat du boot distingue la demande de démarrage
 SSH de la présence réelle du daemon. Un restart NetworkManager arrête et
 réévalue cette chaîne.
 
-Le profil v2 est aussi pris en charge par le runner. La CLI SSH n’accepte
-aucun nouveau droit de configuration : `activate` reste indisponible et
-`stop` refuse un runtime applicatif actif. L’arrêt pendant un refresh et la
-gate d’activation TEST doivent être livrés avant le test applicatif complet.
+Le profil v2 est pris en charge par le runner. `activate` exige une demande
+explicite de refresh et une gate native fraîche ; `stop` démarre un worker
+qui attend la sortie de l’app avant d’arrêter le helper. `status` permet de
+suivre ces opérations. Aucun chemin ou commande de configuration libre
+n’est accepté. Les anciennes images sans les sept payloads lifecycle
+gardent le refus d’activation et l’arrêt limité au runtime inactif.
 
 Le [banc SSH v2](validation/2026-10-04-test-access-transport-return.json)
 passe 39 contrôles de transport et 25 contrôles du runner. Il utilise le
@@ -105,6 +109,31 @@ avant de déclarer la création réussie. Un dossier sur le système de fichiers
 de la SD, un fichier existant ou une modification concurrente est refusé.
 Les 26 tests de cette étape sont des fixtures ; aucun retour physique v2
 n’a encore été accepté.
+
+Le wrapper `check-test-access-return-linux.sh` vérifie une **copie privée**
+dans la VM de build ARM64 marquée. Son `--help` décrit le staging fermé :
+38 entrées scellées, dont les 16 sources locales, l’export attendu et la copie
+retournée. Les tailles et SHA-256 des deux images sont imposés en arguments.
+Il utilise un loop en lecture seule, ext4 avec `ro,noload` et FAT avec `ro`,
+sans exécuter de code provenant de la SD. Le contexte n’est exporté qu’après
+PASS, relecture, démontage et détachement du loop vérifiés ; chaque tentative
+utilise un nouveau staging. Ses 13 fixtures ne constituent pas un retour SD réel.
+
+Le client `test-operator-client.py` utilise exclusivement ce dossier privé et
+la clé opérateur correspondante. Il impose la vérification de clé hôte, sans
+trust-on-first-use, agent SSH, proxy, forwarding ou connexion par mot de passe.
+Le client ne lit pas lui-même la clé privée ; OpenSSH l’utilise localement.
+Un timeout reste un résultat non confirmé, jamais l’annulation du worker.
+
+```sh
+python3.13 scripts/test-operator-client.py \
+  --context-directory private/VERIFIED_CONTEXT \
+  --identity private/ACCESS_EXPORT/client_ed25519 status
+```
+
+Les autres verbes sont `preflight`, `stop` et `activate`. Ce dernier exige
+`--confirm-test-refresh`. Le client fournit alors l’heure du Mac comme
+référence indépendante ; il ne modifie pas l’horloge du Pi.
 
 ## Construction
 
@@ -127,3 +156,8 @@ Les hashes locaux établissent la cohérence des artefacts, pas leur authenticit
 indépendante. Aucun export de cette variante n’est une release publique ou une
 qualification de la SD. Le [premier appairage sans LAN](FIRST-BOOT.md) reste un
 contrat distinct ; le premier essai prévu utilise un LAN configuré par l’opérateur.
+
+La [validation finale des outils](validation/2026-10-04-test-access-lifecycle-image.json)
+compte 997 tests sur chacun des hôtes macOS et Linux ARM64 (4 et 1 skips
+respectivement), sans échec. Elle inclut le client SSH local et le wrapper
+de retour ; elle ne prouve aucun boot ou échange réseau physique.

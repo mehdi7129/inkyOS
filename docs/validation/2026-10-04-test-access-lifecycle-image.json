@@ -1,0 +1,107 @@
+{
+  "application": {
+    "application_version": "0.5.0-rc.2",
+    "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+    "release_qualified": false,
+    "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+    "startup": "masked-pending-firstboot-contract"
+  },
+  "application_enabled_at_boot": false,
+  "application_initially_masked": true,
+  "date": "2026-10-04",
+  "explicit_activation_workers_installed": true,
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-test-access.img",
+    "sha256": "542a73de8ba49ef6ed7d70d714acab9f51b214046760fdb5268d97bce0a8cab9",
+    "size_bytes": 3061841920
+  },
+  "image_booted": false,
+  "image_validation": {
+    "access_checks": 18,
+    "application_checks": 26,
+    "configuration_sha256": "79528b045d655634bc4da83ea4bc33c28d6368c9384193a4182da089201f17ea",
+    "ext4_fat_fsck_passed": true,
+    "image_sha256_independently_rechecked": true,
+    "independent_recheck_sha256": "aa78cba530cf1fd680c2da0c704265e5afcad935a349e85a13d03b86dafa06d8",
+    "initial_integrity_sha256": "aa78cba530cf1fd680c2da0c704265e5afcad935a349e85a13d03b86dafa06d8",
+    "manifest_sha256": "8adec1f4f2ce49f68de25feefa3d1d96b6d9dfe576e79b3082e6cbaa948059e9",
+    "pristine_parent_checks": 17,
+    "protected_boot_grow_files": 10,
+    "sudoers_verified": true,
+    "system_checks": 62,
+    "systemd_units_verified": true
+  },
+  "limits": [
+    "The first boot enrolls and requests shutdown without activating the application or network.",
+    "The next boot requires a signed capsule bound to this new enrollment; older SD identities cannot be reused.",
+    "Application activation needs an explicit live TEST request and fresh native gates.",
+    "Image, profile, operator keys, nonce and private archive are not published.",
+    "No SD flash, Pi boot, display refresh, active physical drain or iPhone pairing is established.",
+    "The verifier checks image bytes and declared inventory consistency; it does not independently regenerate that inventory.",
+    "Unsigned local hashes establish consistency, not independent authenticity."
+  ],
+  "operator_tooling_validation": {
+    "hardware_qualified": false,
+    "independent_readonly_review": "No concrete blocker found in return wrapper or sealed import closure.",
+    "linux": {
+      "architecture": "aarch64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "a344060e10a59f6fd3b851b3ae0095984392c0d4d8d3d4a1e2afa4f28deff726",
+      "passed": true,
+      "python": "3.13.5",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 23
+      },
+      "skipped": 1,
+      "system": "Linux",
+      "tests": 997
+    },
+    "macos": {
+      "architecture": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "8d5eb8d943298a6a5631d68b6283c7d6d8cf78c0d1e73a6076d033e7f2f25719",
+      "passed": true,
+      "python": "3.13.15",
+      "python_fixtures_passed": true,
+      "schema_version": 1,
+      "scope": "software-fixtures-only",
+      "shell_syntax": {
+        "passed": true,
+        "scripts_checked": 23
+      },
+      "skipped": 4,
+      "system": "Darwin",
+      "tests": 997
+    },
+    "report_sha256": {
+      "linux_inputs": "da9ed783c3cb82ef7f128b62a2ca9f92b11e9e8005cf1d12a15dc040a9f09f66",
+      "linux_results": "4517d9eaaf3dc638d8d9996aa7bbbba1e817ca1dce16df10116577e5a083a0e1",
+      "macos_results": "8f6b26219add27d1a9652e01eecc24130584d52dedd2ab84ee194c241f26e165"
+    },
+    "scope": "software-fixtures-only",
+    "source_sha256": {
+      "scripts/check-test-access-return-linux.sh": "319e9630114aae7bcb56d0223a070d5828a8c0dbad03777f3283121eb34e98da",
+      "scripts/test-operator-client.py": "a374d8076258786843c57384ef2b3312ec0e57d785b0a243da2b4ed2e7c312cb",
+      "tests/test_check_test_access_return.py": "8b9cd2f49986e27121ea645bc50585049d4fd8a64abfdbef0d1e1a1c04f07b4c",
+      "tests/test_test_operator_client.py": "99a518f4f27cc60e45cae316897fd5fb38c8bd01a5c40c87f2a1bb2ffa8919f7"
+    }
+  },
+  "parent_image_sha256": "0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286",
+  "private_artifact": true,
+  "recipe_source_commit": "ace7fe5efbae0b171683a987f6eebe2080d0d14e",
+  "recipe_worktree_dirty": true,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "private-test-access-lifecycle-image-integration",
+  "software_evidence": "2026-10-04-test-access-lifecycle.json",
+  "static_payloads": 28
+}

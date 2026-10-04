@@ -20,7 +20,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Enrôlement de test | Retour SD vérifié : 21 contrôles de cohérence ext4/FAT réussis. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
-| Accès opérateur | Image privée construite avec enrôlement v2, import signé, garde Wi-Fi et SSH restreint. Recette et NetworkManager vérifiés offline ; connexion sur Pi, activation et arrêt physique restent à réaliser. |
+| Accès opérateur | Image privée construite avec enrôlement v2, import signé, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Les essais de connexion, d’affichage et d’arrêt sur Pi restent à réaliser. |
 | Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
 
 La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
@@ -58,9 +58,12 @@ La [validation d’accès et de retour](docs/validation/2026-10-04-test-access-t
 ajoute 64 contrôles SSH/runtime v2 et un vérificateur de retour en lecture
 seule. Le [raccord activation/drain](docs/TEST-ACCESS-LIFECYCLE.md) est ensuite
 implémenté, avec [965 tests macOS/Linux et 28 contrôles systemd sur processus
-inertes](docs/validation/2026-10-04-test-access-lifecycle.json). Il reste à
-construire le candidat avec ce raccord et à exercer son boot, son affichage
-et son arrêt sur le Pi avant le test complet d’appairage.
+inertes](docs/validation/2026-10-04-test-access-lifecycle.json). Le
+[candidat correspondant est construit et vérifié](docs/validation/2026-10-04-test-access-lifecycle-image.json).
+Son premier boot d’enrôlement, son affichage et son arrêt sur le Pi restent
+à exercer avant le test complet d’appairage.
+Les outils de retour et le client opérateur portent la suite finale à
+**997 tests sur chaque hôte**, sans échec (4 skips macOS, 1 skip Linux).
 
 ## Développer
 
