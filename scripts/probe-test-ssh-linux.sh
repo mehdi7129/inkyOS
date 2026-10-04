@@ -3,11 +3,16 @@
 set -Eeuo pipefail
 umask 077
 if [[ ${1:-} == --help && $# == 1 ]]; then
-  echo 'Usage: sudo bash probe-test-ssh-linux.sh /var/tmp/inkyos-work/test-ssh-probe.XXXXXXXX'
+  echo 'Usage: sudo bash probe-test-ssh-linux.sh [--access-runtime] /var/tmp/inkyos-work/test-ssh-probe.XXXXXXXX'
   echo 'Root-owned 0700 staging: this script (0444), probe.img (0600), parent-manifest.json,'
   echo 'parent-manifest.sha256, parent-filesystem-manifest.json, parent-integrity.json (0444).'
   echo 'Consumes only the disposable image copy. Produces report.json; no Pi/SD or existing SSH keys.'
   exit 0
+fi
+access_runtime=0
+if [[ ${1:-} == --access-runtime ]]; then
+  access_runtime=1
+  shift
 fi
 [[ $# == 1 && $(uname -s) == Linux && $(uname -m) == aarch64 && $EUID == 0 ]] || {
   echo 'SSH probe requires root in the marked ARM64 build VM and one disposable staging directory.' >&2; exit 2;
@@ -15,6 +20,10 @@ fi
 [[ $(cat /var/lib/inkyos-build/owner) == inkyos-builder-v1 ]] || exit 2
 work=$(readlink -e -- "$1")
 [[ $work == "$1" && $work =~ ^/var/tmp/inkyos-work/test-ssh-probe\.[A-Za-z0-9]{8}$ ]] || exit 2
+probe_args=("$work")
+if [[ $access_runtime == 1 ]]; then
+  probe_args=(--access-runtime "$work")
+fi
 [[ $(readlink -e -- "$0") == "$work/probe-test-ssh-linux.sh" ]] || {
   echo 'Execute only the reviewed script copy inside the sealed staging directory.' >&2; exit 2;
 }
@@ -26,14 +35,14 @@ if [[ ${INKYOS_TEST_SSH_NAMESPACE:-} != 1 ]]; then
   # creates a session. Keep the VM's /proc view here for namespace comparisons.
   exec timeout --signal=TERM --kill-after=40s 180s \
     unshare --mount --net --uts --pid --fork --kill-child=KILL --propagation private \
-    env INKYOS_TEST_SSH_NAMESPACE=1 bash "$0" "$work"
+    env INKYOS_TEST_SSH_NAMESPACE=1 bash "$0" "${probe_args[@]}"
 fi
 for namespace in mnt net uts pid; do
   [[ $(readlink "/proc/self/ns/$namespace") != $(readlink "/proc/1/ns/$namespace") ]] || exit 2
 done
 [[ $(findmnt -n -o PROPAGATION /) == private ]] || exit 2
 cd "$work"
-python3 -I - "$work" <<'PY_PROBE'
+python3 -I - "$work" "$access_runtime" <<'PY_PROBE'
 import hashlib
 import json
 import os
@@ -51,6 +60,9 @@ import time
 # arrives; this transport probe is not an application release registry.
 EXACT_SOURCE = '758a2bf7ed099aad41ef35316e53228e797b0b2b'
 EXACT_MANIFEST = '0d587792433d924ad1c4e71af19c2a46279f573791cb690571fa1019e7703551'
+ACCESS_SOURCE = 'c31b13afdc957425571810c46230eaaf52fa5d14'
+ACCESS_MANIFEST = 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1'
+ACCESS_IMAGE = '8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727'
 USER = 'inky-test'
 DISPATCH_PATH = '/usr/local/lib/inkyos-test-ssh/dispatch.py'
 RUNNER_PATH = '/usr/local/lib/inkyos-test-ssh/runner'
@@ -61,6 +73,8 @@ INPUTS = {'probe-test-ssh-linux.sh', 'probe.img', 'parent-manifest.json',
 OPERATOR_INPUTS = {'probe-test-operator-runtime.py', 'test-operator-dispatch.py',
                    'test-operator-runner.py', 'test-lan-preflight.py', 'test-enrollment-firstboot.py',
                    'test-access-contract.py', 'application-manifest.json'}
+ACCESS_INPUTS = {'test-access-policy.py'}
+ACCESS_TMPFS = ('etc/inkyos-test-enrollment', 'var/lib/inkyos-test-enrollment', 'var/lib/inkyos')
 PROGRAMS = (
     'usr/sbin/sshd', 'usr/bin/ssh', 'usr/bin/ssh-keygen', 'usr/bin/scp',
     'usr/bin/sudo', 'usr/sbin/visudo', 'etc/pam.d/sshd', 'etc/pam.d/common-auth',
@@ -294,7 +308,20 @@ Subsystem sftp internal-sftp
 '''
 
 
-def main(work):
+def parent_candidate(parent, *, access_runtime=False):
+    require(type(access_runtime) is bool, 'invalid_probe_mode')
+    source, manifest = (ACCESS_SOURCE, ACCESS_MANIFEST) if access_runtime else (EXACT_SOURCE, EXACT_MANIFEST)
+    require(type(parent.get('schema_version')) is int and parent['schema_version'] == 1
+            and parent['kind'] == 'application-prototype' and parent['hardware_qualified'] is False
+            and parent['application'] == {'source_commit': source, 'manifest_sha256': manifest,
+                'application_version': '0.5.0-rc.2', 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False},
+            'parent_candidate_pin_mismatch')
+    if access_runtime:
+        require(parent['image']['sha256'] == ACCESS_IMAGE, 'parent_access_image_pin_mismatch')
+    return source, manifest
+
+
+def main(work, *, access_runtime=False):
     root = work / 'root'
     checks = {name: False for name in CHECKS}
     methods = {'transport_probe': True, 'privileged_runner': 'inert-stub',
@@ -312,6 +339,9 @@ def main(work):
                          'The forced dispatcher and privileged runner are probe fixtures; activation is an inert stub.',
                          'No real application activation, Pi/SD, display, Wi-Fi, BLE or release is qualified.',
                          'Forced namespace termination can prevent the final report and loop cleanup; a missing report is failure.']}
+    if access_runtime:
+        report['access_runtime'] = True
+        methods['synthetic_enrollment_tmpfs'] = True
     loop = None
     mounts = []
     daemon = None
@@ -385,8 +415,10 @@ def main(work):
                 'unsafe_staging_directory')
         names = {entry.name for entry in work.iterdir()}
         operator_mode = 'probe-test-operator-runtime.py' in names
-        require(names == INPUTS | (OPERATOR_INPUTS if operator_mode else set()), 'unexpected_staging_files')
-        operator_sources = ({name: regular(work / name, 0o444, 1024**2) for name in OPERATOR_INPUTS}
+        require(not access_runtime or operator_mode, 'access_requires_operator_sources')
+        selected = OPERATOR_INPUTS | (ACCESS_INPUTS if access_runtime else set())
+        require(names == INPUTS | (selected if operator_mode else set()), 'unexpected_staging_files')
+        operator_sources = ({name: regular(work / name, 0o444, 1024**2) for name in selected}
                             if operator_mode else {})
         staging_valid = True
         manifest_raw = regular(work / 'parent-manifest.json', 0o444, 64 * 1024**2)
@@ -394,12 +426,7 @@ def main(work):
         require(re.fullmatch('[0-9a-f]{64}', expected) and hashlib.sha256(manifest_raw).hexdigest() == expected,
                 'parent_manifest_hash_mismatch')
         parent = json.loads(manifest_raw, object_pairs_hook=unique)
-        require(type(parent.get('schema_version')) is int and parent['schema_version'] == 1
-                and parent['kind'] == 'application-prototype' and parent['hardware_qualified'] is False
-                and parent['application'] == {'source_commit': EXACT_SOURCE, 'manifest_sha256': EXACT_MANIFEST,
-                    'application_version': '0.5.0-rc.2', 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False}
-                and parent['application']['release_qualified'] is False,
-                'parent_candidate_pin_mismatch')
+        exact_source, exact_manifest = parent_candidate(parent, access_runtime=access_runtime)
         integrity = json.loads(regular(work / 'parent-integrity.json', 0o444, 64 * 1024**2), object_pairs_hook=unique)
         require(integrity.get('scope') == 'local-export-integrity' and integrity.get('passed') is True
                 and integrity.get('image_sha256_verified') is True and integrity.get('authenticity_verified') is False
@@ -420,7 +447,7 @@ def main(work):
         disposable = True
         report['parent'] = {'manifest_sha256': expected, 'image_sha256': parent['image']['sha256'],
                             'filesystem_manifest_sha256': hashlib.sha256(inventory_raw).hexdigest(),
-                            'application_source_commit': EXACT_SOURCE, 'application_manifest_sha256': EXACT_MANIFEST}
+                            'application_source_commit': exact_source, 'application_manifest_sha256': exact_manifest}
         report['source_sha256'] = hashlib.sha256(source_raw).hexdigest()
         checks['parent_bytes_pinned'] = True
         checks['private_namespaces'] = all(os.readlink('/proc/self/ns/' + name) != os.readlink('/proc/1/ns/' + name)
@@ -477,6 +504,12 @@ def main(work):
         mount('proc', 'proc', 'proc', 'nosuid,nodev,noexec')
         (root / RUNTIME.lstrip('/')).mkdir(mode=0o700)
         (root / 'run/sshd').mkdir(mode=0o755)
+        if access_runtime:
+            # Profile, public identity and enrolled-state fixtures are volatile
+            # just like the generated bench keys. Never overlay existing state.
+            for relative in ACCESS_TMPFS:
+                (root / relative).mkdir(mode=0o700)
+                mount('tmpfs', 'tmpfs', relative, 'mode=0700,nosuid,nodev,noexec')
         create(RUNTIME + '/invocations', b'', 0o600)
         versions = target_must(['/usr/bin/dpkg-query', '-W', '-f=${Package}=${Version}\n', *PACKAGES]).stdout.decode('ascii')
         report['package_versions'] = dict(line.split('=', 1) for line in versions.splitlines())
@@ -637,7 +670,8 @@ def main(work):
                          str(work / 'probe-test-operator-runtime.py'), 'exec'), namespace)
             client = ['chroot', str(root), '/usr/bin/ssh', *options, '-p', str(port),
                       '-i', RUNTIME + '/good', USER + '@127.0.0.1']
-            report['operator_runtime'] = namespace['probe'](root, create, target, ssh, operator_sources, client)
+            report['operator_runtime'] = namespace['probe'](root, create, target, ssh, operator_sources, client,
+                                                           access_runtime=access_runtime)
             require(report['operator_runtime']['passed'] is True, 'operator_runtime_failed')
         checks['application_still_masked'] = all(os.readlink(root / 'etc/systemd/system' / unit) == '/dev/null'
                                                 for unit in ('inky-studio.service', 'inky-network.service'))
@@ -747,5 +781,5 @@ def main(work):
 
 
 if __name__ == '__main__':
-    sys.exit(main(Path(sys.argv[1])))
+    sys.exit(main(Path(sys.argv[1]), access_runtime=sys.argv[2] == '1'))
 PY_PROBE

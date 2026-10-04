@@ -86,6 +86,26 @@ aucun nouveau droit de configuration : `activate` reste indisponible et
 `stop` refuse un runtime applicatif actif. L’arrêt pendant un refresh et la
 gate d’activation TEST doivent être livrés avant le test applicatif complet.
 
+Le [banc SSH v2](validation/2026-10-04-test-access-transport-return.json)
+passe 39 contrôles de transport et 25 contrôles du runner. Il utilise le
+rootfs applicatif exact et des identités synthétiques sur tmpfs ; aucune
+application ni connexion radio n’est lancée.
+
+## Vérification du retour
+
+`verify-test-access-return.py` compare le rapport v2, le profil, l’état,
+les programmes installés et les clés publiques avec l’export privé attendu.
+Les deux partitions doivent être montées en lecture seule. Le vérificateur
+ne lit aucune clé privée et n’exécute aucun programme provenant de la SD.
+
+Après les 35 contrôles natifs, `--context-output` peut créer un nouveau
+dossier privé contenant `context.json` et `known_hosts`. Ce dernier lie le
+hostname observé à la clé hôte SSH sur le port 2222. Les fichiers sont relus
+avant de déclarer la création réussie. Un dossier sur le système de fichiers
+de la SD, un fichier existant ou une modification concurrente est refusé.
+Les 26 tests de cette étape sont des fixtures ; aucun retour physique v2
+n’a encore été accepté.
+
 ## Construction
 
 ```sh

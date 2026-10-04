@@ -36,6 +36,144 @@ def fixture(name):
 
 
 class TestSshProbeTests(unittest.TestCase):
+    def access_sources(self):
+        return {name: (SCRIPT.parent / name).read_bytes() for name in operator['ACCESS_FILES'].values()}
+
+    def test_access_mode_selects_only_exact_c31_application_parent_without_changing_legacy(self):
+        def parent(source, manifest):
+            return {'schema_version': 1, 'kind': 'application-prototype', 'hardware_qualified': False,
+                    'application': {'source_commit': source, 'manifest_sha256': manifest,
+                        'application_version': '0.5.0-rc.2', 'startup': 'masked-pending-firstboot-contract',
+                        'release_qualified': False}, 'image': {'sha256': probe['ACCESS_IMAGE']}}
+        legacy = parent(probe['EXACT_SOURCE'], probe['EXACT_MANIFEST'])
+        access = parent(probe['ACCESS_SOURCE'], probe['ACCESS_MANIFEST'])
+        self.assertEqual(probe['parent_candidate'](legacy), (probe['EXACT_SOURCE'], probe['EXACT_MANIFEST']))
+        self.assertEqual(probe['parent_candidate'](access, access_runtime=True),
+                         (probe['ACCESS_SOURCE'], probe['ACCESS_MANIFEST']))
+        for value, mode in ((access, False), (legacy, True), (access, 1)):
+            with self.assertRaises(ValueError): probe['parent_candidate'](value, access_runtime=mode)
+        for section, field, value in (('image', 'sha256', 'e' * 64),
+                                      ('application', 'manifest_sha256', probe['EXACT_MANIFEST']),
+                                      ('application', 'release_qualified', True)):
+            bad = copy.deepcopy(access); bad[section][field] = value
+            with self.assertRaises(ValueError): probe['parent_candidate'](bad, access_runtime=True)
+        self.assertEqual(probe['ACCESS_IMAGE'], '8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727')
+        self.assertEqual(len(probe['CHECKS']), 39)
+        self.assertEqual(len(operator['CHECKS']), 22)
+        self.assertEqual(len(operator['ACCESS_CHECKS']), 3)
+
+    def test_access_fixture_is_bound_to_real_sources_and_accepted_by_production_runner(self):
+        # Reuse the safe file-reader fixture, never authenticate as host root or
+        # invoke any service. Its NativeAdapter subclass cannot claim live proof.
+        import importlib.util
+        path = SCRIPT.parent.parent / 'tests/test_test_operator_runtime.py'
+        spec = importlib.util.spec_from_file_location('ssh_probe_native_binding_fixture', path)
+        seed = importlib.util.module_from_spec(spec); spec.loader.exec_module(seed)
+        installed = seed.NativeBindingTests()
+        installed.setUp()
+        self.addCleanup(installed.tearDown)
+        public = json.loads(installed.raw[seed.runner.PROFILE])['operator_public_key']
+        sources = self.access_sources()
+        value, manifest_raw = operator['access_fixture'](sources, public)
+        manifest = json.loads(manifest_raw)
+        self.assertEqual(value['schema_version'], 2)
+        self.assertEqual(value['application_source_commit'], probe['ACCESS_SOURCE'])
+        self.assertEqual(value['access_runtime_manifest_sha256'], hashlib.sha256(manifest_raw).hexdigest())
+        self.assertEqual(set(manifest['files']), {name[1:] for name in operator['ACCESS_FILES']})
+        for name, source_name in operator['ACCESS_FILES'].items():
+            self.assertEqual(manifest['files'][name[1:]], {'sha256': hashlib.sha256(sources[source_name]).hexdigest(), 'mode': '0555'})
+        installed.install_v2(manifest, profile_changes=value)
+        before = {path: (installed.root / path.lstrip('/')).read_bytes() for path in installed.raw}
+        self.assertTrue(installed.adapter.bind())
+        self.assertTrue(installed.adapter.unchanged())
+        self.assertEqual(json.loads(installed.raw[seed.runner.STATE])['schema_version'], 1)
+        self.assertEqual(before, {path: (installed.root / path.lstrip('/')).read_bytes() for path in installed.raw})
+        for path, raw, mode in ((seed.runner.ACCESS_POLICY, sources['test-access-policy.py'], 0o555),
+                                (seed.runner.ACCESS_MANIFEST, manifest_raw, 0o644)):
+            installed.put(path, raw + b'\n', mode)
+            with self.assertRaises(seed.runner.Refused): installed.adapter.bind()
+            installed.put(path, raw, mode)
+        self.assertTrue(installed.adapter.bind())
+
+    def test_changed_access_policy_is_refused_before_exec_or_fixture_install(self):
+        sources = self.access_sources(); sources['test-access-policy.py'] += b'\n'
+        with patch('builtins.exec') as execute:
+            with self.assertRaisesRegex(ValueError, '^access_policy_source_changed$'):
+                operator['access_fixture'](sources, 'unused fixture public key')
+            execute.assert_not_called()
+        sources['test-access-contract.py'] = (SCRIPT.parent / 'test-access-contract.py').read_bytes()
+        create, target, ssh = Mock(), Mock(), Mock()
+        result = operator['probe'](Path('/unused'), create, target, ssh, sources, [], access_runtime=True)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['error_stage'], 'install_sources')
+        self.assertEqual(set(result['checks']), set(operator['CHECKS']) | set(operator['ACCESS_CHECKS']))
+        self.assertIs(result['enrollment_fixture_only'], True)
+        self.assertIs(result['physical_identity_verified'], False)
+        create.assert_not_called(); target.assert_not_called(); ssh.assert_not_called()
+
+    def test_access_receipt_cannot_downgrade_to_legacy_or_claim_physical_enrollment(self):
+        report, inputs = self.operator_receipt()
+        inputs['access_runtime'] = True
+        inputs['expected_operator_checks'] += list(operator['ACCESS_CHECKS'])
+        report['access_runtime'] = True
+        report['operator_runtime'].update(access_runtime=True, profile_schema_version=2,
+                                         enrollment_fixture_only=True, physical_identity_verified=False)
+        report['operator_runtime']['checks'].update(dict.fromkeys(operator['ACCESS_CHECKS'], True))
+        self.assertTrue(receipt['validate_report'](report, inputs, 0))
+        for field, value in (('access_runtime', False), ('profile_schema_version', 1),
+                             ('enrollment_fixture_only', False), ('physical_identity_verified', True)):
+            bad = copy.deepcopy(report); bad['operator_runtime'][field] = value
+            with self.assertRaises(ValueError): receipt['validate_report'](bad, inputs, 0)
+        for field in ('access_runtime', 'operator_runtime'):
+            bad = copy.deepcopy(report); del bad[field]
+            with self.assertRaises(ValueError): receipt['validate_report'](bad, inputs, 0)
+        for field in operator['ACCESS_CHECKS']:
+            bad = copy.deepcopy(report); del bad['operator_runtime']['checks'][field]
+            with self.assertRaises(ValueError): receipt['validate_report'](bad, inputs, 0)
+        old_inputs = copy.deepcopy(inputs); del old_inputs['access_runtime']
+        with self.assertRaises(ValueError): receipt['validate_report'](report, old_inputs, 0)
+
+    def test_access_cli_is_explicit_and_help_stays_inert(self):
+        mac = SCRIPT.parent / 'probe-test-ssh.sh'
+        help_result = subprocess.run(['bash', str(mac), '--help'], capture_output=True)
+        self.assertEqual(help_result.returncode, 0)
+        self.assertIn(b'--access-runtime', help_result.stdout)
+        for args in (['--access-runtime'], ['--access-runtime', '--operator-runtime', '/unused']):
+            result = subprocess.run(['bash', str(mac), *args], capture_output=True)
+            self.assertEqual(result.returncode, 2)
+        self.assertEqual(probe['ACCESS_INPUTS'], {'test-access-policy.py'})
+        self.assertEqual(probe['ACCESS_TMPFS'], ('etc/inkyos-test-enrollment', 'var/lib/inkyos-test-enrollment', 'var/lib/inkyos'))
+
+    def test_access_capsule_signs_the_selected_fixture_bindings(self):
+        wire = b'\x00\x00\x00\x0bssh-ed25519\x00\x00\x00\x20' + bytes(range(32))
+        public = 'ssh-ed25519 ' + base64.b64encode(wire).decode()
+        profile, manifest_raw = operator['access_fixture'](self.access_sources(), public)
+        expected = {'profile_sha256': operator['sha'](operator['canonical'](profile)),
+            'challenge': profile['challenge'], 'host_public_key_sha256': operator['sha'](wire),
+            'application_source_commit': profile['application_source_commit'],
+            'application_manifest_sha256': profile['application_manifest_sha256'],
+            'access_runtime_manifest_sha256': operator['sha'](manifest_raw)}
+        calls = []
+        def target(argv, *, data, timeout):
+            calls.append((argv, data, timeout))
+            if len(calls) < 3:
+                capsule = json.loads(data)
+                self.assertEqual(capsule['nonce'], expected['challenge'])
+                for key, value in expected.items():
+                    if key != 'challenge': self.assertEqual(capsule[key], value)
+                return types.SimpleNamespace(returncode=0, stdout=b'synthetic-signature')
+            payload = json.loads(data)
+            self.assertEqual(payload['expected'], expected)
+            self.assertEqual(base64.b64decode(payload['raw']), calls[0][1])
+            self.assertEqual(calls[0][1], calls[1][1])
+            return types.SimpleNamespace(returncode=0, stdout=json.dumps(dict.fromkeys(operator['CAPSULE_CHECKS'], True)).encode())
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); path = root / (operator['RUNTIME'] + '/good.pub').lstrip('/')
+            path.parent.mkdir(parents=True); path.write_text(public + '\n')
+            result = operator['capsule_checks'](root, target, expected=expected)
+        self.assertEqual(result, dict.fromkeys(operator['CAPSULE_CHECKS'], True))
+        self.assertEqual(len(calls), 3)
+
     def test_transport_diagnostics_export_only_closed_reasons(self):
         for raw, expected in (
                 (b'', 'none'),

@@ -6,14 +6,20 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo"
 PYTHON=${PYTHON:-python3}
 if [[ ${1:-} == --help && $# == 1 ]]; then
-  echo 'Usage: PYTHON=python3.13 bash scripts/probe-test-ssh.sh [--operator-runtime] PARENT_EXPORT'
+  echo 'Usage: PYTHON=python3.13 bash scripts/probe-test-ssh.sh [--operator-runtime | --access-runtime] PARENT_EXPORT'
   echo 'Requires the marked inkyos-build VM; tests only a disposable image copy and inert runner.'
   echo 'Optional operator runtime extension uses production sources; stop mutations remain fixture-only.'
+  echo '--access-runtime selects the pinned c31 application parent and v2 synthetic enrollment on tmpfs.'
   exit 0
 fi
 operator_runtime=0
+access_runtime=0
 if [[ ${1:-} == --operator-runtime ]]; then
   operator_runtime=1
+  shift
+elif [[ ${1:-} == --access-runtime ]]; then
+  operator_runtime=1
+  access_runtime=1
   shift
 fi
 [[ $# == 1 && -d $1 && ! -L $1 ]] || exit 2
@@ -23,11 +29,16 @@ vm=inkyos-build
 mkdir -p build
 run_dir=$(mktemp -d build/test-ssh-probe.XXXXXXXX)
 guest_dir="/var/tmp/inkyos-work/$(basename "$run_dir")"
+probe_args=("$guest_dir")
+if [[ $access_runtime == 1 ]]; then
+  probe_args=(--access-runtime "$guest_dir")
+fi
 "$PYTHON" -I scripts/verify-artifacts.py "$parent" --output "$run_dir/parent-integrity.json"
-"$PYTHON" -I - "$parent" "$run_dir" "$operator_runtime" <<'PY'
+"$PYTHON" -I - "$parent" "$run_dir" "$operator_runtime" "$access_runtime" <<'PY'
 import ast, hashlib, json, os, pathlib, stat, subprocess, sys
 parent, out = map(pathlib.Path, sys.argv[1:3])
 operator_mode = sys.argv[3] == '1'
+access_mode = sys.argv[4] == '1'
 def read(path, limit=64*1024**2):
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(fd, 'rb') as stream:
@@ -41,6 +52,11 @@ def read(path, limit=64*1024**2):
 raw = read(parent/'manifest.json'); data = json.loads(raw)
 if data['kind'] != 'application-prototype':
     raise ValueError('SSH probe requires an inactive application-prototype parent')
+if access_mode and (data['image']['sha256'] != '8b951d84bf6925e531d643bd3c785283f37bb847372ab9265356cbf3b12a7727'
+        or data['application'] != {'source_commit': 'c31b13afdc957425571810c46230eaaf52fa5d14',
+            'manifest_sha256': 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1',
+            'application_version': '0.5.0-rc.2', 'startup': 'masked-pending-firstboot-contract', 'release_qualified': False}):
+    raise ValueError('Access probe requires its exact c31 application parent')
 image = data['image']['filename']
 if pathlib.PurePosixPath(image).name != image or not image.endswith('.img'):
     raise ValueError('Invalid parent image name')
@@ -51,6 +67,8 @@ blobs = {'parent-manifest.json': raw,
 operator_names = ('probe-test-operator-runtime.py', 'test-operator-dispatch.py',
                   'test-operator-runner.py', 'test-lan-preflight.py', 'test-enrollment-firstboot.py',
                   'test-access-contract.py')
+if access_mode:
+    operator_names += ('test-access-policy.py',)
 if operator_mode:
     blobs.update({name: read(pathlib.Path('scripts') / name) for name in operator_names})
     blobs['application-manifest.json'] = read(parent / 'application-manifest.json')
@@ -70,11 +88,17 @@ receipt = {'schema_version':1,'scope':'test-ssh-probe-inputs',
            'worktree_dirty':bool(subprocess.check_output(['git','status','--porcelain'])),
            'files':{name:hashlib.sha256(read(out/name)).hexdigest() for name in names},
            'parent_image':data['image'], 'parent_application':data['application'], 'expected_checks':checks}
+if access_mode:
+    receipt['access_runtime'] = True
 if operator_mode:
     tree = ast.parse(blobs['probe-test-operator-runtime.py'].decode())
     node = next(node for node in tree.body if isinstance(node, ast.Assign)
                 and any(isinstance(target, ast.Name) and target.id == 'CHECKS' for target in node.targets))
     operator_checks = ast.literal_eval(node.value)
+    if access_mode:
+        node = next(node for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == 'ACCESS_CHECKS' for target in node.targets))
+        operator_checks += ast.literal_eval(node.value)
     assert type(operator_checks) is tuple and operator_checks and len(set(operator_checks)) == len(operator_checks)
     assert all(type(name) is str for name in operator_checks)
     receipt['expected_operator_checks'] = operator_checks
@@ -89,6 +113,9 @@ limactl shell --workdir=/tmp "$vm" mkdir -m 700 -- "$guest_dir"
 names=(parent-manifest.json parent-manifest.sha256 parent-filesystem-manifest.json parent-integrity.json probe-test-ssh-linux.sh)
 if [[ $operator_runtime == 1 ]]; then
   names+=(probe-test-operator-runtime.py test-operator-dispatch.py test-operator-runner.py test-lan-preflight.py test-enrollment-firstboot.py test-access-contract.py application-manifest.json)
+fi
+if [[ $access_runtime == 1 ]]; then
+  names+=(test-access-policy.py)
 fi
 for name in "${names[@]}"; do
   limactl copy "$run_dir/$name" "$vm:$guest_dir/$name"
@@ -114,7 +141,7 @@ data['guest_dir']='/var/tmp/inkyos-work/'+p.parent.name
 print(json.dumps(data))
 PY
 status=0
-limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/probe-test-ssh-linux.sh" "$guest_dir" || status=$?
+limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/probe-test-ssh-linux.sh" "${probe_args[@]}" || status=$?
 limactl shell --workdir=/tmp "$vm" sudo cat "$guest_dir/report.json" > "$run_dir/report.json" || exit 1
 "$PYTHON" -I - "$run_dir" "$status" <<'PY_RECEIPT'
 import hashlib,json,pathlib,sys
@@ -129,6 +156,11 @@ def validate_report(report, inputs, status):
     require(report.get('source_sha256') == inputs['files']['probe-test-ssh-linux.sh'])
     require(report.get('activation_stub_only') is True and report.get('application_activated') is False
             and report.get('hardware_qualified') is False and report.get('release_qualified') is False)
+    if 'access_runtime' in inputs:
+        require(inputs['access_runtime'] is True and report.get('access_runtime') is True
+                and 'operator_sources' in inputs)
+    else:
+        require('access_runtime' not in report)
     require(report.get('parent') == {
         'manifest_sha256': inputs['files']['parent-manifest.json'],
         'image_sha256': inputs['parent_image']['sha256'],
@@ -150,6 +182,12 @@ def validate_report(report, inputs, status):
         require(extra.get('source_sha256') == inputs['operator_sources'])
         require(extra.get('application_activated') is False and extra.get('stop_mutations_fixture_only') is True
                 and extra.get('hardware_qualified') is False and extra.get('release_qualified') is False)
+        if inputs.get('access_runtime') is True:
+            require(extra.get('access_runtime') is True and type(extra.get('profile_schema_version')) is int
+                    and extra['profile_schema_version'] == 2 and extra.get('enrollment_fixture_only') is True
+                    and extra.get('physical_identity_verified') is False)
+        else:
+            require('access_runtime' not in extra)
         extra_checks = extra.get('checks')
         require(type(extra_checks) is dict and set(extra_checks) == set(inputs['expected_operator_checks'])
                 and all(type(value) is bool for value in extra_checks.values()))
