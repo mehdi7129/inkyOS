@@ -1,0 +1,2 @@
+Defaults:inky-test env_reset, !setenv, secure_path=/usr/sbin:/usr/bin:/sbin:/bin
+inky-test ALL=(root) NOPASSWD: /usr/local/lib/inkyos-test-ssh/runner ""

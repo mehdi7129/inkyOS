@@ -84,8 +84,9 @@ une interaction ne fait pas partie de cette première recette non interactive.
 
 Le champ `context_provenance_verified=false` reste explicite : ce programme
 vérifie les données fournies et leur signature, pas leur provenance physique.
-Le manifest d’accès et le producteur automatique de ce contexte ne sont pas
-encore livrés ; il ne faut pas fabriquer ces valeurs pour contourner la suite.
+Le manifest d’accès est désormais produit par le
+[builder de la variante v2](TEST-ACCESS-IMAGE.md). Le producteur automatique
+du contexte reste à valider ; il ne faut pas fabriquer ses valeurs.
 
 ## Intégration restante
 

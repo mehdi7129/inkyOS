@@ -1,0 +1,20 @@
+[Unit]
+Description=Restricted private TEST operator SSH
+Requires=inkyos-test-access.service NetworkManager.service
+After=inkyos-test-access.service NetworkManager.service
+BindsTo=NetworkManager.service
+PartOf=NetworkManager.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+UMask=0077
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+ExecCondition=/usr/bin/python3 -I /usr/local/lib/inkyos/test-access-boot.py --verify-ssh
+ExecStartPre=/usr/sbin/sshd -t -f /etc/inkyos-test-ssh/sshd_config
+ExecStart=/usr/sbin/sshd -D -e -f /etc/inkyos-test-ssh/sshd_config
+KillMode=control-group
+Restart=no
+TimeoutStopSec=15s

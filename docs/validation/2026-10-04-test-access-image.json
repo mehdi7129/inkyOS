@@ -1,0 +1,137 @@
+{
+  "activation_available": false,
+  "application": {
+    "application_version": "0.5.0-rc.2",
+    "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+    "release_qualified": false,
+    "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+    "startup": "masked-pending-firstboot-contract"
+  },
+  "date": "2026-10-04",
+  "fixtures": {
+    "linux_arm64": {
+      "errors": 0,
+      "failures": 0,
+      "inputs_sha256": "1d2d4d4f3e2cfdaad28d5c6bae4d901bca4f0ff7683c86efe269a974548e1a13",
+      "report_sha256": "a88fce3ae053e9e421540c5536c0f7d4433834b7e76556e44b90ab219ed6d841",
+      "skipped": 1,
+      "tests": 838
+    },
+    "macos": {
+      "errors": 0,
+      "failures": 0,
+      "report_sha256": "3359e751d017e133b200d4a59ca2eda07b159e7cc7e20a0b9eb5a97a30a8601e",
+      "skipped": 4,
+      "tests": 838
+    }
+  },
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-test-access.img",
+    "sha256": "64470156670ccb911ce3ad3839db42021bec0b71f3ea9f6e32a1ba162eca7f83",
+    "size_bytes": 3061841920
+  },
+  "image_validation": {
+    "access_checks": 18,
+    "application_checks": 26,
+    "configuration_sha256": "809ca7f252a311738f0801a2ba149cc5cfd17a3f56b7cf0fbdb5d36f6808bc2a",
+    "export_integrity_passed": true,
+    "export_integrity_sha256": "aa78cba530cf1fd680c2da0c704265e5afcad935a349e85a13d03b86dafa06d8",
+    "ext4_fat_fsck_passed": true,
+    "image_booted": false,
+    "manifest_sha256": "7a5633804322529cfc9cf963d81425c2a26d36af7b157c691b63522b1bab2c39",
+    "manpage_existence_checked": false,
+    "pristine_parent_checks_before_changes": 17,
+    "private_artifact": true,
+    "protected_boot_grow_files": 10,
+    "sudoers_verified": true,
+    "system_checks": 62,
+    "systemd_units_verified": true
+  },
+  "limits": [
+    "No SD flash, Pi boot, live country application or physical Wi-Fi connection was performed by this tranche.",
+    "Fixtures and isolated NetworkManager execution do not qualify hardware or iPhone pairing.",
+    "SSH transport v2 and return-context integration are subsequent validations.",
+    "The application and helper remain masked; active display drain is not yet connected to the operator runtime.",
+    "Private image, operator keys, nonce, profile and build archive are not published.",
+    "Unsigned local evidence establishes consistency, not independent authenticity."
+  ],
+  "networkmanager_probe": {
+    "baseline": {
+      "active_connections": 1,
+      "known_profiles": 1,
+      "loopback_managed": true,
+      "only_loopback_active": true,
+      "only_loopback_profile": true,
+      "zero_active_gate_would_pass": false,
+      "zero_profile_gate_would_pass": false
+    },
+    "checks": {
+      "application_still_masked": true,
+      "baseline_observed": true,
+      "daemon_profile_properties_exact": true,
+      "dbus_started_in_namespace": true,
+      "effective_loopback_configuration": true,
+      "keyfile_loaded_by_daemon": true,
+      "libnm_autoconnect_disabled": true,
+      "libnm_band_bg": true,
+      "libnm_binary_ssid_exact": true,
+      "libnm_hex_psk_exact": true,
+      "libnm_profile_verified": true,
+      "libnm_rsn_only": true,
+      "loop_detached": true,
+      "loopback_only": true,
+      "loopback_still_kernel_up": true,
+      "loopback_unmanaged_in_nm": true,
+      "mounts_removed": true,
+      "networkmanager_package_exact": true,
+      "networkmanager_started_in_namespace": true,
+      "only_test_profile_after_override": true,
+      "parent_bytes_pinned": true,
+      "parent_nm_configuration_preserved": true,
+      "private_namespaces": true,
+      "private_run_and_device_tree": true,
+      "processes_stopped": true,
+      "programs_match_parent": true,
+      "restricted_profile_after_override": true,
+      "sources_sealed": true,
+      "test_loopback_configuration_applied": true,
+      "wireless_remained_disabled": true,
+      "wireless_still_disabled_after_override": true,
+      "zero_active_after_override": true,
+      "zero_profiles_after_override": true
+    },
+    "disposable_image_removed": true,
+    "inputs_sha256": "c3ca16bddfb3605f687896bb60c7186934e5d164abc3a7bf5b2566935237bab5",
+    "package": "1.52.1-1+rpt4",
+    "passed": true,
+    "real_radio_present": false,
+    "real_wifi_connected": false,
+    "receipt_sha256": "485d3c334780d75bec4002a113b7fcfcdd0fc9e3bb5522b94469f37adf9bc500",
+    "report_sha256": "e1ec5b3bd76445f810d3cbec44254f94f350f5c55e54982bcf1e5482cec2b9d7",
+    "scope": "isolated-exact-parent-networkmanager-probe",
+    "sources_sha256": {
+      "10-inkyos-test-loopback.conf": "bde79e10d4b00b6daf7a041fa6dd3ba72691666186db676c9ef1c770ce40f3fc",
+      "probe-test-access-network-linux.sh": "949f74f1a1d8281481b1b274c2e577e1fdab56542739114eda629306f73b7b7c",
+      "probe-test-access-network.py": "9c95f7b815d92217705f20dd62374441ae849a2ff81d70404a567f736276abeb",
+      "test-access-import.py": "96c24d52887cf467fbff6e54303c7c118788b8191ad58cd9bd26fc1761b9a037"
+    },
+    "with_loopback_override": {
+      "active_connections": 0,
+      "known_profiles": 0,
+      "loopback_kernel_up": true,
+      "loopback_managed": false
+    }
+  },
+  "parent_image_sha256": "0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286",
+  "prior_build_failure": {
+    "cause": "nodev image prevents man child from opening dev null",
+    "correction": "disable manual-page existence checks only; verify unit structure and executable paths",
+    "partial_image_removed": true,
+    "private_evidence_retained": true,
+    "stage": "systemd-manpage-validation"
+  },
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "software-private-test-access-image-integration"
+}

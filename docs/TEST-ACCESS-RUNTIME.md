@@ -1,10 +1,13 @@
 # Runtime du premier accès opérateur TEST
 
-État du 3 octobre 2026 : les sources du dispatcher SSH, du runner privilégié
-et du contrôle du pays sont livrées. Le banc SSH utilise désormais les mêmes
-sources de runtime. **Aucun compte, daemon SSH, profil Wi-Fi ou nouveau hook
-n’est installé sur la SD par cette livraison.** L’activation applicative reste
-indisponible. Voir la [preuve de validation](validation/2026-10-03-test-access-runtime.json).
+État du 4 octobre 2026 : le dispatcher SSH, le runner privilégié et le contrôle
+du pays sont raccordés dans une [image privée TEST](TEST-ACCESS-IMAGE.md).
+Le runner accepte les profils historiques v1 et les nouveaux profils v2,
+avec des bindings distincts. Aucun essai réseau sur Pi ni flash de cette
+variante n’est qualifié. L’activation applicative reste indisponible.
+Le [banc SSH historique](validation/2026-10-03-test-access-runtime.json)
+et la [nouvelle intégration image](validation/2026-10-04-test-access-image.json)
+ont des périmètres de preuve différents.
 
 ## Commandes opérateur
 
@@ -37,17 +40,16 @@ remplacer ni fournir une déclaration d’autorisation.
   Un échec intermédiaire donne un résultat partiel ; une réponse de systemd
   n’atteste ni l’annulation d’un job après timeout ni l’arrêt physique du Pi.
 
-Cette restriction évite d’exécuter le délai d’arrêt applicatif actuel de vingt
-secondes pendant un refresh plus long. L’arrêt d’un runtime actif demande un
-contrat coordonné de fin des E/S SPI et des unités adaptées ; il n’est pas livré
-par cette tranche. Un timeout du client ne doit pas devenir une raison de tuer
-le processus qui possède encore le bus.
+Cette restriction historique est conservée. Le candidat applicatif c31 intègre
+un drain et une unité sans timeout d’arrêt, mais leur raccord à l’opération
+SSH reste à développer. Un timeout du client ne doit pas devenir une raison
+de tuer le processus qui possède encore le bus.
 
 Les requêtes sont sérialisées par un verrou exclusif non bloquant sous `/run`.
 Les données app, identités et clés ne sont ni effacées ni réinitialisées.
 La CLI de production ne propose aucun mode fixture ou rootfs alternatif.
 
-## Installation et binding privés à raccorder
+## Installation et binding privés
 
 Les chemins prévus sont `/usr/local/lib/inkyos-test-ssh/dispatch.py` et
 `/usr/local/lib/inkyos-test-ssh/runner`, root-owned 0555 dans un dossier 0755.
@@ -62,10 +64,11 @@ la clé **publique** hôte et les quatre sources de runtime. Les valeurs
 de `/etc/passwd`. Le runner ne lit jamais la clé privée hôte. Les bindings
 sont relus avant l’opération et après les observations.
 
-Le configurateur de cette transition n’est pas encore livré. Il doit consommer
-un retour d’enrôlement contrôlé, conserver ses bindings et préparer la confiance
-SSH du Mac. La présence de ce marqueur seule n’ouvre aucun réseau ni service.
-Les images génériques restent dépourvues de ces données privées.
+Le configurateur et l’orchestrateur de cette transition sont intégrés à la
+variante privée. Le retour v2 et la préparation automatique de la confiance
+SSH du Mac restent une validation distincte. La présence du marqueur seule
+n’ouvre aucun réseau ni service. Les images génériques restent dépourvues
+de ces données privées.
 
 ## Pays avant connexion
 
@@ -87,8 +90,8 @@ remappés implicitement.
 `test_country_ready` décrit uniquement cette observation. Il n’ouvre pas la
 radio et ne doit jamais être consommé depuis un JSON sauvegardé pour autoriser
 une connexion ultérieure. Aucun scan, profil réseau, connexion, service SSH,
-changement d’heure ou activation app n’est effectué. Le futur orchestrateur
-devra vérifier de nouveau l’état immédiatement avant connexion. Les locks et
+changement d’heure ou activation app n’est effectué par ce module. Le nouvel
+orchestrateur vérifie de nouveau l’état immédiatement avant connexion. Les locks et
 observations ne bloquent pas tous les clients privilégiés concurrents.
 
 La transition réelle vers `FR` et la lecture firmware dans cet état restent
@@ -128,10 +131,10 @@ jetable. Les rapports n’exportent ni clés ni diagnostics SSH bruts.
 
 ## Prochaine intégration
 
-Réunir le configurateur privé, le profil Wi-Fi initial, l’ordonnancement pays/
-connexion et le daemon opérateur dans un candidat TEST cohérent. Le candidat
-écran d’Inky Studio, son pin et les contrôles d’activation restent une livraison
-coordonnée distincte. Aucun nouveau boot de parsing n’est requis par ce travail.
+Valider le retour v2 et le transport SSH sur le candidat c31, puis raccorder
+la gate d’activation TEST et l’arrêt asynchrone au drain applicatif. Le premier
+boot du nouveau candidat créera sa propre identité ; il ne réutilise pas une
+identité obtenue avec l’image historique.
 
 La [préparation locale des paramètres signés](TEST-ACCESS-CAPSULE.md) fournit
 la frontière de données de ce raccord. Elle ne livre pas encore l’importeur

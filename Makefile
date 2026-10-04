@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: help test test-linux bootstrap-probe test-ssh-probe fetch vm-start vm-stop inspect prototype application-prototype sd-diagnostic test-lan-prepared test-enrollment
+.PHONY: help test test-linux bootstrap-probe test-ssh-probe fetch vm-start vm-stop inspect prototype application-prototype sd-diagnostic test-lan-prepared test-enrollment test-access
 
 help:
 	@echo 'make test     : tests locaux, sans image ni VM'
@@ -15,6 +15,7 @@ help:
 	@echo 'make sd-diagnostic: dériver PARENT_EXPORT en image de diagnostic SD avec rapport et arrêt automatique ; aucun flash'
 	@echo 'make test-lan-prepared: dériver PARENT_EXPORT en variante TEST LAN inerte avec preflight ; aucun flash/activation'
 	@echo 'make test-enrollment: préparer un export PRIVE enroll-and-stop, PARENT_EXPORT et TEST_COUNTRY=FR explicites ; aucun flash'
+	@echo 'make test-access: construire la variante PRIVEE c31 avec accès signé ; PARENT_EXPORT et TEST_COUNTRY=FR, aucun flash'
 	@echo 'make vm-stop  : arrêter la VM de travail'
 
 test:
@@ -62,3 +63,6 @@ test-lan-prepared: test test-linux
 
 test-enrollment: test test-linux
 	PYTHON="$(PYTHON)" bash scripts/build-test-enrollment.sh "$(PARENT_EXPORT)" --country "$(TEST_COUNTRY)"
+
+test-access: test test-linux
+	$(PYTHON) scripts/build-test-access.py "$(PARENT_EXPORT)" --country "$(TEST_COUNTRY)"

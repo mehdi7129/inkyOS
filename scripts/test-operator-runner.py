@@ -25,6 +25,9 @@ ENROLLMENT = "/usr/local/lib/inkyos/test-enrollment-firstboot.py"
 ENROLLMENT_SHA256 = "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a"
 PREFLIGHT = "/usr/local/lib/inkyos/test-lan-preflight.py"
 PREFLIGHT_SHA256 = "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba"
+ACCESS_POLICY = "/usr/local/lib/inkyos/test-access-policy.py"
+ACCESS_POLICY_SHA256 = "4f493e5fe1948b7f5c4c4db8d7ba6814a04af07da5e265cd4044f2d6b6139b89"
+ACCESS_MANIFEST = "/usr/local/share/inkyos/test-access-manifest.json"
 PROFILE = "/etc/inkyos-test-enrollment/profile.json"
 STATE = "/var/lib/inkyos-test-enrollment/state.json"
 SYSTEM = "/var/lib/inkyos/system.json"
@@ -174,6 +177,40 @@ class NativeAdapter:
                 and os.environ.get("SUDO_UID") == uid and os.environ.get("SUDO_GID") == gid, "caller_unverified")
         return True
 
+    def _bind_v2_profile(self):
+        """Extend bindings for c31 without changing legacy files or config schema."""
+        policy_raw = self.files.read(ACCESS_POLICY, limit=65536, mode=0o555)
+        require(hashlib.sha256(policy_raw).hexdigest() == ACCESS_POLICY_SHA256)
+        manifest_raw = self.files.read(ACCESS_MANIFEST, limit=65536, mode=0o644)
+        require(self.profile.get("access_runtime_manifest_sha256") == hashlib.sha256(manifest_raw).hexdigest())
+        self.snapshot[ACCESS_POLICY] = (policy_raw, 0o555, False)
+        self.snapshot[ACCESS_MANIFEST] = (manifest_raw, 0o644, False)
+        policy = {"__name__": "inkyos_operator_access_policy", "__file__": ACCESS_POLICY}
+        exec(compile(policy_raw, ACCESS_POLICY, "exec"), policy)
+        require(policy["validate_enrolled_state"](self.snapshot[STATE][0], self.snapshot[PROFILE][0]))
+        manifest = self.runtime["strict_json"](manifest_raw)
+        require(type(manifest) is dict and set(manifest) == {"schema_version", "kind", "application_source_commit",
+                "application_manifest_sha256", "parent_image_sha256", "files"}
+                and type(manifest["schema_version"]) is int and manifest["schema_version"] == 1
+                and manifest["kind"] == "test-access-runtime"
+                and (manifest["application_source_commit"], manifest["application_manifest_sha256"], manifest["parent_image_sha256"])
+                    == (policy["SOURCE"], policy["MANIFEST_HASH"], policy["PARENT_IMAGE_SHA256"])
+                and type(manifest["files"]) is dict and 5 <= len(manifest["files"]) <= 40
+                and manifest_raw == self.runtime["canonical"](manifest))
+        for path, item in manifest["files"].items():
+            require(type(path) is str and 0 < len(path) <= 256
+                    and re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", path) is not None
+                    and all(part not in {".", ".."} for part in path.split("/"))
+                    and type(item) is dict and set(item) == {"sha256", "mode"}
+                    and type(item["sha256"]) is str and re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) is not None
+                    and type(item["mode"]) is str and item["mode"] in {"0555", "0644", "0440"})
+        # Other manifest entries are metadata only here, never caller-selected
+        # paths to open. The importer verifies the complete access installation.
+        for path in (ACCESS_POLICY, ENROLLMENT, PREFLIGHT, DISPATCH, RUNNER):
+            require(manifest["files"].get(path[1:]) == {
+                "sha256": hashlib.sha256(self.snapshot[path][0]).hexdigest(), "mode": "0555"})
+        return True
+
     def bind(self):
         specs = {PROFILE: ("profile_sha256", 0o600, True), STATE: ("state_sha256", 0o600, True),
             SYSTEM: ("system_identity_sha256", 0o600, True), HOST_PUBLIC: ("host_public_key_sha256", 0o644, True),
@@ -187,7 +224,10 @@ class NativeAdapter:
         self.profile = self.runtime["strict_json"](self.snapshot[PROFILE][0])
         state = self.runtime["strict_json"](self.snapshot[STATE][0])
         identity = self.runtime["strict_json"](self.snapshot[SYSTEM][0])
-        require(self.runtime["validate_profile"](self.profile)
+        profile_valid = (self._bind_v2_profile() if type(self.profile) is dict
+                         and type(self.profile.get("schema_version")) is int and self.profile["schema_version"] == 2
+                         else self.runtime["validate_profile"](self.profile))
+        require(profile_valid
                 and self.snapshot[PROFILE][0] == self.runtime["canonical"](self.profile)
                 and type(state) is dict and set(state) == {"schema_version", "kind", "state", "profile_sha256", "application_activation_authorized"}
                 and type(state["schema_version"]) is int and state["schema_version"] == 1

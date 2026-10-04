@@ -30,6 +30,7 @@ dispatch = module("operator_dispatch_test", "scripts/test-operator-dispatch.py")
 runner = module("operator_runner_test", "scripts/test-operator-runner.py")
 runtime = module("operator_enrollment_test", "scripts/test-enrollment-firstboot.py")
 preflight = module("operator_preflight_test", "scripts/test-lan-preflight.py")
+access_policy = module("operator_access_policy_test", "scripts/test-access-policy.py")
 
 
 def canonical(value):
@@ -292,6 +293,36 @@ class NativeBindingTests(unittest.TestCase):
             file.chmod(0o600)
         file.write_bytes(data); file.chmod(mode)
 
+    def install_v2(self, manifest=None, *, profile_changes=None):
+        """Publish only synthetic enrollment bindings under the fixture root."""
+        policy_raw = (ROOT/'scripts/test-access-policy.py').read_bytes()
+        if manifest is None:
+            manifest = {'schema_version':1, 'kind':'test-access-runtime',
+                'application_source_commit':access_policy.SOURCE,
+                'application_manifest_sha256':access_policy.MANIFEST_HASH,
+                'parent_image_sha256':access_policy.PARENT_IMAGE_SHA256,
+                'files':{path[1:]:{'sha256':hashlib.sha256(raw).hexdigest(),'mode':'0555'}
+                    for path,raw in {runner.ACCESS_POLICY:policy_raw,
+                        **{path:self.raw[path] for path in (runner.ENROLLMENT,runner.PREFLIGHT,runner.DISPATCH,runner.RUNNER)}}.items()}}
+        manifest_raw = canonical(manifest)
+        self.put(runner.ACCESS_POLICY, policy_raw, 0o555)
+        self.put(runner.ACCESS_MANIFEST, manifest_raw, 0o644)
+        profile = json.loads(self.raw[runner.PROFILE])
+        profile.update(schema_version=2, application_source_commit=access_policy.SOURCE,
+            application_manifest_sha256=access_policy.MANIFEST_HASH, parent_image_sha256=access_policy.PARENT_IMAGE_SHA256,
+            access_runtime_manifest_sha256=hashlib.sha256(manifest_raw).hexdigest())
+        profile.update(profile_changes or {})
+        self.raw[runner.PROFILE] = canonical(profile)
+        state = json.loads(self.raw[runner.STATE])
+        state['profile_sha256'] = hashlib.sha256(self.raw[runner.PROFILE]).hexdigest()
+        self.raw[runner.STATE] = canonical(state)
+        for path,key in ((runner.PROFILE,'profile_sha256'),(runner.STATE,'state_sha256')):
+            self.put(path,self.raw[path],0o600)
+            self.adapter.config[key] = hashlib.sha256(self.raw[path]).hexdigest()
+        self.adapter.config_raw = canonical(self.adapter.config)
+        self.put(runner.CONFIG,self.adapter.config_raw,0o600)
+        return manifest
+
     def test_native_caller_matches_passwd_and_sudo_fields_before_binding(self):
         self.put('/etc/passwd',b'root:x:0:0:root:/root:/bin/sh\ninky-test:x:1200:1200:test:/nonexistent:/bin/sh\n',0o644)
         ns=dict(vars(runtime));ns['Files']=lambda: runtime.Files(self.tmp.name,owner=os.getuid())
@@ -331,9 +362,83 @@ class NativeBindingTests(unittest.TestCase):
         private.symlink_to('/nonexistent/never-open-this')
         self.assertTrue(runner.valid_config(self.adapter.config))
         self.assertTrue(self.adapter.bind()); self.assertTrue(self.adapter.unchanged())
+        self.assertNotIn(runner.ACCESS_POLICY,self.adapter.snapshot)
+        self.assertNotIn(runner.ACCESS_MANIFEST,self.adapter.snapshot)
         self.put(runner.STATE, self.raw[runner.STATE]+b' ',0o600)
         self.assertFalse(self.adapter.unchanged())
         with self.assertRaises(runner.Refused): self.adapter.bind()
+
+    def test_v2_binds_exact_policy_manifest_sources_and_preserves_immutable_state(self):
+        self.install_v2()
+        before = {path:(self.root/path.lstrip('/')).read_bytes() for path in self.raw}
+        private = self.root/'etc/inkyos-test-enrollment/ssh_host_ed25519_key'
+        private.symlink_to('/nonexistent/never-open-this')
+        self.assertEqual(hashlib.sha256((ROOT/'scripts/test-access-policy.py').read_bytes()).hexdigest(), runner.ACCESS_POLICY_SHA256)
+        self.assertEqual(set(self.adapter.config), runner.CONFIG_FIELDS)
+        with patch.object(self.adapter.files,'read',wraps=self.adapter.files.read) as read:
+            self.assertTrue(self.adapter.bind())
+        self.assertEqual({call.args[0] for call in read.call_args_list},
+            set(self.raw)|{runner.ACCESS_POLICY,runner.ACCESS_MANIFEST})
+        self.assertTrue(self.adapter.unchanged())
+        self.assertEqual(json.loads(self.raw[runner.STATE])['schema_version'],1)
+        self.assertEqual(before,{path:(self.root/path.lstrip('/')).read_bytes() for path in self.raw})
+        self.assertEqual(self.adapter.config['host_public_key_sha256'],hashlib.sha256(self.raw[runner.HOST_PUBLIC]).hexdigest())
+
+    def test_v2_changed_policy_is_refused_before_any_module_exec(self):
+        self.install_v2()
+        self.put(runner.ACCESS_POLICY,b"raise RuntimeError('PRIVATE')\n",0o555)
+        with patch('builtins.exec') as execute:
+            with self.assertRaisesRegex(runner.Refused,'^binding_invalid$'):
+                self.adapter.bind()
+            execute.assert_not_called()
+
+    def test_v2_profile_and_manifest_bindings_refuse_crossed_candidates(self):
+        for key,value in (('application_source_commit',runtime.SOURCE),
+                          ('application_manifest_sha256',runtime.MANIFEST_HASH),
+                          ('parent_image_sha256','0'*64), ('access_runtime_manifest_sha256','0'*64)):
+            with self.subTest(key=key):
+                self.install_v2(profile_changes={key:value})
+                with self.assertRaises(runner.Refused): self.adapter.bind()
+        manifest = self.install_v2()
+        for key,value in (('schema_version',True),('kind','other'),('application_source_commit',runtime.SOURCE),
+                          ('application_manifest_sha256',runtime.MANIFEST_HASH),('parent_image_sha256','0'*64),('extra',False)):
+            changed = copy.deepcopy(manifest); changed[key] = value
+            self.install_v2(changed)
+            with self.subTest(key=key), self.assertRaises(runner.Refused): self.adapter.bind()
+
+    def test_v2_manifest_program_pins_and_modes_are_required(self):
+        manifest = self.install_v2()
+        for path in (runner.ACCESS_POLICY,runner.ENROLLMENT,runner.PREFLIGHT,runner.DISPATCH,runner.RUNNER):
+            for change in ('missing','hash','mode'):
+                changed = copy.deepcopy(manifest)
+                if change == 'missing': del changed['files'][path[1:]]
+                else: changed['files'][path[1:]]['sha256' if change == 'hash' else 'mode'] = '0'*64 if change == 'hash' else '0644'
+                self.install_v2(changed)
+                with self.subTest(path=path,change=change), self.assertRaises(runner.Refused): self.adapter.bind()
+
+    def test_v2_manifest_never_selects_extra_paths_for_reading(self):
+        manifest = self.install_v2()
+        manifest['files']['etc/shadow'] = {'sha256':'a'*64,'mode':'0644'}
+        self.install_v2(manifest)
+        with patch.object(self.adapter.files,'read',wraps=self.adapter.files.read) as read:
+            self.assertTrue(self.adapter.bind())
+        self.assertNotIn('/etc/shadow',[call.args[0] for call in read.call_args_list])
+        for path in ('/etc/shadow','etc/../shadow','etc//shadow','etc/./shadow'):
+            changed = copy.deepcopy(manifest)
+            changed['files'][path] = {'sha256':'a'*64,'mode':'0644'}
+            self.install_v2(changed)
+            with self.subTest(path=path), self.assertRaises(runner.Refused): self.adapter.bind()
+
+    def test_v2_new_bindings_are_monitored_and_require_safe_permissions(self):
+        for path,mode in ((runner.ACCESS_POLICY,0o555),(runner.ACCESS_MANIFEST,0o644)):
+            self.install_v2()
+            self.assertTrue(self.adapter.bind())
+            file = self.root/path.lstrip('/')
+            self.put(path,file.read_bytes()+b' ',mode)
+            self.assertFalse(self.adapter.unchanged())
+            self.install_v2()
+            file.chmod(0o666)
+            with self.subTest(path=path), self.assertRaises(runtime.EnrollmentError): self.adapter.bind()
 
     def test_profile_state_identity_public_key_and_program_changes_fail_closed(self):
         for path in self.raw:

@@ -1,0 +1,26 @@
+[Unit]
+Description=Private TEST enrollment or authenticated operator access
+Requires=inkyos-firstboot.service NetworkManager.service
+After=local-fs.target inkyos-firstboot.service rpi-resize.service systemd-growfs-root.service NetworkManager.service
+BindsTo=NetworkManager.service
+PartOf=NetworkManager.service
+RequiresMountsFor=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /var/lib/inkyos-test-access /boot/firmware
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+Group=root
+UMask=0077
+RuntimeDirectory=inkyos-test-access
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/python3 -I /usr/local/lib/inkyos/test-access-boot.py
+TimeoutStartSec=180s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /var/lib/inkyos-test-access /boot/firmware /run /etc
+
+[Install]
+WantedBy=multi-user.target

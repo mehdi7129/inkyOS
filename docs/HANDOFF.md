@@ -3,6 +3,10 @@
 État du **27 septembre 2026**, avant qualification finale du Bluetooth. Ce dossier
 prépare le travail ; il ne donne pas le statut « prêt à flasher » à une image.
 
+Pour l’avancement au **4 octobre 2026**, voir l’[image privée d’accès TEST](TEST-ACCESS-IMAGE.md)
+et sa [validation](validation/2026-10-04-test-access-image.json). Les versions
+du paragraphe « État réel de départ » ci-dessous sont historiques.
+
 ## Objectif du projet
 
 Deux parcours doivent rester disponibles : un utilisateur avancé installe son
