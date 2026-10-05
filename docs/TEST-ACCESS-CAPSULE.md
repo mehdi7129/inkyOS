@@ -1,18 +1,21 @@
 # Paramètres privés du premier accès TEST
 
-Le transfert proposé utilise deux fichiers de **données** : `INKYACC.JSN` et
-`INKYACC.SIG`. Les outils locaux de préparation et de vérification sont livrés ;
-**l’importeur au boot et la connexion ne le sont pas encore**. Aucun de ces
-fichiers n’est actuellement à copier sur la SD.
-La [preuve de validation](validation/2026-10-03-test-access-capsule.json)
-consigne 699 tests sur Mac et Linux ARM64, ainsi que le banc de 61 contrôles
-sur l’image jetable, dont quatre essais de signature avec son OpenSSH exact.
+État du 5 octobre 2026. Le transfert utilise deux fichiers de **données** :
+`INKYACC.JSN` et `INKYACC.SIG`. Le préparateur et le vérificateur de retour
+sont livrés ; l’importeur au boot et le connecteur sont intégrés à la
+[variante privée TEST](TEST-ACCESS-IMAGE.md), construite, vérifiée et
+[flashée](validation/2026-10-04-sd-test-access-flash.json).
+Après les neuf contrôles du [retour FAT préliminaire](validation/2026-10-04-sd-test-access-return-preliminary.json),
+la [comparaison complète ext4/FAT du 5 octobre](validation/2026-10-05-sd-test-access-return.json)
+passe les **35 contrôles natifs et les 10 contrôles du wrapper**, sur la copie
+privée acquise. Le démontage et le détachement du loop sont vérifiés avant
+l’export du contexte. La préparation de la capsule peut suivre ce retour
+contrôlé ; la connexion physique reste à éprouver.
 
-Le runtime et son vérificateur seront installés dans une nouvelle image propre.
-La partition FAT ne fournira jamais le programme à exécuter. Après le retour
-d’enrôlement contrôlé, une signature par la clé opérateur déjà épinglée permettra
-de détecter la modification des paramètres de cette tentative. Ce mécanisme
-est réservé au banc TEST et ne remplace pas le futur appairage iOS sans LAN.
+La partition FAT ne fournit aucun programme à exécuter. Le runtime installé
+vérifie les paramètres signés avec la clé opérateur épinglée dans le profil
+d’enrôlement. Ce mécanisme est réservé au candidat applicatif `c31b13a`, pays
+France, et au banc TEST ; il ne remplace pas le futur appairage iOS sans LAN.
 
 ## Contenu et confiance
 
@@ -63,7 +66,7 @@ privées, sous des dossiers 0700, avec fichiers 0600 :
 - `network.json` : exactement `ssid` (texte UTF-8) et `psk`. Les secrets ne
   sont jamais passés en arguments de commande.
 
-Une fois ces entrées produites par la chaîne de contrôle, la commande sera :
+Après production et transfert privé du contexte vérifié, la commande est :
 
 ```sh
 python3 scripts/prepare-test-access-capsule.py \
@@ -85,31 +88,56 @@ une interaction ne fait pas partie de cette première recette non interactive.
 Le champ `context_provenance_verified=false` reste explicite : ce programme
 vérifie les données fournies et leur signature, pas leur provenance physique.
 Le manifest d’accès est désormais produit par le
-[builder de la variante v2](TEST-ACCESS-IMAGE.md). Le producteur automatique
-du contexte reste à valider ; il ne faut pas fabriquer ses valeurs.
+[builder de la variante v2](TEST-ACCESS-IMAGE.md). Le contexte est produit par
+le [vérificateur de retour](../scripts/verify-test-access-return.py), après
+ses 35 contrôles natifs : il compare rapport, profil, état durable, programmes
+installés et clés publiques avec l’export privé attendu. Il ne lit aucune clé
+privée et n’exécute aucun programme de la SD. Il crée aussi `known_hosts`, qui
+lie le hostname observé à la clé hôte SSH sur le port 2222.
 
-## Intégration restante
+Le [wrapper Linux](../scripts/check-test-access-return-linux.sh) vérifie une
+copie privée dans la VM ARM64 dédiée, avec loop en lecture seule, ext4
+`ro,noload` et FAT `ro`. Il contrôle tailles, hashes et sources scellées, puis
+exporte le contexte privé vers l’opérateur seulement après PASS, relecture et
+nettoyage des montages vérifiés. La [recette de retour](TEST-ACCESS-IMAGE.md#vérification-du-retour)
+décrit ce staging. Les fixtures de ces outils ne remplacent pas le contrôle
+de la copie réellement acquise ; il ne faut jamais fabriquer les bindings.
 
-La nouvelle variante remplacera le lien d’activation automatique de l’ancien
-hook d’enrôlement par un seul orchestrateur de phase. Au boot vierge, il
-appellera l’enrôlement existant. Après contrôle offline, il vérifiera la capsule
-à partir des fichiers ext4 de confiance, puis consignera durablement sa
-consommation avant l’accès. Une interruption ou incohérence devra conduire à
-une reprise explicite, en conservant l’identité existante.
+## Import et accès au boot
 
-Le marqueur PREPARED de l’application restera inchangé. Le contrôle du pays
-devra être exécuté réellement avec Wi-Fi désactivé juste avant la connexion,
-jamais remplacé par un ancien reçu JSON. App et helper resteront masqués.
-Une garde devra précéder **chaque démarrage de NetworkManager**, y compris
-après une coupure : une connexion précédente peut avoir persisté l’état radio
-activé. L’état Wi-Fi désactivé de l’image initiale ne suffit donc pas. Le seul
-profil importé restera sans autoconnect ; une garde en échec bloquera le daemon
-au lieu de laisser un accès démarrer avant le contrôle du pays.
-Le daemon SSH dédié utilisera la clé hôte créée sur le Pi ; la confiance Mac
-sera préparée depuis le retour offline, sans accepter une autre clé par mDNS.
+L’[orchestrateur](../scripts/test-access-boot.py) remplace l’activation
+automatique de l’ancien hook d’enrôlement. Au boot vierge, il appelle
+l’enrôlement existant, puis demande l’arrêt. Après contrôle offline et apport
+des deux fichiers signés, l’[importeur](../scripts/test-access-import.py)
+authentifie la capsule depuis les fichiers ext4 de confiance. Il écrit
+durablement l’état `importing`, le cache privé puis l’état `imported` avant
+l’accès. Aux boots suivants, il réauthentifie le cache complet. Une interruption
+ou incohérence bloque la suite et conserve les fichiers pour une reprise
+explicite ; aucune identité n’est remplacée automatiquement.
 
-Les tests de cette tranche utilisent uniquement des clés et réseaux fictifs.
-Ils éprouvent la signature, les changements de données et de bindings, les
-permissions, les erreurs fermées et la conservation des entrées. Ils ne
-qualifient ni l’import sur FAT, ni la connexion Wi-Fi, ni un affichage ou
-l’appairage iPhone.
+Le marqueur PREPARED de l’application reste inchangé. La
+[garde Wi-Fi](../scripts/test-access-wifi-gate.py) précède **chaque démarrage
+de NetworkManager**, y compris après une coupure : elle bloque WLAN et écrit
+durablement `WirelessEnabled=false`. Son échec empêche le daemon de démarrer.
+Le seul profil importé reste sans autoconnect. Le
+[connecteur](../scripts/test-access-connect.py) exige le contrôle France en
+direct, Wi-Fi désactivé, puis relit les gardes juste avant la connexion ; un
+ancien reçu JSON ne donne aucune autorisation.
+
+Le daemon SSH dédié utilise la clé hôte créée sur le Pi. Le
+[client opérateur](../scripts/test-operator-client.py) impose le `known_hosts`
+issu du retour contrôlé, sans accepter une autre clé par mDNS. Il n’admet que
+`preflight`, `activate`, `status` et `stop`. App et helper restent masqués
+pendant l’accès initial ; leur [activation et leur arrêt](TEST-ACCESS-LIFECYCLE.md)
+sont des opérations distinctes, explicitement demandées.
+
+## Portée des preuves
+
+La [validation historique de capsule](validation/2026-10-03-test-access-capsule.json)
+consigne 699 tests sur Mac et Linux ARM64 et un banc de 61 contrôles, dont
+quatre signatures avec l’OpenSSH exact du parent. Les clés et réseaux de ces
+tests sont fictifs. La [validation intégrée](validation/2026-10-04-test-access-lifecycle-image.json)
+consigne l’image courante et 997 tests par hôte, sans échec. Ces preuves portent
+sur les contrats, les mécanismes et la construction ; elles ne qualifient pas
+l’import physique de la capsule, la connexion Wi-Fi, l’affichage ou l’appairage
+iPhone. L’image, la capsule, le contexte et les clés restent privés.

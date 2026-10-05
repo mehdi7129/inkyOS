@@ -6,7 +6,7 @@ InkyOS prépare le système, ses dépendances et son premier démarrage. À term
 une carte microSD flashée permettra de configurer le cadre depuis l’application
 iOS. L’application et son protocole restent communs avec Inky Studio.
 
-> **Prototype expérimental — état au 4 octobre 2026.**
+> **Prototype expérimental — état au 5 octobre 2026.**
 > Aucune image prête à l’emploi n’est publiée. L’installation complète et le
 > premier appairage iPhone depuis InkyOS restent à qualifier.
 
@@ -17,7 +17,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
-| Enrôlement de test | Retour historique v1 du 3 octobre : 21 contrôles ext4/FAT réussis. Nouveau retour v2 : neuf contrôles FAT préliminaires réussis ; ext4 en attente. |
+| Enrôlement de test | Retour v2 vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
 | Accès opérateur | Image privée construite avec enrôlement v2, import signé, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Les essais de connexion, d’affichage et d’arrêt sur Pi restent à réaliser. |
@@ -62,8 +62,9 @@ inertes](docs/validation/2026-10-04-test-access-lifecycle.json). Le
 [candidat correspondant est construit et vérifié](docs/validation/2026-10-04-test-access-lifecycle-image.json).
 Le [flash sur la SD de test est terminé](docs/validation/2026-10-04-sd-test-access-flash.json)
 et son éjection est observée. Le boot et l’arrêt sont ensuite confirmés par
-l’opérateur ; le [rapport FAT passe neuf contrôles préliminaires](docs/validation/2026-10-04-sd-test-access-return-preliminary.json).
-La cohérence ext4 reste à vérifier avant le premier accès réseau. L’affichage,
+l’opérateur. Le [retour complet du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json)
+passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule ;
+le contexte SSH est exporté dans un dossier privé. La connexion Wi-Fi, l’affichage,
 l’arrêt applicatif actif et l’appairage iPhone restent à tester.
 Les outils de retour et le client opérateur portent la suite finale à
 **997 tests sur chaque hôte**, sans échec (4 skips macOS, 1 skip Linux).

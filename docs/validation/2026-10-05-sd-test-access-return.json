@@ -1,0 +1,102 @@
+{
+  "acquisition": {
+    "capacity_bytes": 15938355200,
+    "copy_complete": true,
+    "independent_local_rehash_passed": true,
+    "independent_second_sd_read": false,
+    "local_readback_verified": true,
+    "private_receipts_preserved": true,
+    "raw_opened_readonly": true
+  },
+  "application_activated": false,
+  "connection_authorized": false,
+  "date": "2026-10-05",
+  "expected_image": {
+    "integration_evidence": "2026-10-04-test-access-lifecycle-image.json",
+    "sha256": "542a73de8ba49ef6ed7d70d714acab9f51b214046760fdb5268d97bce0a8cab9",
+    "size_bytes": 3061841920
+  },
+  "hardware_qualified": false,
+  "limits": [
+    "The result establishes consistency of the returned files with the expected private export, not independent device or runtime attestation.",
+    "The raw copy and its hashes stay private; it contains the whole card, including private key container bytes and unallocated sectors.",
+    "No private-key file was directly opened by the Linux verifier; only metadata and the public key were checked.",
+    "FAT was initially mounted by macOS; this is not a forensic write-blocked acquisition from insertion.",
+    "No capsule has been installed, Wi-Fi connection established, application started, display refresh observed or iPhone pairing qualified by this result."
+  ],
+  "native_return": {
+    "controller_checks": {
+      "access_manifest_canonical": true,
+      "access_manifest_matches_expected_bytes": true,
+      "access_manifest_metadata": true,
+      "access_manifest_profile_report_binding": true,
+      "access_not_started": true,
+      "application_installed_binding": true,
+      "application_metadata": true,
+      "bootfs_readonly_vfat": true,
+      "expected_export_consistent": true,
+      "expected_image_stat_checked": true,
+      "host_private_metadata_only": true,
+      "host_public_binding": true,
+      "host_public_metadata": true,
+      "installed_payloads_binding": true,
+      "installed_payloads_metadata": true,
+      "no_partial_artifacts": true,
+      "observations_closed": true,
+      "profile_canonical": true,
+      "profile_matches_expected_bytes": true,
+      "profile_private_metadata": true,
+      "public_report_live_claim": true,
+      "public_report_schema": true,
+      "reads_stable": true,
+      "report_profile_binding": true,
+      "reviewed_application_binding": true,
+      "rootfs_readonly_ext4": true,
+      "runtime_binding": true,
+      "runtime_metadata": true,
+      "state_canonical": true,
+      "state_enrolled": true,
+      "state_private_metadata": true,
+      "state_profile_binding": true,
+      "system_hostname_binding": true,
+      "system_identity_private_metadata": true,
+      "system_identity_schema": true
+    },
+    "controller_checks_passed": 35,
+    "controller_exit_code": 0,
+    "expected_image_bytes_hashed": true,
+    "independent_cleanup_verified": true,
+    "infrastructure_checks": {
+      "controller_result_closed": true,
+      "expected_image_bytes_pinned": true,
+      "expected_partition_layout": true,
+      "input_metadata_unchanged": true,
+      "loop_detached": true,
+      "mounts_removed": true,
+      "private_namespaces": true,
+      "readonly_loop": true,
+      "returned_image_bytes_pinned": true,
+      "sealed_inputs": true
+    },
+    "infrastructure_checks_passed": 10,
+    "private_context_exported": true,
+    "private_key_file_read": false,
+    "private_output_files_exported": 2,
+    "returned_image_container_hashed": true
+  },
+  "physical_observation": {
+    "boot_reported_by_operator": true,
+    "independent_shutdown_attestation": false,
+    "shutdown_reported_by_operator": true
+  },
+  "private_identities_published": false,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "private-sd-acquisition-and-native-readonly-v2-return",
+  "status": "PASS",
+  "tool_source_sha256": {
+    "scripts/acquire-sd-macos.py": "ed466d473da0027a954b5ab5638b11fec0729de33f71a7303be3207f2ab49cfc",
+    "scripts/check-test-access-return-linux.sh": "319e9630114aae7bcb56d0223a070d5828a8c0dbad03777f3283121eb34e98da",
+    "scripts/verify-test-access-return.py": "ba54b5a988f33e4a63217ef7eb54ea89b59674dbe7b67e0a9613cd612e781c71"
+  }
+}

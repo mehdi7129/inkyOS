@@ -1,7 +1,7 @@
 # Qualification InkyOS sur SD dédiée
 
 Procédure préparée le **27 septembre 2026**, état matériel mis à jour le
-**4 octobre 2026**. **Premiers boots du prototype système observés sur deux SD,
+**5 octobre 2026**. **Premiers boots du prototype système observés sur deux SD,
 identités initiales distinctes, persistance observée sur Qumox ; qualification
 complète encore ouverte.** Le banc initial associe
 une SD de test de 128 Go, détectée dans le lecteur Secure Digital du Mac,
@@ -41,8 +41,11 @@ indépendante n’est revendiquée. Le boot et l’arrêt sont ensuite confirmé
 l’opérateur. Le [rapport FAT retourné](validation/2026-10-04-sd-test-access-return-preliminary.json)
 déclare l’enrôlement et passe neuf contrôles de cohérence avec l’export privé.
 La radio possède une observation non qualifiée ; l’observation panneau reste
-bloquée. L’état ext4, les payloads installés et la liaison SSH hôte restent
-à vérifier avant de préparer la capsule réseau.
+bloquée. Le **5 octobre**, la [copie complète et sa vérification native](validation/2026-10-05-sd-test-access-return.json)
+sont terminées : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure passent.
+État, payloads attendus et clé publique hôte sont cohérents ; le contexte SSH
+privé est exporté après démontage et détachement du loop, contrôlés de nouveau
+indépendamment. Le premier accès Wi-Fi et l’activation applicative restent à faire.
 
 La cible produit est une **microSD de 16 Go nominales**, sans marque imposée.
 La référence sera choisie selon disponibilité/prix, puis qualifiée sur le banc.

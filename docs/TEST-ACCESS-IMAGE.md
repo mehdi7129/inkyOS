@@ -1,12 +1,13 @@
 # Image privée pour le premier accès TEST
 
-État du 4 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
+État du 5 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
 le contrôle du pays, la connexion Wi-Fi, un accès SSH restreint et les workers
 d’[activation explicite et d’arrêt](TEST-ACCESS-LIFECYCLE.md). La
 [construction courante et ses vérifications](validation/2026-10-04-test-access-lifecycle-image.json)
 passent. Le premier boot et son arrêt sont confirmés par l’opérateur ;
-le [rapport FAT correspond à l’export attendu](validation/2026-10-04-sd-test-access-return-preliminary.json),
-mais le retour ext4 reste à vérifier. L’accès réseau, l’affichage et l’appairage
+le [retour complet du 5 octobre](validation/2026-10-05-sd-test-access-return.json)
+passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule.
+Le contexte SSH privé est exporté. L’accès réseau, l’affichage et l’appairage
 iPhone restent à effectuer.
 La [première construction d’accès seule](validation/2026-10-04-test-access-image.json)
 reste une preuve historique distincte.
@@ -110,8 +111,9 @@ dossier privé contenant `context.json` et `known_hosts`. Ce dernier lie le
 hostname observé à la clé hôte SSH sur le port 2222. Les fichiers sont relus
 avant de déclarer la création réussie. Un dossier sur le système de fichiers
 de la SD, un fichier existant ou une modification concurrente est refusé.
-Les 26 tests de cette étape sont des fixtures ; aucune comparaison native
-complète ext4/FAT v2 n’a encore été acceptée.
+Les 26 tests de cette étape sont des fixtures. La comparaison native complète
+ext4/FAT du 5 octobre passe les 35 contrôles ; le contexte n’est exporté qu’après
+le nettoyage vérifié par le wrapper puis contrôlé indépendamment.
 
 Le wrapper `check-test-access-return-linux.sh` vérifie une **copie privée**
 dans la VM de build ARM64 marquée. Son `--help` décrit le staging fermé :
