@@ -6,7 +6,7 @@ InkyOS prépare le système, ses dépendances et son premier démarrage. À term
 une carte microSD flashée permettra de configurer le cadre depuis l’application
 iOS. L’application et son protocole restent communs avec Inky Studio.
 
-> **Prototype expérimental — état au 5 octobre 2026.**
+> **Prototype expérimental — état au 9 octobre 2026.**
 > Aucune image prête à l’emploi n’est publiée. L’installation complète et le
 > premier appairage iPhone depuis InkyOS restent à qualifier.
 
@@ -19,9 +19,10 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Retour v2 vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Correctif du parser vérifié sur une collecte réelle du Pi : 14 canaux lus. Pays et connexion non qualifiés. |
-| Accès opérateur | Image privée construite avec enrôlement v2, import signé, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Les essais de connexion, d’affichage et d’arrêt sur Pi restent à réaliser. |
-| Appairage iOS | Tests de bout en bout et premier démarrage sans LAN encore à réaliser. |
+| Wi-Fi | Configuration signée installée et relue. Le diagnostic Mac indique un nom `.local` non résolu ; présence réseau et connexion restent à vérifier. |
+| Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
+| Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
+| Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
 
 La cible matérielle actuelle est le **Raspberry Pi Zero 2 W** avec une
 **microSD de 16 Go**. La compatibilité d’un écran ou d’une référence de carte
@@ -33,41 +34,23 @@ La [compatibilité visée](docs/DISPLAY-COMPATIBILITY.md) couvre les **Spectra 6
 7,3″**. Une même recette d’image doit servir ces formats, avec détection du
 panneau par l’application. Cette cible ne signifie pas qu’ils sont déjà qualifiés.
 
-Le dernier [diagnostic radio](docs/validation/2026-10-03-radio-short-return.json)
-est terminé : sur la même collecte, l’ancien parser échoue et le correctif lit
-les 14 canaux. Les dix contrôles et cinq gardes passent, l’état reste inchangé
-et la ligne de boot normale est restaurée. L’incident FAT antérieur et son
-contournement sont conservés dans le [suivi](docs/OBSERVER-DIAGNOSTIC.md).
-Le correctif reste à intégrer au système installé. La prochaine étape est un
-candidat TEST avec accès opérateur réseau, puis affichage et appairage iOS.
-Le raccord réseau est intégré dans la nouvelle image privée ; son boot et
-sa connexion restent à tester sur le Pi. Le profil TEST prévu
-pour le code couleur EEPROM observé doit encore être sélectionné et vérifié
-sur le panneau réel.
+L'[alignement OS/app](docs/OS-APP-ALIGNMENT.md) fixe le couple du prochain essai :
+backend `c31b13a` et iOS `1.0.0 (9)`. Le payload ARM64 et son manifeste restent
+épinglés ; la tête de la branche iOS ne remplace pas les corrections matériel
+et arrêt intégrées dans l'image.
 
-La dernière [intégration logicielle](docs/validation/2026-10-03-display-drain-images.json)
-comprend deux images vérifiées (parent applicatif et TEST LAN inactif),
-709 tests sur chacun des hôtes macOS/Linux ARM64 et 61 contrôles SSH/runtime
-sur un rootfs jetable. Elle n'ajoute aucun essai physique ni accès réseau au Pi.
+La dernière suite enregistrée compte **997 tests sur macOS et Linux ARM64**,
+sans échec (4 skips macOS, 1 skip Linux). Les preuves comprennent le
+[candidat activation/drain construit](docs/validation/2026-10-04-test-access-lifecycle-image.json),
+les [contrôles SSH/runtime](docs/validation/2026-10-04-test-access-transport-return.json)
+et le [retour SD du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json).
+Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
-La [variante d’accès du 4 octobre](docs/validation/2026-10-04-test-access-image.json)
-ajoute une image privée vérifiée, 838 tests sur chacun des hôtes macOS/Linux
-et 33 contrôles avec le NetworkManager exact du parent. L’application reste
-masquée. Cette image n’est pas encore prête pour le test complet d’appairage.
-La [validation d’accès et de retour](docs/validation/2026-10-04-test-access-transport-return.json)
-ajoute 64 contrôles SSH/runtime v2 et un vérificateur de retour en lecture
-seule. Le [raccord activation/drain](docs/TEST-ACCESS-LIFECYCLE.md) est ensuite
-implémenté, avec [965 tests macOS/Linux et 28 contrôles systemd sur processus
-inertes](docs/validation/2026-10-04-test-access-lifecycle.json). Le
-[candidat correspondant est construit et vérifié](docs/validation/2026-10-04-test-access-lifecycle-image.json).
-Le [flash sur la SD de test est terminé](docs/validation/2026-10-04-sd-test-access-flash.json)
-et son éjection est observée. Le boot et l’arrêt sont ensuite confirmés par
-l’opérateur. Le [retour complet du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json)
-passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule ;
-le contexte SSH est exporté dans un dossier privé. La connexion Wi-Fi, l’affichage,
-l’arrêt applicatif actif et l’appairage iPhone restent à tester.
-Les outils de retour et le client opérateur portent la suite finale à
-**997 tests sur chaque hôte**, sans échec (4 skips macOS, 1 skip Linux).
+Le prochain essai accompagné doit établir l'accès réseau, vérifier les
+prérequis, puis observer le welcome, une photo et l'adoption QR/BLE depuis une
+session LAN authentifiée. La cible produit est plus simple : **allumer le cadre,
+scanner le QR, confirmer le pays, choisir le Wi-Fi et envoyer une photo**.
+Ce parcours sans LAN préalable reste à intégrer et à qualifier.
 
 ## Développer
 
@@ -92,6 +75,7 @@ l’espace disque nécessaire et les limites du builder.
 
 ## Documentation
 
+- [Alignement OS/app et prochain essai](docs/OS-APP-ALIGNMENT.md)
 - [Architecture et plan de réalisation](docs/BUILD-PLAN.md)
 - [Matériel et sources officielles](docs/HARDWARE-SOURCES.md)
 - [Compatibilité des écrans et qualification par modèle](docs/DISPLAY-COMPATIBILITY.md)

@@ -1,5 +1,10 @@
 # Premier démarrage sans LAN
 
+**Point actuel — 9 octobre 2026 :** l'[alignement OS/app](OS-APP-ALIGNMENT.md)
+conserve le backend `c31b13a` pour le banc LAN avec iOS build 9. Le parcours
+usine entièrement sans LAN reste à raccorder. Les références datées ci-dessous
+documentent les décisions et bancs successifs, pas le payload actuellement sur SD.
+
 État au 28 septembre 2026 : développement en cours, **pas encore un parcours
 utilisable de bout en bout**. Le candidat applicatif `6a697d1` ne sait pas ouvrir
 sa première fenêtre QR sans session LAN authentifiée. Son intégration dans
@@ -120,11 +125,13 @@ permettre la correction via BLE. Une mise à jour app d'un cadre existant exige
 une migration conservant sa configuration ; elle ne doit pas lui appliquer
 automatiquement le gate d'une image usine vierge.
 
-Le [gate avant NetworkManager](WIFI-BOOT-GATE.md) est désormais une fonction
-testée, toujours inactive : écriture atomique de `WirelessEnabled=false` avant
-chaque démarrage/restart du daemon. Son futur `ExecStartPre` restera indépendant
-du firstboot hostname pour éviter qu'un échec Wi-Fi bloque également Bluetooth.
-Il ne prouve pas à lui seul la fermeture physique du radio avant NM.
+Le [gate avant NetworkManager](WIFI-BOOT-GATE.md) est une fonction testée :
+écriture atomique de `WirelessEnabled=false` avant chaque démarrage/restart du
+daemon. Son raccord `ExecStartPre` est maintenant présent dans la variante
+[TEST-access](TEST-ACCESS-IMAGE.md), avec la garde radio propre à ce banc.
+Le raccord du parcours usine générique reste à livrer, indépendant du firstboot
+hostname pour éviter qu'un échec Wi-Fi bloque également Bluetooth. Le seul
+fichier d'état NetworkManager ne prouve pas la fermeture physique de la radio.
 
 ## Intégration et prochaines preuves
 
