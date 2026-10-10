@@ -3,18 +3,21 @@
 État du 10 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
 le contrôle du pays, la connexion Wi-Fi, un accès SSH restreint et les workers
 d’[activation explicite et d’arrêt](TEST-ACCESS-LIFECYCLE.md). La
-[construction courante et ses vérifications](validation/2026-10-04-test-access-lifecycle-image.json)
-passent. Le premier boot et son arrêt sont confirmés par l’opérateur ;
-le [retour complet du 5 octobre](validation/2026-10-05-sd-test-access-return.json)
-passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule.
-Le contexte SSH privé est exporté. L’accès réseau, l’affichage et l’appairage
-iPhone restent à effectuer.
+[variante diagnostique construite et vérifiée](validation/2026-10-10-diagnostic-access-image.json)
+a été flashée. Son [retour d’enrôlement](validation/2026-10-10-diagnostic-sd-enrollment-return.json)
+passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule,
+sur un dérivé privé décrit ci-dessous. Le contexte SSH privé est exporté après
+nettoyage vérifié. Une nouvelle capsule signée est liée à ce contexte,
+installée et relue sur la SD, puis la carte éjectée. Le prochain boot réseau,
+l’affichage et l’appairage iPhone restent à effectuer ; ce résultat n’atteste
+pas un nouvel arrêt physique.
 Le [diagnostic du retour réseau](BOOT-NETWORK-DIAGNOSIS.md) confirme l'import,
-mais aucune connexion. Le runtime conserve maintenant des rapports privés
-bornés. La [variante diagnostique construite et vérifiée](validation/2026-10-10-diagnostic-access-image.json)
-doit encore être flashée puis essayée sur la SD.
-La [première construction d’accès seule](validation/2026-10-04-test-access-image.json)
-reste une preuve historique distincte.
+mais aucune connexion sur la tentative précédente. Le runtime conserve
+maintenant des rapports privés bornés, retrouvés sur le nouvel enrôlement.
+La [construction lifecycle](validation/2026-10-04-test-access-lifecycle-image.json),
+le [retour complet du 5 octobre](validation/2026-10-05-sd-test-access-return.json) et
+la [première construction d’accès seule](validation/2026-10-04-test-access-image.json)
+restent des preuves historiques distinctes.
 
 ## Parent et séparation des états
 
@@ -126,6 +129,21 @@ de la SD, un fichier existant ou une modification concurrente est refusé.
 Les 26 tests de cette étape sont des fixtures. La comparaison native complète
 ext4/FAT du 5 octobre passe les 35 contrôles ; le contexte n’est exporté qu’après
 le nettoyage vérifié par le wrapper puis contrôlé indépendamment.
+
+Le [retour diagnostique du 10 octobre](validation/2026-10-10-diagnostic-sd-enrollment-return.json)
+passe également les 35 contrôles et les 10 contrôles du wrapper. L’acquisition
+intégrale a été relue et rehachée localement, puis conservée. Pour limiter
+l’espace de travail, l’analyse Linux utilise un dérivé `e2image -ra` : fichiers
+et métadonnées utiles du rootfs, préfixe MBR/FAT et octets après le filesystem
+préservés. Des blocs inutilisés et certaines métadonnées inutilisées sont omis :
+ce dérivé n’est pas un clone intégral de la SD. Son hash de flux et sa relecture
+dans la VM concordent ; cette vérification ne relit pas indépendamment la SD.
+
+Deux rapports diagnostiques privés sont présents avec les permissions attendues.
+Celui de la garde WLAN est complet et ses 10 contrôles passent. Celui du boot
+reste au marqueur initial incomplet `bind`, sans erreur enregistrée. Il ne
+localise donc aucune panne et ne contredit pas l’enrôlement vérifié ; un arrêt
+pendant le premier boot peut interrompre l’écriture finale du diagnostic.
 
 Le wrapper `check-test-access-return-linux.sh` vérifie une **copie privée**
 dans la VM de build ARM64 marquée. Son `--help` décrit le staging fermé :

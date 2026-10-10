@@ -1,8 +1,9 @@
 # Diagnostic du boot réseau TEST
 
 État au **10 octobre 2026**. La connexion au banc reste non confirmée.
-Cette lecture du retour SD précise l'étape atteinte ; elle ne qualifie pas
-le réseau, l'écran ou l'appairage iPhone.
+La lecture du retour réseau de l'ancienne variante précise l'étape atteinte ;
+elle ne qualifie pas le réseau, l'écran ou l'appairage iPhone. Le retour de
+la nouvelle variante diagnostique est distingué en fin de document.
 
 ## Observations vérifiées
 
@@ -80,7 +81,7 @@ mêmes primitives d'écriture. Il vérifie création, remplacement, permissions,
 persistance après sortie et refus d'écriture hors du répertoire autorisé.
 Il ne lance ni NetworkManager, ni radio, ni application.
 
-La SD du retour analysé ne contient pas encore cette instrumentation.
+Le retour réseau décrit ci-dessus ne contient pas encore cette instrumentation.
 
 Deux fragilités ont été reproduites sur fixtures : le périphérique rfkill
 peut manquer au premier relevé, et le readback du pays peut arriver après
@@ -89,8 +90,21 @@ matérielle de cet échec. Ne pas les transformer en diagnostic confirmé.
 
 Modifier le runtime change son manifeste, lié au profil d'enrôlement et à la
 capsule. Un remplacement isolé des scripts sur la carte invaliderait ces
-bindings. Préparer une nouvelle variante cohérente et testée avant le prochain
-essai, sans modifier le protocole Studio ni affaiblir les contrôles existants.
+bindings. La nouvelle variante a donc été construite et vérifiée avec un nouvel
+enrôlement, sans modifier le protocole Studio ni affaiblir les contrôles existants.
 
 Le [relevé réduit](validation/2026-10-10-test-access-boot-return.json) ne contient
 aucun identifiant de carte, clé, hash de copie privée ou paramètre réseau.
+
+## Retour de la nouvelle variante
+
+Le [nouvel enrôlement vérifié](validation/2026-10-10-diagnostic-sd-enrollment-return.json)
+passe 35 contrôles ext4/FAT et 10 contrôles d'infrastructure sur un dérivé
+e2image privé ; l'acquisition intégrale est conservée. Les deux rapports
+persistants sont présents avec les permissions privées attendues. La garde
+Wi-Fi rapporte dix contrôles réussis. Le rapport de boot contient son marqueur
+initial incomplet : ce n'est pas une preuve de l'étape d'une panne.
+
+Une nouvelle capsule liée à cet enrôlement a été signée, installée et relue,
+puis la carte éjectée. Le prochain boot réseau reste à effectuer ; ni une
+connexion ni l'accès SSH ne sont établis par ce retour hors ligne.

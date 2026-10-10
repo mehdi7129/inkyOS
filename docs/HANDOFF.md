@@ -6,7 +6,11 @@ prépare le travail ; il ne donne pas le statut « prêt à flasher » à une im
 Pour l’avancement au **10 octobre 2026**, voir le
 [diagnostic du boot réseau](BOOT-NETWORK-DIAGNOSIS.md), l'[alignement OS/app](OS-APP-ALIGNMENT.md),
 l’[image privée d’accès TEST](TEST-ACCESS-IMAGE.md) et son
-[retour SD vérifié](validation/2026-10-05-sd-test-access-return.json). Les versions
+[retour d’enrôlement diagnostique vérifié](validation/2026-10-10-diagnostic-sd-enrollment-return.json).
+La variante a été flashée ; 35 contrôles de retour et 10 contrôles
+d’infrastructure passent sur un dérivé privé, l’acquisition intégrale étant
+conservée. Une nouvelle capsule signée est installée et relue, puis la SD
+éjectée ; le prochain essai réseau reste à réaliser. Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 
 ## Objectif du projet

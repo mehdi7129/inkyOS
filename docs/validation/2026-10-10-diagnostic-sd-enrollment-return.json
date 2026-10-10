@@ -1,0 +1,89 @@
+{
+  "acquisition": {
+    "copy_complete": true,
+    "independent_local_rehash_passed": true,
+    "independent_second_sd_read": false,
+    "local_readback_verified": true,
+    "original_preserved": true,
+    "private_receipts_preserved": true,
+    "raw_opened_readonly": true
+  },
+  "analysis_derivative": {
+    "emitter_receiver_whole_stream_hashes_match": true,
+    "integral_sd_clone": false,
+    "method": "e2image-raw-file-data-and-metadata",
+    "no_journal_replay": true,
+    "no_target_code_execution": true,
+    "original_acquisition_hash_verified_before_derivation": true,
+    "original_prefix_and_bytes_after_filesystem_preserved": true,
+    "vm_local_readback_verified": true
+  },
+  "application_activated": false,
+  "authenticated_ssh_qualified": false,
+  "connection_authorized": false,
+  "date": "2026-10-10",
+  "diagnostic_receipts": {
+    "boot_complete": false,
+    "boot_error_recorded": false,
+    "boot_initial_bind_marker_only": true,
+    "failure_cause_established": false,
+    "private_files_present": 2,
+    "private_permissions_verified": true,
+    "readonly_inspection_cleanup_verified": true,
+    "wlan_gate_checks_passed": 10,
+    "wlan_gate_complete": true,
+    "wlan_gate_error_recorded": false,
+    "wlan_gate_passed": true
+  },
+  "display_qualified": false,
+  "flash": {
+    "device_absence_after_ejection_verified": true,
+    "ejection_recovered_without_rewrite": true,
+    "new_independent_readback_performed": false,
+    "write_flush_readback_inferred_from_pinned_failure_callsite": true
+  },
+  "hardware_qualified": false,
+  "independent_shutdown_attestation": false,
+  "integration_evidence": "2026-10-10-diagnostic-access-image.json",
+  "ios_pairing_qualified": false,
+  "limits": [
+    "PASS establishes enrollment file consistency with the expected private export, not independent device or runtime attestation.",
+    "The verifier used an e2image derivative, not the integral SD acquisition; unused blocks and some unused filesystem metadata are omitted.",
+    "The original complete acquisition remains private and preserved; hashing or transferring its container includes private and unallocated bytes without directly opening private-key files in the verifier.",
+    "FAT was initially mounted by macOS; this is not a forensic write-blocked acquisition from insertion.",
+    "The incomplete initial boot diagnostic establishes no failure cause or shutdown observation.",
+    "Installing and reading back the signed capsule does not establish its runtime import, network connectivity or application activation."
+  ],
+  "native_return": {
+    "all_controller_checks_passed": true,
+    "all_infrastructure_checks_passed": true,
+    "controller_checks_passed": 35,
+    "derived_image_container_hashed": true,
+    "expected_image_bytes_hashed": true,
+    "independent_cleanup_verified": true,
+    "infrastructure_checks_passed": 10,
+    "private_context_exported": true,
+    "private_key_file_read": false,
+    "private_output_files_exported": 2
+  },
+  "private_identities_published": false,
+  "release_qualified": false,
+  "runtime_execution_attested": false,
+  "schema_version": 1,
+  "scope": "private-sd-acquisition-and-native-readonly-derived-enrollment-return",
+  "signed_capsule": {
+    "bound_to_new_private_context": true,
+    "card_ejected": true,
+    "copied_to_sd": true,
+    "next_network_boot_performed": false,
+    "sd_readback_verified": true,
+    "signature_verified": true
+  },
+  "status": "PASS",
+  "tool_source_sha256": {
+    "scripts/acquire-sd-macos.py": "ed466d473da0027a954b5ab5638b11fec0729de33f71a7303be3207f2ab49cfc",
+    "scripts/check-test-access-return-linux.sh": "319e9630114aae7bcb56d0223a070d5828a8c0dbad03777f3283121eb34e98da",
+    "scripts/verify-test-access-return.py": "ba54b5a988f33e4a63217ef7eb54ea89b59674dbe7b67e0a9613cd612e781c71"
+  },
+  "wifi_connection_qualified": false
+}

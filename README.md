@@ -17,9 +17,9 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
-| Enrôlement de test | Retour v2 vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
+| Enrôlement de test | Retour de la variante diagnostique vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Configuration signée importée : cache complet et cohérent sur le retour SD. Aucune connexion confirmée ; le détail de l'échec manque faute de journal persistant. |
+| Wi-Fi | Import signé cohérent sur le retour précédent, sans connexion confirmée. Une nouvelle capsule est installée pour la variante diagnostique ; son essai réseau reste à réaliser. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
@@ -49,7 +49,11 @@ de la configuration Wi-Fi, mais ne permet pas encore d'identifier la cause
 exacte de l'échec réseau. La variante diagnostique conserve désormais des
 rapports privés bornés ; ses [tests logiciels et systemd](docs/validation/2026-10-10-persistent-boot-diagnostics.json)
 passent. L'[image correspondante est construite et vérifiée](docs/validation/2026-10-10-diagnostic-access-image.json) ;
-son flash et son essai matériel restent à réaliser.
+elle a été flashée et son [retour d’enrôlement](docs/validation/2026-10-10-diagnostic-sd-enrollment-return.json) a été vérifié.
+Cette analyse utilise un dérivé privé des fichiers et métadonnées, avec
+l’acquisition intégrale originale conservée. Les rapports diagnostiques
+persistent sur ce retour. La nouvelle capsule signée est installée et relue,
+la SD éjectée ; le prochain boot doit encore établir le réseau.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les

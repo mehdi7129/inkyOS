@@ -9,16 +9,18 @@ pas reproduites ici.
 **Complément du 10 octobre :** installation du build 9 confirmée par l'opérateur.
 Le [retour SD réseau](BOOT-NETWORK-DIAGNOSIS.md) contient un import Wi-Fi complet
 et cohérent, sans preuve de connexion validée. Le détail du dernier échec
-n'a pas été conservé. La variante diagnostique décrite en fin de document est
-désormais construite et vérifiée ; son essai sur SD précède la reprise des étapes
-réseau, activation et appairage ci-dessous ; aucun contrat applicatif ne change.
+n'a pas été conservé. La variante diagnostique décrite en fin de document a
+depuis été flashée ; son nouvel enrôlement passe les contrôles du retour SD.
+Une nouvelle capsule signée est installée, relue et la carte éjectée. Le prochain
+boot doit encore établir le réseau, avant activation et appairage ; aucun
+contrat applicatif ne change.
 
 ## Couple retenu pour le prochain essai
 
 | Composant | Référence |
 |---|---|
-| Outillage OS avant cette mise à jour documentaire | `0f2d22242ef41e07b14f674e8280dcfc827d6544` |
-| Source de la variante TEST présente sur la SD | `ace7fe5efbae0b171683a987f6eebe2080d0d14e` |
+| Outillage OS au relevé du 9 octobre | `0f2d22242ef41e07b14f674e8280dcfc827d6544` |
+| Variante TEST désormais sur la SD | [Recette diagnostique épinglée et vérifiée](validation/2026-10-10-diagnostic-access-image.json) |
 | Backend et helper intégrés | `0.5.0-rc.2`, source `c31b13afdc957425571810c46230eaaf52fa5d14` |
 | SHA-256 du manifeste applicatif | `c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1` |
 | Candidat iPhone | Inky Studio `1.0.0 (9)` |
@@ -61,12 +63,14 @@ bootstrap présentes dans les sources récentes ne sont pas raccordées au
 parcours iOS/serveur. Le build 9 ne fournit pas les opérations pays, heure et
 reçu OS nécessaires à une première adoption hors LAN.
 
-Côté SD, le retour d'enrôlement passe 35 contrôles ext4/FAT et 10 contrôles
-d'infrastructure en lecture seule. La capsule Wi-Fi signée a ensuite été
-installée, relue et la carte éjectée. Le contrôle SSH exécuté sur le Mac renvoie
+Lors du précédent essai réseau, le contrôle SSH exécuté sur le Mac renvoyait
 `name_resolution_failed` : le nom `.local` n'est pas résolu. La présence du Pi
 sur le Wi-Fi, le port SSH et les services applicatifs ne sont donc pas confirmés.
-L'application et le helper n'ont pas été activés dans cet essai.
+L'application et le helper n'ont pas été activés dans cet essai. Le
+[nouveau retour diagnostique](validation/2026-10-10-diagnostic-sd-enrollment-return.json)
+passe 35 contrôles ext4/FAT et 10 contrôles d'infrastructure, sur un dérivé
+e2image privé dont l'acquisition intégrale d'origine est conservée. Le nouveau
+contexte SSH remplace l'ancien pour le prochain essai.
 
 Ordre du prochain essai accompagné sur la SD dédiée :
 
@@ -132,5 +136,8 @@ Le parent inactif a été reconstruit depuis les mêmes entrées vérifiées ; l
 programmes et profils d’accès sont liés au nouveau manifeste runtime. Les
 [rapports persistants](BOOT-NETWORK-DIAGNOSIS.md) concernent seulement le
 diagnostic système. Aucun protocole Studio ni build iOS supplémentaire n’est
-requis pour ce changement. Le nouveau cycle d’enrôlement, le réseau, l’écran
-et QR/BLE restent à observer sur le matériel.
+requis pour ce changement. Le nouvel enrôlement est vérifié, les deux rapports
+diagnostiques sont présents et la nouvelle capsule Wi-Fi est installée.
+Le rapport de boot est encore un marqueur initial incomplet ; il ne permet
+pas de localiser une interruption. Le réseau, l'écran et QR/BLE restent à
+qualifier sur le matériel.
