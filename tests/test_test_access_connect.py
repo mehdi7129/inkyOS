@@ -62,6 +62,13 @@ EXPECTED_ORDER = ["target", "bind", "authenticate_cache", "unchanged", "profiles
                   "unchanged", "profiles_closed", "profile_restricted", "connected"]
 
 
+def country_result():
+    return {"schema_version": 1, "kind": "test-access-country-setup",
+            "test_country_ready": False, "live_evidence": False, "country_set_attempted": True,
+            "country_request_acknowledged": True, "wifi_closed_verified": True,
+            "error": "country_unconfirmed", "checks": dict.fromkeys(access.COUNTRY_CHECKS, False)}
+
+
 class ConnectTests(unittest.TestCase):
     def test_success_keeps_order_one_activation_and_never_claims_fixture_live(self):
         fixture = Fixture()
@@ -71,6 +78,7 @@ class ConnectTests(unittest.TestCase):
         self.assertEqual(fixture.events, EXPECTED_ORDER + ["close"])
         self.assertEqual(result["checks"], dict.fromkeys(access.CHECKS, True))
         self.assertFalse(any(result["cleanup"].values()))
+        self.assertIsNone(result["country_diagnostic"])
         for key in ("live_evidence", "ssh_started", "application_activation_authorized", "hardware_qualified", "release_qualified"):
             self.assertIs(result[key], False)
 
@@ -197,6 +205,8 @@ class ConnectTests(unittest.TestCase):
             return dict(value)
         native.country_module = {"BUDGET": 25, "setup_country": setup}
         self.assertTrue(native.country_ready())
+        self.assertTrue(native.country_setup_attempted)
+        self.assertEqual(native.country_result, value)
         self.assertEqual(events, ["mapping", "setup_country", "lock"])
         for key, wrong in (("live_evidence", False), ("test_country_ready", False),
                            ("wifi_closed_verified", 1), ("error", "country_unconfirmed")):
@@ -205,6 +215,7 @@ class ConnectTests(unittest.TestCase):
             events.clear()
             with self.assertRaisesRegex(access.ConnectError, "country_unconfirmed"):
                 native.country_ready()
+            self.assertEqual(native.country_result, value)
             self.assertNotIn("lock", events)
             value.clear(); value.update(before)
 
@@ -249,6 +260,106 @@ class ConnectTests(unittest.TestCase):
             self.assertFalse(any(report["checks"].values()))
             self.assertFalse(report["radio_enable_attempted"])
             self.assertEqual(result.stderr, b"")
+
+
+class CountryDiagnosticTests(unittest.TestCase):
+    def test_closed_projection_omits_all_observations_and_unknown_fields(self):
+        value = country_result()
+        value.update(firmware={"country_abbrev": "PRIVATE_FIRMWARE"}, kernel="PRIVATE_KERNEL",
+                     stdout="PRIVATE_STDOUT", stderr="PRIVATE_STDERR", identifier="PRIVATE_IDENTIFIER",
+                     ssid="PRIVATE_SSID", psk="PRIVATE_PSK", PRIVATE_KEY="PRIVATE_VALUE")
+        result = access.project_country_diagnostic(True, value)
+        self.assertEqual(result, {"status": "available", "error": "country_unconfirmed",
+                                 **{name: value[name] for name in access.COUNTRY_BOOLEANS},
+                                 "checks": dict.fromkeys(access.COUNTRY_CHECKS, False)})
+        self.assertNotIn("PRIVATE", json.dumps(result))
+        value["checks"]["firmware_country_fr"] = True
+        self.assertFalse(result["checks"]["firmware_country_fr"])
+
+    def test_missing_malformed_fields_and_unknown_errors_are_unavailable(self):
+        changes = [("schema_version", True), ("schema_version", 2), ("kind", "PRIVATE_KIND"),
+                   ("error", "PRIVATE_ERROR"), ("error", []), ("checks", None),
+                   ("checks", {**country_result()["checks"], "PRIVATE_CHECK": True})]
+        changes += [(name, bad) for name in access.COUNTRY_BOOLEANS for bad in (1, 0, "PRIVATE", None, [])]
+        changes += [("checks", {**country_result()["checks"], name: bad})
+                    for name in access.COUNTRY_CHECKS for bad in (1, "PRIVATE", None)]
+        for key, bad in changes:
+            with self.subTest(key=key, bad=bad):
+                value = country_result()
+                value[key] = bad
+                self.assertEqual(access.project_country_diagnostic(True, value), {"status": "unavailable"})
+        for key in country_result():
+            value = country_result()
+            del value[key]
+            self.assertEqual(access.project_country_diagnostic(True, value), {"status": "unavailable"})
+        for value in (None, True, [], "PRIVATE", 1):
+            self.assertEqual(access.project_country_diagnostic(True, value), {"status": "unavailable"})
+        self.assertIsNone(access.project_country_diagnostic(False, country_result()))
+        for attempted in (None, 1, "PRIVATE", []):
+            self.assertEqual(access.project_country_diagnostic(attempted, country_result()), {"status": "unavailable"})
+
+    def test_known_error_enum_is_independent_from_country_module(self):
+        self.assertEqual(access.COUNTRY_ERRORS, country.ERRORS | {"interrupted"})
+        self.assertEqual(access.COUNTRY_CHECKS, country.POLICY_CHECKS)
+        for error in (None, *access.COUNTRY_ERRORS):
+            value = country_result()
+            value["error"] = error
+            self.assertEqual(access.project_country_diagnostic(True, value)["error"], error)
+        with patch.object(country, "ERRORS", {"PRIVATE_UNREVIEWED_ERROR"}):
+            value["error"] = "PRIVATE_UNREVIEWED_ERROR"
+            self.assertEqual(access.project_country_diagnostic(True, value), {"status": "unavailable"})
+
+    def test_native_failed_country_result_is_retained_before_require(self):
+        fixture = Fixture()
+        fixture.country = SimpleNamespace(mapping=lambda: 0, lock=lambda: self.fail("failure must not relock"))
+        value = country_result()
+        fixture.country_module = {"BUDGET": 25, "setup_country": lambda *_args, **_kwargs: value}
+        def country_ready():
+            fixture.events.append("country_ready")
+            return access.NativeAdapter.country_ready(fixture)
+        fixture.country_ready = country_ready
+        result = access.connect(fixture)
+        self.assertIs(fixture.country_result, value)
+        self.assertEqual(result["error"], "country_unconfirmed")
+        self.assertEqual(result["country_diagnostic"], access.project_country_diagnostic(True, value))
+        self.assertFalse(any(result["cleanup"].values()))
+        self.assertFalse(result["radio_enable_attempted"])
+        self.assertEqual(fixture.events, EXPECTED_ORDER[:10] + ["close"])
+
+    def test_raised_country_call_is_unavailable_without_exposing_exception(self):
+        fixture = Fixture()
+        fixture.country = SimpleNamespace(mapping=lambda: 0)
+        def setup(*_args, **_kwargs):
+            raise OSError("PRIVATE_COUNTRY_EXCEPTION")
+        fixture.country_module = {"BUDGET": 25, "setup_country": setup}
+        def country_ready():
+            fixture.events.append("country_ready")
+            return access.NativeAdapter.country_ready(fixture)
+        fixture.country_ready = country_ready
+        result = access.connect(fixture)
+        self.assertEqual(result["error"], "connect_failed")
+        self.assertEqual(result["country_diagnostic"], {"status": "unavailable"})
+        self.assertNotIn("PRIVATE", json.dumps(result))
+        self.assertEqual(fixture.events, EXPECTED_ORDER[:10] + ["close"])
+
+    def test_projection_does_not_change_radio_cleanup_or_reuse_stale_result(self):
+        for value in (country_result(), {"PRIVATE": "PRIVATE"}, None):
+            fixture = Fixture(16, False)
+            def country_ready():
+                fixture.country_setup_attempted, fixture.country_result = True, value
+                return fixture.step("country_ready")
+            fixture.country_ready = country_ready
+            result = access.connect(fixture)
+            self.assertEqual(result["error"], "connection_failed")
+            self.assertEqual(result["country_diagnostic"], access.project_country_diagnostic(True, value))
+            self.assertTrue(all(result["cleanup"].values()))
+            self.assertEqual(fixture.events, EXPECTED_ORDER[:16] + ["radio_off", "radio_off_verified", "close"])
+            self.assertNotIn("PRIVATE", json.dumps(result))
+            fixture.events.clear()
+            fixture.failure = 1
+            result = access.connect(fixture)
+            self.assertIsNone(result["country_diagnostic"])
+            self.assertEqual(fixture.events, ["target", "close"])
 
 
 class ProfileFilesTests(unittest.TestCase):

@@ -52,6 +52,38 @@ ERRORS = {"target_unverified", "sources_invalid", "cache_invalid", "operation_bu
           "other_profile_present", "wifi_not_closed", "profile_write_failed", "profile_load_failed",
           "profile_unconfirmed", "country_unconfirmed", "radio_enable_failed", "connection_failed",
           "connection_unconfirmed", "runtime_timeout", "connect_failed", "invalid_arguments"}
+# Deliberately local allowlists: a loaded country module cannot broaden the
+# diagnostic output contract by supplying additional fields or error strings.
+COUNTRY_CHECKS = ("firmware_country_fr", "firmware_ccode_fr", "kernel_global_fr",
+                  "phy_label_reviewed", "channels_test_fr")
+COUNTRY_BOOLEANS = ("test_country_ready", "live_evidence", "country_set_attempted",
+                    "country_request_acknowledged", "wifi_closed_verified")
+COUNTRY_ERRORS = {"target_unverified", "source_pin_invalid", "lock_busy", "lock_invalid", "guards_blocked",
+                  "wifi_not_closed", "wlan0_mapping_unverified", "country_request_failed", "country_unconfirmed",
+                  "observation_unavailable", "runtime_timeout", "state_changed", "invalid_arguments", "interrupted"}
+
+
+def project_country_diagnostic(attempted, value):
+    """Copy only the closed diagnostic schema, never raw radio observations."""
+    if attempted is False:
+        return None
+    unavailable = {"status": "unavailable"}
+    if attempted is not True or type(value) is not dict:
+        return unavailable
+    if (type(value.get("schema_version")) is not int or value["schema_version"] != 1
+            or type(value.get("kind")) is not str or value["kind"] != "test-access-country-setup"
+            or any(type(value.get(name)) is not bool for name in COUNTRY_BOOLEANS)):
+        return unavailable
+    if "error" not in value or (value["error"] is not None
+            and (type(value["error"]) is not str or value["error"] not in COUNTRY_ERRORS)):
+        return unavailable
+    checks = value.get("checks")
+    if (type(checks) is not dict or set(checks) != set(COUNTRY_CHECKS)
+            or any(type(checks[name]) is not bool for name in COUNTRY_CHECKS)):
+        return unavailable
+    return {"status": "available", "error": value["error"],
+            **{name: value[name] for name in COUNTRY_BOOLEANS},
+            "checks": {name: checks[name] for name in COUNTRY_CHECKS}}
 
 
 class ConnectError(ValueError):
@@ -104,6 +136,7 @@ def bootstrap():
 class NativeAdapter:
     def __init__(self):
         self.auth = self.country = None
+        self.country_setup_attempted, self.country_result = False, None
 
     def target(self):
         if not (sys.platform.startswith("linux") and platform.machine() == "aarch64"
@@ -218,7 +251,9 @@ class NativeAdapter:
         self.country.deadline = self.work_deadline
         self.wiphy = self.country.mapping()
         require(type(self.wiphy) is int and 0 <= self.wiphy <= 255, "country_unconfirmed")
+        self.country_setup_attempted = True
         value = self.country_module["setup_country"](self.country, country="FR")
+        self.country_result = value
         require(type(value) is dict and value.get("test_country_ready") is True
                 and value.get("live_evidence") is True and value.get("error") is None
                 and value.get("wifi_closed_verified") is True, "country_unconfirmed")
@@ -274,6 +309,7 @@ class NativeAdapter:
 def empty_result():
     return {"schema_version": 1, "kind": "test-access-connect-result", "passed": False,
             "connected": False, "error": None, "live_evidence": False,
+            "country_diagnostic": None,
             "checks": dict.fromkeys(CHECKS, False), "radio_enable_attempted": False,
             "cleanup": {"required": False, "radio_off_attempted": False, "radio_off_acknowledged": False,
                         "radio_off_verified": False},
@@ -289,6 +325,8 @@ def empty_result():
 def connect(adapter):
     result = empty_result()
     try:
+        # A reused adapter must never export a receipt from an earlier call.
+        adapter.country_setup_attempted, adapter.country_result = False, None
         adapter.deadline = time.monotonic() + BUDGET
         adapter.work_deadline = adapter.deadline - CLEANUP_RESERVE
         def checked(name, operation, error):
@@ -343,6 +381,12 @@ def connect(adapter):
             if result["passed"] and result["radio_enable_attempted"]:
                 close_radio()
             result.update(passed=False, connected=False, live_evidence=False, error="connect_failed")
+    try:
+        result["country_diagnostic"] = project_country_diagnostic(
+            adapter.country_setup_attempted, adapter.country_result)
+    except BaseException:
+        # Diagnostic handling cannot alter connection or cleanup outcomes.
+        result["country_diagnostic"] = {"status": "unavailable"}
     return result
 
 

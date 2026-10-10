@@ -39,14 +39,16 @@ backend `c31b13a` et iOS `1.0.0 (9)`. Le payload ARM64 et son manifeste restent
 épinglés ; la tête de la branche iOS ne remplace pas les corrections matériel
 et arrêt intégrées dans l'image.
 
-La dernière suite enregistrée compte **997 tests sur macOS et Linux ARM64**,
+La dernière suite enregistrée compte **1 031 tests sur macOS et Linux ARM64**,
 sans échec (4 skips macOS, 1 skip Linux). Les preuves comprennent le
 [candidat activation/drain construit](docs/validation/2026-10-04-test-access-lifecycle-image.json),
 les [contrôles SSH/runtime](docs/validation/2026-10-04-test-access-transport-return.json)
 et le [retour SD du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json).
 Le [diagnostic du 10 octobre](docs/BOOT-NETWORK-DIAGNOSIS.md) confirme l'import
 de la configuration Wi-Fi, mais ne permet pas encore d'identifier la cause
-exacte de l'échec réseau. Le prochain boot doit conserver un diagnostic durable.
+exacte de l'échec réseau. La variante diagnostique conserve désormais des
+rapports privés bornés ; ses [tests logiciels et systemd](docs/validation/2026-10-10-persistent-boot-diagnostics.json)
+passent. Elle reste à intégrer au prochain essai sur SD.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les

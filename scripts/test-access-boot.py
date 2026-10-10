@@ -9,10 +9,12 @@ import sys
 sys.dont_write_bytecode = True
 
 import hashlib
+import fcntl
 import json
 import os
 import platform
 import re
+import signal
 import stat
 import time
 
@@ -27,9 +29,204 @@ STATE = "/var/lib/inkyos-test-enrollment/state.json"
 CONFIG = "/etc/inkyos-test-operator.json"
 RUNTIME = "/run/inkyos-test-access"
 READY = RUNTIME + "/ssh-ready.json"
+DIAGNOSTICS = "/var/lib/inkyos-test-diagnostics"
+DIAGNOSTIC_LIMIT = 8192
+DIAGNOSTIC_TIMEOUT = 2.0
 ERRORS = {"target_unverified", "sources_invalid", "enrollment_invalid", "enrollment_failed",
           "import_failed", "connection_failed", "operator_config_invalid", "connection_changed",
           "ssh_start_failed", "ssh_not_ready", "boot_failed", "invalid_arguments"}
+IMPORT_ERRORS = {"target_unverified", "sources_invalid", "enrollment_invalid", "operation_busy",
+                 "capsule_absent", "capsule_invalid", "signature_invalid", "cache_invalid", "review_required",
+                 "state_changed", "import_failed", "invalid_arguments"}
+CONNECT_ERRORS = {"target_unverified", "sources_invalid", "cache_invalid", "operation_busy", "state_changed",
+                  "other_profile_present", "wifi_not_closed", "profile_write_failed", "profile_load_failed",
+                  "profile_unconfirmed", "country_unconfirmed", "radio_enable_failed", "connection_failed",
+                  "connection_unconfirmed", "runtime_timeout", "connect_failed", "invalid_arguments"}
+CONNECT_CHECKS = ("target_verified", "sources_and_enrollment_bound", "cache_authenticated", "bindings_unchanged_before_profile",
+    "profile_inventory_closed", "wifi_initially_closed", "runtime_profile_exact", "profile_loaded",
+    "loaded_profile_restricted", "country_live_verified", "bindings_unchanged_before_radio",
+    "profile_inventory_still_closed", "loaded_profile_still_restricted", "country_guard_immediately_before_radio",
+    "radio_enable_acknowledged", "connection_acknowledged", "bindings_unchanged_after_connection",
+    "profile_inventory_unchanged_after_connection", "loaded_profile_restricted_after_connection",
+    "unique_wlan_connection_verified")
+COUNTRY_ERRORS = {"target_unverified", "source_pin_invalid", "lock_busy", "lock_invalid", "guards_blocked",
+    "wifi_not_closed", "wlan0_mapping_unverified", "country_request_failed", "country_unconfirmed",
+    "observation_unavailable", "runtime_timeout", "state_changed", "invalid_arguments", "interrupted"}
+COUNTRY_CHECKS = ("firmware_country_fr", "firmware_ccode_fr", "kernel_global_fr", "phy_label_reviewed", "channels_test_fr")
+GATE_ERRORS = {"target_unverified", "manifest_invalid", "source_pin_invalid", "networkmanager_not_starting",
+    "wlan_block_failed", "wlan_not_blocked", "state_write_failed", "state_readback_invalid",
+    "state_changed", "runtime_timeout", "observation_unavailable", "invalid_arguments"}
+GATE_CHECKS = ("target_verified", "sources_bound", "networkmanager_start_pre", "wlan_block_request_acknowledged",
+    "wlan_blocked_before_state", "state_durably_written", "state_disabled_readback", "wlan_blocked_after_state",
+    "sources_unchanged", "networkmanager_still_start_pre")
+STAGES = {"bind", "enroll", "import", "connect", "operator_config", "publish_ready", "verify_ready", "start_ssh", "cleanup", "complete"}
+
+
+def closed_observation(value, booleans, errors, *, checks=(), enums=None):
+    """Only project fixed enums and exact booleans; never stringify unknown data."""
+    if value is None:
+        return None
+    unavailable = {"status": "unavailable"}
+    if type(value) is not dict or "error" not in value or any(type(value.get(key)) is not bool for key in booleans):
+        return unavailable
+    error = value.get("error")
+    if error is not None and (type(error) is not str or error not in errors):
+        return unavailable
+    output = {"status": "available", "error": error, **{key: value[key] for key in booleans}}
+    for key, choices in (enums or {}).items():
+        if type(value.get(key)) is not str or value[key] not in choices:
+            return unavailable
+        output[key] = value[key]
+    if checks:
+        observed = value.get("checks")
+        if type(observed) is not dict or set(observed) != set(checks) or any(type(observed[key]) is not bool for key in checks):
+            return unavailable
+        output["checks"] = {key: observed[key] for key in checks}
+    return output
+
+
+def connection_diagnostic(value):
+    output = closed_observation(value, ("passed", "connected", "radio_enable_attempted"), CONNECT_ERRORS, checks=CONNECT_CHECKS)
+    if output is None or output["status"] != "available":
+        return output
+    cleanup = value.get("cleanup")
+    names = ("required", "radio_off_attempted", "radio_off_acknowledged", "radio_off_verified")
+    if type(cleanup) is not dict or set(cleanup) != set(names) or any(type(cleanup[key]) is not bool for key in names):
+        return {"status": "unavailable"}
+    output["cleanup"] = {key: cleanup[key] for key in names}
+    country = value.get("country_diagnostic")
+    if country is None:
+        output["country"] = None
+    elif type(country) is dict and country.get("status") == "available":
+        output["country"] = closed_observation(country, ("test_country_ready", "live_evidence", "country_set_attempted",
+            "country_request_acknowledged", "wifi_closed_verified"), COUNTRY_ERRORS, checks=COUNTRY_CHECKS)
+    else:
+        output["country"] = {"status": "unavailable"}
+    return output
+
+
+def boot_diagnostic(result, *, complete, stage, imported=None, connected=None):
+    require(type(complete) is bool and type(stage) is str and stage in STAGES, "invalid_arguments")
+    return {"schema_version": 1, "kind": "test-access-boot-diagnostic", "complete": complete, "stage": stage,
+        "boot": closed_observation(result, ("passed", "poweroff_requested", "ssh_start_requested",
+            "wifi_off_requested_on_failure"), ERRORS, enums={"phase": {"blocked", "enrolled-stop-requested", "ssh-start-requested", "ssh-condition-passed"}}),
+        "import": closed_observation(imported, ("passed", "imported", "reused_committed_cache"), IMPORT_ERRORS,
+            enums={"state": {"blocked", "imported", "review-required"}}),
+        "connection": connection_diagnostic(connected), "connection_authorized": False,
+        "application_activation_authorized": False, "hardware_qualified": False}
+
+
+def diagnostic_boot_id():
+    """Ephemeral correlation only, never a device identity or proof of latest boot."""
+    try:
+        fd = os.open("/proc/sys/kernel/random/boot_id", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        try:
+            raw = os.read(fd, 65)
+        finally:
+            os.close(fd)
+        if re.fullmatch(rb"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\n", raw):
+            return raw.decode("ascii").strip()
+    except OSError:
+        pass
+    return None
+
+
+def write_diagnostic(lib, files, name, payload):
+    """Private atomic report; an interrupted temp is preserved, never repaired."""
+    require(name in {"last-boot.json", "last-wifi-gate.json"}, "invalid_arguments")
+    raw = canonical(payload)
+    require(len(raw) <= DIAGNOSTIC_LIMIT, "invalid_arguments")
+    directory = files.directory(DIAGNOSTICS, private=True)
+    try:
+        fcntl.flock(directory, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            previous = os.stat(name, dir_fd=directory, follow_symlinks=False)
+        except FileNotFoundError:
+            previous = None
+        if previous is not None:
+            lib["_metadata"](previous, files.owner, mode=0o600)
+            require(previous.st_size <= DIAGNOSTIC_LIMIT, "invalid_arguments")
+        lib["write_atomic"](directory, name, raw, owner=files.owner,
+            replace_stamp=lib["_stamp"](previous) if previous is not None else None)
+        return files.read(DIAGNOSTICS + "/" + name, mode=0o600, private=True, limit=DIAGNOSTIC_LIMIT) == raw
+    finally:
+        os.close(directory)
+
+
+def _persist_diagnostic(name, payload):
+    files = None
+    try:
+        if not (sys.platform.startswith("linux") and platform.machine() == "aarch64" and os.getuid() == os.geteuid() == 0):
+            return False
+        lib = bootstrap()
+        files = lib["Files"]()
+        # Only kernel-generated boot correlation, retained in this private file.
+        payload = dict(payload, boot_id=diagnostic_boot_id())
+        return write_diagnostic(lib, files, name, payload)
+    except Exception:
+        return False
+    finally:
+        if files is not None:
+            try:
+                files.close()
+            except Exception:
+                pass
+
+
+def persist_diagnostic(name, payload):
+    """Bound the parent's wait for optional storage, including a stuck fsync.
+
+    SIGKILL cannot immediately stop kernel I/O in uninterruptible sleep. Such
+    a child remains subject to unit cleanup; no blocking reap is performed.
+    Any interrupted temp is preserved by the writer for later review.
+    """
+    if not (sys.platform.startswith("linux") and platform.machine() == "aarch64" and os.getuid() == os.geteuid() == 0):
+        return False
+    child = None
+    try:
+        deadline = time.monotonic() + DIAGNOSTIC_TIMEOUT
+        child = os.fork()
+        if child == 0:
+            code = 1
+            try:
+                code = 0 if _persist_diagnostic(name, payload) is True else 1
+            except BaseException:
+                pass
+            os._exit(code)
+        while time.monotonic() < deadline:
+            try:
+                reaped, status = os.waitpid(child, os.WNOHANG)
+            except InterruptedError:
+                continue
+            except ChildProcessError:
+                # Another SIGCHLD disposition may already have reaped it;
+                # never send a signal to a PID no longer owned as our child.
+                child = None
+                return False
+            if reaped == child:
+                child = None
+                return os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+            time.sleep(min(0.02, max(0.0, deadline - time.monotonic())))
+    except Exception:
+        pass
+    finally:
+        if child is not None and child > 0:
+            try:
+                os.kill(child, signal.SIGKILL)
+            except OSError:
+                pass
+            try:
+                os.waitpid(child, os.WNOHANG)
+            except OSError:
+                pass
+    return False
+
+
+def save_gate_diagnostic(result):
+    return persist_diagnostic("last-wifi-gate.json", {
+        "schema_version": 1, "kind": "test-access-wifi-gate-diagnostic", "complete": True,
+        "gate": closed_observation(result, ("passed",), GATE_ERRORS, checks=GATE_CHECKS),
+        "connection_authorized": False, "application_activation_authorized": False, "hardware_qualified": False})
 
 
 class BootError(ValueError):
@@ -84,6 +281,9 @@ class NativeAdapter:
     def __init__(self):
         self.files = self.connection = None
         self.snapshots = {}
+
+    def save_diagnostic(self, result, **observations):
+        return persist_diagnostic("last-boot.json", boot_diagnostic(result, **observations))
 
     def bind(self):
         require(sys.platform.startswith("linux") and platform.machine() == "aarch64"
@@ -251,26 +451,52 @@ def boot(adapter, *, verify_ssh=False):
               "ssh_start_requested": False, "ssh_start_verified": False, "wifi_off_requested_on_failure": False,
               "application_activation_authorized": False, "hardware_qualified": False, "release_qualified": False}
     connecting = False
+    stage, imported, connected = "bind", None, None
+
+    def save_diagnostic(complete):
+        # Diagnostics cannot authorize access or prevent failure cleanup.
+        if verify_ssh:
+            return
+        try:
+            saver = getattr(adapter, "save_diagnostic", None)
+            if callable(saver):
+                saver(result, complete=complete, stage=stage, imported=imported, connected=connected)
+        except Exception:
+            pass
+
+    save_diagnostic(False)
     try:
         phase = adapter.bind()
         require(phase in {"fresh", "enrolled"}, "enrollment_invalid")
         if verify_ssh:
+            stage = "verify_ready"
             require(phase == "enrolled" and adapter.verify_ready() is True, "ssh_not_ready")
             result.update(passed=True, phase="ssh-condition-passed")
         elif phase == "fresh":
+            stage = "enroll"
             enrolled = adapter.enroll()
             result["poweroff_requested"] = enrolled.get("poweroff_requested") is True
             require(enrolled.get("passed") is True, "enrollment_failed")
             result.update(passed=True, phase="enrolled-stop-requested")
         else:
-            require(adapter.import_cache().get("passed") is True, "import_failed")
+            stage = "import"
+            imported = adapter.import_cache()
+            require(imported.get("passed") is True, "import_failed")
             connecting = True
-            require(adapter.connect().get("passed") is True, "connection_failed")
+            stage = "connect"
+            connected = adapter.connect()
+            require(connected.get("passed") is True, "connection_failed")
+            stage = "operator_config"
             require(adapter.operator_config() is True, "operator_config_invalid")
-            require(adapter.publish_ready() is True and adapter.verify_ready() is True, "ssh_not_ready")
+            stage = "publish_ready"
+            require(adapter.publish_ready() is True, "ssh_not_ready")
+            stage = "verify_ready"
+            require(adapter.verify_ready() is True, "ssh_not_ready")
+            stage = "start_ssh"
             require(adapter.start_ssh() is True, "ssh_start_failed")
             result.update(passed=True, phase="ssh-start-requested", ssh_start_requested=True)
         result["live_evidence"] = type(adapter) is NativeAdapter
+        stage = "complete"
     except Exception as error:
         result["error"] = str(error) if type(error) is BootError and str(error) in ERRORS else "boot_failed"
     finally:
@@ -286,7 +512,10 @@ def boot(adapter, *, verify_ssh=False):
         except Exception:
             if connecting and result["passed"]:
                 close_radio()
+            if result["passed"]:
+                stage = "cleanup"
             result.update(passed=False, error="boot_failed", live_evidence=False)
+        save_diagnostic(True)
     return result
 
 

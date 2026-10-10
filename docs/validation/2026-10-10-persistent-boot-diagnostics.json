@@ -1,0 +1,68 @@
+{
+  "hardware_qualified": false,
+  "limits": [
+    "Synthetic fixtures and a dedicated VM systemd unit only.",
+    "No Pi boot, SD flash, physical Wi-Fi, display or iPhone pairing established.",
+    "A stale report can survive a failed write; interrupted temporary files are preserved."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "python": "3.13.5",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 1,
+    "tests": 1031
+  },
+  "macos": {
+    "errors": 0,
+    "failures": 0,
+    "python": "3.13.15",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 4,
+    "tests": 1031
+  },
+  "native_storage_fixture": {
+    "checks": {
+      "private_bounded_reports": true,
+      "private_state_directory": true,
+      "replacement_survived_unit_exit": true,
+      "runner_completed": true,
+      "sandbox_worker_passed": true,
+      "unit_inactive": true
+    },
+    "hardware_qualified": false,
+    "network_connection_tested": false,
+    "passed": true,
+    "schema_version": 1,
+    "scope": "inert-systemd-diagnostic-storage-fixture",
+    "sources": {
+      "probe-test-diagnostic-storage.py": "b2cafbfbe37d08dba4afc936577aeebf63296a3ec7e0e21574d8ff4a007ac981",
+      "test-access-boot.py": "0ccd653f1837dfbaae37c1b44212c247c9a96d6b1c02466a63ea568d4d6e7e20",
+      "test-enrollment-firstboot.py": "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a"
+    },
+    "target_boot_tested": false
+  },
+  "network_connection_tested": false,
+  "schema_version": 1,
+  "scope": "test-access-persistent-diagnostics-software-validation",
+  "sd_modified": false,
+  "software_passed": true,
+  "source_sha256": {
+    "overlay-test-access/NetworkManager.service.d/10-inkyos-test-wifi.conf": "a3a47bd07a778d3916714dace420c7df856cc74eed0cb58a76aca6d8664f5b86",
+    "overlay-test-access/inkyos-test-access.service": "71705cc1ee83dc8f8ac309f9951c7291a900b76766564f9f32ee8ccff0cd5038",
+    "scripts/probe-test-diagnostic-storage.py": "b2cafbfbe37d08dba4afc936577aeebf63296a3ec7e0e21574d8ff4a007ac981",
+    "scripts/test-access-boot.py": "0ccd653f1837dfbaae37c1b44212c247c9a96d6b1c02466a63ea568d4d6e7e20",
+    "scripts/test-access-connect.py": "18cd6e8db329dbac753f4834d07013f4bc9a191555011578d2c9b2da7cce4da3",
+    "scripts/test-access-wifi-gate.py": "a0101dda10b56c176906114d8b23ba72e8aabb9e474bebc2c25d4c06cca8596f",
+    "tests/test_test_access_boot.py": "636dc94c2beeedca9dde75235d35c9d9197c07ae5a79ba20cb080f2d94577f55",
+    "tests/test_test_access_connect.py": "5fb9fc066cc2d3ff6f2f4076fdcf86391e3e56c4e3ba8419ab30aec42f89ceea",
+    "tests/test_test_access_wifi_gate.py": "a8f01a7c06180988314c1a2426dac0c9cb4c84851ea6555598c0aa602f096bff"
+  },
+  "target_boot_tested": false
+}

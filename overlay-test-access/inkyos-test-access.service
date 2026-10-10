@@ -14,13 +14,15 @@ Group=root
 UMask=0077
 RuntimeDirectory=inkyos-test-access
 RuntimeDirectoryMode=0700
+StateDirectory=inkyos-test-diagnostics
+StateDirectoryMode=0700
 ExecStart=/usr/bin/python3 -I /usr/local/lib/inkyos/test-access-boot.py
 TimeoutStartSec=180s
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=read-only
 ProtectSystem=strict
-ReadWritePaths=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /var/lib/inkyos-test-access /boot/firmware /run /etc
+ReadWritePaths=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /var/lib/inkyos-test-access /var/lib/inkyos-test-diagnostics /boot/firmware /run /etc
 
 [Install]
 WantedBy=multi-user.target

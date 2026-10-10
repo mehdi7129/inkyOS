@@ -25,6 +25,7 @@ import time
 
 SELF = "/usr/local/lib/inkyos/test-access-wifi-gate.py"
 HELPER = "/usr/local/lib/inkyos/wifi-boot-gate.py"
+BOOT = "/usr/local/lib/inkyos/test-access-boot.py"
 HELPER_SHA256 = "96b251196cff66c60868bfafde738e9b07f528f00a98abf0e944f4af023eb6c4"
 MANIFEST = "/usr/local/share/inkyos/test-access-manifest.json"
 MODEL = "/sys/firmware/devicetree/base/model"
@@ -121,7 +122,7 @@ def strict_json(raw):
         raise GateError("manifest_invalid") from None
 
 
-def validate_manifest(raw, self_raw, helper_raw):
+def validate_manifest(raw, self_raw, helper_raw, boot_raw):
     value = strict_json(raw)
     require(type(value) is dict and set(value) == {"schema_version", "kind", "application_source_commit",
             "application_manifest_sha256", "parent_image_sha256", "files"}
@@ -129,7 +130,7 @@ def validate_manifest(raw, self_raw, helper_raw):
             and value["kind"] == "test-access-runtime" and value["application_source_commit"] == SOURCE
             and value["application_manifest_sha256"] == APPLICATION_MANIFEST
             and value["parent_image_sha256"] == PARENT
-            and type(value["files"]) is dict and 2 <= len(value["files"]) <= 128, "manifest_invalid")
+            and type(value["files"]) is dict and 3 <= len(value["files"]) <= 128, "manifest_invalid")
     for path, entry in value["files"].items():
         require(type(path) is str and 0 < len(path) <= 256
                 and re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", path) is not None
@@ -137,7 +138,7 @@ def validate_manifest(raw, self_raw, helper_raw):
                 and type(entry) is dict and set(entry) == {"sha256", "mode"}
                 and type(entry["sha256"]) is str and re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]) is not None
                 and type(entry["mode"]) is str and entry["mode"] in {"0555", "0644", "0440"}, "manifest_invalid")
-    for path, content in ((SELF, self_raw), (HELPER, helper_raw)):
+    for path, content in ((SELF, self_raw), (HELPER, helper_raw), (BOOT, boot_raw)):
         require(type(content) is bytes and value["files"].get(path[1:]) ==
                 {"sha256": hashlib.sha256(content).hexdigest(), "mode": "0555"}, "source_pin_invalid")
     require(hashlib.sha256(helper_raw).hexdigest() == HELPER_SHA256, "source_pin_invalid")
@@ -175,8 +176,13 @@ class NativeAdapter:
     def bind(self):
         self.snapshot = {MANIFEST: (read_file(MANIFEST, mode=0o644), 0o644),
                          SELF: (read_file(SELF, mode=0o555), 0o555),
-                         HELPER: (read_file(HELPER, mode=0o555), 0o555)}
-        validate_manifest(*(self.snapshot[path][0] for path in (MANIFEST, SELF, HELPER)))
+                         HELPER: (read_file(HELPER, mode=0o555), 0o555),
+                         BOOT: (read_file(BOOT, mode=0o555), 0o555)}
+        validate_manifest(*(self.snapshot[path][0] for path in (MANIFEST, SELF, HELPER, BOOT)))
+        diagnostic = {"__name__": "inkyos_pinned_gate_diagnostic", "__file__": BOOT}
+        exec(compile(self.snapshot[BOOT][0], BOOT, "exec"), diagnostic)
+        require(callable(diagnostic.get("save_gate_diagnostic")), "source_pin_invalid")
+        self.save_diagnostic = diagnostic["save_gate_diagnostic"]
         self.helper = {"__name__": "inkyos_pinned_wifi_writer", "__file__": HELPER}
         exec(compile(self.snapshot[HELPER][0], HELPER, "exec"), self.helper)
         return True
@@ -311,10 +317,19 @@ def main(argv=None):
         old_handler = signal.signal(signal.SIGALRM, expired)
         old_timer = signal.setitimer(signal.ITIMER_REAL, BUDGET)
         try:
-            result = guard(NativeAdapter())
+            adapter = NativeAdapter()
+            result = guard(adapter)
         finally:
             signal.setitimer(signal.ITIMER_REAL, *old_timer)
             signal.signal(signal.SIGALRM, old_handler)
+        # Persist only after the radio guard and its deadline have ended. A
+        # missing/refused writer cannot change the gate result or radio state.
+        writer = getattr(adapter, "save_diagnostic", None)
+        if writer is not None:
+            try:
+                writer(result)
+            except Exception:
+                pass
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if result["passed"] else 1
 
