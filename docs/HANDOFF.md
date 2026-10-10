@@ -16,8 +16,13 @@ ciblée ne trouve aucun journal système persistant dans son périmètre.
 Le diagnostic logiciel a été renforcé ; la cause exacte reste inconnue.
 La nouvelle image a été flashée et relue. Son
 [rapport FAT d'enrôlement](validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
-correspond au nouveau profil ; la comparaison Linux et le nouvel essai réseau
-restent à effectuer. L'ancienne identité et l'ancienne capsule ne sont pas réutilisées.
+correspond au nouveau profil ; le [retour natif vérifié](validation/2026-10-11-nm-diagnostic-enrollment-return.json)
+passe désormais ses propres 35 + 10 contrôles. Le dérivé `e2image` de ce retour
+est transmis directement de la SD vers la VM, sans acquisition intégrale
+intermédiaire ni rejeu du journal. Le nouveau contexte privé est exporté après
+nettoyage vérifié ; sa capsule signée est installée et relue, puis la SD éjectée.
+Le nouvel essai réseau reste à effectuer. L’ancienne identité et l’ancienne
+capsule ne sont pas réutilisées.
 Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 

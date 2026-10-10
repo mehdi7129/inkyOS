@@ -192,15 +192,21 @@ Les [codes de sortie nmcli](https://networkmanager.dev/docs/api/1.52.0/nmcli.htm
 et les [états et raisons d'interface](https://networkmanager.dev/docs/api/1.52.0/nm-dbus-types.html)
 décrivent des observations distinctes : un état relu après l'échec peut déjà
 avoir changé et ne prouve pas à lui seul un mauvais mot de passe.
-Cette extension n'est pas présente sur la SD du retour ci-dessus et n'a pas
-encore été testée sur le Pi. Une [nouvelle image privée](validation/2026-10-11-nm-diagnostic-access-image.json)
+Cette extension n'est pas présente sur la SD du retour réseau ci-dessus ;
+son chemin d'échec de connexion attend encore un essai sur le Pi.
+Une [nouvelle image privée](validation/2026-10-11-nm-diagnostic-access-image.json)
 est construite depuis les sources `07271cf` : 18 contrôles de configuration,
 17 du parent, 62 système et 26 applicatifs passent. Le backend épinglé ne
 change pas. Cette image a depuis été flashée et relue. Après le premier
 démarrage, le [rapport FAT revenu](validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
-correspond au nouveau profil. La comparaison Linux doit encore valider le
-retour avant de créer le nouveau contexte et sa capsule. Aucun nouvel essai
-réseau n'est établi ; l'ancienne identité n'est pas copiée dans la nouvelle image.
+correspond au nouveau profil. Le [retour natif vérifié](validation/2026-10-11-nm-diagnostic-enrollment-return.json)
+passe désormais ses propres 35 contrôles d’enrôlement et 10 contrôles
+d’infrastructure. Un dérivé `e2image` est transmis directement de la SD vers
+la VM, sans copie intégrale intermédiaire ni rejeu du journal ; le hash du
+flux et sa relecture concordent. Le nouveau contexte privé est exporté après
+nettoyage vérifié ; sa capsule signée est installée et relue, puis la SD éjectée.
+Le nouvel essai réseau reste à effectuer ; aucune correction de la panne
+Wi-Fi n’est encore établie.
 Les [1 039 tests macOS et Linux ARM64](validation/2026-10-11-activation-diagnostics-tests.json)
 passent, avec une revue indépendante du bornage et de la projection.
 Le lecteur hors ligne de la future image devra être mis à jour et épinglé

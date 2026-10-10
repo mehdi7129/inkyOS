@@ -43,9 +43,11 @@ la connexion ni le candidat applicatif. Ses contrôles offline passent. Il a
 été flashé et relu ; une éjection initialement refusée par le service
 d'indexation macOS a ensuite réussi, sans réécriture. Son
 [rapport FAT d'enrôlement](validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
-est cohérent avec son profil. La comparaison Linux complète, la création du
-nouveau contexte et l'essai réseau restent à effectuer. Les 35 + 10 contrôles
-de la variante précédente ne sont pas transférés à ce nouveau retour.
+est cohérent avec son profil. Son [retour natif](validation/2026-10-11-nm-diagnostic-enrollment-return.json)
+passe maintenant ses propres 35 + 10 contrôles ; un nouveau contexte privé est
+exporté après nettoyage vérifié. La nouvelle capsule signée est installée et
+relue, puis la SD éjectée. L’essai réseau reste à effectuer. Le relevé
+préliminaire reste une preuve historique distincte.
 
 L’ancien enrôlement reste inchangé. Le profil **v2** ajoute le hash du manifest
 des programmes d’accès ; l’état durable d’enrôlement conserve son schéma 1.
@@ -149,11 +151,22 @@ préservés. Des blocs inutilisés et certaines métadonnées inutilisées sont 
 ce dérivé n’est pas un clone intégral de la SD. Son hash de flux et sa relecture
 dans la VM concordent ; cette vérification ne relit pas indépendamment la SD.
 
-Deux rapports diagnostiques privés sont présents avec les permissions attendues.
+Sur ce retour historique, deux rapports diagnostiques privés sont présents avec les permissions attendues.
 Celui de la garde WLAN est complet et ses 10 contrôles passent. Celui du boot
 reste au marqueur initial incomplet `bind`, sans erreur enregistrée. Il ne
 localise donc aucune panne et ne contredit pas l’enrôlement vérifié ; un arrêt
 pendant le premier boot peut interrompre l’écriture finale du diagnostic.
+
+Le [nouveau retour du 11 octobre](validation/2026-10-11-nm-diagnostic-enrollment-return.json)
+utilise une acquisition différente : la SD est ouverte en lecture seule et le
+dérivé `e2image` est transmis directement à la VM. Aucune copie intégrale de
+la SD n’est créée pour ce retour. L’indicateur ext4 propre est contrôlé, sans
+rejeu du journal. Le hash du flux émis correspond au flux reçu et à sa relecture
+dans la VM. Le wrapper inchangé vérifie ensuite ce dérivé et l’export attendu :
+35 contrôles d’enrôlement et 10 contrôles d’infrastructure passent. Les deux
+nouveaux fichiers de contexte sont exportés après nettoyage vérifié, avec une
+relecture indépendante de leurs liens et permissions. Cela ne constitue ni
+une seconde lecture indépendante de la SD, ni une attestation d’arrêt physique.
 
 Le wrapper `check-test-access-return-linux.sh` vérifie une **copie privée**
 dans la VM de build ARM64 marquée. Son `--help` décrit le staging fermé :
