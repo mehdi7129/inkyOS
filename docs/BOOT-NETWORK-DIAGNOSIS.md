@@ -196,9 +196,11 @@ Cette extension n'est pas présente sur la SD du retour ci-dessus et n'a pas
 encore été testée sur le Pi. Une [nouvelle image privée](validation/2026-10-11-nm-diagnostic-access-image.json)
 est construite depuis les sources `07271cf` : 18 contrôles de configuration,
 17 du parent, 62 système et 26 applicatifs passent. Le backend épinglé ne
-change pas. Un nouvel enrôlement avec arrêt, puis une capsule liée à ce
-contexte, restent nécessaires avant son essai réseau ; l'ancienne identité
-n'est pas copiée dans la nouvelle image.
+change pas. Cette image a depuis été flashée et relue. Après le premier
+démarrage, le [rapport FAT revenu](validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
+correspond au nouveau profil. La comparaison Linux doit encore valider le
+retour avant de créer le nouveau contexte et sa capsule. Aucun nouvel essai
+réseau n'est établi ; l'ancienne identité n'est pas copiée dans la nouvelle image.
 Les [1 039 tests macOS et Linux ARM64](validation/2026-10-11-activation-diagnostics-tests.json)
 passent, avec une revue indépendante du bornage et de la projection.
 Le lecteur hors ligne de la future image devra être mis à jour et épinglé

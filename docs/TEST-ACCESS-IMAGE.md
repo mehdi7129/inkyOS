@@ -1,6 +1,6 @@
 # Image privée pour le premier accès TEST
 
-État du 10 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
+État du 11 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
 le contrôle du pays, la connexion Wi-Fi, un accès SSH restreint et les workers
 d’[activation explicite et d’arrêt](TEST-ACCESS-LIFECYCLE.md). La
 [variante diagnostique construite et vérifiée](validation/2026-10-10-diagnostic-access-image.json)
@@ -8,9 +8,9 @@ a été flashée. Son [retour d’enrôlement](validation/2026-10-10-diagnostic-
 passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule,
 sur un dérivé privé décrit ci-dessous. Le contexte SSH privé est exporté après
 nettoyage vérifié. Une nouvelle capsule signée est liée à ce contexte,
-installée et relue sur la SD, puis la carte éjectée. Le prochain boot réseau,
-l’affichage et l’appairage iPhone restent à effectuer ; ce résultat n’atteste
-pas un nouvel arrêt physique.
+installée et relue sur la SD, puis la carte éjectée. Le boot réseau suivant a
+échoué à l'activation de la connexion ; l’affichage et l’appairage iPhone
+restent à effectuer. Le retour d'enrôlement n'atteste pas un arrêt physique.
 Le [diagnostic du retour réseau](BOOT-NETWORK-DIAGNOSIS.md) confirme l'import,
 mais aucune connexion sur la tentative précédente. Le runtime conserve
 maintenant des rapports privés bornés, retrouvés sur le nouvel enrôlement.
@@ -39,8 +39,13 @@ issue d’une autre image ou d’une ancienne SD.
 
 Le [candidat du 11 octobre](validation/2026-10-11-nm-diagnostic-access-image.json)
 intègre le diagnostic numérique d'activation NetworkManager, sans modifier
-la connexion ni le candidat applicatif. Ses contrôles offline passent ; il
-doit encore effectuer son propre enrôlement et son essai réseau sur la SD.
+la connexion ni le candidat applicatif. Ses contrôles offline passent. Il a
+été flashé et relu ; une éjection initialement refusée par le service
+d'indexation macOS a ensuite réussi, sans réécriture. Son
+[rapport FAT d'enrôlement](validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
+est cohérent avec son profil. La comparaison Linux complète, la création du
+nouveau contexte et l'essai réseau restent à effectuer. Les 35 + 10 contrôles
+de la variante précédente ne sont pas transférés à ce nouveau retour.
 
 L’ancien enrôlement reste inchangé. Le profil **v2** ajoute le hash du manifest
 des programmes d’accès ; l’état durable d’enrôlement conserve son schéma 1.

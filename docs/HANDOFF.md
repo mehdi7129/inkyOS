@@ -13,7 +13,12 @@ conservée. Le boot réseau suivant valide l'import, le pays et la demande
 d'allumage radio, mais échoue à l'activation NetworkManager. La radio est
 ensuite désactivée ; SSH et l'application n'ont pas démarré. L'inspection
 ciblée ne trouve aucun journal système persistant dans son périmètre.
-Le diagnostic logiciel a été renforcé ; la cause exacte reste inconnue. Les versions
+Le diagnostic logiciel a été renforcé ; la cause exacte reste inconnue.
+La nouvelle image a été flashée et relue. Son
+[rapport FAT d'enrôlement](validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
+correspond au nouveau profil ; la comparaison Linux et le nouvel essai réseau
+restent à effectuer. L'ancienne identité et l'ancienne capsule ne sont pas réutilisées.
+Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 
 ## Objectif du projet

@@ -17,7 +17,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
-| Enrôlement de test | Retour de la variante diagnostique vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
+| Enrôlement de test | Variante précédente : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis. Nouveau candidat : rapport FAT cohérent ; comparaison Linux et nouveau contexte SSH encore attendus. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
 | Wi-Fi | Nouveau boot diagnostiqué : import signé, garde radio et pays France validés ; activation NetworkManager en échec, puis radio désactivée. Cause précise encore inconnue. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
@@ -58,8 +58,11 @@ Le [retour réseau suivant](docs/validation/2026-10-11-network-activation-return
 confirme l'échec de connexion et la désactivation de la radio ; SSH n'a pas
 été demandé. Les sources ajoutent maintenant un diagnostic borné du code
 NetworkManager et de l'état de l'interface. La [nouvelle image privée](docs/validation/2026-10-11-nm-diagnostic-access-image.json)
-est construite et vérifiée ; cette extension reste à tester sur le Pi.
-L'inspection ciblée du dernier retour ne trouve aucun journal système
+est construite, flashée et relue. Son [premier retour](docs/validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json)
+présente un rapport FAT cohérent avec son profil ; la comparaison de la
+partition Linux reste à effectuer. L'extension de diagnostic réseau attend
+encore son essai Wi-Fi.
+L'inspection ciblée du retour réseau précédent ne trouve aucun journal système
 persistant dans son périmètre ; elle ne permet pas de préciser la cause.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 

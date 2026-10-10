@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "scope": "private-nm-diagnostic-sd-flash-and-preliminary-fat-return",
+  "source_commit": "07271cf849e24d3a09307898d6fd166253f27a89",
+  "flash": {
+    "write_stream_hash_matched": true,
+    "controller_cache_flush_acknowledged": true,
+    "image_length_readback_verified": true,
+    "pre_eject_media_recheck_passed": true,
+    "initial_ejection_refused_by_indexer": true,
+    "same_media_reverified_before_recovery": true,
+    "ejection_recovered": true,
+    "image_rewritten_during_recovery": false
+  },
+  "fat_report": {
+    "schema_valid": true,
+    "state_enrolled": true,
+    "live_evidence_claim": true,
+    "profile_hash_matches_expected": true,
+    "profile_fields_match_expected": true,
+    "runtime_source_matches_expected": true,
+    "host_public_key_hash_consistent": true,
+    "observations_schema_valid": true
+  },
+  "native_return_comparison_complete": false,
+  "new_context_exported": false,
+  "new_network_capsule_installed": false,
+  "network_connection_verified": false,
+  "application_activated": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "private_identifiers_published": false,
+  "limits": [
+    "The flash verifies only the image-length prefix; trailing card bytes are not erased or inspected.",
+    "A matching readback and successful ejection do not qualify boot, shutdown or power-loss behavior.",
+    "The FAT report is an unsigned local consistency observation, not independent runtime attestation.",
+    "The native 35 contract and 10 infrastructure checks are still pending for this new return.",
+    "No Wi-Fi fix or new network trial is established by these observations."
+  ]
+}
