@@ -37,6 +37,11 @@ Les preuves du 4 et du 5 octobre désignent le parent historique
 La variante et son profil sont privés. Elle ne réutilise pas une identité
 issue d’une autre image ou d’une ancienne SD.
 
+Le [candidat du 11 octobre](validation/2026-10-11-nm-diagnostic-access-image.json)
+intègre le diagnostic numérique d'activation NetworkManager, sans modifier
+la connexion ni le candidat applicatif. Ses contrôles offline passent ; il
+doit encore effectuer son propre enrôlement et son essai réseau sur la SD.
+
 L’ancien enrôlement reste inchangé. Le profil **v2** ajoute le hash du manifest
 des programmes d’accès ; l’état durable d’enrôlement conserve son schéma 1.
 La consommation de capsule possède son propre état, dans un autre dossier.

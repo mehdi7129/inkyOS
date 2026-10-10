@@ -152,6 +152,26 @@ Le relevé public ne contient que la projection fermée des diagnostics et
 les limites de qualification. Les identifiants de boot, leur corrélation,
 les timestamps et les traces de commandes restent privés.
 
+## Recherche des journaux existants
+
+L'[inventaire ciblé du 11 octobre](validation/2026-10-11-system-log-inventory.json)
+a réussi en lecture seule, avec binding FAT et contrôles d'identité du média.
+Le répertoire `/var/log/journal` est présent mais vide. Aucun journal système
+sélectionné ni fichier `/var/log/syslog`, `/var/log/daemon.log` ou
+`/var/log/wpa_supplicant.log` n'a été trouvé : zéro fichier, zéro octet copié.
+Cette recherche ne fournit donc aucune raison supplémentaire de l'échec
+d'activation.
+
+La sélection couvre uniquement les noms de journaux système autorisés sous
+des sous-répertoires de journal à nom hexadécimal de 32 caractères et les
+trois fichiers texte ci-dessus. Les journaux utilisateur et fichiers
+auxiliaires restent hors périmètre. Aucun contenu brut n'est publié.
+Le journal ext4 demande toujours une récupération et n'a pas été rejoué ;
+des écritures en attente peuvent manquer. Ce résultat ne démontre pas une
+absence globale ou forensique de traces sur la carte, ni leur absence lors
+du dernier boot. Aucun nouveau démarrage ou essai réseau n'a été effectué
+par cet inventaire.
+
 ## Diagnostic ajouté après ce retour
 
 Les sources conservent désormais le code de retour connu de `nmcli up`, si
@@ -173,7 +193,12 @@ et les [états et raisons d'interface](https://networkmanager.dev/docs/api/1.52.
 décrivent des observations distinctes : un état relu après l'échec peut déjà
 avoir changé et ne prouve pas à lui seul un mauvais mot de passe.
 Cette extension n'est pas présente sur la SD du retour ci-dessus et n'a pas
-encore été testée sur le Pi.
+encore été testée sur le Pi. Une [nouvelle image privée](validation/2026-10-11-nm-diagnostic-access-image.json)
+est construite depuis les sources `07271cf` : 18 contrôles de configuration,
+17 du parent, 62 système et 26 applicatifs passent. Le backend épinglé ne
+change pas. Un nouvel enrôlement avec arrêt, puis une capsule liée à ce
+contexte, restent nécessaires avant son essai réseau ; l'ancienne identité
+n'est pas copiée dans la nouvelle image.
 Les [1 039 tests macOS et Linux ARM64](validation/2026-10-11-activation-diagnostics-tests.json)
 passent, avec une revue indépendante du bornage et de la projection.
 Le lecteur hors ligne de la future image devra être mis à jour et épinglé

@@ -1,0 +1,52 @@
+{
+  "application_activated": false,
+  "application_manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+  "application_source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+  "checks": {
+    "qualification-application.json": {
+      "checks": 26,
+      "passed": true
+    },
+    "qualification-prepared.json": {
+      "checks": 17,
+      "passed": true
+    },
+    "qualification-static.json": {
+      "checks": 62,
+      "passed": true
+    },
+    "test-access-configuration.json": {
+      "checks": 18,
+      "passed": true
+    }
+  },
+  "concurrent_changes_scope": "documentation-only",
+  "existing_host_identity_reused": false,
+  "flashed_by_this_preparation": false,
+  "hardware_qualified": false,
+  "image_size_bytes": 3061841920,
+  "limits": [
+    "Fresh enrollment-and-stop remains required before binding a new signed network capsule.",
+    "No connection fix is claimed: only failure diagnostics were added.",
+    "The offline reader for the new activation field is prepared separately and must be pinned to the return media."
+  ],
+  "network_credentials_embedded": false,
+  "operator_private_key_copied": false,
+  "operator_public_key_reused": true,
+  "parent_image_sha256": "dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595",
+  "private_image_hash_published": false,
+  "private_image_sha256_verified": true,
+  "protected_boot_grow_files": 10,
+  "recipe_public_sources_match_commit": true,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "private-nm-diagnostic-test-access-image-preparation",
+  "software_image_preparation_passed": true,
+  "source_commit": "07271cf849e24d3a09307898d6fd166253f27a89",
+  "source_sha256": {
+    "scripts/test-access-boot.py": "bde63ca69323ce41eae8ffe398b176c83d19f6a2ec487323d33991a84510e612",
+    "scripts/test-access-connect.py": "f4f03f99fb1552b9f77fdb4dae81510ecdf6e5a07dd7599bec193ae9be2a997c"
+  },
+  "target_boot_tested": false,
+  "worktree_dirty": true
+}

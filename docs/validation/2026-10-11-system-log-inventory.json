@@ -1,0 +1,60 @@
+{
+  "authenticated_ssh_qualified": false,
+  "display_qualified": false,
+  "hardware_qualified": false,
+  "inspection": {
+    "application_activated": false,
+    "application_issued_sd_writes": false,
+    "fat_enrollment_pin_verified": true,
+    "filesystem_mounted": false,
+    "filesystem_needs_recovery": true,
+    "journal_replayed": false,
+    "media_rechecks_passed": true,
+    "method": "debugfs-readonly",
+    "network_capsule_read": false,
+    "network_used": false,
+    "private_key_files_read": false,
+    "read_only_open_verified": true
+  },
+  "interpretation": {
+    "additional_activation_failure_reason_recovered": false,
+    "global_forensic_log_absence_established": false,
+    "latest_boot_independently_attested": false
+  },
+  "inventory": {
+    "bytes_copied": 0,
+    "candidate_bytes": 0,
+    "candidate_files": 0,
+    "files_copied": 0,
+    "ignored_entries": 0,
+    "inventory_complete": true,
+    "journal_directory_present": true,
+    "logs_found": false,
+    "machine_directories": 0
+  },
+  "ios_pairing_qualified": false,
+  "limits": {
+    "integral_sd_acquisition_performed": false,
+    "new_boot_or_network_test_performed": false,
+    "pending_journal_updates_may_be_unobserved": true,
+    "selection_is_exhaustive_of_all_possible_logs": false,
+    "unmount_may_flush_prior_pending_writes": true,
+    "volatile_logs_recovered": false,
+    "write_blocking_from_insertion_established": false
+  },
+  "private_identities_published": false,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "targeted-offline-allowlisted-system-log-inventory",
+  "selection": {
+    "auxiliary_files_read": false,
+    "file_count_limit": 32,
+    "named_text_log_targets": 3,
+    "per_file_limit_bytes": 33554432,
+    "system_journals_in_hex_machine_directories_only": true,
+    "total_limit_bytes": 67108864,
+    "user_journals_read": false
+  },
+  "status": "PASS",
+  "wifi_connection_qualified": false
+}

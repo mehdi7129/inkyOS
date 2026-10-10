@@ -57,8 +57,10 @@ persistent sur ce retour. La capsule signée a ensuite été installée et test�
 Le [retour réseau suivant](docs/validation/2026-10-11-network-activation-return.json)
 confirme l'échec de connexion et la désactivation de la radio ; SSH n'a pas
 été demandé. Les sources ajoutent maintenant un diagnostic borné du code
-NetworkManager et de l'état de l'interface ; cette extension reste à tester
-sur le Pi.
+NetworkManager et de l'état de l'interface. La [nouvelle image privée](docs/validation/2026-10-11-nm-diagnostic-access-image.json)
+est construite et vérifiée ; cette extension reste à tester sur le Pi.
+L'inspection ciblée du dernier retour ne trouve aucun journal système
+persistant dans son périmètre ; elle ne permet pas de préciser la cause.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les

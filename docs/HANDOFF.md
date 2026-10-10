@@ -3,14 +3,17 @@
 État du **27 septembre 2026**, avant qualification finale du Bluetooth. Ce dossier
 prépare le travail ; il ne donne pas le statut « prêt à flasher » à une image.
 
-Pour l’avancement au **10 octobre 2026**, voir le
+Pour l’avancement au **11 octobre 2026**, voir le
 [diagnostic du boot réseau](BOOT-NETWORK-DIAGNOSIS.md), l'[alignement OS/app](OS-APP-ALIGNMENT.md),
 l’[image privée d’accès TEST](TEST-ACCESS-IMAGE.md) et son
 [retour d’enrôlement diagnostique vérifié](validation/2026-10-10-diagnostic-sd-enrollment-return.json).
 La variante a été flashée ; 35 contrôles de retour et 10 contrôles
 d’infrastructure passent sur un dérivé privé, l’acquisition intégrale étant
-conservée. Une nouvelle capsule signée est installée et relue, puis la SD
-éjectée ; le prochain essai réseau reste à réaliser. Les versions
+conservée. Le boot réseau suivant valide l'import, le pays et la demande
+d'allumage radio, mais échoue à l'activation NetworkManager. La radio est
+ensuite désactivée ; SSH et l'application n'ont pas démarré. L'inspection
+ciblée ne trouve aucun journal système persistant dans son périmètre.
+Le diagnostic logiciel a été renforcé ; la cause exacte reste inconnue. Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 
 ## Objectif du projet
