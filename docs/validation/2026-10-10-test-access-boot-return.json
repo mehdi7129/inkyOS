@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-10",
+  "scope": "offline-historical-test-access-boot-state",
+  "status": "DIAGNOSTIC_INCOMPLETE",
+  "acquisition": {
+    "raw_opened_readonly": true,
+    "copy_complete": true,
+    "local_readback_verified": true,
+    "independent_local_rehash_passed": true,
+    "independent_second_sd_read": false,
+    "original_full_copy_preserved_privately": true
+  },
+  "inspection": {
+    "source": "allocated-ext4-blocks-with-original-boot-prefix",
+    "transfer_hash_verified": true,
+    "native_hash_verified": true,
+    "private_namespaces": true,
+    "loop_readonly": true,
+    "ext4_readonly_noload": true,
+    "fat_readonly": true,
+    "target_code_executed": false,
+    "journal_replayed": false,
+    "image_metadata_unchanged": true,
+    "cleanup_verified": true
+  },
+  "observations": {
+    "enrollment_state": "enrolled",
+    "access_cache_state": "imported",
+    "access_cache_complete": true,
+    "access_cache_binding_hashes_match": true,
+    "capsule_and_signature_match_fat": true,
+    "network_profile_hash_matches": true,
+    "operator_config_present": false,
+    "saved_wireless_enabled": false,
+    "persistent_connection_profiles": 0,
+    "persistent_journal_entries": 0,
+    "syslog_present": false,
+    "ext4_needs_recovery": true
+  },
+  "last_boot_connection_proven": false,
+  "exact_failure_cause_identified": false,
+  "application_activated_by_this_procedure": false,
+  "private_identities_published": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "limits": [
+    "Durable state can predate the last boot; cache consistency is not runtime attestation.",
+    "Saved radio state alone does not distinguish the initial gate from failure cleanup.",
+    "No journal replay or repair was performed; volatile logs were unavailable after power loss.",
+    "The diagnostic derivative omits unallocated ext4 blocks; the original full acquisition remains private.",
+    "macOS initially mounted FAT; this was not a forensic write-blocked acquisition from insertion.",
+    "No Wi-Fi, SSH, application, display, iPhone pairing or reboot behavior is qualified."
+  ]
+}

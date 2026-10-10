@@ -3,7 +3,8 @@
 État du **27 septembre 2026**, avant qualification finale du Bluetooth. Ce dossier
 prépare le travail ; il ne donne pas le statut « prêt à flasher » à une image.
 
-Pour l’avancement au **9 octobre 2026**, voir l'[alignement OS/app](OS-APP-ALIGNMENT.md),
+Pour l’avancement au **10 octobre 2026**, voir le
+[diagnostic du boot réseau](BOOT-NETWORK-DIAGNOSIS.md), l'[alignement OS/app](OS-APP-ALIGNMENT.md),
 l’[image privée d’accès TEST](TEST-ACCESS-IMAGE.md) et son
 [retour SD vérifié](validation/2026-10-05-sd-test-access-return.json). Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.

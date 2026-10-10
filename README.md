@@ -6,7 +6,7 @@ InkyOS prépare le système, ses dépendances et son premier démarrage. À term
 une carte microSD flashée permettra de configurer le cadre depuis l’application
 iOS. L’application et son protocole restent communs avec Inky Studio.
 
-> **Prototype expérimental — état au 9 octobre 2026.**
+> **Prototype expérimental — état au 10 octobre 2026.**
 > Aucune image prête à l’emploi n’est publiée. L’installation complète et le
 > premier appairage iPhone depuis InkyOS restent à qualifier.
 
@@ -19,7 +19,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Retour v2 vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Configuration signée installée et relue. Le diagnostic Mac indique un nom `.local` non résolu ; présence réseau et connexion restent à vérifier. |
+| Wi-Fi | Configuration signée importée : cache complet et cohérent sur le retour SD. Aucune connexion confirmée ; le détail de l'échec manque faute de journal persistant. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
@@ -44,6 +44,9 @@ sans échec (4 skips macOS, 1 skip Linux). Les preuves comprennent le
 [candidat activation/drain construit](docs/validation/2026-10-04-test-access-lifecycle-image.json),
 les [contrôles SSH/runtime](docs/validation/2026-10-04-test-access-transport-return.json)
 et le [retour SD du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json).
+Le [diagnostic du 10 octobre](docs/BOOT-NETWORK-DIAGNOSIS.md) confirme l'import
+de la configuration Wi-Fi, mais ne permet pas encore d'identifier la cause
+exacte de l'échec réseau. Le prochain boot doit conserver un diagnostic durable.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les

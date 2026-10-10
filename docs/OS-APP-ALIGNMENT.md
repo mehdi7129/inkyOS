@@ -6,6 +6,12 @@ Le relevé correspondant côté Studio est
 `docs/inkyos/ALIGNMENT-2026-10-09.md` ; les données locales de ce relevé ne sont
 pas reproduites ici.
 
+**Complément du 10 octobre :** installation du build 9 confirmée par l'opérateur.
+Le [retour SD réseau](BOOT-NETWORK-DIAGNOSIS.md) contient un import Wi-Fi complet
+et cohérent, sans preuve de connexion validée. Le détail du dernier échec
+n'a pas été conservé. Préparer ce diagnostic avant de reprendre les étapes
+réseau, activation et appairage ci-dessous ; aucun contrat applicatif ne change.
+
 ## Couple retenu pour le prochain essai
 
 | Composant | Référence |
