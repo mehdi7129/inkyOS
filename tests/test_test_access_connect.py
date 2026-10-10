@@ -139,6 +139,7 @@ class ConnectTests(unittest.TestCase):
 
     def test_native_commands_fixed_no_secret_arguments_and_exact_positive_outputs(self):
         native = access.NativeAdapter()
+        native.work_deadline = time.monotonic() + 90
         native.country_module = vars(country)
         cases = [("load_profile", access.LOAD, (0, b"loaded private text never exported\n")),
                  ("profile_restricted", access.PROPERTIES, (0, access.PROPERTY_BYTES)),
@@ -260,6 +261,135 @@ class ConnectTests(unittest.TestCase):
             self.assertFalse(any(report["checks"].values()))
             self.assertFalse(report["radio_enable_attempted"])
             self.assertEqual(result.stderr, b"")
+
+
+class ActivationDiagnosticTests(unittest.TestCase):
+    @staticmethod
+    def value():
+        return {"status": "available", "nmcli_exit_code": 4,
+                "work_budget_exhausted": False, "full_wait_budget_available": True,
+                "device": {"status": "available", "state": 120, "reason": 53}}
+
+    def test_projection_has_closed_types_and_never_copies_private_fields(self):
+        value = self.value()
+        value.update(stdout="PRIVATE_SSID", stderr="PRIVATE_PSK", identifier="PRIVATE_IDENTIFIER")
+        projected = access.project_activation_diagnostic(True, value)
+        self.assertEqual(projected, self.value())
+        self.assertNotIn("PRIVATE", json.dumps(projected))
+        value["device"]["reason"] = 7
+        self.assertEqual(projected["device"]["reason"], 53)
+        self.assertIsNone(access.project_activation_diagnostic(False, value))
+        for key in self.value():
+            missing = self.value()
+            del missing[key]
+            self.assertEqual(access.project_activation_diagnostic(True, missing), {"status": "unavailable"})
+        cases = [("status", "PRIVATE"), ("nmcli_exit_code", True), ("nmcli_exit_code", 5),
+                 ("nmcli_exit_code", "PRIVATE"), ("work_budget_exhausted", 1),
+                 ("full_wait_budget_available", None), ("device", None)]
+        for key, bad in cases:
+            value = self.value(); value[key] = bad
+            self.assertEqual(access.project_activation_diagnostic(True, value), {"status": "unavailable"})
+        for field, bad in (("state", True), ("state", 31), ("reason", True), ("reason", 78), ("reason", -1)):
+            value = self.value(); value["device"][field] = bad
+            self.assertEqual(access.project_activation_diagnostic(True, value), {"status": "unavailable"})
+        for attempted in (None, 1, "PRIVATE"):
+            self.assertEqual(access.project_activation_diagnostic(attempted, self.value()), {"status": "unavailable"})
+
+    def test_fixed_device_fields_discard_labels_and_reject_unknown_enums(self):
+        result = access.device_failure_diagnostic((0, b"120 (PRIVATE_SSID)\n53 (PRIVATE_PSK)\n"))
+        self.assertEqual(result, {"status": "available", "state": 120, "reason": 53})
+        for raw in (b"120 (failed)\n78 (unknown)\n", b"31 (unknown)\n7 (known)\n",
+                    b"PRIVATE\n7 (known)\n", b"120 (failed)\n7 (known)\nPRIVATE\n",
+                    b"120 (failed)\n7 (PRIVATE\x00)\n", b"120 (failed)\n", b"x" * 4097):
+            self.assertEqual(access.device_failure_diagnostic((0, raw)), {"status": "unavailable"})
+        for response in (None, (False, b"120 (failed)\n53 (not found)\n"), (4, b""), (0, "PRIVATE"), []):
+            self.assertEqual(access.device_failure_diagnostic(response), {"status": "unavailable"})
+
+    def test_success_keeps_one_activation_without_device_query(self):
+        native = access.NativeAdapter(); native.work_deadline = 84
+        with patch.object(access.time, "monotonic", return_value=0), \
+                patch.object(native, "command", return_value=(0, b"PRIVATE_SUCCESS")) as command:
+            self.assertTrue(native.activate())
+        command.assert_called_once_with(access.UP, timeout=37)
+        self.assertEqual(native.activation_result, {
+            "status": "available", "nmcli_exit_code": 0, "work_budget_exhausted": False,
+            "full_wait_budget_available": True, "device": {"status": "unavailable"}})
+
+    def test_failed_up_captures_one_device_read_before_unchanged_cleanup(self):
+        for response in ((3, b"PRIVATE_TIMEOUT"), (4, b"PRIVATE_FAILURE"), (10, b"PRIVATE_MISSING"),
+                         (99, b"PRIVATE_UNREVIEWED"), None):
+            fixture = Fixture()
+            def command(argv, **kwargs):
+                if argv == access.UP:
+                    fixture.events.append("nmcli_up")
+                    return response
+                self.assertEqual(argv, access.FAILURE_DEVICE)
+                self.assertLessEqual(kwargs["timeout"], 1)
+                fixture.events.append("device_read")
+                return (0, b"120 (PRIVATE_STATE)\n53 (PRIVATE_REASON)\n")
+            fixture.command = command
+            def activate():
+                fixture.events.append("activate")
+                return access.NativeAdapter.activate(fixture)
+            fixture.activate = activate
+            result = access.connect(fixture)
+            self.assertEqual(result["error"], "connection_failed")
+            self.assertEqual(fixture.events, EXPECTED_ORDER[:16] + ["nmcli_up", "device_read", "radio_off", "radio_off_verified", "close"])
+            self.assertTrue(all(result["cleanup"].values()))
+            expected_code = response[0] if response is not None and response[0] in access.NMCLI_EXIT_CODES else None
+            self.assertEqual(result["activation_diagnostic"]["nmcli_exit_code"], expected_code)
+            self.assertEqual(result["activation_diagnostic"]["device"], {"status": "available", "state": 120, "reason": 53})
+            self.assertNotIn("PRIVATE", json.dumps(result))
+            fixture.events.clear(); fixture.failure = 1
+            self.assertIsNone(access.connect(fixture)["activation_diagnostic"])
+
+    def test_failure_snapshot_uses_only_work_budget_and_never_cleanup_reserve(self):
+        for finished in (83.5, 83.8, 84.0, 85.0):
+            native = access.NativeAdapter(); native.work_deadline, native.deadline = 84.0, 90.0
+            clock, calls = [70.0], []
+            def runner(argv, **kwargs):
+                calls.append((argv, kwargs))
+                if argv == access.UP:
+                    clock[0] = finished
+                    return None
+                return (0, b"30 (disconnected)\n0 (No reason given)\n")
+            native.lib = {"command": runner}
+            with patch.object(access.time, "monotonic", side_effect=lambda: clock[0]):
+                self.assertFalse(native.activate())
+            self.assertEqual(calls[0], (access.UP, {"timeout": 14.0, "limit": 4096}))
+            if finished == 83.5:
+                self.assertEqual(calls[1:], [(access.FAILURE_DEVICE, {"timeout": 0.25, "limit": 4096})])
+            else:
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(native.activation_result["device"], {"status": "unavailable"})
+            self.assertEqual(native.activation_result["work_budget_exhausted"], finished >= 84)
+            self.assertFalse(native.activation_result["full_wait_budget_available"])
+            self.assertEqual((native.work_deadline, native.deadline), (84, 90))
+
+    def test_snapshot_exception_or_projection_failure_cannot_change_cleanup(self):
+        for projection_fails in (False, True):
+            fixture = Fixture()
+            def command(argv, **_kwargs):
+                if argv == access.UP:
+                    fixture.events.append("nmcli_up")
+                    return (4, b"PRIVATE")
+                fixture.events.append("device_read")
+                raise OSError("PRIVATE_SNAPSHOT")
+            fixture.command = command
+            def activate():
+                fixture.events.append("activate")
+                return access.NativeAdapter.activate(fixture)
+            fixture.activate = activate
+            project = access.project_activation_diagnostic
+            with patch.object(access, "project_activation_diagnostic",
+                              side_effect=RuntimeError("PRIVATE_PROJECTION") if projection_fails else project):
+                result = access.connect(fixture)
+            self.assertEqual(result["error"], "connection_failed")
+            self.assertTrue(all(result["cleanup"].values()))
+            self.assertEqual(fixture.events[-3:], ["radio_off", "radio_off_verified", "close"])
+            self.assertEqual(fixture.events.count("nmcli_up"), 1)
+            self.assertEqual(fixture.events.count("device_read"), 1)
+            self.assertNotIn("PRIVATE", json.dumps(result))
 
 
 class CountryDiagnosticTests(unittest.TestCase):

@@ -1,11 +1,14 @@
 # Diagnostic du boot réseau TEST
 
-État au **10 octobre 2026**. La connexion au banc reste non confirmée.
-La lecture du retour réseau de l'ancienne variante précise l'étape atteinte ;
-elle ne qualifie pas le réseau, l'écran ou l'appairage iPhone. Le retour de
-la nouvelle variante diagnostique est distingué en fin de document.
+État au **11 octobre 2026**. Le nouveau reçu persistant localise l'arrêt à
+l'activation de la connexion : import, garde Wi-Fi, pays et demande d'allumage
+radio passent ; la connexion échoue et la radio est refermée. La cause exacte
+reste inconnue. Aucune connexion Wi-Fi ou SSH réussie n'est établie.
 
-## Observations vérifiées
+Les retours historiques et le [dernier relevé réduit](validation/2026-10-11-network-activation-return.json)
+sont distingués ci-dessous. Aucun ne qualifie l'écran ou l'appairage iPhone.
+
+## Retour historique sans diagnostic persistant
 
 - Copie complète de la SD acquise en lecture seule, relue localement et
   vérifiée par hash. L'original et tous les paramètres restent privés.
@@ -106,5 +109,73 @@ Wi-Fi rapporte dix contrôles réussis. Le rapport de boot contient son marqueur
 initial incomplet : ce n'est pas une preuve de l'étape d'une panne.
 
 Une nouvelle capsule liée à cet enrôlement a été signée, installée et relue,
-puis la carte éjectée. Le prochain boot réseau reste à effectuer ; ni une
-connexion ni l'accès SSH ne sont établis par ce retour hors ligne.
+puis la carte éjectée. Le boot réseau suivant a été effectué ; son retour est
+décrit ci-dessous, séparément de la validation d'enrôlement.
+
+## Retour réseau du 11 octobre 2026
+
+La lecture ciblée des deux reçus par `debugfs` 1.47.4, en mode read-only,
+a réussi après vérification de l'identité du média et du binding du rapport
+FAT. Aucun montage ext4, replay du journal, accès aux fichiers de clés ou
+lecture de la capsule réseau n'a été effectué par cette inspection. Le
+`PASS` porte sur la lecture ; le [relevé public](validation/2026-10-11-network-activation-return.json)
+indique `CONNECTION_FAILED` pour le résultat de connexion observé.
+
+- La garde Wi-Fi rapporte ses dix contrôles réussis.
+- `last-boot.json` est complet, à l'étape `connect`. L'import signé a réussi,
+  avec un nouvel import plutôt qu'une réutilisation du cache.
+- Le profil runtime est exact, chargé et restreint ; les bindings et
+  l'inventaire passent les contrôles précédant l'allumage radio.
+- Le contrôle pays rapporte des observations live cohérentes pour FR :
+  firmware, kernel et canaux autorisés passent les contrôles.
+- La commande d'allumage radio est acquittée, puis l'activation de connexion
+  échoue : `radio_enable_acknowledged=true`, `connection_acknowledged=false`,
+  erreur `connection_failed`.
+- Le nettoyage demande l'arrêt radio, reçoit son acquittement et vérifie
+  l'état désactivé. Aucun démarrage SSH n'est demandé par ce reçu.
+
+Les contrôles placés après l'activation restent à `false` parce qu'ils n'ont
+pas été atteints ; ils ne décrivent pas plusieurs échecs indépendants. Le reçu
+ne conserve ni le code de retour d'activation ni sa raison précise. Il ne
+permet donc pas de conclure à un mauvais mot de passe, à une incompatibilité
+du point d'accès ou à un défaut de disponibilité de l'interface.
+
+Le système ext4 demande une récupération de journal ; aucun replay ni
+réparation n'a été effectué. Des mises à jour en attente peuvent donc manquer
+et les reçus peuvent précéder le dernier boot. Cette inspection ciblée ne
+répète pas l'acquisition complète ni les 35 + 10 contrôles d'enrôlement.
+Le démontage préalable peut vider des écritures déjà en attente dans macOS :
+l'absence d'écriture émise par l'outil ne constitue pas une protection contre
+toutes les écritures depuis l'insertion.
+
+Le relevé public ne contient que la projection fermée des diagnostics et
+les limites de qualification. Les identifiants de boot, leur corrélation,
+les timestamps et les traces de commandes restent privés.
+
+## Diagnostic ajouté après ce retour
+
+Les sources conservent désormais le code de retour connu de `nmcli up`, si
+disponible, et deux indicateurs de budget : disponibilité des 37 secondes
+d'attente externe avant l'appel et épuisement du budget à sa sortie. Une
+commande sans résultat reste indéterminée : le runner commun ne distingue
+pas un timeout, une sortie trop grande ou une erreur de lancement.
+
+Sur échec seulement, une lecture de `GENERAL.STATE` et `GENERAL.REASON`
+observe l'interface avant l'arrêt radio. Elle est limitée à une seconde dans
+le budget de travail restant ; la réserve de nettoyage reste protégée.
+Seuls les codes numériques autorisés par NetworkManager 1.52 sont conservés,
+jamais les libellés, SSID, secrets ou sorties brutes. La projection du boot
+revalide indépendamment ces valeurs. Aucun nouvel essai de connexion, scan
+ou changement des contrôles pays n'est ajouté.
+
+Les [codes de sortie nmcli](https://networkmanager.dev/docs/api/1.52.0/nmcli.html#exit_status)
+et les [états et raisons d'interface](https://networkmanager.dev/docs/api/1.52.0/nm-dbus-types.html)
+décrivent des observations distinctes : un état relu après l'échec peut déjà
+avoir changé et ne prouve pas à lui seul un mauvais mot de passe.
+Cette extension n'est pas présente sur la SD du retour ci-dessus et n'a pas
+encore été testée sur le Pi.
+Les [1 039 tests macOS et Linux ARM64](validation/2026-10-11-activation-diagnostics-tests.json)
+passent, avec une revue indépendante du bornage et de la projection.
+Le lecteur hors ligne de la future image devra être mis à jour et épinglé
+pour valider le nouveau champ `connection.activation` ; les lecteurs de
+l'ancienne SD conservent leur schéma actuel.

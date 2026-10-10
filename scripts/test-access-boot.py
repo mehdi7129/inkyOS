@@ -53,6 +53,10 @@ COUNTRY_ERRORS = {"target_unverified", "source_pin_invalid", "lock_busy", "lock_
     "wifi_not_closed", "wlan0_mapping_unverified", "country_request_failed", "country_unconfirmed",
     "observation_unavailable", "runtime_timeout", "state_changed", "invalid_arguments", "interrupted"}
 COUNTRY_CHECKS = ("firmware_country_fr", "firmware_ccode_fr", "kernel_global_fr", "phy_label_reviewed", "channels_test_fr")
+# Independent of the connect module: diagnostics never widen their own schema.
+NMCLI_ACTIVATION_CODES = frozenset({0, 1, 2, 3, 4, 8, 10})
+NM_DEVICE_STATES = frozenset(range(0, 121, 10))
+NM_DEVICE_REASONS = frozenset(range(78))  # NetworkManager 1.52.1
 GATE_ERRORS = {"target_unverified", "manifest_invalid", "source_pin_invalid", "networkmanager_not_starting",
     "wlan_block_failed", "wlan_not_blocked", "state_write_failed", "state_readback_invalid",
     "state_changed", "runtime_timeout", "observation_unavailable", "invalid_arguments"}
@@ -85,6 +89,34 @@ def closed_observation(value, booleans, errors, *, checks=(), enums=None):
     return output
 
 
+def activation_diagnostic(value):
+    """Retain only closed numeric observations, never command output or labels."""
+    if value is None:
+        return None
+    unavailable = {"status": "unavailable"}
+    flags = ("work_budget_exhausted", "full_wait_budget_available")
+    if (type(value) is not dict or value.get("status") != "available"
+            or any(type(value.get(key)) is not bool for key in flags)
+            or "nmcli_exit_code" not in value):
+        return unavailable
+    code = value["nmcli_exit_code"]
+    if code is not None and (type(code) is not int or code not in NMCLI_ACTIVATION_CODES):
+        return unavailable
+    device = value.get("device")
+    if type(device) is not dict:
+        return unavailable
+    if device.get("status") == "unavailable":
+        observed = unavailable.copy()
+    elif (device.get("status") == "available"
+          and type(device.get("state")) is int and device["state"] in NM_DEVICE_STATES
+          and type(device.get("reason")) is int and device["reason"] in NM_DEVICE_REASONS):
+        observed = {"status": "available", "state": device["state"], "reason": device["reason"]}
+    else:
+        return unavailable
+    return {"status": "available", "nmcli_exit_code": code,
+            **{key: value[key] for key in flags}, "device": observed}
+
+
 def connection_diagnostic(value):
     output = closed_observation(value, ("passed", "connected", "radio_enable_attempted"), CONNECT_ERRORS, checks=CONNECT_CHECKS)
     if output is None or output["status"] != "available":
@@ -102,6 +134,7 @@ def connection_diagnostic(value):
             "country_request_acknowledged", "wifi_closed_verified"), COUNTRY_ERRORS, checks=COUNTRY_CHECKS)
     else:
         output["country"] = {"status": "unavailable"}
+    output["activation"] = activation_diagnostic(value.get("activation_diagnostic"))
     return output
 
 

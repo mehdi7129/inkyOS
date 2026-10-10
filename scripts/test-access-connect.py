@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import stat
 import time
 
@@ -40,7 +41,14 @@ RADIO_ON = (NMCLI, "radio", "wifi", "on")
 RADIO_OFF = (NMCLI, "radio", "wifi", "off")
 UP = (NMCLI, "--wait", "35", "connection", "up", "uuid", UUID, "ifname", "wlan0")
 DEVICE = (NMCLI, "-g", "GENERAL.STATE,GENERAL.NM-MANAGED,GENERAL.CON-UUID", "device", "show", "wlan0")
+FAILURE_DEVICE = (NMCLI, "-g", "GENERAL.STATE,GENERAL.REASON", "device", "show", "wlan0")
 BUDGET, CLEANUP_RESERVE = 90.0, 6.0
+ACTIVATION_TIMEOUT, DIAGNOSTIC_TIMEOUT = 37.0, 1.0
+DIAGNOSTIC_TEARDOWN_RESERVE = 0.25  # legacy command() allows 0.2 s after killing its child
+# NetworkManager 1.52.1 public enums, independent of any command output.
+NMCLI_EXIT_CODES = {0, 1, 2, 3, 4, 8, 10}
+NM_DEVICE_STATES = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120}
+NM_DEVICE_REASONS = frozenset(range(78))
 CHECKS = ("target_verified", "sources_and_enrollment_bound", "cache_authenticated", "bindings_unchanged_before_profile",
           "profile_inventory_closed", "wifi_initially_closed", "runtime_profile_exact", "profile_loaded",
           "loaded_profile_restricted", "country_live_verified", "bindings_unchanged_before_radio",
@@ -84,6 +92,48 @@ def project_country_diagnostic(attempted, value):
     return {"status": "available", "error": value["error"],
             **{name: value[name] for name in COUNTRY_BOOLEANS},
             "checks": {name: checks[name] for name in COUNTRY_CHECKS}}
+
+
+def project_activation_diagnostic(attempted, value):
+    """Retain only reviewed numeric enums and booleans, never command text."""
+    if attempted is False:
+        return None
+    unavailable = {"status": "unavailable"}
+    names = ("work_budget_exhausted", "full_wait_budget_available")
+    if (attempted is not True or type(value) is not dict or value.get("status") != "available"
+            or "nmcli_exit_code" not in value or any(type(value.get(name)) is not bool for name in names)):
+        return unavailable
+    code = value["nmcli_exit_code"]
+    if code is not None and (type(code) is not int or code not in NMCLI_EXIT_CODES):
+        return unavailable
+    device = value.get("device")
+    if type(device) is not dict:
+        return unavailable
+    if device == unavailable:
+        projected = unavailable
+    elif (set(device) == {"status", "state", "reason"} and device["status"] == "available"
+            and type(device["state"]) is int and device["state"] in NM_DEVICE_STATES
+            and type(device["reason"]) is int and device["reason"] in NM_DEVICE_REASONS):
+        projected = {"status": "available", "state": device["state"], "reason": device["reason"]}
+    else:
+        return unavailable
+    return {"status": "available", "nmcli_exit_code": code,
+            **{name: value[name] for name in names}, "device": projected}
+
+
+def device_failure_diagnostic(result):
+    """Parse fixed nmcli fields; labels are discarded even when syntactically valid."""
+    unavailable = {"status": "unavailable"}
+    if (type(result) is not tuple or len(result) != 2 or type(result[0]) is not int or result[0] != 0
+            or type(result[1]) is not bytes or len(result[1]) > 4096):
+        return unavailable
+    match = re.fullmatch(rb"([0-9]{1,3}) \([^\r\n\x00]*\)\n([0-9]{1,3}) \([^\r\n\x00]*\)\n", result[1])
+    if match is None:
+        return unavailable
+    state, reason = (int(part) for part in match.groups())
+    if state not in NM_DEVICE_STATES or reason not in NM_DEVICE_REASONS:
+        return unavailable
+    return {"status": "available", "state": state, "reason": reason}
 
 
 class ConnectError(ValueError):
@@ -137,6 +187,7 @@ class NativeAdapter:
     def __init__(self):
         self.auth = self.country = None
         self.country_setup_attempted, self.country_result = False, None
+        self.activation_attempted, self.activation_result = False, None
 
     def target(self):
         if not (sys.platform.startswith("linux") and platform.machine() == "aarch64"
@@ -284,8 +335,28 @@ class NativeAdapter:
         return self.command(RADIO_ON) == (0, b"")
 
     def activate(self):
-        result = self.command(UP, timeout=37)
-        return result is not None and result[0] == 0
+        self.activation_attempted = True
+        self.activation_result = {
+            "status": "available", "nmcli_exit_code": None, "work_budget_exhausted": False,
+            "full_wait_budget_available": self.work_deadline - time.monotonic() >= ACTIVATION_TIMEOUT,
+            "device": {"status": "unavailable"}}
+        result = self.command(UP, timeout=ACTIVATION_TIMEOUT)
+        self.activation_result["work_budget_exhausted"] = time.monotonic() >= self.work_deadline
+        if (type(result) is tuple and len(result) == 2 and type(result[0]) is int
+                and result[0] in NMCLI_EXIT_CODES):
+            self.activation_result["nmcli_exit_code"] = result[0]
+        activated = result is not None and result[0] == 0
+        if not activated:
+            # One read before radio-off, only from the remaining work budget.
+            # Never borrow cleanup time or retry activation to obtain diagnostics.
+            try:
+                remaining = min(DIAGNOSTIC_TIMEOUT, self.work_deadline - time.monotonic())
+                if remaining > DIAGNOSTIC_TEARDOWN_RESERVE:
+                    observed = self.command(FAILURE_DEVICE, timeout=remaining - DIAGNOSTIC_TEARDOWN_RESERVE)
+                    self.activation_result["device"] = device_failure_diagnostic(observed)
+            except BaseException:
+                pass
+        return activated
 
     def connected(self):
         return (self.command(ACTIVE) == (0, (UUID + ":wlan0\n").encode())
@@ -309,7 +380,7 @@ class NativeAdapter:
 def empty_result():
     return {"schema_version": 1, "kind": "test-access-connect-result", "passed": False,
             "connected": False, "error": None, "live_evidence": False,
-            "country_diagnostic": None,
+            "country_diagnostic": None, "activation_diagnostic": None,
             "checks": dict.fromkeys(CHECKS, False), "radio_enable_attempted": False,
             "cleanup": {"required": False, "radio_off_attempted": False, "radio_off_acknowledged": False,
                         "radio_off_verified": False},
@@ -327,6 +398,7 @@ def connect(adapter):
     try:
         # A reused adapter must never export a receipt from an earlier call.
         adapter.country_setup_attempted, adapter.country_result = False, None
+        adapter.activation_attempted, adapter.activation_result = False, None
         adapter.deadline = time.monotonic() + BUDGET
         adapter.work_deadline = adapter.deadline - CLEANUP_RESERVE
         def checked(name, operation, error):
@@ -387,6 +459,11 @@ def connect(adapter):
     except BaseException:
         # Diagnostic handling cannot alter connection or cleanup outcomes.
         result["country_diagnostic"] = {"status": "unavailable"}
+    try:
+        result["activation_diagnostic"] = project_activation_diagnostic(
+            adapter.activation_attempted, adapter.activation_result)
+    except BaseException:
+        result["activation_diagnostic"] = {"status": "unavailable"}
     return result
 
 

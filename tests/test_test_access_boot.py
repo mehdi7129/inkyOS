@@ -361,10 +361,56 @@ class DiagnosticProjectionTests(unittest.TestCase):
             self.assertEqual(record["gate"]["checks"], value["checks"])
             self.assertNotIn("PRIVATE", json.dumps(record))
 
+    def test_activation_projection_is_closed_and_copied(self):
+        source = {"status": "available", "nmcli_exit_code": 4,
+                  "work_budget_exhausted": False, "full_wait_budget_available": True,
+                  "device": {"status": "available", "state": 120, "reason": 53,
+                             "label": "PRIVATE_LABEL"}, "stderr": "PRIVATE_SECRET"}
+        self.connected["activation_diagnostic"] = source
+        observed = self.project()["connection"]["activation"]
+        self.assertEqual(observed, {"status": "available", "nmcli_exit_code": 4,
+            "work_budget_exhausted": False, "full_wait_budget_available": True,
+            "device": {"status": "available", "state": 120, "reason": 53}})
+        self.assertNotIn("PRIVATE", json.dumps(self.project()))
+        source["device"]["reason"] = 0
+        self.assertEqual(observed["device"]["reason"], 53)
+        for code in (None, 0, 1, 2, 3, 4, 8, 10):
+            source["nmcli_exit_code"] = code
+            self.assertEqual(self.project()["connection"]["activation"]["nmcli_exit_code"], code)
+
+    def test_activation_invalid_values_never_hide_connection_result_or_leak(self):
+        valid = {"status": "available", "nmcli_exit_code": 4,
+                 "work_budget_exhausted": False, "full_wait_budget_available": True,
+                 "device": {"status": "unavailable"}}
+        invalid = ["PRIVATE", [], {"status": "PRIVATE"}]
+        invalid.extend({**valid, key: value} for key, value in (
+            ("nmcli_exit_code", True), ("nmcli_exit_code", 9), ("nmcli_exit_code", "PRIVATE"),
+            ("work_budget_exhausted", 0), ("full_wait_budget_available", "PRIVATE"),
+            ("device", None),
+            ("device", {"status": "available", "state": True, "reason": 0}),
+            ("device", {"status": "available", "state": 31, "reason": 0}),
+            ("device", {"status": "available", "state": 120, "reason": True}),
+            ("device", {"status": "available", "state": 120, "reason": 78}),
+            ("device", {"status": "available", "state": 120, "reason": "PRIVATE"})))
+        for source in invalid:
+            self.connected["activation_diagnostic"] = source
+            projected = self.project()["connection"]
+            self.assertEqual(projected["activation"], {"status": "unavailable"})
+            self.assertEqual(projected["status"], "available")
+            self.assertEqual(projected["cleanup"], self.connected["cleanup"])
+            self.assertNotIn("PRIVATE", json.dumps(projected))
+        self.connected["activation_diagnostic"] = None
+        self.assertIsNone(self.project()["connection"]["activation"])
+        del self.connected["activation_diagnostic"]
+        self.assertIsNone(self.project()["connection"]["activation"])
+
     def test_independent_allowlists_match_producer_contracts(self):
         self.assertEqual(boot.IMPORT_ERRORS, importer.ERRORS)
         self.assertEqual(boot.CONNECT_ERRORS, connect.ERRORS)
         self.assertEqual(boot.CONNECT_CHECKS, connect.CHECKS)
+        self.assertEqual(boot.NMCLI_ACTIVATION_CODES, connect.NMCLI_EXIT_CODES)
+        self.assertEqual(boot.NM_DEVICE_STATES, connect.NM_DEVICE_STATES)
+        self.assertEqual(boot.NM_DEVICE_REASONS, connect.NM_DEVICE_REASONS)
         self.assertEqual(boot.COUNTRY_ERRORS, country.ERRORS | {"interrupted"})
         self.assertEqual(boot.COUNTRY_CHECKS, country.POLICY_CHECKS)
         self.assertEqual(boot.GATE_ERRORS, gate.ERRORS)

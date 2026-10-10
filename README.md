@@ -6,7 +6,7 @@ InkyOS prépare le système, ses dépendances et son premier démarrage. À term
 une carte microSD flashée permettra de configurer le cadre depuis l’application
 iOS. L’application et son protocole restent communs avec Inky Studio.
 
-> **Prototype expérimental — état au 10 octobre 2026.**
+> **Prototype expérimental — état au 11 octobre 2026.**
 > Aucune image prête à l’emploi n’est publiée. L’installation complète et le
 > premier appairage iPhone depuis InkyOS restent à qualifier.
 
@@ -19,7 +19,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Retour de la variante diagnostique vérifié en lecture seule : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; contexte SSH privé exporté. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Import signé cohérent sur le retour précédent, sans connexion confirmée. Une nouvelle capsule est installée pour la variante diagnostique ; son essai réseau reste à réaliser. |
+| Wi-Fi | Nouveau boot diagnostiqué : import signé, garde radio et pays France validés ; activation NetworkManager en échec, puis radio désactivée. Cause précise encore inconnue. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
@@ -39,21 +39,26 @@ backend `c31b13a` et iOS `1.0.0 (9)`. Le payload ARM64 et son manifeste restent
 épinglés ; la tête de la branche iOS ne remplace pas les corrections matériel
 et arrêt intégrées dans l'image.
 
-La dernière suite enregistrée compte **1 031 tests sur macOS et Linux ARM64**,
+La dernière suite enregistrée compte **1 039 tests sur macOS et Linux ARM64**,
 sans échec (4 skips macOS, 1 skip Linux). Les preuves comprennent le
 [candidat activation/drain construit](docs/validation/2026-10-04-test-access-lifecycle-image.json),
 les [contrôles SSH/runtime](docs/validation/2026-10-04-test-access-transport-return.json)
 et le [retour SD du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json).
-Le [diagnostic du 10 octobre](docs/BOOT-NETWORK-DIAGNOSIS.md) confirme l'import
-de la configuration Wi-Fi, mais ne permet pas encore d'identifier la cause
-exacte de l'échec réseau. La variante diagnostique conserve désormais des
+Le [diagnostic réseau](docs/BOOT-NETWORK-DIAGNOSIS.md) localise l'échec à
+l'activation de la connexion par NetworkManager, après import et validation
+du pays. Il ne permet pas d'attribuer l'échec au mot de passe.
+La variante diagnostique conserve des
 rapports privés bornés ; ses [tests logiciels et systemd](docs/validation/2026-10-10-persistent-boot-diagnostics.json)
 passent. L'[image correspondante est construite et vérifiée](docs/validation/2026-10-10-diagnostic-access-image.json) ;
 elle a été flashée et son [retour d’enrôlement](docs/validation/2026-10-10-diagnostic-sd-enrollment-return.json) a été vérifié.
 Cette analyse utilise un dérivé privé des fichiers et métadonnées, avec
 l’acquisition intégrale originale conservée. Les rapports diagnostiques
-persistent sur ce retour. La nouvelle capsule signée est installée et relue,
-la SD éjectée ; le prochain boot doit encore établir le réseau.
+persistent sur ce retour. La capsule signée a ensuite été installée et testée.
+Le [retour réseau suivant](docs/validation/2026-10-11-network-activation-return.json)
+confirme l'échec de connexion et la désactivation de la radio ; SSH n'a pas
+été demandé. Les sources ajoutent maintenant un diagnostic borné du code
+NetworkManager et de l'état de l'interface ; cette extension reste à tester
+sur le Pi.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les

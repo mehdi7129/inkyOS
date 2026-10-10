@@ -1,0 +1,44 @@
+{
+  "hardware_qualified": false,
+  "independent_review_passed": true,
+  "limits": [
+    "Failure-only numeric state snapshot, not an attestation of the original failure cause.",
+    "No new image built or deployed for this change yet.",
+    "Unknown command outcomes remain indeterminate; no credentials or command text retained.",
+    "Future-image return readers must accept and independently validate the new activation field."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "python": "3.13.5",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 1,
+    "tests": 1039
+  },
+  "macos": {
+    "errors": 0,
+    "failures": 0,
+    "python": "3.13.15",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 4,
+    "tests": 1039
+  },
+  "network_connection_tested": false,
+  "schema_version": 1,
+  "scope": "networkmanager-activation-diagnostics-software-validation",
+  "sd_modified": false,
+  "software_passed": true,
+  "source_sha256": {
+    "scripts/test-access-boot.py": "bde63ca69323ce41eae8ffe398b176c83d19f6a2ec487323d33991a84510e612",
+    "scripts/test-access-connect.py": "f4f03f99fb1552b9f77fdb4dae81510ecdf6e5a07dd7599bec193ae9be2a997c",
+    "tests/test_test_access_boot.py": "fb9aca17906102e330a54b22dca69a4be2503c31ac4f7e7605122aad2ac207cc",
+    "tests/test_test_access_connect.py": "e1fe8664b8a23b6de3d435df7aacdbec013e103585fdc504a8f112f477bcbf5b"
+  },
+  "target_boot_tested": false
+}

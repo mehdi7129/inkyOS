@@ -72,6 +72,13 @@ passe 35 contrôles ext4/FAT et 10 contrôles d'infrastructure, sur un dérivé
 e2image privé dont l'acquisition intégrale d'origine est conservée. Le nouveau
 contexte SSH remplace l'ancien pour le prochain essai.
 
+Le [retour réseau du 11 octobre](validation/2026-10-11-network-activation-return.json)
+précise le blocage : import signé, garde radio et pays FR passent, mais
+l'activation NetworkManager échoue ; la radio est ensuite désactivée et SSH
+n'est pas demandé. La cause exacte reste inconnue. Le diagnostic OS doit
+donc être résolu avant de reprendre l'essai applicatif ci-dessous ; aucun
+changement de protocole ou de payload Studio n'en découle.
+
 Ordre du prochain essai accompagné sur la SD dédiée :
 
 1. Vérifier la présence réseau ; si une adresse DHCP est trouvée, tester SSH

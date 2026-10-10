@@ -1,0 +1,161 @@
+{
+  "authenticated_ssh_qualified": false,
+  "diagnostics": {
+    "last-boot.json": {
+      "diagnostic": {
+        "application_activation_authorized": false,
+        "boot": {
+          "error": "connection_failed",
+          "passed": false,
+          "phase": "blocked",
+          "poweroff_requested": false,
+          "ssh_start_requested": false,
+          "status": "available",
+          "wifi_off_requested_on_failure": true
+        },
+        "complete": true,
+        "connection": {
+          "checks": {
+            "bindings_unchanged_after_connection": false,
+            "bindings_unchanged_before_profile": true,
+            "bindings_unchanged_before_radio": true,
+            "cache_authenticated": true,
+            "connection_acknowledged": false,
+            "country_guard_immediately_before_radio": true,
+            "country_live_verified": true,
+            "loaded_profile_restricted": true,
+            "loaded_profile_restricted_after_connection": false,
+            "loaded_profile_still_restricted": true,
+            "profile_inventory_closed": true,
+            "profile_inventory_still_closed": true,
+            "profile_inventory_unchanged_after_connection": false,
+            "profile_loaded": true,
+            "radio_enable_acknowledged": true,
+            "runtime_profile_exact": true,
+            "sources_and_enrollment_bound": true,
+            "target_verified": true,
+            "unique_wlan_connection_verified": false,
+            "wifi_initially_closed": true
+          },
+          "cleanup": {
+            "radio_off_acknowledged": true,
+            "radio_off_attempted": true,
+            "radio_off_verified": true,
+            "required": true
+          },
+          "connected": false,
+          "country": {
+            "checks": {
+              "channels_test_fr": true,
+              "firmware_ccode_fr": true,
+              "firmware_country_fr": true,
+              "kernel_global_fr": true,
+              "phy_label_reviewed": true
+            },
+            "country_request_acknowledged": true,
+            "country_set_attempted": true,
+            "error": null,
+            "live_evidence": true,
+            "status": "available",
+            "test_country_ready": true,
+            "wifi_closed_verified": true
+          },
+          "error": "connection_failed",
+          "passed": false,
+          "radio_enable_attempted": true,
+          "status": "available"
+        },
+        "connection_authorized": false,
+        "hardware_qualified": false,
+        "import": {
+          "error": null,
+          "imported": true,
+          "passed": true,
+          "reused_committed_cache": false,
+          "state": "imported",
+          "status": "available"
+        },
+        "kind": "test-access-boot-diagnostic",
+        "schema_version": 1,
+        "stage": "connect"
+      },
+      "status": "present_valid"
+    },
+    "last-wifi-gate.json": {
+      "diagnostic": {
+        "application_activation_authorized": false,
+        "complete": true,
+        "connection_authorized": false,
+        "gate": {
+          "checks": {
+            "networkmanager_start_pre": true,
+            "networkmanager_still_start_pre": true,
+            "sources_bound": true,
+            "sources_unchanged": true,
+            "state_disabled_readback": true,
+            "state_durably_written": true,
+            "target_verified": true,
+            "wlan_block_request_acknowledged": true,
+            "wlan_blocked_after_state": true,
+            "wlan_blocked_before_state": true
+          },
+          "error": null,
+          "passed": true,
+          "status": "available"
+        },
+        "hardware_qualified": false,
+        "kind": "test-access-wifi-gate-diagnostic",
+        "schema_version": 1
+      },
+      "status": "present_valid"
+    }
+  },
+  "display_qualified": false,
+  "hardware_qualified": false,
+  "inspection": {
+    "application_activated": false,
+    "application_issued_sd_writes": false,
+    "fat_enrollment_binding_verified": true,
+    "filesystem_mounted": false,
+    "filesystem_needs_recovery": true,
+    "journal_replayed": false,
+    "media_rechecks_passed": true,
+    "method": "debugfs-readonly",
+    "network_capsule_read": false,
+    "network_used": false,
+    "private_keys_read": false,
+    "read_only_open_verified": true,
+    "status": "PASS"
+  },
+  "interpretation": {
+    "connection_activation_succeeded_in_observed_receipt": false,
+    "country_live_checks_passed_in_observed_receipt": true,
+    "current_receipts_share_boot_id": true,
+    "exact_failure_cause_identified": false,
+    "failure_cleanup_radio_off_verified": true,
+    "import_succeeded_in_observed_receipt": true,
+    "latest_boot_independently_attested": false,
+    "observed_boot_differs_from_previous_enrollment_boot": true,
+    "password_rejection_established": false,
+    "post_connection_checks_reached": false,
+    "radio_enable_acknowledged_in_observed_receipt": true,
+    "ssh_start_requested_in_observed_receipt": false
+  },
+  "ios_pairing_qualified": false,
+  "limits": {
+    "activation_error_reason_recorded": false,
+    "activation_exit_status_recorded": false,
+    "enrollment_contract_and_infrastructure_checks_repeated": false,
+    "integral_sd_acquisition_performed_for_this_read": false,
+    "pending_journal_updates_may_be_unobserved": true,
+    "receipts_may_predate_latest_boot": true,
+    "unmount_may_flush_prior_pending_writes": true,
+    "write_blocking_from_insertion_established": false
+  },
+  "private_identities_published": false,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "targeted-offline-network-activation-return",
+  "status": "CONNECTION_FAILED",
+  "wifi_connection_qualified": false
+}
