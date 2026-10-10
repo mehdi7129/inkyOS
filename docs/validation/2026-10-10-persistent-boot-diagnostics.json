@@ -43,7 +43,7 @@
     "scope": "inert-systemd-diagnostic-storage-fixture",
     "sources": {
       "probe-test-diagnostic-storage.py": "b2cafbfbe37d08dba4afc936577aeebf63296a3ec7e0e21574d8ff4a007ac981",
-      "test-access-boot.py": "0ccd653f1837dfbaae37c1b44212c247c9a96d6b1c02466a63ea568d4d6e7e20",
+      "test-access-boot.py": "e942a418e3f2cd49d5ebbb8419b3ffa539d36ac333fbc6791391f799d2bf148f",
       "test-enrollment-firstboot.py": "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a"
     },
     "target_boot_tested": false
@@ -56,10 +56,21 @@
   "source_sha256": {
     "overlay-test-access/NetworkManager.service.d/10-inkyos-test-wifi.conf": "a3a47bd07a778d3916714dace420c7df856cc74eed0cb58a76aca6d8664f5b86",
     "overlay-test-access/inkyos-test-access.service": "71705cc1ee83dc8f8ac309f9951c7291a900b76766564f9f32ee8ccff0cd5038",
+    "scripts/build-test-access-linux.sh": "37f65999c9753b9bcb30f642ec60567c0d555c1d97ee30cdcb88caea4c74f20f",
+    "scripts/build-test-access.py": "3768e6b53dc85f75c3945cdafe147df2b5ec00d918c9bed7a46d550650de851f",
     "scripts/probe-test-diagnostic-storage.py": "b2cafbfbe37d08dba4afc936577aeebf63296a3ec7e0e21574d8ff4a007ac981",
-    "scripts/test-access-boot.py": "0ccd653f1837dfbaae37c1b44212c247c9a96d6b1c02466a63ea568d4d6e7e20",
+    "scripts/test-access-activation-gate.py": "535b144898fed68cf8284ac3adfdd33d79411b9e719819e5e5059f683013519c",
+    "scripts/test-access-activation.py": "20ab14bca9b5ef749ae3a65af9400dcdfb89fc59dfc96357b789395f357e6274",
+    "scripts/test-access-boot.py": "e942a418e3f2cd49d5ebbb8419b3ffa539d36ac333fbc6791391f799d2bf148f",
     "scripts/test-access-connect.py": "18cd6e8db329dbac753f4834d07013f4bc9a191555011578d2c9b2da7cce4da3",
-    "scripts/test-access-wifi-gate.py": "a0101dda10b56c176906114d8b23ba72e8aabb9e474bebc2c25d4c06cca8596f",
+    "scripts/test-access-contract.py": "6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68",
+    "scripts/test-access-drain.py": "afd9a6b02ca737c2598e9cbec177d9ab5af3e09758dec2f725a8e3803e0574a1",
+    "scripts/test-access-enrollment.py": "d0f45b332efd94a1ced7b721474743fcb90afc2d6a2a454bb6c76dea97f319a9",
+    "scripts/test-access-import.py": "7b56b55730e0107c0bf1e17fde5254804ab5fb4da8e28fc35746bf74aa026710",
+    "scripts/test-access-network.py": "c61f51f701344b9be98116799224de9aa6de48b7ba25f66808fbc3c80f085da1",
+    "scripts/test-access-policy.py": "7d3676fde6434235be4d66592da41996c5973aed5b1f226c0fd78462ffb355a9",
+    "scripts/test-access-wifi-gate.py": "0e0cd0d47451fdab057d043e98534e7de2345ed9d85033675e06e44e1c3c377a",
+    "scripts/test-operator-runner.py": "29d5e71cee7b568ad15e14f312b9bf476cef7fcea131bdc834c911b40efe3469",
     "tests/test_test_access_boot.py": "636dc94c2beeedca9dde75235d35c9d9197c07ae5a79ba20cb080f2d94577f55",
     "tests/test_test_access_connect.py": "5fb9fc066cc2d3ff6f2f4076fdcf86391e3e56c4e3ba8419ab30aec42f89ceea",
     "tests/test_test_access_wifi_gate.py": "a8f01a7c06180988314c1a2426dac0c9cb4c84851ea6555598c0aa602f096bff"

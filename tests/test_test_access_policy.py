@@ -36,7 +36,7 @@ class ProfileTests(unittest.TestCase):
     def test_exact_pins_new_schema_and_pure_calls(self):
         self.assertEqual(policy.SOURCE, "c31b13afdc957425571810c46230eaaf52fa5d14")
         self.assertEqual(policy.MANIFEST_HASH, "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1")
-        self.assertEqual(policy.PARENT_IMAGE_SHA256, "0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286")
+        self.assertEqual(policy.PARENT_IMAGE_SHA256, "dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595")
         with mock.patch("builtins.open", side_effect=AssertionError("Pure policy")):
             self.assertTrue(policy.validate_profile(profile()))
         self.assertEqual(set(profile()), policy.PROFILE_FIELDS)

@@ -26,7 +26,7 @@ ENROLLMENT_SHA256 = "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8
 PREFLIGHT = "/usr/local/lib/inkyos/test-lan-preflight.py"
 PREFLIGHT_SHA256 = "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba"
 ACCESS_POLICY = "/usr/local/lib/inkyos/test-access-policy.py"
-ACCESS_POLICY_SHA256 = "4f493e5fe1948b7f5c4c4db8d7ba6814a04af07da5e265cd4044f2d6b6139b89"
+ACCESS_POLICY_SHA256 = "7d3676fde6434235be4d66592da41996c5973aed5b1f226c0fd78462ffb355a9"
 ACCESS_MANIFEST = "/usr/local/share/inkyos/test-access-manifest.json"
 LIFECYCLE_PATHS = {
     **{"/usr/local/lib/inkyos/test-access-" + name + ".py": 0o555

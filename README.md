@@ -48,7 +48,8 @@ Le [diagnostic du 10 octobre](docs/BOOT-NETWORK-DIAGNOSIS.md) confirme l'import
 de la configuration Wi-Fi, mais ne permet pas encore d'identifier la cause
 exacte de l'échec réseau. La variante diagnostique conserve désormais des
 rapports privés bornés ; ses [tests logiciels et systemd](docs/validation/2026-10-10-persistent-boot-diagnostics.json)
-passent. Elle reste à intégrer au prochain essai sur SD.
+passent. L'[image correspondante est construite et vérifiée](docs/validation/2026-10-10-diagnostic-access-image.json) ;
+son flash et son essai matériel restent à réaliser.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les

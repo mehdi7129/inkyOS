@@ -1,0 +1,89 @@
+{
+  "artifacts": [
+    {
+      "application": {
+        "application_version": "0.5.0-rc.2",
+        "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+        "release_qualified": false,
+        "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+        "startup": "masked-pending-firstboot-contract"
+      },
+      "image_hash_verified": true,
+      "image_sha256": "dfb60ce3cdccd116aa7baaf63f68fb79f0231c74c097498965f2c61c9901e301",
+      "integrity_passed": true,
+      "kind": "application-prototype",
+      "size_bytes": 3061841920
+    },
+    {
+      "application": {
+        "application_version": "0.5.0-rc.2",
+        "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+        "release_qualified": false,
+        "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+        "startup": "masked-pending-firstboot-contract"
+      },
+      "image_hash_verified": true,
+      "image_sha256": "dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595",
+      "integrity_passed": true,
+      "kind": "test-lan-prepared",
+      "size_bytes": 3061841920
+    }
+  ],
+  "base_and_application_pins_unchanged": true,
+  "hardware_qualified": false,
+  "limits": [
+    "The old images are unavailable; only their hash-checked recorded inventories were compared.",
+    "New image hashes and all export receipts were verified.",
+    "The first native TEST LAN preparation exited without a detail; the retry rechecked the pristine parent before customization.",
+    "A new private access profile and enrollment are required; existing SD scripts must not be replaced individually."
+  ],
+  "native_retry": {
+    "export_tail_resumed": true,
+    "first_attempt_passed": false,
+    "first_failure_detail_available": false,
+    "pristine_input_rechecked_before_retry": true,
+    "retry_passed": true
+  },
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "rebuilt-inactive-test-lan-parent",
+  "sd_modified": false,
+  "stored_inventory_comparison": [
+    {
+      "differences": {
+        "bootfs": {
+          "added": [],
+          "changed": [],
+          "removed": []
+        },
+        "rootfs": {
+          "added": [],
+          "changed": [
+            "etc/inkyos-release.json"
+          ],
+          "removed": []
+        }
+      },
+      "scope": "stored-inventories-only-not-old-image-reverified"
+    },
+    {
+      "differences": {
+        "bootfs": {
+          "added": [],
+          "changed": [],
+          "removed": []
+        },
+        "rootfs": {
+          "added": [],
+          "changed": [
+            "etc/inkyos-release.json",
+            "etc/inkyos-test-lan.json"
+          ],
+          "removed": []
+        }
+      },
+      "scope": "stored-inventories-only-not-old-image-reverified"
+    }
+  ],
+  "target_boot_tested": false
+}

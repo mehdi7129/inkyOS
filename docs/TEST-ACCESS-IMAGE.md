@@ -1,6 +1,6 @@
 # Image privée pour le premier accès TEST
 
-État du 5 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
+État du 10 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
 le contrôle du pays, la connexion Wi-Fi, un accès SSH restreint et les workers
 d’[activation explicite et d’arrêt](TEST-ACCESS-LIFECYCLE.md). La
 [construction courante et ses vérifications](validation/2026-10-04-test-access-lifecycle-image.json)
@@ -9,6 +9,10 @@ le [retour complet du 5 octobre](validation/2026-10-05-sd-test-access-return.jso
 passe 35 contrôles ext4/FAT et 10 contrôles d’infrastructure en lecture seule.
 Le contexte SSH privé est exporté. L’accès réseau, l’affichage et l’appairage
 iPhone restent à effectuer.
+Le [diagnostic du retour réseau](BOOT-NETWORK-DIAGNOSIS.md) confirme l'import,
+mais aucune connexion. Le runtime conserve maintenant des rapports privés
+bornés. La [variante diagnostique construite et vérifiée](validation/2026-10-10-diagnostic-access-image.json)
+doit encore être flashée puis essayée sur la SD.
 La [première construction d’accès seule](validation/2026-10-04-test-access-image.json)
 reste une preuve historique distincte.
 
@@ -18,6 +22,14 @@ Le parent accepté est le TEST LAN inactif du candidat applicatif
 `c31b13afdc957425571810c46230eaaf52fa5d14`, manifest applicatif
 `c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1`,
 image parent
+`dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595`.
+Ce parent a été [reconstruit et vérifié le 10 octobre](validation/2026-10-10-rebuilt-test-lan-parent.json)
+depuis la même base figée et les
+mêmes archives applicatives vérifiées. Les hashes des images changent ; les
+inventaires enregistrés diffèrent seulement par les fichiers de provenance
+`etc/inkyos-release.json` et `etc/inkyos-test-lan.json`. Les anciennes images
+n'étant plus disponibles, cette comparaison ne revalide pas leurs octets.
+Les preuves du 4 et du 5 octobre désignent le parent historique
 `0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286`.
 La variante et son profil sont privés. Elle ne réutilise pas une identité
 issue d’une autre image ou d’une ancienne SD.

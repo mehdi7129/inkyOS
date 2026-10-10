@@ -1,0 +1,49 @@
+{
+  "application": {
+    "application_version": "0.5.0-rc.2",
+    "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+    "release_qualified": false,
+    "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+    "startup": "masked-pending-firstboot-contract"
+  },
+  "application_enabled_at_boot": false,
+  "application_initially_masked": true,
+  "build_source_hashes_match_software_tests": true,
+  "date": "2026-10-10",
+  "hardware_qualified": false,
+  "image_booted": false,
+  "image_size_bytes": 3061841920,
+  "image_validation": {
+    "checks": {
+      "access": 18,
+      "application": 26,
+      "pristine_parent": 17,
+      "system": 62
+    },
+    "ext4_fat_fsck_passed": true,
+    "filesystem_delta_allowlist_verified": true,
+    "passed": true,
+    "protected_boot_grow_files": 10,
+    "sudoers_verified": true,
+    "systemd_units_verified": true
+  },
+  "limits": [
+    "Private image, profile, image hash, operator key, network parameters and card identity are not published.",
+    "First boot creates a new enrollment and requests shutdown; a new signed capsule is required for the following network test.",
+    "No display, Wi-Fi, SSH or iPhone pairing has been qualified by this build.",
+    "The verifier checks export consistency; it does not boot the image or independently authenticate unsigned local manifests."
+  ],
+  "network_connection_tested": false,
+  "parent_image_sha256": "dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595",
+  "private_artifact": true,
+  "private_image_hash_rechecked": true,
+  "recipe_source_commit": "db034269a14c7585df9cf4962807819fa048d7ae",
+  "recipe_worktree_dirty": true,
+  "release_qualified": false,
+  "runtime_manifest_sha256": "bedfc3c6b9854bde2081b3b00ebfe5cc4d48c4cd4c1cbb7db9942a72dbd5277b",
+  "schema_version": 1,
+  "scope": "private-test-access-persistent-diagnostics-image",
+  "sd_preflight_passed": true,
+  "sd_written": false,
+  "software_evidence": "2026-10-10-persistent-boot-diagnostics.json"
+}

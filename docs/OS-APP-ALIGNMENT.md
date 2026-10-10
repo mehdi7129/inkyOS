@@ -121,3 +121,14 @@ payload n'est introduit.
 
 Les preuves publiques restent expurgées. Les profils réseau, clés, identités
 de cadres, adresses locales, photos et copies de SD bootées demeurent privés.
+
+## Variante diagnostique du 10 octobre
+
+La [nouvelle image TEST](validation/2026-10-10-diagnostic-access-image.json)
+conserve le backend `c31b13a`, son manifeste `c4183e7` et le couple iOS build 9.
+Le parent inactif a été reconstruit depuis les mêmes entrées vérifiées ; les
+programmes et profils d’accès sont liés au nouveau manifeste runtime. Les
+[rapports persistants](BOOT-NETWORK-DIAGNOSIS.md) concernent seulement le
+diagnostic système. Aucun protocole Studio ni build iOS supplémentaire n’est
+requis pour ce changement. Le nouveau cycle d’enrôlement, le réseau, l’écran
+et QR/BLE restent à observer sur le matériel.
