@@ -9,7 +9,8 @@ pas reproduites ici.
 **Complément du 10 octobre :** installation du build 9 confirmée par l'opérateur.
 Le [retour SD réseau](BOOT-NETWORK-DIAGNOSIS.md) contient un import Wi-Fi complet
 et cohérent, sans preuve de connexion validée. Le détail du dernier échec
-n'a pas été conservé. Préparer ce diagnostic avant de reprendre les étapes
+n'a pas été conservé. La variante diagnostique décrite en fin de document est
+désormais construite et vérifiée ; son essai sur SD précède la reprise des étapes
 réseau, activation et appairage ci-dessous ; aucun contrat applicatif ne change.
 
 ## Couple retenu pour le prochain essai
@@ -26,9 +27,10 @@ réseau, activation et appairage ci-dessous ; aucun contrat applicatif ne change
 
 La session Studio a revérifié App Store Connect le 9 octobre à 11:17 UTC :
 build 9 validé et affecté à un groupe interne, sans blocage de conformité.
-Sa disponibilité TestFlight est confirmée ; son installation sur l'iPhone
-et l'acceptation physique restent à observer. Les cinq checks de la PR #21
-consultés sur GitHub sont verts ; la PR reste ouverte.
+Au relevé du 9 octobre, sa disponibilité TestFlight était confirmée et son
+installation sur l'iPhone restait à confirmer. L'opérateur a confirmé cette
+installation le 10 octobre ; l'acceptation physique reste à observer. Les cinq
+checks de la PR #21 consultés le 9 octobre étaient verts ; la PR était alors ouverte.
 
 Les sources iOS et backend sont sur des branches parallèles. Remplacer le
 payload de la SD par la tête iOS ferait perdre les changements de packaging,
