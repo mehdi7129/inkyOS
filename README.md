@@ -31,11 +31,13 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Initialisation locale | [Service IPC et client Studio testés en Linux](docs/INITIALIZATION-IPC.md), sans installation dans l’image TEST. |
 | Création factory | [Exporter installé](docs/FACTORY-EXPORTER-PROPOSAL.md) et [quatre cas de composition](docs/FACTORY-INSTALLED-FIXTURE.md), dont reprise sans régénération ; premier boot complet encore à intégrer. |
 | Préparation du système | [30 tests du layout passif](docs/validation/2026-10-11-factory-passive-layout-tests.json), sans activation des services. |
-| Admission des processus | [31 tests Linux de la primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md) ; superviseur et chemins de lancement réels encore à raccorder. |
+| Admission des processus | [Primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md), [lanceurs](docs/FACTORY-WRITER-LAUNCHER.md) et [superviseur](docs/FACTORY-SUPERVISOR.md) développés ; [81 tests Linux ARM64](docs/validation/2026-10-11-factory-runtime-tests.json), sans skip. Les services et guards Studio restent à installer et qualifier. |
+| Suite locale actuelle | [1 467 tests macOS](docs/validation/2026-10-11-factory-runtime-tests.json), sans échec, avec 13 skips explicites. Le banc Linux de ce rapport porte sur le nouveau lot de 81 tests, pas sur toute la suite. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
-est une proposition documentaire commune ; il n’est pas encore activé.
+a un [candidat backend/iOS en draft](https://github.com/mehdi7129/inky-studio/pull/29) ;
+ses interfaces sont encore injectables, sans activation dans une image.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles

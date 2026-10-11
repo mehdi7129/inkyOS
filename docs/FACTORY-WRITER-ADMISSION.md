@@ -104,3 +104,9 @@ Le [banc synthétique du 11 octobre 2026](validation/2026-10-11-writer-admission
 passe 31 tests sous Linux ARM64 root, sans skip, dont les accès du writer
 UID/GID 1000. Sur macOS, 28 tests passent et les trois cas Linux root sont
 explicitement ignorés. Ces résultats ne changent aucune des limites ci-dessus.
+
+Le lot suivant fournit un [contrat et des lanceurs fermés](FACTORY-WRITER-LAUNCHER.md)
+et un [superviseur exécutable](FACTORY-SUPERVISOR.md). Il passe
+[81 tests Linux ARM64](validation/2026-10-11-factory-runtime-tests.json), dont
+un exec Python inerte conservant SH. Ce raccord n'est pas installé dans l'image ;
+ses tests PID1/cgroup et payloads restent des fixtures déclarées.

@@ -108,6 +108,14 @@ Le lock et le latch ne doivent jamais être supprimés/recréés par le cycle de
 vie `RuntimeDirectory` d’un service. Les effets PID1 sur les dossiers avant
 `ExecStart` restent aussi à contrôler.
 
+Le [contrat installé et les lanceurs](FACTORY-WRITER-LAUNCHER.md) ainsi que le
+[superviseur exécutable](FACTORY-SUPERVISOR.md) sont maintenant développés.
+Le [banc de 81 tests Linux ARM64](validation/2026-10-11-factory-runtime-tests.json)
+couvre les transitions avec de vraies leases et un exec Python inerte ; PID1,
+cgroups et payloads sont des fixtures. Aucun de ces fichiers n'est installé
+dans l'image TEST. L'app factory exigera un bundle root immuable à son chemin
+final, un support renouvelé et les guards Studio avant toute activation.
+
 Le graphe proposé utilise `Wants` et `After`, avec admission explicite. Une
 dépendance `Requires`, `Requisite`, `PartOf` ou `BindsTo` peut propager l’arrêt
 ou le restart de factory à l’app avant que le garde factory refuse. Les options
@@ -117,6 +125,13 @@ et sa [table de dépendances](https://github.com/systemd/systemd/blob/v257.13/sr
 pas sur un essai du graphe installé.
 
 ## État coordonné du candidat Studio
+
+Le [candidat bootstrap suivant, PR draft 29](https://github.com/mehdi7129/inky-studio/pull/29),
+développe les interfaces backend/iOS du parcours initial. Elles restent
+injectables et ne sont pas raccordées au démarrage installé. Le contrat OS
+exécutable peut servir à développer les guards en parallèle ; leur source
+complète est ensuite un input du bundle factory. La qualification d'une image
+ne constitue pas un préalable circulaire à l'écriture de ces guards.
 
 La revue du candidat `cf17a0514989023143798570a8ae47739b829301`
 confirme les points suivants. Ils décrivent le code candidat, pas les services

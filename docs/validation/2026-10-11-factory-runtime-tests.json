@@ -1,0 +1,79 @@
+{
+  "application_activated": false,
+  "boot_qualified": false,
+  "date": "2026-10-11",
+  "earlier_linux_run": {
+    "cause": "Synthetic parent directories inherited umask 077 and violated required public 0755 metadata.",
+    "correction": "Fixture creation explicitly chmods new directories; existing private parents and production checks are unchanged.",
+    "errors": 15,
+    "failures": 21,
+    "private_result_sha256": "eed97a4fcc847b6592ce16d592e7eee08e85b0a0f92e108f4945a4b95ee6e1f1",
+    "private_test_log_sha256": "6dbc3ae424a53a9facd93e03519233196193f89132c322bc44fefa0f646c6dd3",
+    "skips": 0,
+    "source_commit": "d826add29ab0afa8e4dc9c674a6c200388f51b01",
+    "status": "FAIL",
+    "tests": 80
+  },
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "installed_graph_qualified": false,
+  "limits": [
+    "Synthetic trees, declared inventories and inert child commands only. No installed image, Studio process, hardware or SD is accessed.",
+    "Linux root uses real ownership, xattrs, UID/GID 1000 and flock. Boot/mountinfo/NSS evidence is injected; no fresh /run or real reboot is established.",
+    "A real inert Python exec retains SH and excludes EX until it exits. The application and helper guards, legacy writers, actual service lifecycles and drains remain unqualified.",
+    "Supervisor PID1, cgroup and candidate adapters are inert. Worker and descendant states are simulated; no systemd unit is started by these tests.",
+    "The runtime requires a new complete pinned factory bundle and support including Python dist-packages, plus Studio guards and image installation. The existing TEST profile remains unchanged.",
+    "Ready only asserts completed factory admission. IPC readiness, pairing, time/country, Wi-Fi and physical display qualification remain separate.",
+    "macOS explicitly substitutes numeric ownership and the Linux xattr API; its two Linux root cases are skipped.",
+    "Both native attempts are preserved. The successful attempt uses corrected fixture metadata under the same umask 077; no production guard is relaxed."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "f923e0db1385fb5943cfa9fe2fccd9afcff1aab9db690de5ead26f06531f80cf",
+    "tests": 81,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 13,
+    "test_log_sha256": "74ceadd5d6059ba1c22f8c867aecdea6f9097020f3be5fd7c85a1483e324698f",
+    "tests_run": 1467
+  },
+  "macos_targeted": {
+    "errors": 0,
+    "failures": 0,
+    "ownership_and_xattr_api_substituted": true,
+    "python": "3.13.3",
+    "skipped": 2,
+    "tests_run": 81
+  },
+  "private_receipt_sha256": {
+    "completion.json": "ff43403f79d05a9e8180511b95496d2f17e7cb4369d58ad868279c5abcc36a29"
+  },
+  "schema_version": 1,
+  "scope": "fixed-factory-contract-launcher-and-supervisor-synthetic-runtime-tests",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "b75ce6e0f14cf140fddc9252c0864a9f8507e9a2",
+  "source_sha256": {
+    "scripts/factory-runtime-contract.py": "bd0f958a3073c30e7e2662e935cd8e6ff2a90dd937b5e5454665530cc98047e0",
+    "scripts/factory-supervisor.py": "79cf12aac02c7c80b99d1cdce3522885065890a133d4f276f6543bc130a0acf1",
+    "scripts/writer-launcher.py": "b7ff837423a5e5958bbd9bc723dd4e46462bb714bad417e1024e7b59aa78f213",
+    "staging/bootstrap/inkyos-admission-prepare.service": "8bda5a8691453353345c44bb90e6be1ffd687d888dc823af6746239316baf90e",
+    "staging/bootstrap/inkyos-factory-supervisor.service": "26b7cb8a1daf3858ce2f90afc0bb245d1ec6e8efd810c5772c2b13ee36b5c837",
+    "staging/bootstrap/writer-admission.py": "915d2a5c0d5d8dd0367dbbb351e70f884a4e4647ef22e6422b1c54032df27884",
+    "tests/test_factory_runtime_contract.py": "a650293069431281b3f679cd3f10cc644b99a00df4bf288e9fb5d33320822c53",
+    "tests/test_factory_supervisor.py": "bd1f561151a80d345a9e2325a63da976c9678c59bccd5b1ad691aaf17da76486",
+    "tests/test_writer_launcher.py": "7c87a9ef312e4425cc7d855b940bd1779d3fe2709af296c65b20cdcdae0d2a46"
+  },
+  "status": "PASS",
+  "writer_barrier_qualified": false
+}

@@ -180,6 +180,13 @@ la fin réelle des enfants ; ce launcher ne supervise pas leur durée de vie.
 
 ## Portée de la validation
 
+Le [rapport du 11 octobre 2026](validation/2026-10-11-factory-runtime-tests.json)
+consigne 81 tests Linux ARM64 root, sans skip, sur le contrat, les lanceurs et
+le superviseur. Il conserve aussi le premier échec des fixtures sous umask
+`077`, corrigé par des permissions explicites des nouveaux parents sans
+assouplir les gardes de production. La suite globale macOS passe 1 467 tests,
+avec 13 skips ; ce rapport ne lui attribue pas une exécution globale Linux.
+
 Les tests synthétiques couvrent mutations de pins, owners, liens, inventaires,
 contexte partiel/remplacé, groupes, absence de Ready, environnement fermé et
 nettoyage des FD. Un vrai `exec` Python inerte confirme que SH survit et bloque

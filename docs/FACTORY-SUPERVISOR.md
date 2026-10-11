@@ -90,6 +90,10 @@ Wi-Fi et produit prêt gardent leurs admissions et qualifications séparées.
 
 ## Preuves et limites
 
+Le [rapport du 11 octobre 2026](validation/2026-10-11-factory-runtime-tests.json)
+consigne 81 tests Linux ARM64 root, sans skip : 35 pour ce superviseur et
+46 pour le contrat et les lanceurs. Il ne démarre aucun service systemd.
+
 Les tests de ce lot utilisent de vraies leases de la primitive sur une racine
 synthétique, avec adapters PID1/cgroup/candidat inertes. Ils couvrent busy sans
 effet, tentative durable, résultat consumed, interruptions, replies de contrôle
