@@ -152,9 +152,9 @@ import. Les clients s'exécutent après le changement réel d'UID : leur vérifi
 Le harness normalise ensuite uniquement le résultat Python pour ses assertions ;
 il ne constitue pas une capture du wire.
 
-Son pin du probe natif historique n'est pas promu par ce lot. Avec le probe
-modifié pour la fixture de garde, il refuse jusqu'à un raccord explicite revu ;
-les résultats historiques ci-dessus restent associés à leurs anciennes sources.
+Son pin du probe natif est raccordé à la fixture de garde explicitement
+substituée. Ce raccord ne réexécute ni ne promeut le banc croisé ; les résultats
+historiques ci-dessus restent associés à leurs anciennes sources.
 
 Pour reproduire dans la VM marquée, copier les huit sources Studio listées dans
 `STUDIO_PINS`, depuis `server/` du commit exact, sous

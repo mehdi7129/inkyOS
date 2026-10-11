@@ -23,7 +23,7 @@ import sys
 import time
 
 STUDIO_COMMIT = 'da966c6bb6bbb74fae70e20044ff16282d99ef43'
-NATIVE_PROBE_SHA = '89b51afed9cd37c402350993710fec4cf4e5344779d209f9bb452670e9b0e87e'
+NATIVE_PROBE_SHA = '9cbb61a07223811a66429e876d3389d2010320b061e826be828b2d0b7da8c67a'
 STUDIO_PINS = {
     'inky_web/__init__.py': 'eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc',
     'inky_web/provisioning/__init__.py': 'fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f',
