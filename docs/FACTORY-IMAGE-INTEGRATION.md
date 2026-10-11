@@ -36,6 +36,32 @@ Le configurateur applicatif TEST crée actuellement un dossier `0755` et
 `photos/`. Un configurateur factory séparé doit préserver ces exigences TEST
 et préparer les données vierges attendues par le publisher.
 
+## Préparation offline du layout passif
+
+Les outils [configure-factory-rootfs.py](../scripts/configure-factory-rootfs.py)
+et [verify-factory-rootfs.py](../scripts/verify-factory-rootfs.py) préparent et
+vérifient ce layout séparément. Le CLI vise un workspace Linux privé, sous root,
+sans writer concurrent. Les sources épinglées et toutes les préconditions sont
+contrôlées avant la première écriture. Les fichiers sont créés exclusivement ;
+les fichiers et droits des répertoires préexistants ne sont pas remplacés.
+
+Le résultat contient les données vides `1000:1000/0700`, le marqueur générique,
+la permission non consommée et quatre modules OS root-owned `0555`. Les services
+Studio, helper et ancien cadre restent masqués. Les identités, états réseau,
+pays préconfigurés et voies systemd connus sont contrôlés sans afficher leurs
+valeurs. Le rapport reste limité à `offline-factory-layout` : il ne valide pas
+l’ensemble de l’image ni tous les emplacements possibles de données privées.
+
+Une erreur I/O peut laisser une préparation partielle. Un fichier réservé déjà
+créé fera refuser une nouvelle préparation ; les seuls répertoires génériques
+encore vides peuvent être acceptés. Aucun rollback ni nettoyage implicite n’est
+effectué. L’exporter, son support complet, les unités actives et le raccord au
+build restent des étapes séparées. Ces outils ne produisent pas une image
+flashable et ne constituent pas la barrière runtime des writers.
+Les [30 tests de layout](validation/2026-10-11-factory-passive-layout-tests.json)
+passent sur macOS et Linux ARM64. Seul le banc Linux root exerce les UID/GID
+0 et 1000 et l’API xattrs réels ; les fixtures macOS les substituent explicitement.
+
 ## Ordre de démarrage et admission des writers
 
 L’ordre à réaliser et à vérifier est :
@@ -89,9 +115,9 @@ Le lifecycle QR/claim et l’[admission d’heure](BOOTSTRAP-TIME-POLICY.md) doi
 ## Prochain lot et preuves attendues
 
 Le [test du hook avec l’exporter installé](validation/2026-10-11-factory-installed-composition-native.json)
-passe désormais ses quatre cas et la validation Studio. Le prochain lot est
-le configurateur et le verifier du layout factory passif, sans activation.
-Développer ensuite la barrière avec des writers synthétiques concurrents. Vérifier
+passe désormais ses quatre cas et la validation Studio. Le layout passif est
+développé et testé séparément. Le prochain lot est la barrière avec des writers
+synthétiques concurrents. Vérifier
 l’admission fermée en cas d’échec, l’absence d’interruption d’un travail actif,
 la reprise sans régénération et le graphe de services sans cycle.
 

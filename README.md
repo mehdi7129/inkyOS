@@ -43,6 +43,8 @@ création, reprise sans régénération et deux refus attendus, avec validation 
 credentials par Studio sous UID 1000. L’intégration au premier boot et les
 essais matériels restent à qualifier. Le [lot de recette factory](docs/FACTORY-IMAGE-INTEGRATION.md)
 recense les raccords OS/Studio encore nécessaires avant une image utilisable.
+Son préparateur offline passe [30 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-passive-layout-tests.json),
+sans activation de service ; il n’est pas encore raccordé au build d’image.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles

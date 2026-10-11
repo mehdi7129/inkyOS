@@ -55,7 +55,7 @@ du candidat Studio sont recensées dans
 
 Les trois corrections système sont maintenant intégrées dans une
 [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
-qui passe 132 contrôles offline. La suite complète compte
+qui passe 132 contrôles offline. Le dernier banc global consigné porte sur
 [1 273 tests par plateforme](validation/2026-10-11-factory-exporter-workspace-tests.json),
 sans échec. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
 son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.

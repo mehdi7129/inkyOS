@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-11",
+  "exporter_support_verified": false,
+  "full_image_verified": false,
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "image_code_executed": false,
+  "limits": [
+    "Synthetic filesystem trees only; no full image, image build, boot or media access.",
+    "macOS fixtures substitute the ownership values and unavailable xattr API explicitly; Linux root uses the real APIs and real UID/GID 0 and 1000.",
+    "Checks cover known identity, state, country and systemd entry points, not an exhaustive secret or boot partition audit.",
+    "The prepared layout contains a generic pending permission and four pinned OS modules. It generates no identity, credentials or initialization authority.",
+    "Persistent application/helper/legacy service masks do not qualify a runtime writer barrier or prevent manual application execution.",
+    "The TEST exporter support manifest does not cover the newly added factory modules; complete factory support and recipe integration remain separate steps."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "42c96c3abee14d97a1227bc89a2636aa9cea4adb974a349b1aab44a3122fcf35",
+    "tests": 30,
+    "uid": 0
+  },
+  "linux_fixture_app_gid": 1000,
+  "linux_fixture_app_uid": 1000,
+  "macos": {
+    "errors": 0,
+    "failures": 0,
+    "ownership_and_xattr_api_substituted": true,
+    "python": "3.13.3",
+    "skipped": 0,
+    "tests_run": 30
+  },
+  "private_receipt_sha256": {
+    "completion.json": "484d217b48e9cfdcb71ad3660db8c487e1473cad9026bdc9aee7595a38ee117b"
+  },
+  "schema_version": 1,
+  "scope": "passive-factory-layout-synthetic-filesystem-tests",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "4e0934668d39dde4a2ac9437b5688de12fd0ec32",
+  "source_sha256": {
+    "scripts/configure-factory-rootfs.py": "034cb8d2d5643c097bc783251979b212625d65558d2e88e5891a512ce0d59e72",
+    "scripts/factory-authority.py": "e5b04dd9ad617cf82c5476d2bc81c1ea1295bd3731c363ac4ed6f0ae5aeacb50",
+    "scripts/factory-credentials-publisher.py": "ae8d8898315631e4f5ed016fd21c1393073ae611137ece35c8f3fd4f9201bbfe",
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "scripts/initialization-server.py": "1c84ffaffe3c9c673a2d5bafcee928ac699a7c215895b78b8e3d76d3982d5ce1",
+    "scripts/inspect-rootfs.py": "11dc85e0cb811eef25968804bc26e049fbc0ff9a8b2f18cfadd9fb41eecf16af",
+    "scripts/verify-factory-rootfs.py": "797fd1043219fd36ff66f9b4aeb203e0475ba0f4505d12f84a1627c163000c84",
+    "tests/test_factory_rootfs.py": "e8bb915071377256927791be9fa6c5f021b72a729277a4fcb7259b19afff27fd"
+  },
+  "status": "PASS",
+  "writer_barrier_qualified": false
+}
