@@ -238,3 +238,34 @@ Ils couvrent notamment readiness retardée, absente ou invalide, budgets et acti
 unique. Ils ne réalisent aucune association Wi-Fi physique ou simulée par hwsim.
 La SD actuelle provient toujours des sources `07271cf` ; aucune nouvelle image
 n’a été construite ni flashée pour cette correction.
+
+## Retour avec état du périphérique
+
+Le [relevé réduit](validation/2026-10-11-network-device-state-return.json)
+provient de la lecture ciblée des deux rapports de la SD issue de `07271cf`.
+L’import, la garde radio et les contrôles du pays passent. L’activation renvoie :
+
+| Champ | Valeur observée | Sens dans NetworkManager 1.52.1 |
+|---|---|---|
+| Sortie nmcli | 4 | Échec d’activation ; ce n’est pas le code dédié au timeout (3). |
+| État wlan0 | 20 | Périphérique pris en gestion, mais indisponible. |
+| Raison d’état | 2 | Périphérique désormais pris en gestion. |
+
+Sources officielles : [codes nmcli](https://github.com/NetworkManager/NetworkManager/blob/1.52.1/src/nmcli/nmcli.h#L14-L28),
+[états et raisons](https://github.com/NetworkManager/NetworkManager/blob/1.52.1/src/libnm-core-public/nm-dbus-interface.h#L475-L525).
+La raison décrit le changement d’état ; ce n’est pas nécessairement la cause
+de l’échec d’activation. Le budget complet est disponible et le budget de travail
+n’est pas épuisé.
+
+Dans les sources de la SD, cet état est lu après l’échec de la commande, **avant**
+notre nettoyage qui désactive la radio. Il n’est donc pas produit par cette
+coupure. La disponibilité tardive est une hypothèse mieux étayée, que corrige
+`52ddfc1`, mais cet échantillon ne constitue pas un historique des transitions.
+Il ne prouve ni la cause exacte ni un rejet du mot de passe.
+
+Les deux rapports partagent le même identifiant de boot, conservé en privé.
+La lecture et ses contrôles de média passent ; le système de fichiers demande
+une récupération et aucun journal n’est rejoué. Les horodatages ne permettent
+pas d’attester indépendamment qu’il s’agit du dernier boot. La correction
+reste à intégrer à une image et à valider sur le Pi ; SSH, BLE et l’appairage
+iOS restent non qualifiés.

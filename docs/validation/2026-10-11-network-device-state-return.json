@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-11",
+  "scope": "targeted-offline-network-device-state-return",
+  "status": "CONNECTION_FAILED",
+  "source_sd_commit": "07271cf849e24d3a09307898d6fd166253f27a89",
+  "readiness_correction_commit": "52ddfc1a2040888f3d77196819029a74d234205b",
+  "readiness_correction_present_on_sd": false,
+  "inspection": {
+    "status": "PASS",
+    "read_only_open_verified": true,
+    "media_rechecks_passed": true,
+    "fat_enrollment_pin_verified": true,
+    "filesystem_mounted": false,
+    "filesystem_needs_recovery": true,
+    "journal_replayed": false,
+    "application_issued_sd_writes": false,
+    "network_capsule_read": false,
+    "private_keys_read": false,
+    "network_used": false
+  },
+  "observations": {
+    "import_passed": true,
+    "wifi_gate_passed": true,
+    "country_live_checks_passed": true,
+    "activation": {
+      "device": {
+        "reason": 2,
+        "state": 20,
+        "status": "available"
+      },
+      "full_wait_budget_available": true,
+      "nmcli_exit_code": 4,
+      "status": "available",
+      "work_budget_exhausted": false
+    },
+    "activation_diagnostic_observed_before_cleanup": true,
+    "radio_off_cleanup_verified": true,
+    "ssh_start_requested": false,
+    "application_activation_authorized": false
+  },
+  "interpretation": {
+    "nmcli_exit_code_name": "NMC_RESULT_ERROR_CON_ACTIVATION",
+    "device_state_name": "NM_DEVICE_STATE_UNAVAILABLE",
+    "device_reason_name": "NM_DEVICE_STATE_REASON_NOW_MANAGED",
+    "device_unavailable_before_our_radio_off": true,
+    "current_receipts_share_boot_id": true,
+    "latest_boot_independently_attested": false,
+    "password_rejection_established": false,
+    "readiness_race_consistent_with_observation": true,
+    "exact_failure_cause_established": false,
+    "hardware_fix_verified": false
+  },
+  "wifi_connection_qualified": false,
+  "authenticated_ssh_qualified": false,
+  "ios_pairing_qualified": false,
+  "bluetooth_qualified": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "private_identities_published": false,
+  "limits": [
+    "Device state and reason were sampled after the failed activation and before our radio-off cleanup, not as a complete transition history.",
+    "Exit 4 denotes activation failure, not a password-specific rejection; reason 2 denotes that the device is now managed.",
+    "The receipt is consistent with delayed device readiness but does not establish its exact cause.",
+    "The filesystem needs recovery; no journal replay was performed and pending updates may be absent.",
+    "The two receipts share a boot identifier; unreliable wall-clock timestamps do not independently prove freshness.",
+    "The current SD still lacks the readiness correction; no successful Wi-Fi or application trial is established."
+  ]
+}

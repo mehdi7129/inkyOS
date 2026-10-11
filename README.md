@@ -19,7 +19,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Nouveau candidat : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; nouveau contexte SSH privé exporté après nettoyage vérifié. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Retour réseau précédent : activation NetworkManager en échec après import, garde radio et pays validés. Une attente de disponibilité radio est corrigée et testée dans les sources ; elle n’est pas encore intégrée à la SD. |
+| Wi-Fi | Dernier rapport : activation en échec, interface encore indisponible avant le nettoyage. Import, garde radio et pays validés. L’attente de disponibilité est corrigée et testée dans les sources ; elle n’est pas encore intégrée à la SD. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
@@ -40,39 +40,23 @@ backend `c31b13a` et iOS `1.0.0 (9)`. Le payload ARM64 et son manifeste restent
 et arrêt intégrées dans l'image.
 
 La dernière suite enregistrée compte [**1 047 tests sur macOS et Linux ARM64**](docs/validation/2026-10-11-radio-readiness-tests.json),
-sans échec (4 skips macOS, 1 skip Linux). Les preuves comprennent le
-[candidat activation/drain construit](docs/validation/2026-10-04-test-access-lifecycle-image.json),
-les [contrôles SSH/runtime](docs/validation/2026-10-04-test-access-transport-return.json)
-et le [retour SD du 5 octobre](docs/validation/2026-10-05-sd-test-access-return.json).
-Le [diagnostic réseau](docs/BOOT-NETWORK-DIAGNOSIS.md) localise l'échec à
-l'activation de la connexion par NetworkManager, après import et validation
-du pays. Il ne permet pas d'attribuer l'échec au mot de passe.
-La variante diagnostique conserve des
-rapports privés bornés ; ses [tests logiciels et systemd](docs/validation/2026-10-10-persistent-boot-diagnostics.json)
-passent. L'[image correspondante est construite et vérifiée](docs/validation/2026-10-10-diagnostic-access-image.json) ;
-elle a été flashée et son [retour d’enrôlement](docs/validation/2026-10-10-diagnostic-sd-enrollment-return.json) a été vérifié.
-Cette analyse utilise un dérivé privé des fichiers et métadonnées, avec
-l’acquisition intégrale originale conservée. Les rapports diagnostiques
-persistent sur ce retour. La capsule signée a ensuite été installée et testée.
-Le [retour réseau suivant](docs/validation/2026-10-11-network-activation-return.json)
-confirme l'échec de connexion et la désactivation de la radio ; SSH n'a pas
-été demandé. Les sources ajoutent maintenant un diagnostic borné du code
-NetworkManager et de l'état de l'interface. La [nouvelle image privée](docs/validation/2026-10-11-nm-diagnostic-access-image.json)
-est construite, flashée et relue. Après le [relevé FAT préliminaire](docs/validation/2026-10-11-nm-diagnostic-enrollment-preliminary.json),
-son [retour d’enrôlement](docs/validation/2026-10-11-nm-diagnostic-enrollment-return.json)
-passe les 35 + 10 contrôles natifs. Cette fois, un dérivé `e2image` est transmis
-directement de la SD vers la VM, sans copie intégrale intermédiaire ; le hash
-du flux et la relecture dans la VM concordent. Le nouveau contexte privé est
-exporté après nettoyage vérifié. Sa capsule signée est installée et relue,
-la SD éjectée. Aucune connexion réseau réussie n’est encore qualifiée.
-L'inspection ciblée du retour réseau précédent ne trouve aucun journal système
-persistant dans son périmètre ; elle ne permet pas de préciser la cause.
-Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
+sans échec (4 skips macOS, 1 skip Linux). Le
+[retour d’enrôlement de l’image diagnostique](docs/validation/2026-10-11-nm-diagnostic-enrollment-return.json)
+passe 35 contrôles du système et 10 contrôles d’infrastructure. Son contexte
+SSH privé et sa configuration Wi-Fi signée ont été vérifiés.
 
-Une [correction de synchronisation radio](docs/validation/2026-10-11-radio-readiness-tests.json)
-attend désormais que NetworkManager soit prêt avant l’unique demande de connexion.
-La course est reproduite en simulation ; son rôle dans la panne réelle reste à établir.
-Cette correction est testée dans les sources, sans nouvelle image ni modification de la SD.
+Le [dernier diagnostic réseau](docs/validation/2026-10-11-network-device-state-return.json)
+confirme que le Pi démarre et importe sa configuration, puis échoue à connecter
+le Wi-Fi. NetworkManager renvoie le code 4 ; l’interface est encore indisponible
+(état 20, raison 2), avant sa désactivation par le nettoyage. Ces codes ne
+prouvent pas un refus du mot de passe. Le [dossier de diagnostic](docs/BOOT-NETWORK-DIAGNOSIS.md)
+détaille les observations et leurs limites.
+
+La [correction de synchronisation radio](docs/validation/2026-10-11-radio-readiness-tests.json)
+attend désormais que l’interface soit disponible avant de demander la connexion.
+Les tests passent ; le dernier retour renforce cette piste sans prouver sa cause
+exacte. La correction n’est pas encore intégrée à la SD ni validée sur le Pi.
+Aucun succès Wi-Fi, SSH, affichage ou appairage iPhone n’est annoncé pour ce parcours.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les
 prérequis, puis observer le welcome, une photo et l'adoption QR/BLE depuis une

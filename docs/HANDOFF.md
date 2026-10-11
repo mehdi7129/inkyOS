@@ -28,6 +28,13 @@ attend la disponibilité de NetworkManager avant l’unique activation ; 1 047 t
 passent sur macOS et Linux ARM64. La course est reproduite en simulation,
 sans cause matérielle établie. La SD actuelle, issue des sources `07271cf`,
 ne contient pas cette correction ; aucune nouvelle image n’a été construite pour elle.
+Le [retour réseau avec codes](validation/2026-10-11-network-device-state-return.json)
+confirme un échec d’activation 4, avec interface indisponible (20), venant
+d’être prise en gestion (raison 2), avant le nettoyage radio. Le budget n’est
+pas épuisé. Cela renforce la piste de disponibilité tardive, sans établir
+la cause exacte ni un rejet du mot de passe. La lecture des deux rapports
+est vérifiée ; leurs horodatages et le journal non rejoué limitent la preuve
+de fraîcheur. Aucun succès Wi-Fi/SSH ou applicatif n’est établi.
 Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 
