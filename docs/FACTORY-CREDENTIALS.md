@@ -94,9 +94,12 @@ de filesystem, notamment `fsync`. Les [27 cas de test](../tests/test_factory_cre
 locaux utilisent des racines synthétiques et des producteurs inertes : framing,
 EOF/exit, limites, timeouts, erreurs, symlinks, substitutions, writes courts,
 relecture et interruptions de processus. La suite macOS passe avec un cas
-Linux privilégié non exécuté (résultats locaux du 11 octobre 2026). Aucun vrai
-sérialiseur Studio, changement d’UID
-Linux, service, image ou comportement de SD n’est qualifié par ces résultats.
+Linux privilégié non exécuté (résultats locaux du 11 octobre 2026).
+Le [banc Linux ARM64 root séparé](validation/2026-10-11-factory-credentials-publisher.json)
+passe les 27 cas sans skip et vérifie les UID/GID réels, effectifs et sauvés à
+1000, avec groupes supplémentaires vides, dans un interpréteur inerte.
+Il n’exécute pas le vrai sérialiseur Studio ni son venv applicatif. Aucun
+service, image ou comportement de SD n’est qualifié par ces résultats.
 
 ```sh
 python3 -I -B -m unittest discover -s tests -p test_factory_credentials_publisher.py -v

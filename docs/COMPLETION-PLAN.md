@@ -63,7 +63,8 @@ Le vrai client Studio passe maintenant le [banc croisé Linux](validation/2026-1
 La [permission factory consommable](FACTORY-AUTHORITY.md) est développée et testée,
 sans installation dans une recette ni création des credentials applicatifs.
 Studio propose désormais un sérialiseur de credentials v2 à sortie privée ;
-le publisher OS est en cours de développement séparé. Leur composition doit
+le [publisher OS isolé](FACTORY-CREDENTIALS.md) passe ses fixtures macOS et
+Linux ARM64, sans raccord au hook ni à une image. Leur composition doit
 consommer la permission avant une unique génération, publier exclusivement
 le fichier individuel, puis créer l'autorité durable, sous le même verrou et
 avant tout autre processus applicatif. Une reprise après consommation ne

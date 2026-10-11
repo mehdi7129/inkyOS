@@ -28,6 +28,9 @@ sans échec (5 skips macOS, 1 skip Linux). Le [banc IPC natif](docs/INITIALIZATI
 vérifie séparément les droits des processus, la consommation unique de
 l’autorisation et la reprise après redémarrage.
 Le [vrai client Studio passe aussi le banc croisé Linux](docs/validation/2026-10-11-initialization-studio-native.json).
+Le [publisher de credentials factory](docs/FACTORY-CREDENTIALS.md) passe
+27 tests ciblés Linux, dont la chute effective de privilèges ; il reste à
+raccorder au hook et à qualifier avec le vrai sérialiseur Studio.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles
