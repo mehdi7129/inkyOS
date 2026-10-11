@@ -39,7 +39,7 @@ SOURCE_PINS = {
     'config/test-access-packages.lock.json': 'af97a2b51e5cd49f1d6520a39569c27fb8d90ea6cb812f285dcd5be5a36e6752',
     'staging/bootstrap/probe-factory-service-linux.py': '2e1cb8d8aaa5f05fd9127381c5175f4218eff89e1fd80ad0d01ee2606db17cc1',
     'staging/bootstrap/inkyos-factory-fixture.service': '69eed59cac22e76d0e152f02a0568672f47e1f898c017199e060367da36d6d3f',
-    'scripts/verify-factory-exporter-rootfs.py': '3141a500ea4e91eb967d37ec8e59cf07d7d11cd8e6112c42f34edbf070466e1b',
+    'scripts/verify-factory-exporter-rootfs.py': '3e77e24f682455efacd9cfdad35e651c5ee071af81e23dcc0f9ef25e7d47bcce',
     'scripts/manifest-rootfs.py': '54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0',
     'scripts/install-application-rootfs.py': 'f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695',
     'scripts/inspect-application-archives.py': '42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746',
