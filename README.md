@@ -7,7 +7,7 @@ backend, le Bluetooth et l’application iOS.
 Le parcours visé est simple : **allumer le cadre, scanner le QR, confirmer le
 pays, choisir le Wi-Fi et envoyer une photo**.
 
-> **Prototype expérimental — état au 11 octobre 2026.**
+> **Prototype expérimental — état au 12 octobre 2026.**
 > Aucune image prête à l’emploi n’est publiée. Le premier appairage iPhone et
 > le parcours complet sans LAN préalable restent à intégrer et à qualifier.
 
@@ -18,7 +18,8 @@ pays, choisir le Wi-Fi et envoyer une photo**.
 | Base | Raspberry Pi OS Lite ARM64 figé, assemblé offline dans une VM Linux dédiée. |
 | Pi de test | Boots physiques sur Pi Zero 2 W, identité persistante et agrandissement de partition observés. |
 | Réseau | Wi-Fi connecté et échanges SSH authentifiés observés sur l’image précédente. Le réseau de la nouvelle image et la stabilité dans la durée restent à qualifier. |
-| Nouvelle image TEST | **132 contrôles offline réussis**, puis [retour d’enrôlement vérifié : 35 + 10 contrôles](docs/validation/2026-10-11-prerequisites-enrollment-return.json). Capsule neuve copiée et relue, SD éjectée : prête pour le prochain boot réseau, sans reflash. |
+| Nouvelle image TEST | **132 contrôles offline réussis**, puis [retour d’enrôlement vérifié : 35 + 10 contrôles](docs/validation/2026-10-11-prerequisites-enrollment-return.json). Nouveau boot réseau lancé ; accès SSH non confirmé, application arrêtée. |
+| Image factory passive | [Assemblage réel en Linux ARM64](docs/validation/2026-10-12-factory-passive-image.json) avec le bundle Studio `a071f19` : 64 contrôles système, 4 contrôles layout et intégrité d’export réussis. Services masqués ; runtime et premier appairage encore à intégrer. |
 | Application | Backend épinglé, services masqués dans l’image. Welcome, photo, QR/BLE et arrêt actif restent à tester ensemble. |
 | Initialisation sans LAN | Service IPC local développé et banc Linux réussi ; il n’est pas installé dans l’image TEST. Le raccord backend/iOS est en cours. |
 | Écran | PCB 7,3″ dont les marquages corroborent l’ancienne famille sept couleurs ; driver physique et affichage non qualifiés. |
@@ -35,13 +36,13 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Admission des processus | [Primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md), [lanceurs](docs/FACTORY-WRITER-LAUNCHER.md) et [superviseur](docs/FACTORY-SUPERVISOR.md) développés ; [81 tests Linux ARM64](docs/validation/2026-10-11-factory-runtime-tests.json), sans skip. Les services et guards Studio restent à installer et qualifier. |
 | Bundle applicatif | [Planner et installation offline](docs/FACTORY-STUDIO-BUNDLE.md), [102 tests Linux ARM64](docs/validation/2026-10-11-factory-image-workspace-tests.json) des deux installers avec workspace commun et inputs synthétiques ; candidat réel et support encore à qualifier. |
 | Dépendances applicatives | [39 tests Linux ARM64 à `8102d08`](docs/validation/2026-10-11-factory-studio-dynamic-tests.json), sans skip, dont les métadonnées Dynamic ; fixtures uniquement. Les [33 tests précédents](docs/validation/2026-10-11-factory-studio-dependency-tests.json) restent liés à `619e4a0`. |
-| Métadonnées et plan réels | [34 wheels atteintes, 8 sources, 2 405 records attendus](docs/validation/2026-10-11-factory-studio-real-input-plan.json) pour Studio déclaré `a071f19`, outils `8102d08` ; aucune installation ni qualification support/ABI/runtime/image. |
+| Métadonnées et plan réels | [34 wheels atteintes, 8 sources, 2 405 records attendus](docs/validation/2026-10-11-factory-studio-real-input-plan.json) pour Studio déclaré `a071f19`, outils `8102d08`. Ce rapport statique précède l’assemblage passif et ne qualifie pas le support, l’ABI ou le runtime. |
 | Données packagées NumPy | [152 tests Linux ARM64](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans skip, pour la politique commune du planner et des installers ; aucune exécution du candidat. |
-| Suite locale actuelle | [1 650 tests macOS à `8102d08`](docs/validation/2026-10-11-factory-studio-dynamic-tests.json), sans échec, avec 15 skips explicites. Le [rapport précédent de 1 644 tests](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json) reste associé à `6d47776`. |
+| Suite locale actuelle | [1 697 tests macOS à `111aea3`](docs/validation/2026-10-12-factory-passive-image.json), sans échec, avec 15 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
-a un [candidat backend/iOS en draft](https://github.com/mehdi7129/inky-studio/pull/30) ;
+a un [candidat backend/iOS en draft](https://github.com/mehdi7129/inky-studio/pull/32) ;
 ses interfaces sont encore injectables, sans activation dans une image.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
@@ -53,8 +54,10 @@ La [relecture du flash SD](docs/validation/2026-10-11-system-prerequisites-sd-fl
 et le [retour d’enrôlement](docs/validation/2026-10-11-prerequisites-enrollment-return.json)
 sont vérifiés. La garde WLAN a ses 10 checks vrais ; le diagnostic de boot
 reste incomplet à `bind`, sans erreur enregistrée ni observation de connexion
-ou de Bluetooth. Wi-Fi, Bluetooth et application restent à tester sur cette
-nouvelle image après le prochain boot.
+ou de Bluetooth. Au nouveau boot, le nom réseau ne se résout pas et aucun
+échange SSH authentifié n’est confirmé. Cela ne permet pas de conclure à un
+problème de boot ou de mot de passe Wi-Fi. Wi-Fi, Bluetooth et application
+restent à tester sur cette nouvelle image.
 
 Le prochain essai accompagné conserve le couple **backend `c31b13a` / iOS
 `1.0.0 (9)`**, décrit dans [l’alignement OS/app](docs/OS-APP-ALIGNMENT.md).
