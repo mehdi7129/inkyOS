@@ -1,0 +1,83 @@
+{
+  "adjacent_probe_sha256": "8221fbf945b990cae76b37ff7be7da2ac2821681ef85c00fe7f090990ffb08cb",
+  "application_candidate_qualified": false,
+  "date": "2026-10-11",
+  "dependency_closure_qualified": false,
+  "elf_headers_only": true,
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "initial_macos_run": {
+    "cause": "Adjacent installed-probe source pin still referenced the previous common wheel parser; the reviewed one-line pin update resolves this mismatch without changing probe logic.",
+    "errors": 0,
+    "failures": 1,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 2,
+    "skipped": 15,
+    "source_commit": "3f1e6c6b7d1b5399cb5ce0ad08cb4586586d5b27",
+    "test_log_sha256": "4e12e998e5c67b49b038c6ec868ebd781cc5587d066dd90a5b1d891b111d45e7",
+    "tests_run": 1603
+  },
+  "limits": [
+    "The common parser preserves exactly its two exporter default wheel tags. Only the Studio adapter selects nine fixed reviewed filename-tag triplets, with exact expanded WHEEL tag equality.",
+    "The Studio planner and installer second pass share this adapter. No manifest tag-policy field, CLI bypass, runtime mutation or duplicate RECORD parser is introduced.",
+    "Native preflight checks only bounded ELF64 little-endian AArch64 headers, versions and header size, plus ET_DYN for shared-object suffixes. Any-tag wheels containing native payloads are refused.",
+    "Twelve pinned OS/test sources and synthetic inputs only: 46 exporter, 36 planner and 62 installer cases. The ELF payloads are inert 64-byte headers; no candidate wheel or native executable is loaded.",
+    "The exporter host-launcher fixture substitutes libc, process identity, capability, chroot and exec operations. The installer fixture substitutes workspace admission. Linux root uses actual file ownership, xattrs, descriptors and writes where these fixtures do not explicitly substitute observations.",
+    "The Linux run uses the production-source commit before the adjacent probe pin update; all twelve source hashes are verified unchanged in the final code commit.",
+    "The macOS full suite runs under umask 077 with 15 platform skips and documented ownership/xattr/symlink fixture adapters. The initial failed full run is retained.",
+    "No loader, symbol ABI, dependency closure, CPU, complete production CLI, support, service graph, application candidate, image, first boot or hardware qualification is established."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "exporter_cases": 46,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "planner_cases": 36,
+    "python": "3.13.5",
+    "skips": 0,
+    "source_commit": "3f1e6c6b7d1b5399cb5ce0ad08cb4586586d5b27",
+    "studio_installer_cases": 62,
+    "test_log_sha256": "201e34d36b85567ae11ad69ac84c52d27c7119e7abab1f3c5ba660966e5dadea",
+    "tests": 144,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 15,
+    "test_log_sha256": "ef79d7f6abba5869028f35948d5f7bec4bb41e0c2fab29d404d4cb566f8dcd4e",
+    "tests_run": 1603
+  },
+  "private_receipt_sha256": {
+    "initial_macos_completion.json": "bd575aca2d448252bd593780220446120956209f8fab2a37bc95c897dc214e33",
+    "linux_completion.json": "0c55762cb04d4b7d911d69cd8e8677fb39bfb7d40efec89301e3e909526d4757",
+    "linux_pins.json": "b99a7a2ff90a6034a4b433eda013bfdcfa9eeb584ef0a7087e9d29102d75d1b7",
+    "macos_completion.json": "55d31b77bc7c086785b925950672a54ff530ec5064d409b2c79e6c8d269767b9"
+  },
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "closed-studio-wheel-tags-and-native-header-preflight-fixtures",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "e1945256efe699c0bd0245feec33def56b11cc32",
+  "source_sha256": {
+    "scripts/factory-runtime-contract.py": "a855327fd195abc1e57c2f421bb649804ce2ffc66676d287efa217f9e1cbc40a",
+    "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+    "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+    "scripts/install-factory-exporter-rootfs.py": "147508859cfaf1d6f5058885b6a6ffb327abf871d7477032a1895125b16dba38",
+    "scripts/install-factory-studio-bundle-rootfs.py": "ac112e2bc8e082ec1c06fab16d0de674c99760da0c3af94da85a3f0693007daf",
+    "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+    "scripts/plan-factory-studio-bundle.py": "4466915eba302a07aa17a80d879e38dedff63b94a3ac77ccc4dd7f72361beeb1",
+    "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+    "scripts/verify-factory-exporter-rootfs.py": "3e77e24f682455efacd9cfdad35e651c5ee071af81e23dcc0f9ef25e7d47bcce",
+    "tests/test_factory_exporter_rootfs.py": "1916d9eaaddc20704f0c18ae5248f6ebac05caae9a948dff6ad6fc746de2290f",
+    "tests/test_factory_studio_bundle_install.py": "d0971f55d058b37d91f22f5d7d82e71e86ec36a5795bcd827338f553d9c9c891",
+    "tests/test_factory_studio_bundle_plan.py": "bd7f72295ee78f77930667c919531ed4257715656ae6a06f4cdce3816a990c92"
+  },
+  "status": "PASS",
+  "support_qualified": false
+}

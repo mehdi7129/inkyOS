@@ -260,3 +260,9 @@ observation xattrs Linux simulée et des symlinks Darwin ajustés par `lchmod` �
 exercer les syscalls et xattrs réels ; ces fixtures n'établissent pas le support
 système, les imports, dependencies, provenance, privacy, frontend, guards,
 graphe installé, premier boot ou matériel.
+
+La [validation des tags et headers ELF](validation/2026-10-11-factory-studio-wheel-policy-tests.json)
+exécute 144 cas synthétiques sur Linux ARM64 root sans skip, puis la suite Mac
+complète (1 603 tests, 15 skips). Elle conserve le premier échec de pin adjacent
+et sa correction relue. Elle ne qualifie ni les dépendances réelles, le loader,
+le support système, une image ni le matériel.
