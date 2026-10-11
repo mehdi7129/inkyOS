@@ -144,6 +144,11 @@ application ni connexion radio n’est lancée.
 
 ## Vérification du retour
 
+Le rapport d'installation des paquets est validé dans l'export attendu. Leurs
+fichiers ne sont pas relus sur le retour SD : ce contrôle reste une comparaison
+ciblée de l'enrôlement. Le préflight sur le Pi vérifie séparément leur présence
+requise ; aucun de ces contrôles n'atteste l'intégrité de tout le rootfs.
+
 `verify-test-access-return.py` compare le rapport v2, le profil, l’état,
 les programmes installés et les clés publiques avec l’export privé attendu.
 Les deux partitions doivent être montées en lecture seule. Le vérificateur

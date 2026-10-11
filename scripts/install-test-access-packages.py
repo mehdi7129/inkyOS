@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
+import re
 import shutil
 import signal
 import stat
@@ -133,10 +134,14 @@ def paragraphs(raw):
                 require(key is not None, 'Invalid control continuation')
                 row[key] += '\n' + line
             else:
-                require(': ' in line, 'Invalid control field')
-                key, value = line.split(': ', 1)
+                require(':' in line, 'Invalid control field')
+                key, value = line.split(':', 1)
+                require(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9-]*', key) is not None,
+                        'Invalid control field')
                 require(key not in row, 'Duplicate control field')
-                row[key] = value
+                # Debian status commonly emits "Conffiles:" with no inline
+                # value, followed by indented file/hash continuations.
+                row[key] = value.lstrip(' \t')
         identity = (row.get('Package'), row.get('Architecture'))
         require(all(type(x) is str and x for x in identity) and identity not in out, 'Duplicate package state')
         out[identity] = row

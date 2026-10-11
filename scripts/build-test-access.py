@@ -198,8 +198,9 @@ def private_directory(repo):
     raise ClosedError('private_directory_unavailable')
 
 
-def invoke(argv, *, input=None, destination=None, capture=False, timeout=900):
+def invoke(argv, *, input=None, destination=None, capture=False, timeout=900, merge_stderr=False):
     # Never forward raw command output: even an error may contain profile data.
+    require(not merge_stderr or (destination is not None and not capture))
     if destination is None:
         result = subprocess.run(argv, input=input, stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL, timeout=timeout)
@@ -207,7 +208,9 @@ def invoke(argv, *, input=None, destination=None, capture=False, timeout=900):
         fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, 'wb') as stream:
             os.fchmod(stream.fileno(), 0o600)
-            result = subprocess.run(argv, input=input, stdout=stream, stderr=subprocess.DEVNULL, timeout=timeout)
+            result = subprocess.run(argv, input=input, stdout=stream,
+                                    stderr=subprocess.STDOUT if merge_stderr else subprocess.DEVNULL,
+                                    timeout=timeout)
     require(result.returncode == 0)
     return result.stdout if capture else None
 
@@ -375,7 +378,8 @@ def main(argv=None):
                 'recipe_inputs_sha256': hashlib.sha256(read_regular(work / 'recipe-inputs.json')).hexdigest()}
         invoke(guest('sudo', 'python3', '-I', '-c', SEAL), input=canonical(seal))
         stage = 'offline_enrollment_build'
-        invoke(guest('sudo', 'bash', directory + '/recipe/scripts/build-test-access-linux.sh', directory))
+        invoke(guest('sudo', 'bash', directory + '/recipe/scripts/build-test-access-linux.sh', directory),
+               destination=work / 'native-build.log', merge_stderr=True)
         write_new(work / 'build.log', b'Offline enrollment preparation completed; target runtime was not started.\n')
         stage = 'private_reception'
         for name in VM_REPORTS:

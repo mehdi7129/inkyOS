@@ -159,6 +159,27 @@ def synthetic_package_fixture(parent_root=None):
             'state_after': state_after, 'report': report}
 
 
+class ControlParagraphTests(unittest.TestCase):
+    def test_empty_conffiles_with_continuation_and_following_field(self):
+        raw = (b'Package: fixture\nArchitecture: arm64\nConffiles:\n'
+               b' /etc/fixture.conf 0123456789abcdef0123456789abcdef\n'
+               b'Description: first line\n continuation\n\n')
+        row = packages.paragraphs(raw)[('fixture', 'arm64')]
+        self.assertEqual(row['Conffiles'], '\n /etc/fixture.conf 0123456789abcdef0123456789abcdef')
+        self.assertEqual(row['Description'], 'first line\n continuation')
+        self.assertEqual(packages.paragraphs(b'Package: fixture\nArchitecture: arm64\nConffiles:\n')
+                         [('fixture', 'arm64')]['Conffiles'], '')
+
+    def test_duplicate_and_invalid_fields_still_fail(self):
+        prefix = b'Package: fixture\nArchitecture: arm64\n'
+        for suffix in (b'Conffiles:\nConffiles:\n', b'not a control field\n',
+                       b': missing-name\n', b'Invalid Name: value\n'):
+            with self.subTest(suffix=suffix), self.assertRaises(packages.PackageError):
+                packages.paragraphs(prefix + suffix)
+        with self.assertRaises(packages.PackageError):
+            packages.paragraphs(b' orphan-continuation\n' + prefix)
+
+
 class PackageDeltaTests(unittest.TestCase):
     def setUp(self):
         self.fixture = synthetic_package_fixture()
