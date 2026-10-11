@@ -1,9 +1,29 @@
 # Intégration du profil factory dans l’image
 
 État du 12 octobre 2026. La recette dispose maintenant d'un profil intermédiaire
-`factory-passive`, développé et testé avec des fixtures. Aucune image de ce
-profil n'a été construite ni démarrée. Le profil TEST et son couple
+`factory-passive`. Une image privée a été assemblée et ses contrôles offline
+passent sur la source `111aea3`, avec le bundle Studio inactif `a071f19`.
+Ce profil n'a été ni flashé ni démarré sur un Pi. Le profil TEST et son couple
 backend `c31b13a` / iOS build 9 restent distincts.
+
+Le [rapport d'assemblage offline](validation/2026-10-12-factory-passive-image.json)
+conserve le premier échec et sa résolution. Le premier build refusait la sentinelle
+`machine-id` amont `0444` ; la lecture privée en RO a confirmé ses 14 bytes
+`uninitialized\n`, owner root, lien unique et métadonnées stables. Le contrôle
+accepte maintenant exactement `0444` ou `0644`, sans changer le fichier.
+Le build suivant utilise un workspace neuf ; l'image du premier échec est préservée.
+
+L'assemblage corrigé passe 64 contrôles système et les quatre contrôles du layout
+factory. Le bundle contient huit sources, 34 wheels et 2 405 entrées attendues ;
+son installation, sa relecture, l'inventaire final, les fsck et l'intégrité de
+l'export passent. Le même HEAD passe 1 697 tests macOS, avec 15 skips explicites,
+ainsi que la syntaxe de 23 scripts Bash. Ces résultats qualifient leurs couches
+offline ; ils ne prouvent pas le runtime de l'app ou le premier appairage.
+
+Les observations ciblées de fin de build ne trouvent plus l'image de travail ni
+loop, montage ou process lié. L'inventaire `/proc` exhaustif reste non confirmé :
+`mountinfo` d'un process zombie retourne `EINVAL`. Ce constat est conservé comme
+limite, sans le convertir en contrôle global de cleanup réussi.
 
 ## Recette intermédiaire inactive
 
@@ -120,8 +140,8 @@ et les services actifs ne font pas partie de cette option. Le seul raccord de
 workspace ne constitue pas leur installation ou leur enablement.
 
 Le configurateur applicatif TEST crée actuellement un dossier `0755` et
-`photos/`. Un configurateur factory séparé doit préserver ces exigences TEST
-et préparer les données vierges attendues par le publisher.
+`photos/`. Le configurateur factory séparé préserve ces exigences TEST
+et prépare les données vierges attendues par le publisher.
 
 Le [banc du workspace commun](validation/2026-10-11-factory-image-workspace-tests.json)
 passe 102 tests Linux ARM64 root sans skip (43 exporter, 59 installer Studio),
@@ -166,12 +186,12 @@ editable ni collisions. Le venv attendu est fixé à son chemin final sous
 `/usr/lib/inky-studio/server/.venv` ; aucun fichier de sortie pip n'est promu
 en référence attendue.
 
-Ce lot statique utilise des fixtures inertes. Il ne livre ni wheel app réelle,
-installation, support factory renouvelé ou candidat activable. La provenance
-de la wheel, ses dépendances, ses ressources frontend et sa confidentialité
-restent à vérifier avant d'en faire une entrée de recette. Le futur installer
-doit comparer l'arbre produit à ce manifeste avant freeze, puis vérifier la
-closure système propre au candidat complet.
+Le lot initial du planner utilisait des fixtures inertes. La recette passive
+compare maintenant le bundle installé à son manifeste attendu avant freeze,
+puis son inventaire final ; elle ne fournit pas de support factory actif ni
+de candidat activable. La provenance de la wheel, ses ressources frontend,
+sa confidentialité et sa closure système native restent à qualifier pour
+le candidat complet.
 
 ## Ordre de démarrage et admission des writers
 
