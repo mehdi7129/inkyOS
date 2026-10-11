@@ -34,15 +34,16 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Création factory | [Exporter installé](docs/FACTORY-EXPORTER-PROPOSAL.md) et [quatre cas de composition](docs/FACTORY-INSTALLED-FIXTURE.md), dont reprise sans régénération ; premier boot complet encore à intégrer. |
 | Préparation du système | [30 tests du layout passif](docs/validation/2026-10-11-factory-passive-layout-tests.json), sans activation des services. |
 | Admission des processus | [Primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md), [lanceurs](docs/FACTORY-WRITER-LAUNCHER.md) et [superviseur](docs/FACTORY-SUPERVISOR.md) développés ; [81 tests Linux ARM64](docs/validation/2026-10-11-factory-runtime-tests.json), sans skip. Les services et guards Studio restent à installer et qualifier. |
+| Contrats des services | [85 tests Linux ARM64](docs/validation/2026-10-12-factory-writer-units.json), sans skip, sur les templates et leurs influences statiques. Services encore hors de l’image ; graphe PID1 et application non qualifiés par ce banc. |
 | Bundle applicatif | [Planner et installation offline](docs/FACTORY-STUDIO-BUNDLE.md), [102 tests Linux ARM64](docs/validation/2026-10-11-factory-image-workspace-tests.json) des deux installers avec workspace commun et inputs synthétiques ; candidat réel et support encore à qualifier. |
 | Dépendances applicatives | [39 tests Linux ARM64 à `8102d08`](docs/validation/2026-10-11-factory-studio-dynamic-tests.json), sans skip, dont les métadonnées Dynamic ; fixtures uniquement. Les [33 tests précédents](docs/validation/2026-10-11-factory-studio-dependency-tests.json) restent liés à `619e4a0`. |
 | Métadonnées et plan réels | [34 wheels atteintes, 8 sources, 2 405 records attendus](docs/validation/2026-10-11-factory-studio-real-input-plan.json) pour Studio déclaré `a071f19`, outils `8102d08`. Ce rapport statique précède l’assemblage passif et ne qualifie pas le support, l’ABI ou le runtime. |
 | Données packagées NumPy | [152 tests Linux ARM64](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans skip, pour la politique commune du planner et des installers ; aucune exécution du candidat. |
-| Suite locale actuelle | [1 697 tests macOS à `111aea3`](docs/validation/2026-10-12-factory-passive-image.json), sans échec, avec 15 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
+| Suite locale actuelle | [1 717 tests macOS à `368be24`](docs/validation/2026-10-12-factory-writer-units.json), sans échec, avec 15 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
-a un [candidat backend/iOS en draft](https://github.com/mehdi7129/inky-studio/pull/32) ;
+a un candidat backend/iOS en draft ;
 ses interfaces sont encore injectables, sans activation dans une image.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
