@@ -56,7 +56,7 @@ du candidat Studio sont recensées dans
 Les trois corrections système sont maintenant intégrées dans une
 [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 qui passe 132 contrôles offline. Le dernier banc global local consigné porte sur
-[1 585 tests macOS](validation/2026-10-11-factory-studio-bundle-install-tests.json),
+[1 590 tests macOS](validation/2026-10-11-factory-image-workspace-tests.json),
 sans échec et avec 15 skips explicites. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
 son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.
 
@@ -105,6 +105,10 @@ Il ne fournit pas encore de wheel app réelle, de support complet ou de closure
 qualifiée. La première suite globale sous umask `077` a exposé une fixture
 ancienne dont le dossier `0755` devenait `0700` ; le test fixe maintenant ce
 mode explicitement. Le guard de production est inchangé et la suite repasse.
+Les deux installers acceptent maintenant un workspace commun strict :
+[102 tests Linux ARM64](validation/2026-10-11-factory-image-workspace-tests.json)
+passent sans skip, sur des fixtures déclarées. Le sélecteur de build factory et
+son support renouvelé restent à développer ; aucun profil TEST n'est modifié.
 Le [candidat Studio du parcours QR/Bluetooth](https://github.com/mehdi7129/inky-studio/pull/29)
 est une PR draft avec interfaces injectables ; son démarrage installé reste
 fermé. Il ne remplace pas le couple TEST actuel.

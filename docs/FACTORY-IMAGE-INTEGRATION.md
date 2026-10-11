@@ -57,6 +57,13 @@ Le configurateur applicatif TEST crée actuellement un dossier `0755` et
 `photos/`. Un configurateur factory séparé doit préserver ces exigences TEST
 et préparer les données vierges attendues par le publisher.
 
+Le [banc du workspace commun](validation/2026-10-11-factory-image-workspace-tests.json)
+passe 102 tests Linux ARM64 root sans skip (43 exporter, 59 installer Studio),
+ainsi que 1 590 tests macOS avec 15 skips. Les inputs et les seams d'admission
+sont des fixtures explicites ; le launcher host ne réalise pas de drop UID,
+chroot ou exec cible réel dans ce banc. Le sélecteur factory, le support et
+l'image complète restent à construire et qualifier.
+
 ## Préparation offline du layout passif
 
 Les outils [configure-factory-rootfs.py](../scripts/configure-factory-rootfs.py)

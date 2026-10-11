@@ -1,0 +1,65 @@
+{
+  "application_candidate_qualified": false,
+  "date": "2026-10-11",
+  "factory_build_profile_created": false,
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "limits": [
+    "Both offline installers and the exporter host launcher accept only the additional exact ASCII-alphanumeric factory-image workspace prefix, preserving their dedicated prefixes. No build profile, support lock, TEST payload or recipe selection is changed.",
+    "Eleven pinned OS/test sources and synthetic inputs only. Linux executes the 43 exporter fixture cases and 59 Studio materializer cases; the planner test module supplies fixture helpers only.",
+    "The host-launcher fixture explicitly substitutes libc, process identity, capability, chroot and exec operations. No target interpreter, actual capability or numeric UID/GID drop is established by this run.",
+    "The Studio installer uses an explicit synthetic workspace admission seam. Linux root tests exercise actual file ownership, xattrs, descriptors, exclusive writes and materialized readback where not explicitly substituted by the declared fixtures.",
+    "The new workspace cases exercise closed prefix/token checks, neighboring prefixes and unsafe workspace metadata/identity refusal. They do not qualify the complete production CLI or an assembled image.",
+    "The macOS full suite ran under umask 077 with 15 platform skips and declared ownership/xattr/symlink fixture adapters.",
+    "A complete opt-in factory recipe, actual Studio app wheel/dependency closure, refreshed system support, service graph, owner/time/country admission and physical first boot remain separate."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "exporter_cases": 43,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "studio_installer_cases": 59,
+    "test_log_sha256": "1c7db948f094e93da93a8b690dea930ef0bf2c58591171f7c98f9ed62d7466d4",
+    "tests": 102,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 15,
+    "test_log_sha256": "12ded42b89ed668bd0bfb16469e0c54aa222e015454b3f89f3f99670f3adc65c",
+    "tests_run": 1590
+  },
+  "private_receipt_sha256": {
+    "linux_completion.json": "135aa6dcf53c8ce3b6cd5f934d24878404b523c69bcc35d32563b310d13cfc0f",
+    "linux_pins.json": "8e1321956bb2b6bc042a6023bd27fd6e2c1b10ff6bbddf10fec8aa940c5fb50d",
+    "macos_completion.json": "b3ebf5066f99775ee2ff429fe02c86b51480f19d98d89cc1ab22571fe6e5856a"
+  },
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "shared-factory-image-workspace-admission-fixtures",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "6b21fd99dcd1f4bc7498359c28966ddf6e40e349",
+  "source_sha256": {
+    "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+    "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+    "scripts/install-factory-exporter-rootfs.py": "147508859cfaf1d6f5058885b6a6ffb327abf871d7477032a1895125b16dba38",
+    "scripts/install-factory-studio-bundle-rootfs.py": "023fa41d9f9a96375e75f2cdef08bdb3d43bcac93a2aeafd3904cd4d9b6e06da",
+    "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+    "scripts/plan-factory-studio-bundle.py": "4a8a1b11a62a3897626d3e4bc9c9c9aee07632d171a4d32e999f5f62269791c0",
+    "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+    "scripts/verify-factory-exporter-rootfs.py": "3141a500ea4e91eb967d37ec8e59cf07d7d11cd8e6112c42f34edbf070466e1b",
+    "tests/test_factory_exporter_rootfs.py": "608aa9ce9fedae10dd3b2bd57cb9e58ce7e610d68cdf8bed81319a8c92d7d42d",
+    "tests/test_factory_studio_bundle_install.py": "fc5a55b26632e6661b8f1163854a85df966a736db146d29cc4df50d5593b267f",
+    "tests/test_factory_studio_bundle_plan.py": "69d053d17fe6aef30657ec3df98ac2157b99dd7dfd45399eadd5270283c046dd"
+  },
+  "status": "PASS",
+  "system_support_qualified": false
+}
