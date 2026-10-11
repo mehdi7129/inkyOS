@@ -6,10 +6,12 @@ enfant, pip, build backend ou code candidat, et ne touche aucune image. Les
 records sont dérivés des octets épinglés **avant** tout futur build ; les hashes
 d'une sortie pip ou d'un arbre observé ne sont jamais promus en expected.
 
-La validation de ce lot porte uniquement sur des fixtures ZIP synthétiques.
-Aucune wheel app réelle ni aucun candidat factory n'est fourni ou qualifié par
-ce changement. Les pins TEST, le support exporter `096a…`, le contrat runtime et
-Studio restent inchangés.
+Les premiers lots ont été validés avec des fixtures ZIP synthétiques. Une
+[validation statique d'inputs réels](validation/2026-10-11-factory-studio-real-input-plan.json)
+est désormais consignée pour le commit Studio déclaré `a071f19`, avec les outils
+OS `8102d08`. Elle vérifie les métadonnées de dépendances et calcule les records
+attendus, sans installer ni qualifier le candidat. Les pins TEST, le support
+exporter `096a…`, le contrat runtime et Studio restent inchangés.
 
 ## Entrées fermées
 
@@ -178,19 +180,45 @@ wheels et records. Il déclare `image_code_executed: false` et
 `application_candidate_qualified: false`. Aucun manifest runtime, boot context,
 Ready, autorité ou credentials n'est produit.
 
+## Validation statique d'inputs réels
+
+Le [rapport associé aux outils `8102d08`](validation/2026-10-11-factory-studio-real-input-plan.json)
+consigne deux sorties réussies : les 34 distributions fournies sont atteintes
+depuis la wheel app avec l'extra `pi`, puis le planner dérive 2 405 records
+attendus pour 2 093 fichiers de payload, à partir de 34 wheels et 8 sources.
+Le manifest attendu porte le SHA-256
+`db58d3badc5921139dede5f0197a96c317745e68d2da5ab947de24f2a0f50673`.
+Les 58 fichiers d'entrée gelés et les 10 fichiers d'outillage ont été rehashés
+avant et après ; leurs octets sont inchangés. Seuls les hashes, commits et
+compteurs sont projetés publiquement, sans publier les inputs ou le manifest.
+
+Ce run s'exécute sur l'hôte macOS. Le tooling `packaging` épinglé est exécuté,
+mais aucun code candidat n'est importé ou exécuté. La cible des métadonnées est
+CPython 3.13.5 sur Linux ARM64 ; les champs livrés marqués `Dynamic` sont contrôlés
+comme les autres champs. Cela ne constitue ni une exécution sur cette cible,
+ni une installation, ni une preuve d'ABI ou de dépendances non déclarées.
+Les owners, modes et xattrs du plan restent des valeurs **attendues**.
+
+Le même rapport distingue la régression locale de 1 650 tests macOS, avec
+15 skips, et les 39 fixtures Linux du validator mis à jour, encore **non
+observées**. Les anciens rapports restent associés à leurs sources : les
+33 fixtures de dépendances à `619e4a0`, et les 152 fixtures NumPy à `6d47776`.
+Ces preuves historiques ne sont pas réattribuées à `8102d08`.
+
 ## Limites d'intégration
 
-Le mapping actuel `CLIENT_DIST` de Studio fondé sur `parents[2]/client/dist`
-ne désigne pas le frontend externe attendu après installation non editable.
-Ce planner conserve les chemins livrables et ne corrige ni ne prouve le frontend.
-Les imports, dependencies, resource paths et le fonctionnement réel de l'app
-nécessitent leur propre revue et validation.
+Le défaut de mapping `CLIENT_DIST` signalé sur les premiers candidats ne vaut
+pas constat sur les nouveaux octets `a071f19`. Ce run conserve les chemins
+livrables mais ne vérifie pas leur utilisation par le frontend. Les imports,
+dépendances non déclarées, resource paths et le fonctionnement réel de l'app
+nécessitent leur propre validation.
 
-Le support système factory renouvelé, les sources guardées Studio, la revue
-ELF/loader/OpenSSL, les identités, le build sous UID1000, la vérification postbuild,
-le graphe d'activation et le hardware sont hors de ce lot. Un futur installer
-devra revérifier les mêmes inputs et comparer l'arbre obtenu aux records attendus
-avant freeze ; ce plan n'est ni un snapshot des inputs ni une preuve de closure.
+Le support système factory renouvelé, le fonctionnement des guards Studio, la
+revue ELF/loader/OpenSSL, les identités, la provenance et la reproductibilité
+du build des wheels, le graphe d'activation et le hardware restent hors de ce
+run. L'installer devra revérifier les mêmes inputs et comparer l'arbre obtenu
+aux records attendus avant freeze ; le plan seul ne prouve pas cette installation
+ni la fermeture du runtime.
 
 ## Installation offline du bundle planifié
 
@@ -293,5 +321,7 @@ le support système, une image ni le matériel.
 Le [validator de dépendances offline](../vendor/build-tooling/README.md)
 vérifie séparément la closure runtime de la wheel applicative avec l’extra `pi`,
 en réutilisant ce preflight et le tooling épinglé hors bundle/rootfs. Ses
-[33 tests synthétiques](validation/2026-10-11-factory-studio-dependency-tests.json)
+[33 tests synthétiques à `619e4a0`](validation/2026-10-11-factory-studio-dependency-tests.json)
 passent sur Mac et Linux ARM64, sans qualifier par eux-mêmes un payload réel.
+La [validation réelle de métadonnées et du plan à `8102d08`](validation/2026-10-11-factory-studio-real-input-plan.json)
+est une observation séparée ; elle ne qualifie pas les imports ou le runtime.

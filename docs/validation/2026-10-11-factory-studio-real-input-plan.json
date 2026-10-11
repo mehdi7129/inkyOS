@@ -1,0 +1,90 @@
+{
+  "actual_candidate_metadata_verified": true,
+  "application_candidate_qualified": false,
+  "candidate_code_executed": false,
+  "date": "2026-10-11",
+  "expected_bundle_plan_derived": true,
+  "hardware_qualified": false,
+  "host_regression": {
+    "completion_sha256": "d04245f63f76f3f6906235832629f6e798faef4229a057f2cb073101a9b64bea",
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "platform": "macos",
+    "python": "3.13.3",
+    "skipped": 15,
+    "source_commit": "8102d08ef6a45550eba1ebca146b936ed4a52a94",
+    "test_log_sha256": "a4533ff68d061c154e10ec2d1d1cd9a1354c226407896545cd8d421f5907b401",
+    "tests_run": 1650,
+    "umask": "0077"
+  },
+  "image_accessed": false,
+  "input_integrity": {
+    "freeze_sha256": "97b8ef4bc5ca0b908a436005517c3f5f0c04cd60ff294f3699e7fe9bfd43c4ea",
+    "input_files_rehashed_before_and_after": 58,
+    "input_manifest_sha256": "e0f6f760a76209840395f721bf8c19b6e0097c4a18155e50489bc944e6db3803",
+    "inputs_unchanged": true,
+    "source_and_snapshot_tools_equal": true,
+    "tool_files_rehashed_before_and_after": 10
+  },
+  "installed_or_materialized": false,
+  "limits": [
+    "Observed success covers declared dependency metadata and expected bundle records from pinned real inputs. No candidate package, source, native extension or application was imported or executed.",
+    "The pinned packaging tool executes on the macOS host. Target metadata evaluation is fixed to CPython 3.13.5 on ARM64 Linux; this is not native target execution or an ABI test.",
+    "The app root extra is pi. All 34 selected wheel distributions are reached and all active declared constraints are checked, including delivered fields marked Dynamic. This does not prove that runtime imports or undeclared dependencies are complete.",
+    "The planned root ownership, modes and empty xattrs are expected metadata, not observations of a materialized bundle or image. The manifest excludes only itself.",
+    "The Studio commit is declared by the pinned input manifest. Source/build provenance, reproducibility, privacy and license qualification are not established by this run.",
+    "The host regression result uses macOS fixture adapters and 15 explicit skips. The updated 39-case Linux dependency suite is not observed in this report; older Linux fixture reports remain bound to their own commits.",
+    "No ELF loader closure, native ABI, installed import, frontend, writer guard, service graph, renewed system support, image, first boot, QR/BLE flow or hardware qualification is established."
+  ],
+  "metadata": {
+    "duration_seconds": 0.875,
+    "reached_distributions": 34,
+    "receipt_sha256": "98c3e98ffc8d88d8a908e31a0780e10535ab0c87fdab5f3f3d86e6de8fc75db7",
+    "returncode": 0,
+    "root_extras": [
+      "pi"
+    ],
+    "scope": "factory-studio-dependency-metadata-only",
+    "target": {
+      "architecture": "arm64",
+      "debian_release": "trixie",
+      "python_version": "3.13.5"
+    },
+    "wheel_files": 34
+  },
+  "native_dependency_fixture_suite": {
+    "source_commit": "8102d08ef6a45550eba1ebca146b936ed4a52a94",
+    "status": "not-observed",
+    "tests_expected": 39
+  },
+  "planner": {
+    "bundle_entries": 2405,
+    "bundle_manifest_sha256": "db58d3badc5921139dede5f0197a96c317745e68d2da5ab947de24f2a0f50673",
+    "bundle_manifest_size_bytes": 598255,
+    "duration_seconds": 0.561,
+    "payload_files": 2093,
+    "receipt_sha256": "1b7da5fe6b287823b85e81babaddb068f13dc5d05505d28564878611fc18f784",
+    "record_metadata": "expected-root-owned-no-xattrs",
+    "returncode": 0,
+    "scope": "factory-studio-bundle-plan-only",
+    "source_files": 8,
+    "wheel_files": 34
+  },
+  "private_receipt_sha256": {
+    "execution": "64cd431f396019a01d0c13ea284a04b8de85b6397d7cb1c081c3b4661e79c44a",
+    "preparation": "7ec929af49f97c405e6f51d79921948bfb9a5b8aef6668d4574f32573c9166a4"
+  },
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "real-input-static-metadata-and-plan-only",
+  "sd_accessed": false,
+  "secret_values_included": false,
+  "services_activated": false,
+  "source_commit": "8102d08ef6a45550eba1ebca146b936ed4a52a94",
+  "status": "PASS",
+  "studio_commit_declared": "a071f1974e4fffde588aa5c6042d654981705bc8",
+  "support_qualified": false,
+  "tooling_sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+}
