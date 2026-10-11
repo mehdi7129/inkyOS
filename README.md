@@ -36,11 +36,12 @@ passe aussi un [banc Linux isolé](docs/validation/2026-10-11-factory-studio-ser
 et le [superviseur passe dix cas](docs/FACTORY-SERVICE-FIXTURE.md).
 Le [runtime exporter dédié](docs/FACTORY-EXPORTER-PROPOSAL.md) est installé sur
 une copie d’image et [vérifié en Linux ARM64](docs/validation/2026-10-11-factory-exporter-native-install.json) :
-325 fichiers de payload et 390 entrées contrôlées. La génération depuis ce
-runtime, l’intégration du premier boot et les essais matériels restent à qualifier.
-Le [test de composition installé](docs/FACTORY-INSTALLED-FIXTURE.md) est maintenant
-développé : 41 fixtures inertes passent sur macOS ; son exécution native reste
-à réaliser. Le [lot de recette factory](docs/FACTORY-IMAGE-INTEGRATION.md)
+325 fichiers de payload et 390 entrées contrôlées.
+Le [test de composition installé](docs/FACTORY-INSTALLED-FIXTURE.md) passe
+52 fixtures inertes et un [banc Linux réel](docs/validation/2026-10-11-factory-installed-composition-native.json) :
+création, reprise sans régénération et deux refus attendus, avec validation des
+credentials par Studio sous UID 1000. L’intégration au premier boot et les
+essais matériels restent à qualifier. Le [lot de recette factory](docs/FACTORY-IMAGE-INTEGRATION.md)
 recense les raccords OS/Studio encore nécessaires avant une image utilisable.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)

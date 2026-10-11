@@ -88,8 +88,10 @@ Le lifecycle QR/claim et l’[admission d’heure](BOOTSTRAP-TIME-POLICY.md) doi
 
 ## Prochain lot et preuves attendues
 
-Après le test du hook avec l’exporter installé, développer le configurateur,
-le verifier et la barrière avec des writers synthétiques concurrents. Vérifier
+Le [test du hook avec l’exporter installé](validation/2026-10-11-factory-installed-composition-native.json)
+passe désormais ses quatre cas et la validation Studio. Le prochain lot est
+le configurateur et le verifier du layout factory passif, sans activation.
+Développer ensuite la barrière avec des writers synthétiques concurrents. Vérifier
 l’admission fermée en cas d’échec, l’absence d’interruption d’un travail actif,
 la reprise sans régénération et le graphe de services sans cycle.
 

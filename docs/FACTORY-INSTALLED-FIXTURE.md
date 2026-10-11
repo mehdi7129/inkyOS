@@ -3,7 +3,10 @@
 `staging/bootstrap/probe-factory-installed-linux.py` is an opt-in Linux ARM64
 fixture. Its unit tests are inert. It has no image installation target and does
 not alter the existing inert probe, service template or historical receipts.
-A native execution and its controller remain separate qualification steps.
+The [native execution](validation/2026-10-11-factory-installed-composition-native.json)
+passes all four cases and the separate Studio validation on Linux ARM64.
+Its 52 inert fixtures also pass. These results do not qualify an image boot
+or production writer exclusion.
 
 ## Controller contract
 

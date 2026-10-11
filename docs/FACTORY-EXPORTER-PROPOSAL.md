@@ -122,7 +122,10 @@ de l’image construit le venv sous UID/GID 1000 ; aucun code Studio n’est ex�
 pendant cette installation. La source reste inchangée et le montage, le loop
 et l’unité de build sont nettoyés.
 
-La génération depuis ce runtime, le hook composé, les reprises après
-interruption et les unités doivent encore être vérifiés ensemble avant
-l’intégration à une recette de premier boot. Cette installation ne qualifie ni
-une release applicative complète, ni un parcours d’appairage sur le matériel.
+Le [banc de composition installé](validation/2026-10-11-factory-installed-composition-native.json)
+vérifie désormais la génération depuis ce runtime, le hook et ses quatre cas
+sous systemd, puis la validation réelle des credentials par Studio. La reprise
+conserve les données dans une nouvelle unité ; elle ne prouve pas la récupération
+après coupure de courant. La barrière des writers et l’intégration à une recette
+de premier boot restent à réaliser. Ces bancs ne qualifient ni une release
+applicative complète, ni un parcours d’appairage sur le matériel.

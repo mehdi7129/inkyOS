@@ -1,0 +1,121 @@
+{
+  "application_candidate_complete": false,
+  "bundle_manifest_sha256": "734799342de9d03c8003baeda75d48e45339fbee319a7314f0aa5e3cbfd87c36",
+  "cases": [
+    {
+      "case": "fresh",
+      "cgroup_empty_after_stop": true,
+      "hook_result": {
+        "authority_status": "authorized",
+        "status": "created"
+      },
+      "pre_checks_passed": true,
+      "private_state_expected": true
+    },
+    {
+      "case": "restart",
+      "cgroup_empty_after_stop": true,
+      "hook_result": {
+        "authority_status": "authorized",
+        "status": "existing"
+      },
+      "pre_checks_passed": true,
+      "private_state_expected": true
+    },
+    {
+      "case": "consumed_no_authority",
+      "cgroup_empty_after_stop": true,
+      "hook_result": {
+        "error": "recovery_required",
+        "status": "refused"
+      },
+      "pre_checks_passed": true,
+      "private_state_expected": true
+    },
+    {
+      "case": "no_permission",
+      "cgroup_empty_after_stop": true,
+      "hook_result": {
+        "error": "permission_unavailable",
+        "status": "refused"
+      },
+      "pre_checks_passed": true,
+      "private_state_expected": true
+    }
+  ],
+  "checks": {
+    "all_case_units_stopped": true,
+    "cgroups_empty": true,
+    "credential_bytes_exported": false,
+    "independent_readonly_observation_passed": true,
+    "loop_detached": true,
+    "outer_unit_stopped": true,
+    "prepared_image_unchanged": true,
+    "rootfs_unmounted": true,
+    "source_image_unchanged": true
+  },
+  "completed_case_count": 4,
+  "contract": "factory-exporter-v2",
+  "date": "2026-10-11",
+  "factory_hook_executed": true,
+  "hardware_qualified": false,
+  "image_booted": false,
+  "image_recipe_activated": false,
+  "installed_serializer_executed": true,
+  "limits": [
+    "A native systemd fixture used a private, unbooted image copy with the installed exporter and exact bind overlays for the OS modules and fixture data. No SD or production image was changed.",
+    "ExecStartPre observes its own namespace and process, not those of ExecStart or the serializer. Builder and PID1 are trusted.",
+    "The real Studio parser and password verifier ran as numeric UID/GID 1000. Fixture credentials and passwords were kept private.",
+    "The restart case uses the same private state in a new unit; it is not a reboot, power-cut or interrupted-write test.",
+    "Four Studio sources and ten wheels do not constitute a complete application candidate. The production writer barrier, factory boot recipe, QR/BLE/Wi-Fi adoption and physical display remain separate qualification steps."
+  ],
+  "observer_sha256": "b22858da4677edd163fe353426fa096fbdf63babc702c43cf792bcccf44ecc2b",
+  "platform": "Linux ARM64",
+  "preliminary_attempt": {
+    "correction_commit": "cbc44a04d8c5567cf2b3df56ad7122d6884824c7",
+    "reason": "The observer refused the kernel-module mask created by ProtectKernelModules. This incompatibility was reproduced; the first predicate of the original opaque failure was not recorded. A fresh private copy was used after correction.",
+    "stage": "ExecStartPre",
+    "status": "FAIL"
+  },
+  "private_receipt_sha256": {
+    "completion.json": "d525ad6611a740669a08161385f91c5db0b79957fef075c99506e9c0e31e9d8f",
+    "execute.json": "04bcd05122ba326556fbd2453a5d1b2bc87ea16279ceee830c9a531ab6f78093",
+    "guest-execution.json": "06e1d95a1a02c6398752f35023b5eae7283ce80d5b5943bdb96270bd2509905e",
+    "guest-probe.stdout": "d91c88cbb890b0555ce9ee5da4ffc3b534843ea1a2ee371e01936331d28eeac8",
+    "observe.stdout": "0e89965fe480190e7a0eff06fe938da7f183d569c29f763d7aa24755e8686b01"
+  },
+  "schema_version": 1,
+  "scope": "installed-factory-composition-native-staging",
+  "serializer_gid": 1000,
+  "serializer_uid": 1000,
+  "source_commit": "cbc44a04d8c5567cf2b3df56ad7122d6884824c7",
+  "source_sha256": {
+    "config/base-image.lock.json": "b8dfe442703d1b2063f7006a28353427aa526858c31a2d9f73f4090dc86add18",
+    "config/factory-exporter.lock.json": "3738c252a1a7b9291f87fdaa3dde82705010e2c216b8a79784e6ff10fdfef853",
+    "config/system-packages.lock.json": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+    "config/test-access-packages.lock.json": "af97a2b51e5cd49f1d6520a39569c27fb8d90ea6cb812f285dcd5be5a36e6752",
+    "scripts/factory-authority.py": "e5b04dd9ad617cf82c5476d2bc81c1ea1295bd3731c363ac4ed6f0ae5aeacb50",
+    "scripts/factory-credentials-publisher.py": "ae8d8898315631e4f5ed016fd21c1393073ae611137ece35c8f3fd4f9201bbfe",
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+    "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+    "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+    "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+    "scripts/verify-factory-exporter-rootfs.py": "3141a500ea4e91eb967d37ec8e59cf07d7d11cd8e6112c42f34edbf070466e1b",
+    "staging/bootstrap/inkyos-factory-fixture.service": "69eed59cac22e76d0e152f02a0568672f47e1f898c017199e060367da36d6d3f",
+    "staging/bootstrap/probe-factory-installed-linux.py": "d1e8b3504d219b9b4bd4fc146af5ad5bbc2ed11d2aa2b3560023721664938097",
+    "staging/bootstrap/probe-factory-service-linux.py": "2e1cb8d8aaa5f05fd9127381c5175f4218eff89e1fd80ad0d01ee2606db17cc1"
+  },
+  "status": "PASS",
+  "studio_commit": "cf17a0514989023143798570a8ae47739b829301",
+  "studio_validation": {
+    "different_password_refused": true,
+    "password_verifies": true,
+    "record_v2_valid": true,
+    "status": "PASS",
+    "unprivileged_identity_verified": true
+  },
+  "support_manifest_sha256": "096a789157b561d9784fb6c22ba91961ef06093ad8f5d91a43add5ba5f814879",
+  "validator_sha256": "bb71a8c7231261890daa9dca066269111c9883512dbbb0e810328beffbbb12d9",
+  "writer_barrier_qualified": false
+}
