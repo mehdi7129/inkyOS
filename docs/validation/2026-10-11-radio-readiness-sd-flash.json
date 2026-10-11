@@ -1,0 +1,41 @@
+{
+  "authenticated_ssh_qualified": false,
+  "date": "2026-10-11",
+  "ejection": {
+    "device_nodes_absent": true,
+    "ejected": true,
+    "initial_attempt_failed": true,
+    "initial_failure_category": "macos_volume_in_use",
+    "media_registry_absent": true,
+    "same_medium_verified": true,
+    "sd_rewritten_during_recovery": false,
+    "separate_recovery_passed": true
+  },
+  "hardware_qualified": false,
+  "image_prefix_bytes": 3061841920,
+  "image_source_commit": "2e435c9684bc6a6c59f0e6bceec04fb540371444",
+  "ios_pairing_qualified": false,
+  "limits": [
+    "Write and readback cover only the image-length prefix; remaining SD bytes are not erased.",
+    "The original failed-ejection receipt is preserved; recovery is recorded separately without rewriting the card.",
+    "No Raspberry Pi boot or successful network connection is established for this new image.",
+    "The next boot enrolls and requests poweroff; a new verified context and signed capsule remain required before the network trial."
+  ],
+  "new_enrollment_verified": false,
+  "private_identities_published": false,
+  "readiness_correction_commit": "52ddfc1a2040888f3d77196819029a74d234205b",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "dedicated-sd-radio-readiness-image-write-readback-and-eject",
+  "status": "PASS",
+  "target_boot_tested": false,
+  "wifi_connection_qualified": false,
+  "write": {
+    "card_written": true,
+    "controller_cache_flush_acknowledged": true,
+    "pre_eject_media_recheck_passed": true,
+    "readback_hash_matches_pin": true,
+    "readback_verified": true,
+    "write_stream_hash_matched": true
+  }
+}

@@ -236,9 +236,9 @@ Les [tests de la correction](validation/2026-10-11-radio-readiness-tests.json)
 passent : 39 ciblés relus indépendamment, puis 1 047 sur macOS et Linux ARM64.
 Ils couvrent notamment readiness retardée, absente ou invalide, budgets et activation
 unique. Ils ne réalisent aucune association Wi-Fi physique ou simulée par hwsim.
-La SD actuelle provient toujours des sources `07271cf`. La
+La SD du retour réseau analysé provenait des sources `07271cf`. La
 [nouvelle image corrigée](validation/2026-10-11-radio-readiness-access-image.json)
-est construite depuis `2e435c9` ; elle n’est pas encore flashée.
+est construite depuis `2e435c9` ; son flash et sa relecture sont maintenant vérifiés.
 
 ## Retour avec état du périphérique
 
@@ -279,8 +279,11 @@ Les 123 contrôles offline passent : 18 de configuration, 17 du parent préparé
 62 du système et 26 de l’application. Le hash du connecteur corrigé est vérifié
 dans la recette et l’inventaire de l’image. Aucun secret réseau n’est incorporé.
 
-L’image n’est pas encore sur la SD. La recette conserve le parcours de test :
-flash, premier boot d’enrôlement et arrêt, retour SD pour les 35 + 10 contrôles,
+L’image est [flashée, relue et éjectée](validation/2026-10-11-radio-readiness-sd-flash.json).
+L’éjection initiale était bloquée par macOS ; une récupération séparée sur le
+même média a réussi, sans relancer l’écriture. Le reçu initial est conservé.
+La recette conserve le parcours de test :
+premier boot d’enrôlement et arrêt, retour SD pour les 35 + 10 contrôles,
 puis installation d’une capsule nouvellement signée avant le boot réseau.
 Le changement de manifeste interdit de réutiliser l’ancien contexte ou de
 remplacer seulement le connecteur sur la SD existante.
