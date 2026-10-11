@@ -1,0 +1,44 @@
+{
+  "application": {
+    "application_version": "0.5.0-rc.2",
+    "manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+    "release_qualified": false,
+    "source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+    "startup": "masked-pending-firstboot-contract"
+  },
+  "archived_recipe_sources_verified": true,
+  "authenticity_verified": false,
+  "base_and_application_pins_unchanged": true,
+  "bit_reproducibility_qualified": false,
+  "declared_report_hashes_verified": true,
+  "export_integrity_passed": true,
+  "filesystem_delta_allowlist_verified": true,
+  "hardware_qualified": false,
+  "image": {
+    "filename": "inkyos-test-lan-prepared.img",
+    "sha256": "2b946f688cf1689c38cdceb63ee467aad99541a311693b7443c10c3efb8bad3a",
+    "size_bytes": 3061841920
+  },
+  "image_hash_verified": true,
+  "limits": [
+    "The deleted previous parent image was not reconstructed from a personalized image and was not reverified.",
+    "The new image has its own hash and archived recipe; the worktree was dirty and is not represented as a clean commit build.",
+    "Hash and recorded inventory consistency do not establish bit-for-bit reproducibility or independent authenticity.",
+    "This is a generic inactive prepared parent, not a new private access image, enrollment, network or hardware result."
+  ],
+  "no_active_application": true,
+  "protected_boot_grow_files_verified": 10,
+  "prototype_image_sha256": "0421d04b61149d42cc455be4704ea115018c2110101da91b5a46ef5e2bd0bcc2",
+  "ready_for_activation": false,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "rebuilt-inactive-test-lan-parent",
+  "sd_modified": false,
+  "source_recipe": {
+    "archived_recipe_sha256": "cd13c36c18be67a0a268513d3bb6c2f4b6f7f59bb715fb40396bb2a6739df07d",
+    "preflight_sha256": "e22ee8b73637510cee3df55509eb9f6a8ad5893834e1fd9c571b56885b216996",
+    "source_commit": "851007f62b7198bbd5892b2b7b1f52592327a360",
+    "worktree_dirty": true
+  },
+  "target_boot_tested": false
+}

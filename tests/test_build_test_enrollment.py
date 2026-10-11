@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -37,13 +38,18 @@ def parent_fixture():
 
 class EnrollmentBuilderTests(unittest.TestCase):
     def test_help_and_invalid_arguments_do_not_touch_inputs_or_print_private_values(self):
-        result = subprocess.run(['bash', str(SCRIPT), '--help'], capture_output=True, timeout=3)
+        # Make may export PYTHON as a command including flags. The wrapper's
+        # PYTHON contract is one executable; exercise the active test Python.
+        environment = dict(os.environ, PYTHON=sys.executable)
+        result = subprocess.run(['bash', str(SCRIPT), '--help'], capture_output=True, timeout=3,
+                                env=environment)
         self.assertEqual(result.returncode, 0)
         self.assertIn(b'--country', result.stdout)
         self.assertIn(b'--operator-public-key', result.stdout)
         for args in (['PRIVATE_PARENT'], ['PRIVATE_PARENT', '--country', 'PRIVATE_COUNTRY'],
                      ['PRIVATE_PARENT', '--country', 'FR', '--profile', 'PRIVATE_PROFILE']):
-            result = subprocess.run(['bash', str(SCRIPT), *args], capture_output=True, timeout=3)
+            result = subprocess.run(['bash', str(SCRIPT), *args], capture_output=True, timeout=3,
+                                    env=environment)
             self.assertNotEqual(result.returncode, 0)
             self.assertNotIn(b'PRIVATE_', result.stdout + result.stderr)
             self.assertNotIn(b'Traceback', result.stderr)

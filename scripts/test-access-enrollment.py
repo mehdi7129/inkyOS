@@ -22,7 +22,7 @@ import types
 LEGACY_PATH = "/usr/local/lib/inkyos/test-enrollment-firstboot.py"
 LEGACY_SHA256 = "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a"
 POLICY_PATH = "/usr/local/lib/inkyos/test-access-policy.py"
-POLICY_SHA256 = "7d3676fde6434235be4d66592da41996c5973aed5b1f226c0fd78462ffb355a9"
+POLICY_SHA256 = "e29d6e79a8b9e2bfc20f57a942776bf2f91a40a506facd5d65f3bbd96a9198b0"
 SCRIPT_PATH = "/usr/local/lib/inkyos/test-access-enrollment.py"
 MANIFEST_PATH = "/usr/local/share/inkyos/test-access-manifest.json"
 ACCESS_DIRECTORY = "/var/lib/inkyos-test-access"

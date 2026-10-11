@@ -45,7 +45,7 @@ def archive_bytes(blobs, recipe, *, private_mode=0o600, extra=None):
     return result.getvalue()
 
 
-def fixture(path):
+def fixture(path, *, parent_preflight_digest=None):
     """Use the reviewed c31 parent fixture and independently compose its delta."""
     overlay = verify.overlay
     with tempfile.TemporaryDirectory() as temp:
@@ -73,12 +73,14 @@ def fixture(path):
                  if name not in verify.builder.PACKAGE_FILES and name != verify.packages.LOCK}
         blobs.update(package_fixture['blobs'])
         blobs['application-manifest.json'] = parent_blobs['application-manifest.json']
-        # The exact historical preflight is replaced by the new recipe probe.
+        # The prepared parent already contains the exact current recipe probe.
         preflight = 'scripts/test-lan-preflight.py'
         put(oldroot, overlay.PAYLOADS[preflight][0], seed.record(
-            (ROOT / 'tests/fixtures/preflight-9cda15bf.py.txt').read_bytes(), '0555'))
+            blobs[preflight], '0555'))
         for name in verify.INHERITED_RECIPE_FILES:
             parent['recipe']['files'][name] = digest(blobs[name])
+        if parent_preflight_digest is not None:
+            parent['recipe']['files'][preflight] = parent_preflight_digest
         parent['image']['sha256'] = overlay.PARENT_IMAGE_SHA256
         parent['reports']['filesystem-manifest.json'] = digest(encoded(old))
         parent_raw = encoded(parent)
@@ -250,6 +252,27 @@ class AccessExportTests(unittest.TestCase):
             if field is None: del bad[section][name]
             else: bad[section][name][field] = '0755' if field == 'mode' else 'e' * 64
             with self.subTest(name=name): self.assert_report_rejected('filesystem-manifest.json', bad)
+
+    def test_preflight_is_inherited_and_historical_or_metadata_changed_parent_is_refused(self):
+        old = self.read('parent-filesystem-manifest.json')
+        current = self.read('filesystem-manifest.json')
+        configuration = self.read('test-access-configuration.json')
+        package_report = self.read('test-access-packages.json')
+        path = verify.overlay.PAYLOADS['scripts/test-lan-preflight.py'][0]
+        self.assertEqual(old['rootfs'][path], current['rootfs'][path])
+        historical = (ROOT / 'tests/fixtures/preflight-9cda15bf.py.txt').read_bytes()
+        for row in (seed.record(historical, '0555'), dict(old['rootfs'][path], mode='0755')):
+            changed = copy.deepcopy(old)
+            changed['rootfs'][path] = row
+            with self.assertRaisesRegex(verify.ArtifactError, 'Inherited source changed'):
+                verify.validate_inventory(changed, current, configuration, self.blobs, package_report)
+
+    def test_preflight_parent_recipe_provenance_must_match_even_with_identical_inventory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            fixture(path, parent_preflight_digest='e' * 64)
+            with self.assertRaisesRegex(verify.ArtifactError, 'Inherited audit source changed'):
+                verify.load_export(path)
 
     def test_no_precreated_key_cache_identity_network_profile_or_extra_hook(self):
         for name in ('etc/ssh/ssh_host_ed25519_key',

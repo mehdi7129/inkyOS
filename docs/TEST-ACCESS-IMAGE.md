@@ -25,13 +25,16 @@ Le parent accepté est le TEST LAN inactif du candidat applicatif
 `c31b13afdc957425571810c46230eaaf52fa5d14`, manifest applicatif
 `c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1`,
 image parent
-`dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595`.
-Ce parent a été [reconstruit et vérifié le 10 octobre](validation/2026-10-10-rebuilt-test-lan-parent.json)
-depuis la même base figée et les
-mêmes archives applicatives vérifiées. Les hashes des images changent ; les
-inventaires enregistrés diffèrent seulement par les fichiers de provenance
-`etc/inkyos-release.json` et `etc/inkyos-test-lan.json`. Les anciennes images
-n'étant plus disponibles, cette comparaison ne revalide pas leurs octets.
+`2b946f688cf1689c38cdceb63ee467aad99541a311693b7443c10c3efb8bad3a`.
+Ce parent a été [reconstruit et vérifié le 11 octobre](validation/2026-10-11-rebuilt-test-lan-parent.json)
+depuis la même base figée et les mêmes archives applicatives vérifiées.
+La recette conserve le commit `851007f` et `worktree_dirty=true`, avec les
+octets de ses entrées archivés et hashés. Elle contient le preflight courant,
+qui sera hérité à l’identique par l’image d’accès. Cette reconstruction ne
+revendique aucune reproductibilité bit à bit ni nouvelle qualification matérielle.
+L’[ancien parent reconstruit le 10 octobre](validation/2026-10-10-rebuilt-test-lan-parent.json),
+`dcc451dc…`, reste la référence des preuves qui le désignent ; son image
+supprimée n’est pas revalidée par cette reconstruction.
 Les preuves du 4 et du 5 octobre désignent le parent historique
 `0854663168acf7986d26a473e9116dddeb7d6fbef8226f5d1d96cf190f77e286`.
 La variante et son profil sont privés. Elle ne réutilise pas une identité
@@ -217,10 +220,13 @@ Le builder utilise une nouvelle copie régulière du parent dans la VM dédiée.
 Il ne monte aucune SD et ne lance aucun service cible. L’export contient
 l’image privée, les entrées figées et les rapports. Le vérificateur compare
 les hashes, permissions et différences de fichiers. Les ajouts déclarés,
-l’append du compte aux quatre bases système, le remplacement de l'ancien
-préflight exactement épinglé et le delta I²C vérifié sont les seuls changements
-autorisés. Le préflight historique reste conservé comme fixture ; ses anciens
-rapports ne sont pas réinterprétés.
+l’append du compte aux quatre bases système et le delta I²C vérifié sont les
+seuls changements autorisés. Pour la prochaine construction, le parent TEST
+LAN doit déjà contenir le préflight courant : ses octets et métadonnées sont
+hérités à l’identique. Un ancien préflight est refusé, sans remplacement.
+Le préflight historique reste conservé comme fixture de refus ; ses anciens
+rapports ne sont pas réinterprétés. Le nouveau parent est vérifié et épinglé ;
+la construction de l’image d’accès dérivée reste une étape distincte.
 La partition boot et les dix fichiers boot/grow protégés doivent rester
 identiques. L’existence des pages man est exclue du contrôle systemd offline,
 car le rootfs est monté avec `nodev` ; les unités et leurs exécutables sont

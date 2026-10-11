@@ -33,7 +33,7 @@ RUNTIME = '/run/inkyos-test-ssh'
 CONTRACT = '/usr/local/lib/inkyos/test-access-contract.py'
 CONTRACT_SHA256 = '6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68'
 ACCESS_POLICY = '/usr/local/lib/inkyos/test-access-policy.py'
-ACCESS_POLICY_SHA256 = '7d3676fde6434235be4d66592da41996c5973aed5b1f226c0fd78462ffb355a9'
+ACCESS_POLICY_SHA256 = 'e29d6e79a8b9e2bfc20f57a942776bf2f91a40a506facd5d65f3bbd96a9198b0'
 ACCESS_MANIFEST = '/usr/local/share/inkyos/test-access-manifest.json'
 ACCESS_FILES = {
     ACCESS_POLICY: 'test-access-policy.py',

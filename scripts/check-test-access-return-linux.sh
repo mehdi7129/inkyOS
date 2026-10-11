@@ -39,7 +39,7 @@ RUNNER = 'check-test-access-return-linux.sh'
 PRIMITIVES = 'check-test-enrollment-return-linux.sh'
 PRIMITIVES_SHA256 = '52feb5b9e191c21ae4eff6caa34499cdb9eb57e6021446f1af7a260e4b8d2ec6'
 CONTROLLER = 'verify-test-access-return.py'
-CONTROLLER_SHA256 = 'ba54b5a988f33e4a63217ef7eb54ea89b59674dbe7b67e0a9613cd612e781c71'
+CONTROLLER_SHA256 = 'aad80020b6dc2cb095f7e8d2d0c6b2ccec28324f15123ce26d4c463918f8f45f'
 IMAGE = 'inkyos-test-access.img'
 SOURCES = {PRIMITIVES, CONTROLLER, 'verify-test-enrollment-return.py', 'test-enrollment-firstboot.py',
     'verify-test-enrollment.py', 'verify-test-lan.py', 'configure-test-enrollment-rootfs.py',

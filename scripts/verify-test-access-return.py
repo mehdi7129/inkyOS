@@ -93,10 +93,13 @@ def expected_export(tree):
     contract.validate_prepared_constraints(reports['qualification-prepared.json'], inventory)
     configuration = contract.validate_configuration(reports, manifest, recipe_raw)
     blobs = lan.archived_bytes(reports['recipe.tar'], set(contract.overlay.PAYLOADS)
-                               | {contract.overlay.PRIVATE_PROFILE, contract.overlay.PRIVATE_MANIFEST})
+                               | {contract.overlay.PRIVATE_PROFILE, contract.overlay.PRIVATE_MANIFEST,
+                                  'config/test-access-packages.lock.json'}
+                               | set(contract.builder.PACKAGE_FILES))
     profile_raw = contract.private_profile(blobs, reports, manifest_raw, recipe_raw)
     filesystem = artifacts.validate_filesystem(policy.strict_json(reports['filesystem-manifest.json']))
-    contract.validate_inventory(inventory, filesystem, configuration, blobs)
+    contract.validate_inventory(inventory, filesystem, configuration, blobs,
+                                policy.strict_json(reports['test-access-packages.json']))
     inspected = policy.strict_json(reports['image-inspection.json'])
     image = inspected.get('image') if type(inspected) is dict else None
     require(type(image) is dict and image.get('sha256') == manifest['image']['sha256']

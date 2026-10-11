@@ -315,6 +315,19 @@ class AccessReturnTests(unittest.TestCase):
         image.write_bytes(b'wrong-size')
         self.check(2)
 
+    def test_package_receipt_must_pass_even_when_export_hashes_are_consistent(self):
+        name = 'test-access-packages.json'
+        path = self.export / name
+        receipt = policy.strict_json(path.read_bytes())
+        receipt['checks']['dpkg_audit_clean'] = False
+        raw = policy.canonical(receipt)
+        path.write_bytes(raw)
+        manifest = copy.deepcopy(self.manifest)
+        manifest['reports'][name] = controller.digest(raw)
+        (self.export / 'manifest.json').write_bytes(policy.canonical(manifest))
+        result = self.check(2)
+        self.assertFalse(result['checks']['expected_export_consistent'])
+
     def test_fixture_cannot_issue_context_or_known_hosts_even_after_all_checks_pass(self):
         output = self.outputs / 'new'
         result = self.check(2, self.adapter(str(output)))

@@ -37,7 +37,7 @@ REQUIRED_REPORTS = (lan.REQUIRED_REPORTS - {'test-lan-configuration.json'}) | {
 PROTECTED_FILES = lan.PROTECTED_FILES
 INHERITED_RECIPE_FILES = lan.INHERITED_RECIPE_FILES | {
     'application-manifest.json', 'scripts/configure-test-lan-rootfs.py',
-    'scripts/configure-rootfs.py',
+    'scripts/configure-rootfs.py', 'scripts/test-lan-preflight.py',
 }
 PREPARED_CHECKS = lan.overlay.CHECKS
 builder = module('_access_export_recipe', 'build-test-access.py')
@@ -183,10 +183,6 @@ def validate_inventory(parent, filesystem, configuration, blobs, package_report)
         lan.regular(root.get(path), sha(blobs[name]), format(mode, '04o'), size=len(blobs[name]))
         if path in overlay.INHERITED_PAYLOADS:
             require(old.get(path) == root[path], 'Inherited source changed')
-        elif path in overlay.REPLACED_PARENT_PAYLOADS:
-            lan.regular(old.get(path), overlay.REPLACED_PARENT_PAYLOADS[path], '0555')
-            lan.unchanged_metadata(old[path], root[path], content=True)
-            allowed.add(path)
         else:
             require(path not in old, 'Access destination already present in parent')
             allowed.add(path)
@@ -228,8 +224,6 @@ def validate_inventory(parent, filesystem, configuration, blobs, package_report)
         before, after = old.get(path), root.get(path)
         if before == after or path in overlay.ACCOUNT_APPEND or path in package_changes:
             continue
-        if path in overlay.REPLACED_PARENT_PAYLOADS:
-            continue  # Exact old hash and new recipe bytes checked above.
         require(before is None and after is not None, 'Existing parent entry changed or removed')
         if path in allowed:
             continue

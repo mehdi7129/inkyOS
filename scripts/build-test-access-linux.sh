@@ -40,7 +40,7 @@ for name, digest in recipe['files'].items():
 parent = json.loads(pathlib.Path('recipe/parent-manifest.json').read_text())
 assert parent['kind'] == 'test-lan-prepared' and parent['no_active_application'] is True
 assert parent['hardware_qualified'] is False and parent['release_qualified'] is False and parent['ready_for_activation'] is False
-assert parent['image']['sha256'] == 'dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595'
+assert parent['image']['sha256'] == '2b946f688cf1689c38cdceb63ee467aad99541a311693b7443c10c3efb8bad3a'
 assert (parent['application']['source_commit'],parent['application']['manifest_sha256']) == (
     'c31b13afdc957425571810c46230eaaf52fa5d14','c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1')
 assert parent['application']['startup'] == 'masked-pending-firstboot-contract'

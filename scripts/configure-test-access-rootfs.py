@@ -76,13 +76,9 @@ SOURCES = frozenset(PAYLOADS) | {
     'scripts/configure-rootfs.py', 'application-manifest.json',
 }
 RECIPE_FILES = SOURCES | {PRIVATE_PROFILE, PRIVATE_MANIFEST, 'parent-manifest.json'}
-INHERITED_PAYLOADS = frozenset()
-# Only this exact parent observation is replaced. Historical receipts retain
-# their original meaning; the replacement receives a new runtime manifest.
-REPLACED_PARENT_PAYLOADS = {
-    'usr/local/lib/inkyos/test-lan-preflight.py':
-        '9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba',
-}
+# The newly prepared parent must already contain the exact current preflight.
+# Composition neither replaces it nor accepts a historical implementation.
+INHERITED_PAYLOADS = frozenset({'usr/local/lib/inkyos/test-lan-preflight.py'})
 PRESERVED_FILES = frozenset(prepared.DRAIN_STATIC_PARENT_FILES) | {
     'etc/machine-id', 'etc/inkyos-release.json', prepared.MARKER_PATH,
     'var/lib/NetworkManager/NetworkManager.state', 'home/inky/inky-studio/server/SOURCE_COMMIT',
@@ -301,11 +297,8 @@ def configure(root, boot, source, profile, parent_sha256, *, _owner_uid=0, _owne
     require(only_access_hooks(root, configured=False), 'Previous TEST hook refused')
     additions = {PROFILE_DIRECTORY, STATE_DIRECTORY, CACHE_DIRECTORY, SSH_DIRECTORY, SSH_PUBLIC_DIRECTORY,
                  MANIFEST_PATH, ENABLE_PATH} | ({path for path, _mode in PAYLOADS.values()}
-                                              - INHERITED_PAYLOADS - set(REPLACED_PARENT_PAYLOADS))
+                                              - INHERITED_PAYLOADS)
     require(all(prepared.absent(root, path) for path in additions), 'Existing access payload, profile or state refused')
-    for path, digest in REPLACED_PARENT_PAYLOADS.items():
-        require(sha256(read_bytes(root, path)) == digest and owned(root.path(path), 0o555, _owner_uid, _owner_gid),
-                'Exact replaced parent observation required')
     account_bytes, account_before = account_plan(root, owner_uid=_owner_uid)
     payloads = {name: read_bytes(source, name) for name in SOURCES | {'parent-manifest.json'}}
     texts = {name: raw.decode('utf-8') for name, raw in payloads.items()}
@@ -343,10 +336,6 @@ def configure(root, boot, source, profile, parent_sha256, *, _owner_uid=0, _owne
             os.chown(directory, _owner_uid, _owner_gid, follow_symlinks=False)
     for name, (path, mode) in PAYLOADS.items():
         if path not in INHERITED_PAYLOADS:
-            if path in REPLACED_PARENT_PAYLOADS:
-                # Fresh offline copy only; an interrupted composition is never
-                # exportable or resumable. Do not truncate a read-only file.
-                root.path(path).unlink()
             prepared.write_owned(root, path, texts[name], mode)
     # The manifest is published before its private profile. A partial build is
     # not resumable: the existing-artifact gate above requires a fresh copy.
