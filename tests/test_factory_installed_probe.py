@@ -13,7 +13,8 @@ import importlib.util
 import io
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import re
 import stat
 import tempfile
 import types
@@ -95,6 +96,295 @@ class ValidationLauncherFixture:
             return self.os
         safe_builtins = {**vars(builtins), '__import__': importer}
         exec(compile(command[-1], '<inert-validation-launcher>', 'exec'), {'__builtins__': safe_builtins})
+
+
+class ObserverFixture:
+    """Run the observer with no real filesystem, process or target module access."""
+    MASK = '/usr/lib/modules'
+
+    def __init__(self):
+        self.imports = []
+        self.opened = []
+        self.fds = {}
+        self.next_fd = 10
+        self.output = {}
+        self.fail_receipt = False
+        self.mask_options = {'ro', 'nosuid', 'nodev', 'noexec'}
+        self.extra_mounts = []
+        self.mask_count = 1
+        self.text_overrides = {}
+        self.flag_overrides = {}
+        self.argv_override = None
+        self.pin_override = None
+        self.entries = {self.MASK: []}
+        self.mask_flags = 1 | 2 | 4 | 8
+        self.attributes = {}
+        self.infos = {}
+        self.root_info = self.info(stat.S_IFDIR | 0o755, dev=31, ino=2)
+        self.infos['/'] = self.root_info
+        self.infos['/dev'] = self.info(stat.S_IFDIR | 0o755, dev=40)
+        self.infos[self.MASK] = self.info(stat.S_IFDIR, dev=42)
+        binds = ['/var/lib/inkyos', '/var/lib/inky-studio', '/etc/inky-studio', '/usr/local/lib/inkyos']
+        for index, path in enumerate(binds):
+            self.infos[path] = self.info(stat.S_IFDIR | 0o700, dev=41, ino=100 + index)
+        helper = b'def inventory(path):\n return {"inert_fixture_path": str(path)}\n'
+        self.expected = {
+            'unit': UNIT, 'host_net': 'net:[host]', 'host_dev': 39,
+            'root_identity': [31, 2],
+            'bind_identities': {path: [self.infos[path].st_dev, self.infos[path].st_ino] for path in binds},
+            'inventory_sha256': hashlib.sha256(helper).hexdigest(),
+            'local_tree': {'inert_fixture_path': '/usr/local/lib'},
+            'bundle_tree': {'inert_fixture_path': '/usr/lib/inkyos/factory-exporter'},
+        }
+        self.files = {'/etc/inky-studio/manifest-rootfs.py': helper}
+        self.output_path = '/var/lib/inkyos/observations/' + UNIT + '.json'
+        fixture = self
+
+        class FakePath:
+            def __init__(self, value):
+                self.path = PurePosixPath(str(value))
+
+            def __str__(self):
+                return str(self.path)
+
+            def __fspath__(self):
+                return str(self.path)
+
+            def __truediv__(self, value):
+                return FakePath(self.path / value)
+
+            def read_text(self):
+                return fixture.read_text(str(self))
+
+            def glob(self, pattern):
+                if str(self) != '/dev' or pattern != 'spidev*':
+                    raise AssertionError('Unexpected observer glob')
+                return []
+
+            def iterdir(self):
+                return iter(FakePath(self.path / name) for name in fixture.entries.get(str(self), []))
+
+            def stat(self, **kwargs):
+                return fixture.stat(str(self), **kwargs)
+
+            def lstat(self):
+                return fixture.stat(str(self))
+
+        self.Path = FakePath
+        self.os = types.SimpleNamespace(
+            O_RDONLY=os.O_RDONLY, O_WRONLY=os.O_WRONLY, O_NONBLOCK=os.O_NONBLOCK,
+            O_NOFOLLOW=os.O_NOFOLLOW, O_CREAT=os.O_CREAT, O_EXCL=os.O_EXCL,
+            ST_RDONLY=1, ST_NOSUID=2, ST_NODEV=4, ST_NOEXEC=8,
+            getresuid=lambda: (0, 0, 0), getresgid=lambda: (0, 0, 0),
+            open=self.open, close=lambda fd: None, fstat=lambda fd: self.stat(self.fds[fd][0]),
+            stat=self.stat, lstat=self.stat, statvfs=self.statvfs,
+            read=self.read, write=self.write, fsync=lambda fd: None,
+            readlink=lambda path: 'net:[private]', _exit=self.exit,
+            listdir=lambda path: list(self.entries.get(str(path), [])),
+            listxattr=lambda path, **kwargs: self.attributes.get(str(path), []))
+
+    @staticmethod
+    def info(mode, *, dev=31, ino=10, uid=0, gid=0, size=0):
+        return types.SimpleNamespace(st_dev=dev, st_ino=ino, st_mode=mode,
+            st_uid=uid, st_gid=gid, st_nlink=1, st_size=size, st_mtime_ns=1, st_ctime_ns=1)
+
+    def stat(self, path, **kwargs):
+        path = str(path)
+        if path in self.files:
+            return self.info(stat.S_IFREG | 0o444, size=len(self.files[path]))
+        return self.infos.get(path, self.root_info)
+
+    def statvfs(self, path):
+        path = str(path)
+        flags = self.mask_flags if path == self.MASK else (0 if path in {'/var/lib/inkyos', '/var/lib/inky-studio'} else 1)
+        return types.SimpleNamespace(f_flag=self.flag_overrides.get(path, flags))
+
+    def read_text(self, path):
+        if path in self.text_overrides:
+            return self.text_overrides[path]
+        if path == '/proc/self/status':
+            return 'CapEff:\t000000e3\nCapPrm:\t000000e3\nCapBnd:\t000000e3\nCapInh:\t0\nCapAmb:\t0\nNoNewPrivs:\t1\n'
+        if path == '/proc/self/mountinfo':
+            rows = ['20 1 7:2 / / ro,nosuid,nodev - ext4 /dev/loop7p2 ro',
+                    '21 20 0:41 /marker /etc/inky-studio ro,nosuid,nodev - ext4 /dev/loop7p2 ro',
+                    '22 20 0:41 /modules /usr/local/lib/inkyos ro,nosuid,nodev - ext4 /dev/loop7p2 ro']
+            rows += [f'23 20 0:42 /inaccessible/dir {self.MASK} {",".join(sorted(self.mask_options))} - tmpfs tmpfs rw'] * self.mask_count
+            rows += [f'24 20 0:43 / {path} ro,nosuid,nodev - tmpfs tmpfs rw' for path in self.extra_mounts]
+            return '\n'.join(rows) + '\n'
+        if path == '/proc/self/cgroup':
+            return '0::/system.slice/' + UNIT + '\n'
+        if path.endswith('/pids.max'):
+            return '2\n'
+        if path.endswith('/cgroup.events'):
+            return 'populated 1\n'
+        raise AssertionError('Unexpected observer text read: ' + path)
+
+    def open(self, path, flags, mode=None):
+        path = str(path)
+        self.opened.append((path, flags, mode))
+        if flags & os.O_WRONLY:
+            if path != self.output_path or self.fail_receipt or path in self.output:
+                raise OSError('inert receipt unavailable')
+            if flags != os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW or mode != 0o600:
+                raise AssertionError('Unexpected receipt flags or mode')
+            self.output[path] = b''
+        elif path not in self.files:
+            raise AssertionError('Unexpected observer file read: ' + path)
+        fd = self.next_fd; self.next_fd += 1
+        self.fds[fd] = (path, flags)
+        return fd
+
+    def read(self, fd, limit):
+        return self.files[self.fds[fd][0]][:limit]
+
+    def write(self, fd, raw):
+        self.output[self.fds[fd][0]] += raw
+        return len(raw)
+
+    def exit(self, code):
+        raise InertLauncherExit(code)
+
+    def run(self, source=None):
+        self.files['/etc/inky-studio/bench-expected.json'] = encoded(self.expected)
+        pin = hashlib.sha256(self.files['/etc/inky-studio/bench-expected.json']).hexdigest()
+        modules = {'hashlib': hashlib, 'json': json, 'os': self.os, 're': re, 'stat': stat,
+                   'sys': types.SimpleNamespace(argv=self.argv_override or ['observer.py', UNIT, self.pin_override or pin]),
+                   'types': types, 'pathlib': types.SimpleNamespace(Path=self.Path)}
+        def importer(name, *args, **kwargs):
+            self.imports.append(name)
+            if name not in modules:
+                raise AssertionError('Unapproved observer import')
+            return modules[name]
+        code = probe.OBSERVER if source is None else source
+        try:
+            exec(compile(code, '<inert-observer>', 'exec'),
+                 {'__builtins__': {**vars(builtins), '__import__': importer}})
+        except InertLauncherExit as stopped:
+            return stopped.args[0]
+        return 0
+
+
+class InstalledObserverExecutionTests(unittest.TestCase):
+    def failure_receipt(self, phase):
+        return {'schema_version': 1, 'scope': 'exec-start-pre-only',
+                'control_group': '/system.slice/' + UNIT, 'checks_passed': False,
+                'failure_phase': phase}
+
+    def assert_refused(self, fixture, phase):
+        self.assertEqual(fixture.run(), 64 + probe.PRE_PHASES.index(phase))
+        value = json.loads(fixture.output[fixture.output_path])
+        self.assertEqual(value, self.failure_receipt(phase))
+        self.assertLessEqual(len(fixture.output[fixture.output_path]), 512)
+        return value
+
+    def test_legacy_mount_predicate_rejects_expected_kernel_modules_mask(self):
+        # Exact former predicate, executed against the same inert mount table.
+        legacy = b'''import os
+from pathlib import Path
+def require(value):
+ if not value: raise ValueError('pre_guard')
+try:
+ for line in Path('/proc/self/mountinfo').read_text().splitlines():
+  target=line.split()[4]
+  if target in ('/usr','/etc','/lib') or target.startswith(('/usr/','/etc/','/lib/')):
+   require(target in ('/etc/inky-studio','/usr/local/lib/inkyos'))
+except BaseException:os._exit(1)
+'''
+        fixture = ObserverFixture()
+        self.assertEqual(fixture.run(legacy), 1)
+        self.assertEqual(fixture.output, {})
+        fixture = ObserverFixture(); fixture.mask_count = 0
+        self.assertEqual(fixture.run(legacy), 0)
+
+    def test_observer_accepts_only_exact_inaccessible_modules_mask(self):
+        fixture = ObserverFixture()
+        self.assertEqual(fixture.run(), 0)
+        self.assertEqual(json.loads(fixture.output[fixture.output_path]), {
+            'schema_version': 1, 'scope': 'exec-start-pre-only',
+            'control_group': '/system.slice/' + UNIT, 'checks_passed': True})
+        self.assertEqual(set(fixture.imports), {'hashlib', 'json', 'os', 're', 'stat', 'sys', 'types', 'pathlib'})
+        self.assertEqual([path for path, flags, _ in fixture.opened if flags & os.O_WRONLY],
+                         [fixture.output_path])
+        # The empty inaccessible directory does not require nosuid/nodev.
+        fixture = ObserverFixture(); fixture.mask_options = {'ro', 'noexec'}
+        self.assertEqual(fixture.run(), 0)
+
+    def test_modules_mask_rejects_metadata_mount_flag_and_content_mutations(self):
+        mutations = [
+            ('writable', lambda f: f.mask_options.discard('ro')),
+            ('executable', lambda f: f.mask_options.discard('noexec')),
+            ('statvfs writable', lambda f: setattr(f, 'mask_flags', f.mask_flags & ~1)),
+            ('base filesystem', lambda f: setattr(f.infos[f.MASK], 'st_dev', f.root_info.st_dev)),
+            ('base permissions', lambda f: setattr(f.infos[f.MASK], 'st_mode', stat.S_IFDIR | 0o755)),
+            ('owner', lambda f: setattr(f.infos[f.MASK], 'st_uid', 1000)),
+            ('group', lambda f: setattr(f.infos[f.MASK], 'st_gid', 1000)),
+            ('symlink', lambda f: setattr(f.infos[f.MASK], 'st_mode', stat.S_IFLNK)),
+            ('file', lambda f: setattr(f.infos[f.MASK], 'st_mode', stat.S_IFREG)),
+            ('content', lambda f: f.entries[f.MASK].append('untrusted.ko')),
+            ('missing mount', lambda f: setattr(f, 'mask_count', 0)),
+            ('duplicate mount', lambda f: setattr(f, 'mask_count', 2)),
+        ]
+        for label, mutate in mutations:
+            with self.subTest(mutation=label):
+                fixture = ObserverFixture(); mutate(fixture)
+                self.assert_refused(fixture, 'critical_mounts')
+
+    def test_unrelated_critical_mounts_are_still_refused(self):
+        for path in ('/usr', '/etc', '/lib', '/usr/lib', '/usr/lib/modules/extra',
+                     '/usr/lib/python3.13', '/usr/lib/aarch64-linux-gnu',
+                     '/etc/ld.so.cache', '/lib/modules', '/usr/local/lib/other'):
+            with self.subTest(path=path):
+                fixture = ObserverFixture(); fixture.extra_mounts.append(path)
+                self.assert_refused(fixture, 'critical_mounts')
+
+    def test_missing_or_duplicate_explicit_readonly_bind_is_refused(self):
+        for target in ('/etc/inky-studio', '/usr/local/lib/inkyos'):
+            for operation in ('missing', 'duplicate'):
+                with self.subTest(target=target, operation=operation):
+                    fixture = ObserverFixture()
+                    rows = fixture.read_text('/proc/self/mountinfo').splitlines()
+                    matching = next(row for row in rows if row.split()[4] == target)
+                    rows = [row for row in rows if row != matching] if operation == 'missing' else rows + [matching]
+                    fixture.text_overrides['/proc/self/mountinfo'] = '\n'.join(rows)
+                    self.assert_refused(fixture, 'critical_mounts')
+
+    def test_failures_emit_only_the_closed_phase_and_fixed_exit_code(self):
+        mutations = {
+            'manifest': lambda f: setattr(f, 'pin_override', '0' * 64),
+            'identity': lambda f: setattr(f.os, 'getresuid', lambda: (1000, 1000, 1000)),
+            'capabilities': lambda f: f.text_overrides.update({'/proc/self/status': 'PRIVATE INERT ERROR\n'}),
+            'isolation': lambda f: f.expected.update(host_net='net:[private]'),
+            'binds': lambda f: f.expected.update(root_identity=[999, 999]),
+            'mount_flags': lambda f: f.flag_overrides.update({'/': 0}),
+            'critical_mounts': lambda f: f.extra_mounts.append('/usr/forbidden'),
+            'inventory_helper': lambda f: f.expected.update(inventory_sha256='0' * 64),
+            'local_inventory': lambda f: f.expected.update(local_tree={}),
+            'bundle_inventory': lambda f: f.expected.update(bundle_tree={}),
+            'cgroup': lambda f: f.text_overrides.update({'/proc/self/cgroup': '0::/other\n'}),
+        }
+        self.assertEqual(set(mutations) | {'arguments', 'receipt'}, set(probe.PRE_PHASES))
+        for phase, mutate in mutations.items():
+            with self.subTest(phase=phase):
+                fixture = ObserverFixture(); mutate(fixture)
+                value = self.assert_refused(fixture, phase)
+                self.assertNotIn('PRIVATE INERT ERROR', json.dumps(value))
+
+    def test_invalid_arguments_fail_without_a_receipt_path(self):
+        for argv in (['observer.py'], ['observer.py', '../../escape', '0' * 64]):
+            with self.subTest(argv=argv):
+                fixture = ObserverFixture(); fixture.argv_override = argv
+                self.assertEqual(fixture.run(), 64 + probe.PRE_PHASES.index('arguments'))
+                self.assertEqual(fixture.output, {})
+
+    def test_receipt_failure_keeps_fixed_phase_exit_without_other_writes(self):
+        fixture = ObserverFixture(); fixture.fail_receipt = True
+        self.assertEqual(fixture.run(), 64 + probe.PRE_PHASES.index('receipt'))
+        self.assertEqual(fixture.output, {})
+        self.assertEqual([path for path, flags, _ in fixture.opened if flags & os.O_WRONLY],
+                         [fixture.output_path, fixture.output_path])
+        fixture = ObserverFixture(); fixture.fail_receipt = True; fixture.mask_count = 0
+        self.assertEqual(fixture.run(), 64 + probe.PRE_PHASES.index('critical_mounts'))
+        self.assertEqual(fixture.output, {})
 
 
 class InstalledProbeContractTests(unittest.TestCase):
@@ -290,6 +580,29 @@ class InstalledProbeContractTests(unittest.TestCase):
                     probe.validate_pre_receipt(encoded({**value, **extra}), UNIT)
         with self.assertRaises(ValueError):
             probe.validate_pre_receipt(encoded(value), UNIT.replace('fresh', 'restart'))
+
+    def test_pre_failure_receipt_accepts_only_enumerated_closed_phase(self):
+        base = {'schema_version': 1, 'scope': 'exec-start-pre-only',
+                'control_group': '/system.slice/' + UNIT, 'checks_passed': False}
+        for phase in probe.PRE_PHASES:
+            with self.subTest(phase=phase), self.assertRaises(probe.PreRefusal) as refused:
+                probe.validate_pre_receipt(encoded({**base, 'failure_phase': phase}), UNIT)
+            self.assertEqual(refused.exception.phase, phase)
+            self.assertEqual(str(refused.exception), 'installed_pre_refused')
+        valid = {**base, 'failure_phase': 'critical_mounts'}
+        mutations = [{'schema_version': True}, {'checks_passed': 0}, {'checks_passed': True},
+                     {'scope': 'exec-start'}, {'control_group': '/system.slice/other.service'},
+                     {'failure_phase': 'unknown'}, {'failure_phase': '../outside'},
+                     {'failure_phase': 'critical_mounts\n'}, {'failure_phase': True},
+                     {'failure_phase': ['critical_mounts']}, {'exception': 'PRIVATE INERT ERROR'}]
+        for changed in mutations:
+            with self.subTest(changed=changed), self.assertRaises(ValueError) as refused:
+                probe.validate_pre_receipt(encoded({**valid, **changed}), UNIT)
+            self.assertNotIsInstance(refused.exception, probe.PreRefusal)
+        duplicate = encoded(valid).replace(b'"checks_passed": false', b'"checks_passed": false, "checks_passed": false')
+        with self.assertRaises(ValueError) as refused:
+            probe.validate_pre_receipt(duplicate, UNIT)
+        self.assertNotIsInstance(refused.exception, probe.PreRefusal)
 
     def test_closed_json_bounds_ascii_duplicates_and_constants(self):
         for raw in (b'{"same":1,"same":1}', b'{"x":NaN}', b'{"x":Infinity}',
@@ -730,12 +1043,47 @@ class InstalledProbeOrchestrationTests(unittest.TestCase):
                 self.assertTrue(report['all_units_stopped'])
                 fixture.service.stop_unit.assert_called_once()
 
+    def test_closed_pre_failure_is_reported_and_unit_is_stopped_before_any_hook_result(self):
+        with self.orchestration() as fixture:
+            regular = probe.regular
+            read_paths = []
+            def read(path, *args, **kwargs):
+                read_paths.append(path)
+                if path.parent.name == 'observations':
+                    return encoded({'schema_version': 1, 'scope': 'exec-start-pre-only',
+                                    'control_group': '/system.slice/' + UNIT,
+                                    'checks_passed': False, 'failure_phase': 'critical_mounts'})
+                return regular(path, *args, **kwargs)
+            # The failed Pre has no hook exit fields; its receipt is read first.
+            fixture.wait.side_effect = lambda *args: {'ControlGroup': ''}
+            with patch.object(probe, 'regular', side_effect=read):
+                report = probe.run(fixture.args)
+            self.assertEqual(report['status'], 'FAIL')
+            self.assertEqual(report['pre_failure_phase'], 'critical_mounts')
+            self.assertEqual(report['completed_case_count'], 0)
+            self.assertIsNone(report['studio_validation'])
+            self.assertTrue(report['all_units_stopped'])
+            self.assertTrue(report['target_execution_attempted'])
+            fixture.authority.assert_not_called()
+            fixture.service.stop_unit.assert_called_once_with(UNIT, Path('/sys/fs/cgroup/system.slice') / UNIT)
+            self.assertEqual(len(read_paths), 1)
+            self.assertEqual(read_paths[0].parent.name, 'observations')
+
+    def test_missing_pre_receipt_preserves_failure_without_inventing_phase(self):
+        with self.orchestration() as fixture, patch.object(probe, 'regular', side_effect=FileNotFoundError('PRIVATE INERT ERROR')):
+            report = probe.run(fixture.args)
+            self.assertEqual(report['status'], 'FAIL')
+            self.assertIsNone(report['pre_failure_phase'])
+            self.assertTrue(report['all_units_stopped'])
+            self.assertNotIn('PRIVATE INERT ERROR', json.dumps(report))
+            fixture.service.stop_unit.assert_called_once()
+
     def test_observer_imports_only_stdlib_and_cannot_spawn_an_application(self):
         tree = ast.parse(probe.OBSERVER.decode('ascii'))
         imports = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import)
                    for alias in node.names}
         imports |= {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
-        self.assertEqual(imports, {'hashlib', 'json', 'os', 'stat', 'sys', 'types', 'pathlib'})
+        self.assertEqual(imports, {'hashlib', 'json', 'os', 're', 'stat', 'sys', 'types', 'pathlib'})
         calls = {node.func.attr for node in ast.walk(tree) if isinstance(node, ast.Call)
                  and isinstance(node.func, ast.Attribute)}
         self.assertFalse(calls & {'Popen', 'system', 'fork', 'posix_spawn', 'execve', 'spawn'})

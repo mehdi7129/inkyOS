@@ -51,6 +51,15 @@ SOURCE_PINS = {
 EMPTY_XATTRS = {'status': 'inspected', 'entries': {}}
 UNIT_RE = re.compile(r'inkyos-factory-probe-installed-[a-f0-9]{8}-(?:fresh|restart|consumed_no_authority|no_permission|validate)\.service')
 HASH_RE = re.compile('[a-f0-9]{64}')
+PRE_PHASES = ('arguments', 'manifest', 'identity', 'capabilities', 'isolation',
+              'binds', 'mount_flags', 'critical_mounts', 'inventory_helper',
+              'local_inventory', 'bundle_inventory', 'cgroup', 'receipt')
+
+
+class PreRefusal(ValueError):
+    def __init__(self, phase):
+        self.phase = phase
+        super().__init__('installed_pre_refused')
 
 
 def require(value):
@@ -89,6 +98,12 @@ def validate_pre_receipt(raw, unit):
     expected = {'schema_version': 1, 'scope': 'exec-start-pre-only',
                 'control_group': '/system.slice/' + unit, 'checks_passed': True}
     value = closed_json(raw, 512)
+    if isinstance(value, dict) and value.get('checks_passed') is False:
+        failure_phase = value.get('failure_phase')
+        require(type(failure_phase) is str and failure_phase in PRE_PHASES
+                and value == {**expected, 'checks_passed': False, 'failure_phase': failure_phase}
+                and type(value['schema_version']) is int)
+        raise PreRefusal(failure_phase)
     require(value == expected and type(value['schema_version']) is int
             and type(value['checks_passed']) is bool)
     return value['control_group']
@@ -309,8 +324,10 @@ def stop_all(service, attempted):
 
 # Only ExecStartPre runs this observer, never the app or a wrapper around the hook.
 # Every diagnostic is closed; stdout is reserved for the hook's tiny JSON result.
-OBSERVER = r'''import hashlib,json,os,stat,sys,types
+OBSERVER = r'''import hashlib,json,os,re,stat,sys,types
 from pathlib import Path
+phases=PRE_PHASES_LITERAL
+phase='arguments';out=None
 def require(value):
  if not value: raise ValueError('pre_guard')
 def signature(info):
@@ -321,43 +338,71 @@ def read(path,limit):
   info=os.fstat(fd);require(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and info.st_uid==info.st_gid==0 and info.st_size<=limit)
   raw=os.read(fd,limit+1);require(len(raw)==info.st_size and signature(info)==signature(os.fstat(fd))==signature(os.lstat(path)));return raw
  finally:os.close(fd)
+def emit(value):
+ raw=(json.dumps(value,sort_keys=True)+'\n').encode('ascii');require(len(raw)<=512 and out is not None)
+ fd=os.open(out,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+ try:require(os.write(fd,raw)==len(raw));os.fsync(fd)
+ finally:os.close(fd)
+def critical_mounts(raw,root_device):
+ expected={'/etc/inky-studio':0,'/usr/local/lib/inkyos':0,'/usr/lib/modules':0}
+ for line in raw.splitlines():
+  fields=line.split();target=fields[4]
+  if target in ('/usr','/etc','/lib') or target.startswith(('/usr/','/etc/','/lib/')):
+   require(target in expected);expected[target]+=1
+   if target=='/usr/lib/modules':
+    # systemd v257.13 ProtectKernelModules masks this exact path with an empty
+    # inaccessible node, then remounts it read-only and noexec (namespace.c).
+    require({'ro','noexec'}<=set(fields[5].split(',')))
+    info=os.lstat(target)
+    require(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0 and info.st_uid==info.st_gid==0 and info.st_dev!=root_device)
+    require(os.statvfs(target).f_flag & os.ST_RDONLY and not os.listdir(target))
+ require(all(count==1 for count in expected.values()))
 try:
- unit,pin=sys.argv[1:];raw=read('/etc/inky-studio/bench-expected.json',1048576)
+ unit,pin=sys.argv[1:]
+ require(re.fullmatch(r'inkyos-factory-probe-installed-[a-f0-9]{8}-(fresh|restart|consumed_no_authority|no_permission|validate)\.service',unit))
+ out='/var/lib/inkyos/observations/'+unit+'.json'
+ phase='manifest';raw=read('/etc/inky-studio/bench-expected.json',1048576)
  require(hashlib.sha256(raw).hexdigest()==pin);expected=json.loads(raw)
+ phase='identity'
  require(unit==expected['unit'] and os.getresuid()==(0,0,0) and os.getresgid()==(0,0,0))
+ phase='capabilities'
  status=dict(line.split(':',1) for line in Path('/proc/self/status').read_text().splitlines() if ':' in line)
  require(all(int(status[k].strip(),16)==0xe3 for k in ('CapEff','CapPrm','CapBnd')) and all(int(status[k].strip(),16)==0 for k in ('CapInh','CapAmb')) and status['NoNewPrivs'].strip()=='1')
+ phase='isolation'
  require(os.readlink('/proc/self/ns/net')!=expected['host_net'] and os.stat('/dev').st_dev!=expected['host_dev'])
  require(not list(Path('/dev').glob('spidev*')))
+ phase='binds'
  root=os.stat('/');require([root.st_dev,root.st_ino]==expected['root_identity'])
  for path,identity in expected['bind_identities'].items():
   info=os.stat(path);require([info.st_dev,info.st_ino]==identity)
+ phase='mount_flags'
  for path in ('/','/usr/lib/python3.13','/usr/lib/aarch64-linux-gnu','/usr/local/lib/inkyos','/usr/lib/inkyos/factory-exporter','/etc/inky-studio'):
   require(os.statvfs(path).f_flag & os.ST_RDONLY)
  for path in ('/var/lib/inkyos','/var/lib/inky-studio'):
   require(not os.statvfs(path).f_flag & os.ST_RDONLY)
- for line in Path('/proc/self/mountinfo').read_text().splitlines():
-  target=line.split()[4]
-  if target in ('/usr','/etc','/lib') or target.startswith(('/usr/','/etc/','/lib/')):
-   require(target in ('/etc/inky-studio','/usr/local/lib/inkyos'))
+ phase='critical_mounts';critical_mounts(Path('/proc/self/mountinfo').read_text(),root.st_dev)
+ phase='inventory_helper'
  helper=read('/etc/inky-studio/manifest-rootfs.py',65536)
  require(hashlib.sha256(helper).hexdigest()==expected['inventory_sha256'])
  module=types.ModuleType('pinned_bench_inventory');exec(compile(helper,'<pinned-inventory>','exec'),module.__dict__)
- require(module.inventory(Path('/usr/local/lib'))==expected['local_tree'])
- require(module.inventory(Path('/usr/lib/inkyos/factory-exporter'))==expected['bundle_tree'])
+ phase='local_inventory';require(module.inventory(Path('/usr/local/lib'))==expected['local_tree'])
+ phase='bundle_inventory';require(module.inventory(Path('/usr/lib/inkyos/factory-exporter'))==expected['bundle_tree'])
+ phase='cgroup'
  lines=Path('/proc/self/cgroup').read_text().splitlines();require(len(lines)==1 and lines[0].startswith('0::'))
  group=lines[0][3:];require(group=='/system.slice/'+unit)
  cg=Path('/sys/fs/cgroup')/group.lstrip('/')
  require((cg/'pids.max').read_text().strip()=='2')
  require(dict(line.split() for line in (cg/'cgroup.events').read_text().splitlines())['populated']=='1')
- receipt={'schema_version':1,'scope':'exec-start-pre-only','control_group':group,'checks_passed':True}
- out='/var/lib/inkyos/observations/'+unit+'.json'
- fd=os.open(out,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+ phase='receipt'
+ emit({'schema_version':1,'scope':'exec-start-pre-only','control_group':group,'checks_passed':True})
+except BaseException:
  try:
-  raw=(json.dumps(receipt,sort_keys=True)+'\n').encode();require(os.write(fd,raw)==len(raw));os.fsync(fd)
- finally:os.close(fd)
-except BaseException:os._exit(1)
-'''.encode('ascii')
+  emit({'schema_version':1,'scope':'exec-start-pre-only','control_group':'/system.slice/'+unit,'checks_passed':False,'failure_phase':phase})
+ except BaseException:pass
+ # A fixed exit code still identifies the phase if the private receipt cannot
+ # be written. Never export exception text, a traceback, credentials or hashes.
+ os._exit(64+phases.index(phase))
+'''.replace('PRE_PHASES_LITERAL', repr(PRE_PHASES)).encode('ascii')
 
 
 def new_directory(path, uid=0):
@@ -457,6 +502,7 @@ def run(args):
     report = {'schema_version': 1, 'scope': 'installed-factory-composition-staging',
               'status': 'FAIL', 'phase': 'guard', 'cases': [], 'completed_case_count': 0,
               'studio_validation': None, 'all_units_stopped': False,
+              'pre_failure_phase': None,
               'target_execution_attempted': False,
               'pre_observation_is_start_observation': False, 'credential_bytes_exported': False,
               'writer_barrier_qualified': False, 'application_candidate_complete': False,
@@ -541,6 +587,8 @@ def run(args):
         require([case['case'] for case in report['cases']] == list(CASES)
                 and report['completed_case_count'] == 4 and report['studio_validation'] == STUDIO_RESULT)
         report['status'] = 'PASS'; report['phase'] = 'complete'
+    except PreRefusal as error:
+        report['status'] = 'FAIL'; report['pre_failure_phase'] = error.phase
     except BaseException:
         report['status'] = 'FAIL'
     finally:

@@ -79,6 +79,31 @@ not directly observe `ExecStart` or the serializer. The hook is a direct
 `ExecStart` of system Python `-I -B -S` and `factory-authority.py`; its installed
 serializer keeps the staging v2 argv (`venv/bin/python -I -B -m … --emit-v2`).
 
+The critical mount allowlist also requires the exact `/usr/lib/modules` mask
+created by `ProtectKernelModules=yes`. It must occur once, be an empty root:root
+directory with mode `0000` on a filesystem distinct from the image, and be
+read-only and `noexec`. This checks the effective mask without attesting its
+host source inode; the builder and its PID1 remain trusted. Other additional
+mounts under `/usr`, `/etc` or `/lib`
+remain refused. This accounts for the documented implementation in
+[systemd v257.13 `namespace.c`](https://raw.githubusercontent.com/systemd/systemd/v257.13/src/core/namespace.c)
+(`protect_kernel_modules_table`, `MOUNT_INACCESSIBLE`, and remount handling);
+the source node is selected by
+[`mode_to_inaccessible_node`](https://raw.githubusercontent.com/systemd/systemd/v257.13/src/shared/mount-util.c).
+The unit's protection is retained.
+
+A failed Pre check writes a bounded closed failure receipt when its private
+output directory is available. The report exposes only `pre_failure_phase`,
+chosen from fixed phase names; no exception text, traceback, credential or
+credential hash is included. Even if the receipt cannot be written, the Pre
+exit code is `64 + phase index`, with this fixed zero-based ordering:
+`arguments`, `manifest`, `identity`, `capabilities`, `isolation`, `binds`,
+`mount_flags`, `critical_mounts`, `inventory_helper`, `local_inventory`,
+`bundle_inventory`, `cgroup`, `receipt`. Earlier receipts without such a code
+do not establish which predicate failed first. The fallback code is available
+only through the manager/journal; if the receipt could not be written,
+`pre_failure_phase` remains null in the probe report. Hook stdout remains unchanged.
+
 | Case | Expected hook result | State check after stop |
 | --- | --- | --- |
 | Fresh permission | `created`, `authorized` | Permission consumed, credential metadata valid, real receipt inspector reports authorized |
