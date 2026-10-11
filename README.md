@@ -29,11 +29,12 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 |---|---|
 | Suite globale consignée | [1 273 tests macOS/Linux ARM64](docs/validation/2026-10-11-factory-exporter-workspace-tests.json), sans échec, avec 8/2 skips. Ce rapport correspond à son commit épinglé. |
 | Initialisation locale | [Service IPC et client Studio testés en Linux](docs/INITIALIZATION-IPC.md), sans installation dans l’image TEST. |
+| Admission et arrêt IPC | [60 tests Linux ARM64](docs/validation/2026-10-11-initialization-writer-tests.json), sans skip : verrous/processus réels, contrat et rôle de fixture. Le garde installé reste à qualifier. |
 | Création factory | [Exporter installé](docs/FACTORY-EXPORTER-PROPOSAL.md) et [quatre cas de composition](docs/FACTORY-INSTALLED-FIXTURE.md), dont reprise sans régénération ; premier boot complet encore à intégrer. |
 | Préparation du système | [30 tests du layout passif](docs/validation/2026-10-11-factory-passive-layout-tests.json), sans activation des services. |
 | Admission des processus | [Primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md), [lanceurs](docs/FACTORY-WRITER-LAUNCHER.md) et [superviseur](docs/FACTORY-SUPERVISOR.md) développés ; [81 tests Linux ARM64](docs/validation/2026-10-11-factory-runtime-tests.json), sans skip. Les services et guards Studio restent à installer et qualifier. |
 | Bundle applicatif attendu | [Planner statique](docs/FACTORY-STUDIO-BUNDLE.md), [29 tests d'archives synthétiques](docs/validation/2026-10-11-factory-studio-bundle-plan-tests.json) ; aucune wheel app réelle, installation ou closure qualifiée. |
-| Suite locale actuelle | [1 496 tests macOS](docs/validation/2026-10-11-factory-studio-bundle-plan-tests.json), sans échec, avec 13 skips explicites. Le banc Linux du lot runtime reste celui de ses 81 tests épinglés, pas de toute cette suite. |
+| Suite locale actuelle | [1 512 tests macOS](docs/validation/2026-10-11-initialization-writer-tests.json), sans échec, avec 13 skips explicites. Les bancs Linux ciblés restent associés à leurs sources épinglées, pas à toute cette suite. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth

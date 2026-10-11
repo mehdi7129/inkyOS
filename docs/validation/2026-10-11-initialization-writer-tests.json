@@ -1,0 +1,61 @@
+{
+  "application_activated": false,
+  "boot_qualified": false,
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "installed_graph_qualified": false,
+  "installed_writer_guard_qualified": false,
+  "limits": [
+    "Synthetic root trees and inert children only; no installed image, application, service, radio or SD is accessed.",
+    "FakeRuntime explicitly simulates contract, candidate, role identity and boot context verification. The installed candidate admission is not qualified by this suite.",
+    "Linux root exercises real numeric file metadata, xattrs, flock descriptors, forks and terminal waitpid. No helper/main identity drop is performed in this new lot.",
+    "Descriptor duplicate and fork inheritance preserve SH without LOCK_UN; a dead inert parent leaves both SH and server lock retained by its child.",
+    "Delayed termination uses a real inert child with the kill request intercepted; ambiguous reap observations and cleanup failures are explicit fixtures. No uninterruptible kernel I/O is reproduced.",
+    "The shutdown implementation waits for observed terminal child reaping; signal flags stop newly observed admissions. Actual unit stop policy and complete PID1/cgroup graph remain unchanged and unqualified.",
+    "The historical IPC wire/readiness probe now explicitly substitutes the guard. Its pin was aligned for the Studio fixture, but neither historical native probe was rerun by this lot.",
+    "IPC-A fields, receipt authority and staging unit remain unchanged; no pairing, time/country, Wi-Fi or display success is established.",
+    "macOS uses explicit Linux xattr and metadata fixture substitutions; the full suite has 13 platform skips. The TEST image and backend/iOS payload remain unchanged."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "25092dc6097e612aaed80caf3cc783cb3e23d0ef668a68b0856d7fa90062d874",
+    "tests": 60,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 13,
+    "test_log_sha256": "b35d1265cdf5cdda7a8aab45ab6b63b79527d6a07c58fd861f6c19c85c87ae6f",
+    "tests_run": 1512
+  },
+  "new_guard_and_drain_tests": 16,
+  "private_receipt_sha256": {
+    "linux_completion.json": "34db9800523d8aa6178d82c3dd11dfb88adc2c93713eb0b4c6b10374ff18fd51",
+    "linux_pins.json": "552cf7654993f93ae70800123145c049c0ba8c31b0645ddf35011539abd5e3e5",
+    "macos_completion.json": "d6f0cb80b5d4387bf41477d0aaa4af5720933c73dea74bff4dc8b84206093669"
+  },
+  "schema_version": 1,
+  "scope": "initialization-ipc-autonomous-writer-synthetic-fixture-tests",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "9edbe73b82f7650d75185d782ca55038edf14678",
+  "source_sha256": {
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "scripts/initialization-server.py": "00a8b5543772d2313918ac67e48771012bdec094511be9b43161d8c58c7f7c38",
+    "staging/bootstrap/inkyos-initialization.service": "8119065639719473be2a22fd65cfa2a84924603cd293c578e3993e48cb1629de",
+    "staging/bootstrap/writer-admission.py": "915d2a5c0d5d8dd0367dbbb351e70f884a4e4647ef22e6422b1c54032df27884",
+    "tests/test_initialization_server.py": "d9dbc2060cac0f342d4552327409a9e253eac5a27071ec1742770da0b8ab7bb8",
+    "tests/test_initialization_writer_guard.py": "fdee7822a66702d45605b4bdd7c3069895fcffe6657fddedecf593ee1f240efc"
+  },
+  "status": "PASS"
+}
