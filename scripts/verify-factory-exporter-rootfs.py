@@ -131,8 +131,12 @@ def import_name(path):
             'Import customization refused')
 
 
-def wheel_payload(raw, filename):
-    """Constrained direct wheel install: no .data relocation or script creation."""
+def wheel_payload(raw, filename, *, allowed_filename_tags=None):
+    """Constrained wheel bytes; default tags retain the exporter contract.
+
+    Other trusted callers may supply their own closed filename-tag policy. This
+    does not bypass WHEEL/RECORD checks or inspect a native object's architecture.
+    """
     payload = {}
     with zipfile.ZipFile(io.BytesIO(raw)) as wheel:
         seen = set(); expanded = 0
@@ -151,9 +155,11 @@ def wheel_payload(raw, filename):
             if not member.is_dir():
                 payload[path] = wheel.read(member)
     stem = filename.rsplit('.whl', 1)[0].split('-')
-    require(len(stem) == 5 and stem[-3:] in [
-        ['py3', 'none', 'any'],
-        ['cp313', 'cp313', 'manylinux_2_17_aarch64.manylinux2014_aarch64']],
+    reviewed_tags = (frozenset({
+        ('py3', 'none', 'any'),
+        ('cp313', 'cp313', 'manylinux_2_17_aarch64.manylinux2014_aarch64')})
+        if allowed_filename_tags is None else allowed_filename_tags)
+    require(len(stem) == 5 and tuple(stem[-3:]) in reviewed_tags,
         'Wheel ABI is outside the reviewed contract')
     dist = stem[0] + '-' + stem[1] + '.dist-info'
     require({p.split('/')[0] for p in payload if '.dist-info/' in p} == {dist},

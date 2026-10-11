@@ -192,6 +192,60 @@ class FactoryStudioBundleInstallTests(unittest.TestCase):
         self.assertEqual([(path.lstat().st_mode, path.lstat().st_ino) for path in
                           (self.rootfs / 'usr', self.rootfs / 'usr/lib')], before)
 
+    def test_all_nine_studio_tags_materialize_and_verify_exact_inert_bytes(self):
+        wanted = {}
+        for index, tag in enumerate(fixtures.STUDIO_TAG_CASES):
+            filename = f'fixture_tag_{index}-1.0-{tag}.whl'
+            path = f'fixture_tag_{index}/' + ('__init__.py' if tag.endswith('-any') else 'module.so')
+            content = b'raise AssertionError("never imported")\n' if tag.endswith('-any') else fixtures.inert_elf_header()
+            raw, payload = fixtures.synthetic_wheel(filename, {path: content})
+            self.write(self.wheels / filename, raw)
+            self.inputs['wheel_sha256'][filename] = fixtures.sha(raw)
+            wanted.update(payload)
+        self.write_inputs()
+        receipt = self.install()
+        for path, content in wanted.items():
+            self.assertEqual((self.bundle / fixtures.SITE / path).read_bytes(), content, path)
+        self.assertFalse(receipt['runtime_qualified'])
+        self.assertFalse(receipt['hardware_qualified'])
+        before = self.snapshot()
+        self.assertEqual(self.verify(), dict(receipt, operation='verify'))
+        self.assertEqual(self.snapshot(), before)
+
+    def test_wrong_or_truncated_native_headers_and_any_tag_refuse_before_write(self):
+        valid = fixtures.inert_elf_header()
+        variants = (
+            ('cp313-cp313-linux_aarch64', valid[:63]),
+            ('cp313-cp313-linux_aarch64', valid[:18] + (62).to_bytes(2, 'little') + valid[20:]),
+            ('cp313-cp313-linux_aarch64', valid[:16] + (2).to_bytes(2, 'little') + valid[18:]),
+            ('py3-none-any', valid),
+        )
+        for tag, header in variants:
+            filename = f'fixture_native-1.0-{tag}.whl'
+            raw, _ = fixtures.synthetic_wheel(filename, {'fixture_native.libs/libfixture.so.1': header})
+            self.write(self.wheels / filename, raw)
+            self.inputs['wheel_sha256'][filename] = fixtures.sha(raw)
+            self.write_inputs()
+            with self.subTest(tag=tag, header=header):
+                self.refused_without_write(self.install)
+                self.assertFalse((self.rootfs / 'usr').exists())
+                self.assertFalse(self.receipt.exists())
+            (self.wheels / filename).unlink()
+            del self.inputs['wheel_sha256'][filename]
+            self.write_inputs()
+
+    def test_new_native_tag_cannot_bypass_wheel_tags_or_record_before_write(self):
+        filename = 'fixture_native-1.0-cp311-abi3-manylinux_2_34_aarch64.whl'
+        for kwargs in ({'wheel_tags': ['cp311-abi3-manylinux_2_34_x86_64']},
+                       {'record_transform': lambda raw: raw.replace(b'sha256=', b'sha512=', 1)}):
+            raw, _ = fixtures.synthetic_wheel(filename,
+                {'fixture_native/module.so': fixtures.inert_elf_header()}, **kwargs)
+            self.write(self.wheels / filename, raw)
+            self.inputs['wheel_sha256'][filename] = fixtures.sha(raw)
+            self.write_inputs()
+            with self.subTest(kwargs=tuple(kwargs)):
+                self.refused_without_write(self.install)
+
     def test_invalid_pin_refuses_before_creating_generic_directories(self):
         self.refused_without_write(lambda: self.install(input_sha256='b' * 64))
         self.assertFalse((self.rootfs / 'usr').exists())

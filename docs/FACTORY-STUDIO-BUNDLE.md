@@ -55,9 +55,43 @@ le planner ne résout ni ne vérifie la satisfaction de `Requires-Dist`.
 Les contrôles wheel réutilisent ceux du verifier exporter : RECORD exact, SHA-256
 et longueurs internes, métadonnées WHEEL/tags, noms canoniques, absence de membre
 spécial ou de bits privilégiés et limite de 64 MiB par archive/payload wheel.
-Les deux familles de tags actuellement admises sont `py3-none-any` et
-`cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64`. Un candidat nécessitant
-un autre tag est refusé ; cette contrainte n'est pas élargie ici.
+Le parser commun accepte un argument keyword-only `allowed_filename_tags` :
+sa valeur par défaut `None` conserve exactement les deux familles de l'exporter,
+`py3-none-any` et `cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64`.
+La politique Studio est une constante fermée de neuf triplets filename :
+
+```text
+py3-none-any
+py2.py3-none-any
+cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64
+cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64
+cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64
+cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64
+cp313-cp313-linux_aarch64
+cp311-abi3-manylinux_2_34_aarch64
+cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64
+```
+
+Ces noms correspondent aux familles des wheels inventoriées pour CPython 3.13.5
+avec GIL, Linux ARM64/glibc 2.41. Leur admission ne sélectionne pas de nouvelle
+version ni ne prouve la compatibilité des octets. Aucun tag n'est renommé ; les
+tags développés du fichier WHEEL doivent toujours correspondre exactement au
+produit cartésien des composants filename. La CLI et le manifest d'entrée ne
+peuvent modifier cette politique. Le planner et le second passage de l'installer
+utilisent le même adapter Studio ; aucun état global du parser exporter n'est
+modifié.
+
+Cet adapter ajoute un **préflight statique des headers natifs**, absent du parser
+exporter. Tout basename `.so` ou contenant `.so.` et tout payload portant la
+signature ELF doivent fournir au moins les 64 octets d'un header ELF64,
+little-endian, version 1, machine AArch64 (183), avec version du header 1 et
+taille de header 64. Les shared objects `.so`/`.so.*` doivent annoncer ET_DYN (3).
+La politique Studio refuse ces objets dans une wheel portant la plateforme
+`any`, même avec un RECORD valide. Les autres payloads restent des octets opaques.
+Ce contrôle ne charge aucun objet et ne valide ni symboles ABI3, ni dépendances
+du loader, ni instructions CPU, ni imports, ni drivers ou matériel. Les limites
+existantes restent inchangées. La fermeture `Requires-Dist`/`Requires-Python`
+reste une validation séparée ; aucun reçu de ce lot ne l'atteste.
 
 Les chemins de hooks `.pth`, `.egg-link`, sitecustomize/usercustomize, code généré
 `.pyc`/`__pycache__`, `.data`, fichiers editable, `.egg-info`, répertoires VCS et

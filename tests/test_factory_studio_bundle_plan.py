@@ -30,6 +30,17 @@ APP_WHEEL = 'inky_studio-1.2.3-py3-none-any.whl'
 DEP_WHEEL = 'fixture_dep-4.5.6-py3-none-any.whl'
 SITE = 'server/.venv/lib/python3.13/site-packages'
 EMPTY_XATTRS = {'status': 'inspected', 'entries': {}}
+STUDIO_TAG_CASES = (
+    'py3-none-any',
+    'py2.py3-none-any',
+    'cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64',
+    'cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64',
+    'cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64',
+    'cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64',
+    'cp313-cp313-linux_aarch64',
+    'cp311-abi3-manylinux_2_34_aarch64',
+    'cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64',
+)
 
 
 def sha(raw):
@@ -41,14 +52,27 @@ def canonical(value):
                        ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
 
 
+def inert_elf_header():
+    """Only a synthetic ELF64 LE AArch64 ET_DYN header; no executable payload."""
+    header = bytearray(64)
+    header[:7] = b'\x7fELF\x02\x01\x01'
+    header[16:18] = (3).to_bytes(2, 'little')
+    header[18:20] = (183).to_bytes(2, 'little')
+    header[20:24] = (1).to_bytes(4, 'little')
+    header[52:54] = (64).to_bytes(2, 'little')
+    return bytes(header)
+
+
 def synthetic_wheel(filename, files, *, metadata=None, omit_metadata=False, record_transform=None,
-                    special_modes=None, extra_members=()):
+                    special_modes=None, extra_members=(), wheel_tags=None):
     """Build ZIP and RECORD independently of the production wheel parser."""
     package, version, python, abi, platform = filename[:-4].split('-')
     dist = f'{package}-{version}.dist-info'
     payload = dict(files)
     tags = [f'{py}-{ab}-{pl}' for py in python.split('.') for ab in abi.split('.')
             for pl in platform.split('.')]
+    if wheel_tags is not None:
+        tags = wheel_tags
     payload[dist + '/WHEEL'] = ('Wheel-Version: 1.0\nGenerator: inert-fixture\n'
         + ''.join(f'Tag: {tag}\n' for tag in tags)).encode()
     if not omit_metadata:
@@ -247,11 +271,93 @@ class FactoryStudioBundlePlanTests(unittest.TestCase):
 
     def test_supported_native_wheel_tag_is_static_payload(self):
         filename = 'fixture_native-1.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl'
-        payload = self.replace_wheel(filename, {'fixture_native/module.so': b'INERT_NOT_AN_ELF'})
+        header = inert_elf_header()
+        payload = self.replace_wheel(filename, {'fixture_native/module.so': header})
         raw, _ = self.plan()
         records = json.loads(raw)['records']
-        self.assertEqual(records[SITE + '/fixture_native/module.so']['sha256'], sha(b'INERT_NOT_AN_ELF'))
+        self.assertEqual(records[SITE + '/fixture_native/module.so']['sha256'], sha(header))
         self.assertTrue(all(SITE + '/' + name in records for name in payload))
+
+    def test_all_nine_reviewed_studio_filename_tags_plan_exact_payload(self):
+        wanted = {}
+        for index, tag in enumerate(STUDIO_TAG_CASES):
+            filename = f'fixture_tag_{index}-1.0-{tag}.whl'
+            path = f'fixture_tag_{index}/' + ('__init__.py' if tag.endswith('-any') else 'module.so')
+            content = b'raise AssertionError("never imported")\n' if tag.endswith('-any') else inert_elf_header()
+            wanted.update(self.replace_wheel(filename, {path: content}))
+        raw, receipt = self.plan()
+        records = json.loads(raw)['records']
+        for path, content in wanted.items():
+            self.assertEqual(records[SITE + '/' + path]['sha256'], sha(content), path)
+        self.assertEqual(receipt['wheel_files'], 11)
+        self.assertFalse(receipt['application_candidate_qualified'])
+        self.assertFalse(receipt['image_code_executed'])
+
+    def test_unreviewed_abi_architecture_os_and_tag_combinations_refused_before_publish(self):
+        for tag in ('cp313t-cp313t-linux_aarch64', 'cp313-cp313-linux_armv7l',
+                    'cp313-cp313-macosx_11_0_arm64', 'cp313-cp313-musllinux_1_2_aarch64',
+                    'cp313-cp313-manylinux_2_34_aarch64', 'cp312-cp312-linux_aarch64'):
+            filename = f'foreign-1.0-{tag}.whl'
+            self.replace_wheel(filename, {'foreign/module.so': inert_elf_header()})
+            with self.subTest(tag=tag):
+                self.refused(self.publish)
+            (self.wheels / filename).unlink()
+            del self.inputs['wheel_sha256'][filename]
+            self.write_inputs()
+
+    def test_expanded_wheel_tags_must_exactly_match_new_compressed_filename(self):
+        filename = 'fixture_native-1.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl'
+        valid = ['cp313-cp313-manylinux2014_aarch64', 'cp313-cp313-manylinux_2_17_aarch64']
+        for tags in ([], valid[:1], valid + ['cp313-cp313-linux_aarch64'],
+                     ['cp313-cp313-manylinux_2_28_aarch64']):
+            self.replace_wheel(filename, {'fixture_native/module.so': inert_elf_header()}, wheel_tags=tags)
+            with self.subTest(tags=tags):
+                self.refused(self.publish)
+
+    def test_new_native_tags_do_not_bypass_record_hash_validation(self):
+        filename = 'fixture_native-1.0-cp313-cp313-linux_aarch64.whl'
+        self.replace_wheel(filename, {'fixture_native/module.so': inert_elf_header()},
+                           record_transform=lambda raw: raw.replace(b'sha256=', b'sha512=', 1))
+        self.refused(self.publish)
+
+    def test_shared_objects_require_complete_elf64_le_aarch64_headers(self):
+        valid = inert_elf_header()
+        variants = [b'INERT_NOT_AN_ELF', valid[:63], b'\x7fELF',
+                    valid[:4] + b'\x01' + valid[5:],
+                    valid[:5] + b'\x02' + valid[6:],
+                    valid[:6] + b'\x00' + valid[7:],
+                    valid[:18] + (62).to_bytes(2, 'little') + valid[20:],
+                    valid[:20] + (0).to_bytes(4, 'little') + valid[24:],
+                    valid[:52] + (63).to_bytes(2, 'little') + valid[54:],
+                    valid[:16] + (2).to_bytes(2, 'little') + valid[18:]]
+        filename = 'fixture_native-1.0-cp313-cp313-linux_aarch64.whl'
+        for path in ('fixture_native/module.so', 'fixture_native.libs/libexample.so.1.2'):
+            for header in variants:
+                self.replace_wheel(filename, {path: header})
+                with self.subTest(path=path, header=header):
+                    self.refused(self.publish)
+
+    def test_elf_magic_without_so_suffix_is_also_checked(self):
+        filename = 'fixture_native-1.0-cp313-cp313-linux_aarch64.whl'
+        valid = inert_elf_header()
+        self.replace_wheel(filename, {'fixture_native/data': valid})
+        raw, _ = self.plan()
+        self.assertEqual(json.loads(raw)['records'][SITE + '/fixture_native/data']['sha256'], sha(valid))
+        for header in (valid[:12], valid[:18] + (40).to_bytes(2, 'little') + valid[20:]):
+            self.replace_wheel(filename, {'fixture_native/data': header})
+            with self.subTest(header=header):
+                self.refused(self.publish)
+
+    def test_any_tag_refuses_shared_object_or_elf_magic_even_with_valid_record(self):
+        for tag in ('py3-none-any', 'py2.py3-none-any'):
+            filename = f'fixture_pure-1.0-{tag}.whl'
+            for path in ('fixture_pure/module.so', 'fixture_pure.libs/libexample.so.1', 'fixture_pure/data'):
+                self.replace_wheel(filename, {path: inert_elf_header()})
+                with self.subTest(tag=tag, path=path):
+                    self.refused(self.publish)
+            (self.wheels / filename).unlink()
+            del self.inputs['wheel_sha256'][filename]
+            self.write_inputs()
 
     def test_schema_rejects_missing_unknown_bool_bad_hash_and_version(self):
         original = copy.deepcopy(self.inputs)

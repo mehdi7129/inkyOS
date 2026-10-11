@@ -399,6 +399,50 @@ class WheelPayloadTests(ExporterFixture):
             'cp313-cp313-manylinux_2_17_aarch64', 'cp313-cp313-manylinux2014_aarch64'])
         self.assertEqual(verify.wheel_payload(raw, filename), files)
 
+    def test_explicit_caller_tags_do_not_change_exporter_default_or_expected_payload(self):
+        new_tags = (
+            'py2.py3-none-any',
+            'cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64',
+            'cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64',
+            'cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64',
+            'cp313-cp313-linux_aarch64',
+            'cp311-abi3-manylinux_2_34_aarch64',
+            'cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64',
+        )
+        for tag in new_tags:
+            filename = 'fixture-1.0-' + tag + '.whl'
+            python, abi, platform = tag.split('-')
+            expanded = [f'{py}-{abi}-{pl}' for py in python.split('.') for pl in platform.split('.')]
+            raw, files = wheel_bytes(filename=filename, tags=expanded)
+            policy = frozenset({(python, abi, platform)})
+            with self.subTest(tag=tag):
+                self.assertEqual(verify.wheel_payload(raw, filename, allowed_filename_tags=policy), files)
+                for kwargs in ({}, {'allowed_filename_tags': None}):
+                    with self.assertRaisesRegex(ValueError, 'Wheel ABI'):
+                        verify.wheel_payload(raw, filename, **kwargs)
+        self.assertEqual(verify.wheel_payload(self.raw_wheel, WHEEL_NAME), self.wheel_files)
+        self.write(self.wheels / filename, raw)
+        self.lock['wheel_sha256'][filename] = digest(raw)
+        with self.assertRaisesRegex(ValueError, 'Wheel ABI'):
+            verify.expected_payload(self.lock, self.sources, self.wheels)
+
+    def test_caller_policy_is_keyword_only_and_empty_policy_is_not_default(self):
+        with self.assertRaises(TypeError):
+            verify.wheel_payload(self.raw_wheel, WHEEL_NAME, frozenset())
+        with self.assertRaisesRegex(ValueError, 'Wheel ABI'):
+            verify.wheel_payload(self.raw_wheel, WHEEL_NAME, allowed_filename_tags=frozenset())
+
+    def test_caller_policy_retains_exact_wheel_tags_and_record_checks(self):
+        filename = 'fixture-1.0-cp313-cp313-linux_aarch64.whl'
+        policy = frozenset({('cp313', 'cp313', 'linux_aarch64')})
+        wrong, _ = wheel_bytes(filename=filename, tags=['cp313-cp313-linux_armv7l'])
+        with self.assertRaisesRegex(ValueError, 'wheel format or tag'):
+            verify.wheel_payload(wrong, filename, allowed_filename_tags=policy)
+        _, files = wheel_bytes(filename=filename)
+        files['fixture/__init__.py'] = b'changed without RECORD update\n'
+        with self.assertRaisesRegex(ValueError, 'RECORD content mismatch'):
+            verify.wheel_payload(archive(files.items()), filename, allowed_filename_tags=policy)
+
     def test_record_tamper_missing_duplicate_and_unrecorded_members_are_refused(self):
         record = 'fixture-1.0.dist-info/RECORD'
         cases = []

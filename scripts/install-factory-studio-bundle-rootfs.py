@@ -255,7 +255,7 @@ def _payload(environment, input_sha256, expected):
     for filename, pin in value['wheel_sha256'].items():
         raw = _relative_file(rootfs, environment.wheels.fd, filename, planner.exporter.LIMIT)
         require(planner.exporter.sha(raw) == pin, 'pin_mismatch')
-        for path, content in planner.exporter.wheel_payload(raw, filename).items():
+        for path, content in planner.wheel_payload(raw, filename).items():
             name = planner.SITE + '/' + path
             require(name not in payload, 'payload_collision')
             payload[name] = content; total += len(content)

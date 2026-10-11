@@ -29,6 +29,17 @@ MAX_BYTES = 256 * 1024 * 1024
 BUILD_NAMES = {'.git', '.hg', '.svn', '.env', '.venv', 'venv', 'pyvenv.cfg',
                'pip.conf', '.python-version', 'pyproject.toml', 'setup.py', 'setup.cfg',
                'direct_url.json'}
+STUDIO_FILENAME_TAGS = frozenset({
+    ('py3', 'none', 'any'),
+    ('py2.py3', 'none', 'any'),
+    ('cp313', 'cp313', 'manylinux_2_17_aarch64.manylinux2014_aarch64'),
+    ('cp313', 'cp313', 'manylinux2014_aarch64.manylinux_2_17_aarch64'),
+    ('cp313', 'cp313', 'manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64'),
+    ('cp313', 'cp313', 'manylinux_2_27_aarch64.manylinux_2_28_aarch64'),
+    ('cp313', 'cp313', 'linux_aarch64'),
+    ('cp311', 'abi3', 'manylinux_2_34_aarch64'),
+    ('cp310', 'abi3', 'manylinux_2_17_aarch64.manylinux2014_aarch64'),
+})
 
 
 class Refused(ValueError):
@@ -132,6 +143,24 @@ def app_metadata(payload, filename):
             and {'inky_web/__init__.py', 'inky_web/main.py'} <= set(payload), 'invalid_app_wheel')
 
 
+def wheel_payload(raw, filename):
+    """Studio's closed tags and inert native-header preflight, not a loader."""
+    payload = exporter.wheel_payload(raw, filename, allowed_filename_tags=STUDIO_FILENAME_TAGS)
+    pure_tag = filename[:-4].split('-')[-1] == 'any'
+    for path, content in payload.items():
+        shared_object = re.search(r'\.so(?:\.|$)', PurePosixPath(path).name) is not None
+        if shared_object or content.startswith(b'\x7fELF'):
+            require(not pure_tag, 'native_in_pure_wheel')
+            require(len(content) >= 64 and content[:7] == b'\x7fELF\x02\x01\x01'
+                    and int.from_bytes(content[18:20], 'little') == 183
+                    and int.from_bytes(content[20:24], 'little') == 1
+                    and int.from_bytes(content[52:54], 'little') == 64,
+                    'invalid_native_header')
+            require(not shared_object or int.from_bytes(content[16:18], 'little') == 3,
+                    'invalid_shared_object')
+    return payload
+
+
 def derive(value, sources, wheels):
     exact_inputs(sources, value['source_sha256'])
     exact_inputs(wheels, value['wheel_sha256'])
@@ -139,7 +168,7 @@ def derive(value, sources, wheels):
     for filename, pin in value['wheel_sha256'].items():
         raw = exporter.ordinary(wheels / filename)
         require(exporter.sha(raw) == pin, 'pin_mismatch')
-        payload = exporter.wheel_payload(raw, filename)
+        payload = wheel_payload(raw, filename)
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             for member in archive.infolist():
                 safe_name(member.filename[:-1] if member.is_dir() else member.filename)
