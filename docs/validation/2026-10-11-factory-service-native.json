@@ -1,0 +1,102 @@
+{
+  "all_units_stopped": true,
+  "candidate_qualified": false,
+  "cases": [
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "single",
+      "omitted_capability": null
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "fork",
+      "omitted_capability": null
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "thread",
+      "omitted_capability": null
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "stall",
+      "omitted_capability": null
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "unit_timeout",
+      "omitted_capability": null
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "single",
+      "omitted_capability": "CAP_CHOWN"
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "single",
+      "omitted_capability": "CAP_DAC_OVERRIDE"
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "single",
+      "omitted_capability": "CAP_SETUID"
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "single",
+      "omitted_capability": "CAP_SETGID"
+    },
+    {
+      "cgroup_empty_after_stop": true,
+      "expected_result_observed": true,
+      "mode": "stall",
+      "omitted_capability": "CAP_KILL"
+    }
+  ],
+  "checks": {
+    "each_capability_usage_observed": true,
+    "fork_refused_by_pids_controller": true,
+    "publisher_timeout_reaps": true,
+    "sandbox_observed": true,
+    "single_task_publishes": true,
+    "thread_refused_by_pids_controller": true,
+    "unit_timeout_kills_ignoring_child": true
+  },
+  "date": "2026-10-11",
+  "environment": {
+    "machine": "aarch64",
+    "python_version": "3.13.5",
+    "systemd_version": "systemd 257 (257.13-1~deb13u1)"
+  },
+  "fixture_state_preserved": true,
+  "hardware_qualified": false,
+  "limits": [
+    "Inert producers and synthetic data roots only; no Studio serializer in this fixture.",
+    "TasksMax=2 and empty cgroups do not establish the app/helper writer barrier.",
+    "No complete candidate, installed production path, image or hardware qualification.",
+    "The staging template has an inert ExecStart and no installation target."
+  ],
+  "native_log_sha256": "01e2099a3ea5ad7594db32343ea72d21e6697efef21c313ddabf4bcc54b8b52f",
+  "production_recipe_activated": false,
+  "real_serializer_executed": false,
+  "schema_version": 1,
+  "scope": "factory-service-inert-linux-fixture",
+  "source_commit": "ad70aeb5b818c335d471648dc456e488293fab59",
+  "source_pins": {
+    "scripts/factory-credentials-publisher.py": "82c071dd2ab841c91464a680e9757a469dbf5f2d105f68999c18a387b70bb222",
+    "staging/bootstrap/inkyos-factory-fixture.service": "69eed59cac22e76d0e152f02a0568672f47e1f898c017199e060367da36d6d3f",
+    "staging/bootstrap/probe-factory-service-linux.py": "06ad70fb27da2300ce6d0ba6c27c53cb5ae291b695b96121981bee0fce0b35d9"
+  },
+  "status": "PASS",
+  "writer_barrier_qualified": false
+}

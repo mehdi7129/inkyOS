@@ -107,6 +107,11 @@ passe les 27 cas sans skip et vérifie les UID/GID réels, effectifs et sauvés 
 Il n’exécute pas le vrai sérialiseur Studio ni son venv applicatif. Aucun
 service, image ou comportement de SD n’est qualifié par ces résultats.
 
+Le [banc du superviseur](FACTORY-SERVICE-FIXTURE.md) passe séparément dix cas
+Linux : droits du parent et de l’enfant, limite de tâches, timeouts et arrêt
+du cgroup. Il reste un modèle staging avec producteurs inertes ; il ne prouve
+pas la barrière entre les services applicatifs.
+
 ```sh
 python3 -I -B -m unittest discover -s tests -p test_factory_credentials_publisher.py -v
 ```
