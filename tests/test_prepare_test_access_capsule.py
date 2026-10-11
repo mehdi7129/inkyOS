@@ -129,6 +129,8 @@ class PreparationTests(unittest.TestCase):
         self.assertFalse((self.root / 'prepared').exists())
         public = self.root / 'public'
         public.mkdir(mode=0o755)
+        public.chmod(0o755)
+        self.assertEqual(public.stat().st_mode & 0o777, 0o755)
         self.output = public / 'prepared'
         self.assertFalse(self.run_prepare()['prepared'])
         self.assertFalse(self.output.exists())
