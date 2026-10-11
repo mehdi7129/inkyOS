@@ -23,7 +23,7 @@ pays, choisir le Wi-Fi et envoyer une photo**.
 | Initialisation sans LAN | Service IPC local développé et banc Linux réussi ; il n’est pas installé dans l’image TEST. Le raccord backend/iOS est en cours. |
 | Écran | PCB 7,3″ dont les marquages corroborent l’ancienne famille sept couleurs ; driver physique et affichage non qualifiés. |
 
-La dernière suite passe **[1 273 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-exporter-workspace-tests.json)**,
+Le dernier banc global consigné passe **[1 273 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-exporter-workspace-tests.json)**,
 sans échec (8 skips macOS, 2 skips Linux). Le [banc IPC natif](docs/INITIALIZATION-IPC.md)
 vérifie séparément les droits des processus, la consommation unique de
 l’autorisation et la reprise après redémarrage.
@@ -38,6 +38,10 @@ Le [runtime exporter dédié](docs/FACTORY-EXPORTER-PROPOSAL.md) est installé s
 une copie d’image et [vérifié en Linux ARM64](docs/validation/2026-10-11-factory-exporter-native-install.json) :
 325 fichiers de payload et 390 entrées contrôlées. La génération depuis ce
 runtime, l’intégration du premier boot et les essais matériels restent à qualifier.
+Le [test de composition installé](docs/FACTORY-INSTALLED-FIXTURE.md) est maintenant
+développé : 41 fixtures inertes passent sur macOS ; son exécution native reste
+à réaliser. Le [lot de recette factory](docs/FACTORY-IMAGE-INTEGRATION.md)
+recense les raccords OS/Studio encore nécessaires avant une image utilisable.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles

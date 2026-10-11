@@ -72,6 +72,8 @@ Linux ARM64. Le raccord au hook est testé avec des producteurs inertes ;
 le [vrai sérialiseur Studio](validation/2026-10-11-factory-studio-serializer-native.json)
 passe aussi un banc isolé sous UID 1000, avec deux publications validées par
 Studio. Le [superviseur](FACTORY-SERVICE-FIXTURE.md) passe dix cas distincts.
+Le [test de composition installé](FACTORY-INSTALLED-FIXTURE.md) est développé
+avec 41 fixtures inertes ; son exécution native reste à faire.
 Ces bancs ne qualifient pas l’intégration complète dans l’image. Le verrou
 couvre publication et autorité, et une reprise après consommation ne génère
 jamais de nouveaux credentials implicitement. Le futur profil doit encore
