@@ -33,6 +33,7 @@ REQUEST_LIMIT = 1024
 RESPONSE_LIMIT = 2048
 DEADLINE_SECONDS = 3.0
 REPLY_RESERVE = 0.05
+NOTIFY_TIMEOUT_SECONDS = 1.0
 ERRORS = {'invalid_request', 'forbidden', 'unavailable', 'intent_conflict',
           'initialization_uncertain'}
 
@@ -396,6 +397,23 @@ def listen():
         raise
 
 
+def notify_ready():
+    """One main-process systemd datagram; no notification in standalone fixtures."""
+    address = os.environ.pop('NOTIFY_SOCKET', None)
+    if address is None:
+        return False
+    if len(address) < 2 or address[0] not in '/@' or '\0' in address:
+        raise ValueError('notification address')
+    if address[0] == '@':
+        address = '\0' + address[1:]  # Linux abstract AF_UNIX namespace.
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as notification:
+        # A full manager queue must not stall startup beyond the unit's budget.
+        notification.settimeout(NOTIFY_TIMEOUT_SECONDS)
+        if notification.sendto(b'READY=1', address) != len(b'READY=1'):
+            raise OSError('notification incomplete')
+    return True
+
+
 def main(argv=None):
     if (sys.argv[1:] if argv is None else argv) or sys.platform != 'linux' or os.geteuid() != 0:
         return 1
@@ -404,6 +422,7 @@ def main(argv=None):
         receipt = load_receipt()
         listener, lock, directory = listen()
         worker = Worker(receipt, (listener.fileno(), lock, directory))
+        notify_ready()  # Pinned source, listening socket/permissions and worker are ready.
         while True:
             worker.reap()
             try:

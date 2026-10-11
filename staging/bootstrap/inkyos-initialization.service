@@ -4,7 +4,9 @@ Description=Explicit one-use initialization receipt IPC
 After=local-fs.target
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
+TimeoutStartSec=10s
 User=root
 Group=inky-provisioning
 SupplementaryGroups=root

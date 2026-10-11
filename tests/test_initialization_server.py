@@ -1,3 +1,5 @@
+from contextlib import ExitStack
+import fcntl
 import hashlib
 import importlib.util
 import json
@@ -11,7 +13,7 @@ import tempfile
 import time
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).parents[1]
 
@@ -365,10 +367,217 @@ class SocketTests(unittest.TestCase):
         self.assertEqual(results[0]['receipt'], results[1]['receipt'])
 
 
+class NotificationTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='.inkyos-notify-', dir=Path.home().resolve())
+        self.addCleanup(temporary.cleanup)
+        self.address = str(Path(temporary.name) / 'notify.sock')
+
+    def test_no_manager_does_not_open_socket_or_claim_notification(self):
+        with patch.dict(os.environ, {}, clear=True), patch.object(server.socket, 'socket') as opening:
+            self.assertFalse(server.notify_ready())
+            opening.assert_not_called()
+
+    def test_pathname_receives_one_ready_and_environment_is_removed(self):
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager:
+            manager.bind(self.address)
+            manager.settimeout(.05)
+            with patch.dict(os.environ, {'NOTIFY_SOCKET': self.address}):
+                self.assertTrue(server.notify_ready())
+                self.assertNotIn('NOTIFY_SOCKET', os.environ)
+                self.assertEqual(manager.recv(128), b'READY=1')
+                self.assertFalse(server.notify_ready())
+                with self.assertRaises(socket.timeout):
+                    manager.recv(128)
+
+    @unittest.skipUnless(server.sys.platform == 'linux', 'Linux abstract namespace and credentials only')
+    def test_abstract_address_preserves_kernel_sender_identity(self):
+        address = '@inkyos-ready-' + os.urandom(12).hex()
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager:
+            manager.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
+            manager.bind('\0' + address[1:])
+            manager.settimeout(.5)
+            with patch.dict(os.environ, {'NOTIFY_SOCKET': address}):
+                self.assertTrue(server.notify_ready())
+                self.assertNotIn('NOTIFY_SOCKET', os.environ)
+            raw, ancillary, _, _ = manager.recvmsg(128, socket.CMSG_SPACE(struct.calcsize('3i')))
+            self.assertEqual(raw, b'READY=1')
+            credentials = [data for level, kind, data in ancillary
+                           if level == socket.SOL_SOCKET and kind == socket.SCM_CREDENTIALS]
+            self.assertEqual(len(credentials), 1)
+            self.assertEqual(struct.unpack('3i', credentials[0]), (os.getpid(), os.getuid(), os.getgid()))
+
+    def test_invalid_address_is_not_a_fallback_to_standalone(self):
+        for address in ('', '@', '/', 'relative.sock', 'tcp:localhost:9', 'vsock:1:2'):
+            with self.subTest(address=address), patch.dict(os.environ, {'NOTIFY_SOCKET': address}), \
+                    patch.object(server.socket, 'socket') as opening:
+                with self.assertRaises(ValueError):
+                    server.notify_ready()
+                self.assertNotIn('NOTIFY_SOCKET', os.environ)
+                opening.assert_not_called()
+
+    def test_unreachable_manager_closes_notification_socket(self):
+        notification = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        with patch.dict(os.environ, {'NOTIFY_SOCKET': self.address}), \
+                patch.object(server.socket, 'socket', return_value=notification), self.assertRaises(OSError):
+            try:
+                server.notify_ready()
+            finally:
+                self.assertNotIn('NOTIFY_SOCKET', os.environ)
+                self.assertEqual(notification.fileno(), -1)
+
+    def test_short_send_fails_closed_and_closes_notification_socket(self):
+        notification = Mock()
+        notification.sendto.return_value = 1
+        context = Mock(__enter__=Mock(return_value=notification), __exit__=Mock(return_value=False))
+        with patch.dict(os.environ, {'NOTIFY_SOCKET': self.address}), \
+                patch.object(server.socket, 'socket', return_value=context), self.assertRaises(OSError):
+            server.notify_ready()
+        context.__exit__.assert_called_once()
+
+    @unittest.skipUnless(server.sys.platform == 'linux', 'Linux UNIX datagram queue semantics only')
+    def test_full_manager_queue_has_bounded_notification_failure(self):
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager, \
+                socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as filler:
+            manager.bind(self.address)
+            filler.setblocking(False)
+            for _ in range(4096):
+                try:
+                    filler.sendto(b'occupied', self.address)
+                except BlockingIOError:
+                    break
+            else:
+                self.fail('Fixture manager queue did not fill')
+            with patch.dict(os.environ, {'NOTIFY_SOCKET': self.address}), \
+                    patch.object(server, 'NOTIFY_TIMEOUT_SECONDS', .05):
+                started = time.monotonic()
+                with self.assertRaises(socket.timeout):
+                    server.notify_ready()
+                self.assertLess(time.monotonic() - started, .5)
+                self.assertNotIn('NOTIFY_SOCKET', os.environ)
+
+
+class StartupReadinessTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='.inkyos-start-', dir=Path.home().resolve())
+        self.addCleanup(temporary.cleanup)
+        self.parent = Path(temporary.name)
+        self.runtime = self.parent / 'runtime'; self.runtime.mkdir(mode=0o750)
+        self.control = self.runtime / 'control.sock'
+        self.authorization = self.parent / 'authorization'
+        self.owner = {'_owner_uid': os.geteuid(), '_owner_gid': os.getegid()}
+        receipt.create_authorization(self.authorization, **self.owner)
+        self.before = {p.name: p.read_bytes() for p in self.authorization.iterdir()}
+        self.api = Mock()
+        self.events = []
+        self.resources = None
+        self.real_fstat = os.fstat
+        self.real_listen = server.listen
+        self.real_worker = server.Worker
+
+    def root_metadata(self, fd):
+        info = self.real_fstat(fd)
+        return types.SimpleNamespace(st_mode=info.st_mode, st_nlink=info.st_nlink,
+                                     st_uid=0, st_gid=info.st_gid, st_size=info.st_size)
+
+    def listen(self):
+        self.events.append('listen')
+        self.resources = self.real_listen()
+        return self.resources
+
+    def worker(self, *args):
+        self.events.append('worker')
+        return self.real_worker(*args)
+
+    def loaded(self):
+        self.events.append('load')
+        return self.api
+
+    def run_main(self, *, address=None, load_error=None, listen_error=None, worker_error=None,
+                 accept=None):
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(os.environ, {}, clear=True))
+            if address is not None:
+                os.environ['NOTIFY_SOCKET'] = address
+            for target, name, value in (
+                (server.sys, 'platform', 'linux'), (server.os, 'geteuid', lambda: 0),
+                (server, 'SOCKET', self.control), (server.os, 'fstat', self.root_metadata),
+                (server, 'trusted_directory', lambda _: os.open(self.runtime, os.O_RDONLY)),
+                (server.grp, 'getgrnam', lambda _: types.SimpleNamespace(gr_gid=os.getegid())),
+            ):
+                stack.enter_context(patch.object(target, name, value))
+            stack.enter_context(patch.object(server, 'load_receipt', side_effect=load_error or self.loaded))
+            stack.enter_context(patch.object(server, 'listen', side_effect=listen_error or self.listen))
+            stack.enter_context(patch.object(server, 'Worker', side_effect=worker_error or self.worker))
+            accept_mock = stack.enter_context(patch.object(socket.socket, 'accept',
+                                                          side_effect=accept or OSError('fixture stop')))
+            self.assertEqual(server.main([]), 1)
+        self.api.inspect.assert_not_called(); self.api.begin.assert_not_called()
+        self.assertEqual({p.name: p.read_bytes() for p in self.authorization.iterdir()}, self.before)
+        self.assertEqual(receipt.inspect(self.authorization, **self.owner), {'status': 'authorized'})
+        return accept_mock
+
+    def assert_resources_closed(self):
+        listener, lock, directory = self.resources
+        self.assertEqual(listener.fileno(), -1)
+        for fd in (lock, directory):
+            with self.assertRaises(OSError):
+                os.fstat(fd)
+        with self.assertRaises(OSError), socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+            client.connect(str(self.control))
+        with (self.runtime / '.server.lock').open('rb') as reopened:
+            fcntl.flock(reopened.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    def test_ready_only_after_source_listener_permissions_and_worker_before_accept(self):
+        address = str(self.parent / 'notify.sock')
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager:
+            manager.bind(address); manager.settimeout(.05)
+            def accept():
+                self.assertEqual(self.events, ['load', 'listen', 'worker'])
+                listener, _, _ = self.resources
+                self.assertEqual(listener.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN), 1)
+                self.assertEqual(stat.S_IMODE(self.control.stat().st_mode), 0o660)
+                self.assertEqual(manager.recv(128), b'READY=1')
+                self.assertNotIn('NOTIFY_SOCKET', os.environ)
+                with self.assertRaises(socket.timeout):
+                    manager.recv(128)
+                raise OSError('fixture stop')
+            self.run_main(address=address, accept=accept).assert_called_once()
+        self.assert_resources_closed()
+
+    def test_startup_failure_never_notifies_or_accepts(self):
+        address = str(self.parent / 'notify.sock')
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager:
+            manager.bind(address); manager.settimeout(.05)
+            for failure in ('load_error', 'listen_error', 'worker_error'):
+                with self.subTest(failure=failure):
+                    self.run_main(address=address, **{failure: ValueError('fixture failure')}).assert_not_called()
+                    with self.assertRaises(socket.timeout):
+                        manager.recv(128)
+            self.assert_resources_closed()
+
+    def test_failed_notification_closes_server_and_releases_lock_without_consuming(self):
+        for address in ('', str(self.parent / 'absent.sock')):
+            with self.subTest(address=address):
+                self.run_main(address=address).assert_not_called()
+                self.assert_resources_closed()
+
+    def test_standalone_fixture_still_accepts_without_notification(self):
+        notification = server.notify_ready
+        def absent():
+            self.assertNotIn('NOTIFY_SOCKET', os.environ)
+            self.assertFalse(notification())
+        with patch.object(server, 'notify_ready', side_effect=absent) as notify:
+            self.run_main().assert_called_once()
+            notify.assert_called_once()
+        self.assert_resources_closed()
+
+
 class StagingTests(unittest.TestCase):
     def test_unit_is_uninstalled_without_state_creation_or_capabilities(self):
         raw = (ROOT / 'staging/bootstrap/inkyos-initialization.service').read_text()
-        for line in ('User=root', 'Group=inky-provisioning', 'SupplementaryGroups=root',
+        for line in ('Type=notify', 'NotifyAccess=main', 'TimeoutStartSec=10s',
+                     'User=root', 'Group=inky-provisioning', 'SupplementaryGroups=root',
                      'RuntimeDirectoryMode=0750', 'CapabilityBoundingSet=', 'KillMode=control-group',
                      'RestrictAddressFamilies=AF_UNIX', 'ProtectSystem=strict'):
             self.assertIn(line + '\n', raw)
