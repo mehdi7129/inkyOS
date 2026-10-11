@@ -847,6 +847,11 @@ class InstallerTests(ExporterFixture):
         def trusted_host_record(path):
             observed.append(path)
             record = verify.single_record(path)
+            if path in self.base.parents:
+                # The temporary fixture's outer /tmp ancestry models trusted
+                # host directories; Linux /tmp itself is intentionally 1777.
+                # Preserve the actual binary and fixture-directory modes.
+                record['mode'] = '0755'
             return dict(record, uid=0, gid=0, xattrs=copy.deepcopy(verify.EMPTY_XATTRS))
 
         with patch.object(installer.sys, 'executable', str(alias)), \
