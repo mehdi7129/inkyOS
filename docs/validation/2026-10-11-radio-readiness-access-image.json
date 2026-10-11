@@ -1,0 +1,55 @@
+{
+  "application_activated": false,
+  "application_manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+  "application_source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+  "checks": {
+    "qualification-application.json": {
+      "checks": 26,
+      "passed": true
+    },
+    "qualification-prepared.json": {
+      "checks": 17,
+      "passed": true
+    },
+    "qualification-static.json": {
+      "checks": 62,
+      "passed": true
+    },
+    "test-access-configuration.json": {
+      "checks": 18,
+      "passed": true
+    }
+  },
+  "existing_host_identity_reused": false,
+  "flashed_by_this_preparation": false,
+  "hardware_qualified": false,
+  "image_size_bytes": 3061841920,
+  "independent_export_review_passed": true,
+  "limits": [
+    "Fresh enrollment-and-stop remains required before binding a new signed network capsule.",
+    "The radio-readiness correction is integrated and software-tested, but no target boot, Wi-Fi association or hardware fix is verified for this image.",
+    "The dedicated SD still contains source 07271cf at the time of this preparation; the image has not been flashed.",
+    "Unsigned local hashes establish file consistency, not independent authenticity."
+  ],
+  "network_credentials_embedded": false,
+  "operator_private_key_copied": false,
+  "operator_public_key_reused": true,
+  "parent_image_sha256": "dcc451dc927eeb5ba202ca480005351a7516c13bc057f6946e4023efea91a595",
+  "private_image_hash_published": false,
+  "private_image_sha256_verified": true,
+  "protected_boot_grow_files": 10,
+  "readiness_correction_commit": "52ddfc1a2040888f3d77196819029a74d234205b",
+  "readiness_correction_integrated": true,
+  "recipe_public_sources_match_commit": true,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "private-radio-readiness-test-access-image-preparation",
+  "software_image_preparation_passed": true,
+  "source_commit": "2e435c9684bc6a6c59f0e6bceec04fb540371444",
+  "source_sha256": {
+    "scripts/test-access-boot.py": "bde63ca69323ce41eae8ffe398b176c83d19f6a2ec487323d33991a84510e612",
+    "scripts/test-access-connect.py": "4f7bc57d3997efca45f2674365c024e3f2d7f5c9b85c9645df0ae76a2c1b9517"
+  },
+  "target_boot_tested": false,
+  "worktree_dirty": false
+}

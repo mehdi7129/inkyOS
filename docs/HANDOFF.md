@@ -27,7 +27,10 @@ Une [correction de synchronisation radio](validation/2026-10-11-radio-readiness-
 attend la disponibilité de NetworkManager avant l’unique activation ; 1 047 tests
 passent sur macOS et Linux ARM64. La course est reproduite en simulation,
 sans cause matérielle établie. La SD actuelle, issue des sources `07271cf`,
-ne contient pas cette correction ; aucune nouvelle image n’a été construite pour elle.
+ne contient pas cette correction. Une [nouvelle image privée](validation/2026-10-11-radio-readiness-access-image.json)
+intègre maintenant le correctif : recette `2e435c9`, arbre propre, 123 contrôles
+offline réussis, même candidat applicatif. Elle n’est pas encore flashée ; un
+nouvel enrôlement, un contexte vérifié et une capsule liée restent nécessaires.
 Le [retour réseau avec codes](validation/2026-10-11-network-device-state-return.json)
 confirme un échec d’activation 4, avec interface indisponible (20), venant
 d’être prise en gestion (raison 2), avant le nettoyage radio. Le budget n’est

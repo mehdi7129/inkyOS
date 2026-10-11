@@ -236,8 +236,9 @@ Les [tests de la correction](validation/2026-10-11-radio-readiness-tests.json)
 passent : 39 ciblés relus indépendamment, puis 1 047 sur macOS et Linux ARM64.
 Ils couvrent notamment readiness retardée, absente ou invalide, budgets et activation
 unique. Ils ne réalisent aucune association Wi-Fi physique ou simulée par hwsim.
-La SD actuelle provient toujours des sources `07271cf` ; aucune nouvelle image
-n’a été construite ni flashée pour cette correction.
+La SD actuelle provient toujours des sources `07271cf`. La
+[nouvelle image corrigée](validation/2026-10-11-radio-readiness-access-image.json)
+est construite depuis `2e435c9` ; elle n’est pas encore flashée.
 
 ## Retour avec état du périphérique
 
@@ -267,5 +268,19 @@ Les deux rapports partagent le même identifiant de boot, conservé en privé.
 La lecture et ses contrôles de média passent ; le système de fichiers demande
 une récupération et aucun journal n’est rejoué. Les horodatages ne permettent
 pas d’attester indépendamment qu’il s’agit du dernier boot. La correction
-reste à intégrer à une image et à valider sur le Pi ; SSH, BLE et l’appairage
-iOS restent non qualifiés.
+est désormais intégrée à une image, mais reste à valider sur le Pi ; SSH, BLE
+et l’appairage iOS restent non qualifiés.
+
+## Image intégrant l’attente radio
+
+La recette `2e435c9`, contenant la correction `52ddfc1`, produit une image privée
+de 3 061 841 920 octets à partir du parent figé, sans reconstruire le backend.
+Les 123 contrôles offline passent : 18 de configuration, 17 du parent préparé,
+62 du système et 26 de l’application. Le hash du connecteur corrigé est vérifié
+dans la recette et l’inventaire de l’image. Aucun secret réseau n’est incorporé.
+
+L’image n’est pas encore sur la SD. La recette conserve le parcours de test :
+flash, premier boot d’enrôlement et arrêt, retour SD pour les 35 + 10 contrôles,
+puis installation d’une capsule nouvellement signée avant le boot réseau.
+Le changement de manifeste interdit de réutiliser l’ancien contexte ou de
+remplacer seulement le connecteur sur la SD existante.
