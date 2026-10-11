@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "/usr/lib/inkyos/factory-exporter/venv/bin/python",
+    "-I",
+    "-B",
+    "-m",
+    "inky_web.provisioning.factory_credentials",
+    "--emit-v2"
+  ],
+  "base_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+  "base_lock_sha256": "b8dfe442703d1b2063f7006a28353427aa526858c31a2d9f73f4090dc86add18",
+  "contract": "factory-exporter-v2",
+  "destination": "/usr/lib/inkyos/factory-exporter",
+  "limitations": [
+    "Four pinned Studio source files and ten dependency wheels; not a complete application candidate.",
+    "Native installation is refused before mutation until the independently reviewed system-support manifest is pinned.",
+    "No image recipe, publisher argv v1, service, credentials or runtime activation is changed."
+  ],
+  "schema_version": 1,
+  "source_sha256": {
+    "inky_web/__init__.py": "eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc",
+    "inky_web/auth.py": "758a867cb1d6c769befdfb0178841e81d2a7d47b0395f4eb54b90a6f2ab7803d",
+    "inky_web/provisioning/__init__.py": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f",
+    "inky_web/provisioning/factory_credentials.py": "55b3f5b11c5ebad60ae2a65cf9006dd7d1cb2ce2777fc3d5511ea0d72aa6715b"
+  },
+  "status": "staging-blocked-system-closure",
+  "studio_commit": "cf17a0514989023143798570a8ae47739b829301",
+  "support_manifest_sha256": null,
+  "system_packages_lock_sha256": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+  "wheel_sha256": {
+    "annotated_doc-0.0.5-py3-none-any.whl": "117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101",
+    "annotated_types-0.8.0-py3-none-any.whl": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+    "anyio-4.15.1-py3-none-any.whl": "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101",
+    "fastapi-0.141.1-py3-none-any.whl": "bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3",
+    "idna-3.20-py3-none-any.whl": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+    "pydantic-2.13.5-py3-none-any.whl": "346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73",
+    "pydantic_core-2.46.5-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "193375f3548919d3f0b60936ca113ada3e38f264f91b9b8e0508efaad57be931",
+    "starlette-1.7.0-py3-none-any.whl": "67f8e99895493dd2911a03f11314af6ceebeae4e704bb9f43dfc6a9db151c93e",
+    "typing_extensions-4.16.0-py3-none-any.whl": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+    "typing_inspection-0.4.4-py3-none-any.whl": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147"
+  }
+}
