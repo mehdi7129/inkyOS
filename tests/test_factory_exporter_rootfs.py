@@ -49,7 +49,7 @@ class LauncherExit(BaseException):
 
 class HostLauncherFixture:
     """Run launcher logic with no real OS/libc/process operation available."""
-    ROOT = '/var/tmp/inkyos-work/prototype.fixture/root'
+    ROOT = '/var/lib/inkyos-build/factory-exporter.A1b/root'
     COMMAND = ['/usr/bin/python3.13', '-I', '-B', '-S', '/inert.py']
 
     def __init__(self, failure=None):
@@ -839,6 +839,19 @@ class InstallerTests(ExporterFixture):
                 self.assertFalse(any(e[0] == 'import' and e[-1] for e in fixture.events))
                 self.assertFalse(any(e[0] == 'setresuid' for e in fixture.events))
 
+    def test_host_launcher_rejects_old_or_malformed_workspace_before_privilege_operations(self):
+        for path in WorkspaceTests.INVALID_ROOTS:
+            with self.subTest(path=path):
+                fixture = HostLauncherFixture()
+                fixture.sys.argv[1] = path
+                fixture.run()
+                self.assertFalse(fixture.chrooted)
+                self.assertEqual(fixture.exec_calls, [])
+                self.assertEqual(fixture.exit_status, 127)
+                self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
+                self.assertFalse(any(event[0] in {'prctl', 'capget', 'capset', 'setgroups', 'setresuid'}
+                                     for event in fixture.events))
+
     def test_host_interpreter_covers_real_executable_and_every_parent_including_root(self):
         binary = self.write(self.base / 'host/python3', b'INERT_HOST_BINARY', 0o755)
         alias = self.base / 'python-alias'; alias.symlink_to(binary)
@@ -920,6 +933,95 @@ class InstallerTests(ExporterFixture):
         self.assertFalse(output.exists())
         self.assertFalse(output.with_name(output.name + '.logs').exists())
         self.assertEqual(sorted(str(p.relative_to(self.base)) for p in self.base.rglob('*')), before)
+
+
+class WorkspaceTests(unittest.TestCase):
+    INVALID_ROOTS = (
+        '/var/tmp/inkyos-work/prototype.fixture/root',
+        '/var/lib/inkyos-build/factory-exporter./root',
+        '/var/lib/inkyos-build/factory-exporter.abc/nested/root',
+        '/var/lib/inkyos-build/factory-exporter.abc/../factory-exporter.other/root',
+        '/var/lib/inkyos-build/factory-exporter.é/root',
+        '/var/lib/inkyos-build/factory-exporter.abc-def/root',
+        '/var/lib/inkyos-build/factory-exporter.abc_def/root',
+        '/var/lib/inkyos-build/factory-exporter.abc/root/extra',
+        '/var/lib/inkyos-build/factory-exporter.abc/root\n',
+        'var/lib/inkyos-build/factory-exporter.abc/root',
+    )
+
+    def directory(self, path, work):
+        return {'type': 'directory', 'uid': 0, 'gid': 0,
+                'mode': '0700' if path == work else '0755',
+                'xattrs': copy.deepcopy(verify.EMPTY_XATTRS)}
+
+    def test_environment_rejects_workspace_before_reading_builder_marker(self):
+        root = Path(HostLauncherFixture.ROOT)
+        with patch.object(installer.sys, 'platform', 'linux'), \
+                patch.object(installer.platform, 'machine', return_value='aarch64'), \
+                patch.object(installer.os, 'geteuid', return_value=0), \
+                patch.object(installer, 'check_workspace', side_effect=ValueError('workspace sentinel')) as workspace, \
+                patch.object(installer, 'checked_path') as checked, \
+                patch.object(installer.verifier, 'ordinary') as ordinary:
+            with self.assertRaisesRegex(ValueError, 'workspace sentinel'):
+                installer.check_environment(root, root.parent / 'sources', root.parent / 'wheels',
+                                            root.parent / 'support.json', root.parent / 'report.json')
+        workspace.assert_called_once_with(root)
+        checked.assert_not_called()
+        ordinary.assert_not_called()
+
+    def test_private_workspace_accepts_ascii_alnum_tokens_and_checks_every_ancestor(self):
+        for token in ('A1b', '0', 'XYZ123'):
+            root = Path('/var/lib/inkyos-build/factory-exporter.' + token + '/root')
+            work = root.parent
+            with self.subTest(token=token), \
+                    patch.object(installer, 'checked_path', return_value=root) as checked, \
+                    patch.object(installer.verifier, 'single_record',
+                                 side_effect=lambda path: self.directory(path, work)) as record:
+                self.assertEqual(installer.check_workspace(root), work)
+            checked.assert_called_once_with(root)
+            self.assertEqual(record.call_args_list, [call(path) for path in (work, *work.parents)])
+
+    def test_workspace_rejects_old_nested_traversal_and_non_ascii_paths_before_inspection(self):
+        for path in self.INVALID_ROOTS:
+            with self.subTest(path=path), patch.object(installer, 'checked_path') as checked, \
+                    patch.object(installer.verifier, 'single_record') as record:
+                with self.assertRaises(ValueError):
+                    installer.check_workspace(Path(path))
+                checked.assert_not_called()
+                record.assert_not_called()
+
+    def test_workspace_rejects_unsafe_ownership_permissions_acl_on_each_ancestor(self):
+        root = Path(HostLauncherFixture.ROOT)
+        work = root.parent
+        mutations = ({'uid': 501}, {'gid': 1000}, {'mode': '0775'},
+                     {'xattrs': {'status': 'inspected', 'entries': {
+                         'system.posix_acl_access': {'size_bytes': 4, 'sha256': 'a' * 64}}}})
+        for ancestor in (work, *work.parents):
+            for mutation in mutations:
+                def metadata(path):
+                    record = self.directory(path, work)
+                    if path == ancestor:
+                        record.update(mutation)
+                    return record
+                with self.subTest(ancestor=ancestor, mutation=mutation), \
+                        patch.object(installer, 'checked_path', return_value=root), \
+                        patch.object(installer.verifier, 'single_record', side_effect=metadata), \
+                        self.assertRaises(ValueError):
+                    installer.check_workspace(root)
+
+    def test_workspace_requires_exact_private_work_mode_and_directory_type(self):
+        root = Path(HostLauncherFixture.ROOT)
+        work = root.parent
+        for mutation in ({'mode': '0755'}, {'type': 'file'}):
+            def metadata(path):
+                record = self.directory(path, work)
+                if path == work:
+                    record.update(mutation)
+                return record
+            with self.subTest(mutation=mutation), patch.object(installer, 'checked_path', return_value=root), \
+                    patch.object(installer.verifier, 'single_record', side_effect=metadata), \
+                    self.assertRaises(ValueError):
+                installer.check_workspace(root)
 
 
 if __name__ == '__main__':

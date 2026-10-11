@@ -58,8 +58,9 @@ def capabilities():
 try:
  require(len(sys.argv)>=3 and os.getresuid()==(0,0,0))
  root=sys.argv[1];command=sys.argv[2:]
- require(root.startswith('/var/tmp/inkyos-work/prototype.') and root.endswith('/root')
-         and all(p not in ('.','..','') for p in root.split('/')[1:]))
+ prefix='/var/lib/inkyos-build/factory-exporter.';suffix='/root'
+ token=root[len(prefix):-len(suffix)]
+ require(root.startswith(prefix) and root.endswith(suffix) and token.isascii() and token.isalnum())
  require(command[0]=='/usr/bin/python3.13')
  # Keep effective CHROOT/SETUID/SETGID until their numeric syscalls finish,
  # but remove all routes for capabilities to survive or return after exec.
@@ -133,9 +134,24 @@ def guard_destinations(rootfs):
         require(not os.path.lexists(path), 'Exporter destination or scratch already exists')
 
 
+def check_workspace(rootfs):
+    require(verifier.re.fullmatch(r'/var/lib/inkyos-build/factory-exporter\.[A-Za-z0-9]+/root',
+                                 str(rootfs)), 'Dedicated disposable exporter path required')
+    checked_path(rootfs)
+    work = rootfs.parent
+    for path in (work, *work.parents):
+        record = verifier.single_record(path)
+        require(record['type'] == 'directory', 'Build workspace directory required')
+        verifier.secure_record(record)
+        if path == work:
+            require(record['mode'] == '0700', 'Private root-owned build workspace required')
+    return work
+
+
 def check_environment(rootfs, sources, wheels, support, output):
     require(sys.platform.startswith('linux') and platform.machine() == 'aarch64'
             and os.geteuid() == 0, 'Dedicated root Linux ARM64 builder required')
+    work = check_workspace(rootfs)
     marker = checked_path(Path('/var/lib/inkyos-build/owner'))
     verifier.secure_record(verifier.single_record(marker))
     require(verifier.ordinary(marker, 256) == b'inkyos-builder-v1\n', 'Dedicated builder marker required')
@@ -144,14 +160,8 @@ def check_environment(rootfs, sources, wheels, support, output):
             'Private network namespace with only loopback required')
     require(os.readlink('/proc/self/ns/mnt') != os.readlink('/proc/1/ns/mnt'),
             'Private mount namespace required')
-    require(verifier.re.fullmatch(r'/var/tmp/inkyos-work/prototype\.[A-Za-z0-9]+/root', str(rootfs)),
-            'Dedicated disposable prototype path required')
     guard_destinations(rootfs)
     require(os.path.ismount(rootfs), 'Mounted disposable rootfs required')
-    work = rootfs.parent
-    info = work.lstat()
-    require(stat.S_ISDIR(info.st_mode) and info.st_uid == 0 and
-            stat.S_IMODE(info.st_mode) == 0o700, 'Private root-owned build workspace required')
     mounts = [line.split() for line in Path('/proc/self/mountinfo').read_text().splitlines()]
     rows = [fields for fields in mounts if fields[4] == str(rootfs)]
     require(len(rows) == 1, 'Unique rootfs mount required')
@@ -162,7 +172,7 @@ def check_environment(rootfs, sources, wheels, support, output):
     for path in (sources, wheels, support):
         checked_path(path)
         require(path.is_relative_to(work) and not path.is_relative_to(rootfs),
-                'Inputs must be outside rootfs in the private prototype workspace')
+                'Inputs must be outside rootfs in the private exporter workspace')
     checked_path(output, missing=True)
     require(output.parent == work and not os.path.lexists(output), 'New report outside rootfs required')
     for path in (rootfs, rootfs / 'usr', rootfs / 'usr/lib', rootfs / 'usr/lib/inkyos'):
