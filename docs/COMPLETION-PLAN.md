@@ -53,7 +53,7 @@ changement de protocole est coordonné entre dépôts et testé des deux côtés
 Les trois corrections système sont maintenant intégrées dans une
 [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 qui passe 132 contrôles offline. La suite complète compte
-[1 267 tests par plateforme](validation/2026-10-11-factory-exporter-tests.json),
+[1 273 tests par plateforme](validation/2026-10-11-factory-exporter-workspace-tests.json),
 sans échec. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
 son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.
 

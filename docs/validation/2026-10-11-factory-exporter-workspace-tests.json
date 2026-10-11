@@ -1,0 +1,55 @@
+{
+  "all_inputs_match_current_source": true,
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "input_receipt_sha256": "623f21426998ac3365e6fb7d0c51e4c58599bdc9be3be3e5fedb7c156d8497a9",
+  "limits": [
+    "Software fixtures and shell syntax only; no SD, Wi-Fi, Bluetooth, display or application startup qualification.",
+    "This regression covers the root-owned workspace correction and its early-refusal tests. Native exporter installation has separate evidence."
+  ],
+  "linux_arm64": {
+    "architecture": "aarch64",
+    "errors": 0,
+    "failures": 0,
+    "hardware_qualified": false,
+    "log_sha256": "c65b26696b1e45402d93469299f4f99966230badc7f1b5d648a1097ef2fbfd54",
+    "passed": true,
+    "python": "3.13.5",
+    "python_fixtures_passed": true,
+    "schema_version": 1,
+    "scope": "software-fixtures-only",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 2,
+    "system": "Linux",
+    "tests": 1273
+  },
+  "linux_transferred_inputs": 189,
+  "macos": {
+    "architecture": "arm64",
+    "errors": 0,
+    "failures": 0,
+    "hardware_qualified": false,
+    "log_sha256": "469dc4e9a1526b261797c2923130c8c33bc1f876cc2e27f28592eba33b885d55",
+    "passed": true,
+    "python": "3.13.3",
+    "python_fixtures_passed": true,
+    "schema_version": 1,
+    "scope": "software-fixtures-only",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 8,
+    "system": "Darwin",
+    "tests": 1273
+  },
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "factory-exporter-private-workspace-complete-offline-regression",
+  "source_commit": "512056ff355ed32ff84826b56b5a7a9aa157c605",
+  "status": "PASS",
+  "worktree_clean_at_execution": true
+}
