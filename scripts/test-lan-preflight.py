@@ -47,6 +47,70 @@ CHECKS = (
     "spi_i2c_gpio_nodes", "application_state_virgin", "helper_state_virgin",
     "panel_inventory_supplied_and_valid", "panel_runtime_evidence_verified",
 )
+# A separate, fixed process keeps the existing two-second command deadline.
+# systemd v257.13 timedated.c:522-534 uses this read-only kernel observation;
+# querying the on-demand timedated service with auto-start disabled can fail
+# even when the kernel clock is synchronized. Unsupported ABI/read errors
+# produce no assertion, rather than a false synchronization observation.
+KERNEL_UTC_PROBE = r'''
+import ctypes
+import os
+import sys
+
+
+class Timeval(ctypes.Structure):
+    _fields_ = [("tv_sec", ctypes.c_long), ("tv_usec", ctypes.c_long)]
+
+
+class Timex(ctypes.Structure):
+    _fields_ = [
+        ("modes", ctypes.c_uint), ("offset", ctypes.c_long),
+        ("freq", ctypes.c_long), ("maxerror", ctypes.c_long),
+        ("esterror", ctypes.c_long), ("status", ctypes.c_int),
+        ("constant", ctypes.c_long), ("precision", ctypes.c_long),
+        ("tolerance", ctypes.c_long), ("time", Timeval),
+        ("tick", ctypes.c_long), ("ppsfreq", ctypes.c_long),
+        ("jitter", ctypes.c_long), ("shift", ctypes.c_int),
+        ("stabil", ctypes.c_long), ("jitcnt", ctypes.c_long),
+        ("calcnt", ctypes.c_long), ("errcnt", ctypes.c_long),
+        ("stbcnt", ctypes.c_long), ("tai", ctypes.c_int),
+        ("reserved", ctypes.c_int * 11),
+    ]
+
+
+def kernel_clock_synchronized():
+    try:
+        if (sys.platform != "linux" or os.uname().machine != "aarch64"
+                or sys.byteorder != "little"
+                or tuple(ctypes.sizeof(t) for t in
+                         (ctypes.c_int, ctypes.c_uint, ctypes.c_long, ctypes.c_void_p)) != (4, 4, 8, 8)
+                or (ctypes.sizeof(Timeval), ctypes.alignment(Timeval),
+                    Timeval.tv_sec.offset, Timeval.tv_usec.offset) != (16, 8, 0, 8)
+                or (ctypes.sizeof(Timex), ctypes.alignment(Timex)) != (208, 8)
+                or tuple(getattr(Timex, name).offset for name, _type in Timex._fields_) !=
+                   (0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 88, 96, 104, 112,
+                    120, 128, 136, 144, 152, 160, 164)):
+            return None
+        libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        query = libc.adjtimex
+        query.argtypes = [ctypes.POINTER(Timex)]
+        query.restype = ctypes.c_int
+        value = Timex()  # All bytes zero: modes=0 observes without setting time.
+        ctypes.set_errno(0)
+        if query(ctypes.byref(value)) < 0:
+            return None
+        # Match systemd: STA_UNSYNC can disable RTC updates and is ignored.
+        return value.maxerror < 16000000
+    except (AttributeError, OSError, TypeError, ValueError):
+        return None
+
+
+if __name__ == "__main__":
+    synchronized = kernel_clock_synchronized()
+    if synchronized is None:
+        raise SystemExit(2)
+    print("v b true" if synchronized else "v b false")
+'''
 COMMANDS = {
     "firstboot": ("/usr/bin/systemctl", "--no-pager", "show", "inkyos-firstboot.service", "--property=ActiveState,SubState,LoadState,Result,ExecMainStatus"),
     "app": ("/usr/bin/systemctl", "--no-pager", "show", "inky-studio.service", "--property=ActiveState,SubState,LoadState,UnitFileState"),
@@ -55,9 +119,7 @@ COMMANDS = {
     "nm": ("/usr/bin/nmcli", "--get-values", "GENERAL.STATE,GENERAL.NM-MANAGED", "device", "show", "wlan0"),
     "iw_interface": ("/usr/sbin/iw", "dev", "wlan0", "info"),
     "iw_reg": ("/usr/sbin/iw", "reg", "get"),
-    # busctl --auto-start applies to call, not get-property. Properties.Get is
-    # read-only and returns a variant; no service may be implicitly activated.
-    "utc_sync": ("/usr/bin/busctl", "--system", "--auto-start=no", "--allow-interactive-authorization=no", "call", "org.freedesktop.timedate1", "/org/freedesktop/timedate1", "org.freedesktop.DBus.Properties", "Get", "ss", "org.freedesktop.timedate1", "NTPSynchronized"),
+    "utc_sync": ("/usr/bin/python3", "-I", "-B", "-c", KERNEL_UTC_PROBE),
     "bluez": ("/usr/bin/systemctl", "--no-pager", "show", "bluetooth.service", "--property=ActiveState,SubState,LoadState"),
     "powered": ("/usr/bin/busctl", "--system", "--auto-start=no", "--allow-interactive-authorization=no", "call", "org.bluez", "/org/bluez/hci0", "org.freedesktop.DBus.Properties", "Get", "ss", "org.bluez.Adapter1", "Powered"),
     "rfkill": ("/usr/sbin/rfkill", "--noheadings", "--raw", "--output", "TYPE,SOFT,HARD"),

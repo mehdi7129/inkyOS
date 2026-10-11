@@ -6,8 +6,8 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 if [[ ${1:-} == --help && $# == 1 ]]; then
   echo 'Usage: sudo bash STAGING/check-test-access-return-linux.sh STAGING INPUTS_SHA256 RETURNED_SIZE RETURNED_SHA256 EXPECTED_SIZE EXPECTED_SHA256'
   echo 'STAGING: /var/lib/inkyos-build/access-return.<8 lowercase hex>, root0700, dedicated builder VM only.'
-  echo 'Closed inputs: runner0444, inputs.json0444, sources/16 files0444, expected/20 files0600, returned.img0600.'
-  echo 'inputs.json: {"schema_version":1,"files":{"relative/path":"sha256",...}} seals all 38 files.'
+  echo 'Closed inputs: runner0444, inputs.json0444, sources/21 files0444, expected/21 files0600, returned.img0600.'
+  echo 'inputs.json: {"schema_version":1,"files":{"relative/path":"sha256",...}} seals all 44 files.'
   echo 'READ ONLY loop, ext4 ro,noload and FAT ro; no replay, boot, radio, application or private-key file read.'
   echo 'After native PASS, re-read and cleanup: two files0600 in new /var/lib/inkyos-build/access-context.<same nonce>.'
   echo 'Export owner is the verified nonroot SUDO_USER/SUDO_UID/SUDO_GID; directory0700, no arbitrary destination.'
@@ -45,12 +45,13 @@ SOURCES = {PRIMITIVES, CONTROLLER, 'verify-test-enrollment-return.py', 'test-enr
     'verify-test-enrollment.py', 'verify-test-lan.py', 'configure-test-enrollment-rootfs.py',
     'configure-test-lan-rootfs.py', 'verify-sd-diagnostic.py', 'verify-artifacts.py', 'configure-rootfs.py',
     'verify-test-access.py', 'configure-test-access-rootfs.py', 'test-access-policy.py',
-    'test-access-enrollment.py', 'build-test-access.py'}
+    'test-access-enrollment.py', 'build-test-access.py', 'install-test-access-packages.py',
+    'fetch-test-access-packages.py', 'fetch-packages.py', 'fetch-base.py', 'manifest-rootfs.py'}
 REPORTS = {'parent-manifest.json', 'parent-filesystem-manifest.json', 'parent-integrity.json', 'recipe.tar',
     'test-access-configuration.json', 'qualification-prepared.json', 'qualification-static.json',
     'qualification-application.json', 'application-manifest.json', 'filesystem-manifest.json',
     'image-inspection.json', 'systemd-verify.txt', 'boot-preserved.sha256', 'fsck-ext4.txt', 'fsck-fat.txt',
-    'build.log', 'sudoers-verify.txt'}
+    'build.log', 'sudoers-verify.txt', 'test-access-packages.json'}
 EXPORT = REPORTS | {'manifest.json', 'recipe-inputs.json', IMAGE}
 INPUT_FILES = {RUNNER, 'returned.img'} | {'sources/' + name for name in SOURCES} | {'expected/' + name for name in EXPORT}
 OUTPUT_FILES = {'context.json', 'known_hosts'}

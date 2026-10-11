@@ -183,7 +183,7 @@ une seconde lecture indépendante de la SD, ni une attestation d’arrêt physiq
 
 Le wrapper `check-test-access-return-linux.sh` vérifie une **copie privée**
 dans la VM de build ARM64 marquée. Son `--help` décrit le staging fermé :
-38 entrées scellées, dont les 16 sources locales, l’export attendu et la copie
+44 entrées scellées, dont les 21 sources locales, l’export attendu et la copie
 retournée. Les tailles et SHA-256 des deux images sont imposés en arguments.
 Il utilise un loop en lecture seule, ext4 avec `ro,noload` et FAT avec `ro`,
 sans exécuter de code provenant de la SD. Le contexte n’est exporté qu’après
@@ -216,12 +216,24 @@ python3.13 scripts/verify-test-access.py private/test-access.EXPORT
 Le builder utilise une nouvelle copie régulière du parent dans la VM dédiée.
 Il ne monte aucune SD et ne lance aucun service cible. L’export contient
 l’image privée, les entrées figées et les rapports. Le vérificateur compare
-les hashes, permissions et différences de fichiers : seuls les ajouts
-déclarés et l’append du compte aux quatre bases système sont permis.
+les hashes, permissions et différences de fichiers. Les ajouts déclarés,
+l’append du compte aux quatre bases système, le remplacement de l'ancien
+préflight exactement épinglé et le delta I²C vérifié sont les seuls changements
+autorisés. Le préflight historique reste conservé comme fixture ; ses anciens
+rapports ne sont pas réinterprétés.
 La partition boot et les dix fichiers boot/grow protégés doivent rester
 identiques. L’existence des pages man est exclue du contrôle systemd offline,
 car le rootfs est monté avec `nodev` ; les unités et leurs exécutables sont
 bien vérifiés.
+
+Le delta I²C contient uniquement `libi2c0` et `i2c-tools` ARM64 `4.4-2`,
+décrits dans [le lock de paquets TEST](../config/test-access-packages.lock.json).
+Le builder vérifie leurs archives avant le transfert et les installe sans réseau,
+sans résolution APT ni mise à niveau des dépendances. Les appels udev du
+post-install sont neutralisés pendant la transaction. Le rapport
+`test-access-packages.json` lie les payloads et les changements de métadonnées
+de paquets à l'inventaire final. L'installation offline n'effectue aucun accès
+au bus I²C ni au panneau.
 
 Les hashes locaux établissent la cohérence des artefacts, pas leur authenticité
 indépendante. Aucun export de cette variante n’est une release publique ou une

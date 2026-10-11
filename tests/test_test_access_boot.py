@@ -29,6 +29,7 @@ importer = load_script("test-access-import")
 gate = load_script("test-access-wifi-gate")
 country = load_script("test-access-network")
 legacy = load_script("test-enrollment-firstboot")
+bluetooth = load_script("test-access-bluetooth")
 
 
 class Fixture:
@@ -52,6 +53,9 @@ class Fixture:
 
     def connect(self):
         return self.call("connect", {"passed": True})
+
+    def prepare_bluetooth(self):
+        return self.call("bluetooth", bluetooth.empty_result())
 
     def operator_config(self):
         return self.call("config")
@@ -86,13 +90,13 @@ class BootTests(unittest.TestCase):
         adapter = Fixture()
         result = boot.boot(adapter)
         self.assertTrue(result["passed"])
-        self.assertEqual(adapter.calls, ["bind", "import", "connect", "config", "publish", "verify", "ssh", "close"])
+        self.assertEqual(adapter.calls, ["bind", "import", "connect", "bluetooth", "config", "publish", "verify", "ssh", "close"])
         self.assertTrue(result["ssh_start_requested"])
         for key in ("ssh_start_verified", "application_activation_authorized", "hardware_qualified", "release_qualified"):
             self.assertFalse(result[key])
 
     def test_all_failures_stop_sequence_and_hide_details(self):
-        sequence = ["bind", "import", "connect", "config", "publish", "verify", "ssh"]
+        sequence = ["bind", "import", "connect", "bluetooth", "config", "publish", "verify", "ssh"]
         for index, stage in enumerate(sequence):
             with self.subTest(stage=stage):
                 adapter = Fixture(fail=stage)
@@ -165,11 +169,36 @@ class DiagnosticFixture(Fixture):
 
 
 class BootDiagnosticSequenceTests(unittest.TestCase):
+    def test_bluetooth_success_or_hardware_failure_retained_without_blocking_ssh(self):
+        for success in (True, False):
+            fixture = DiagnosticFixture()
+            receipt = bluetooth.empty_result()
+            receipt.update(passed=success, error=None if success else "hard_blocked")
+            fixture.prepare_bluetooth = lambda: fixture.call("bluetooth", receipt)
+            result = boot.boot(fixture)
+            self.assertTrue(result["passed"])
+            self.assertTrue(result["ssh_start_requested"])
+            self.assertEqual(fixture.records[-1]["bluetooth"], receipt)
+            self.assertLess(fixture.calls.index("connect"), fixture.calls.index("bluetooth"))
+            self.assertLess(fixture.calls.index("bluetooth"), fixture.calls.index("config"))
+
+    def test_bluetooth_source_failure_blocks_ssh_and_cleans_connection(self):
+        fixture = DiagnosticFixture()
+        def invalid():
+            fixture.calls.append("bluetooth")
+            raise boot.BootError("sources_invalid")
+        fixture.prepare_bluetooth = invalid
+        result = boot.boot(fixture)
+        self.assertEqual(result["error"], "sources_invalid")
+        self.assertFalse(result["ssh_start_requested"])
+        self.assertEqual(fixture.calls[-3:], ["off", "close", "diagnostic"])
+        self.assertEqual(fixture.records[-1]["stage"], "bluetooth")
+
     def test_started_report_precedes_bind_and_final_follows_close(self):
         fixture = DiagnosticFixture()
         result = boot.boot(fixture)
         self.assertTrue(result["passed"])
-        self.assertEqual(fixture.calls, ["diagnostic", "bind", "import", "connect", "config", "publish",
+        self.assertEqual(fixture.calls, ["diagnostic", "bind", "import", "connect", "bluetooth", "config", "publish",
                                          "verify", "ssh", "close", "diagnostic"])
         started, final = fixture.records
         self.assertFalse(started["complete"])
@@ -415,6 +444,105 @@ class DiagnosticProjectionTests(unittest.TestCase):
         self.assertEqual(boot.COUNTRY_CHECKS, country.POLICY_CHECKS)
         self.assertEqual(boot.GATE_ERRORS, gate.ERRORS)
         self.assertEqual(boot.GATE_CHECKS, gate.CHECKS)
+        self.assertEqual(boot.BLUETOOTH_ERRORS, bluetooth.ERRORS)
+        self.assertEqual(boot.BLUETOOTH_CHECKS, bluetooth.CHECKS)
+
+    def test_bluetooth_optional_projection_preserves_historical_shape(self):
+        self.assertNotIn("bluetooth", self.project())
+        receipt = bluetooth.empty_result()
+        receipt.update(error="hard_blocked", mac="PRIVATE_MAC", stdout="PRIVATE_STDOUT")
+        report = boot.boot_diagnostic(self.result, complete=True, stage="bluetooth", bluetooth=receipt)
+        self.assertEqual(report["bluetooth"]["error"], "hard_blocked")
+        self.assertNotIn("PRIVATE", json.dumps(report))
+        for key, bad in (("error", "PRIVATE"), ("passed", 1), ("kind", "PRIVATE"),
+                         ("checks", {**receipt["checks"], "PRIVATE": True})):
+            item = {**receipt, key: bad}
+            self.assertEqual(boot.bluetooth_diagnostic(item), {"status": "unavailable"})
+
+
+class NativeBluetoothIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        self.adapter = boot.NativeAdapter()
+        self.adapter.started = 0
+        self.events = []
+        self.clock = 1.0
+        self.receipt = bluetooth.empty_result()
+        self.prepare = lambda **kwargs: self.events.append(("prepare", kwargs)) or self.receipt
+        self.before_ok, self.after_ok = True, True
+        outer = self
+        class Probe:
+            def target(self): outer.events.append("target"); return True
+            def bind(self): outer.events.append("bind"); return True
+            def authenticate_cache(self): outer.events.append("authenticate"); return True
+            def unchanged(self):
+                outer.events.append("cache_unchanged")
+                return outer.after_ok if any(type(x) is tuple for x in outer.events) else outer.before_ok
+            def close(self): outer.events.append("close_probe")
+        self.probe = Probe()
+        self.adapter.module = lambda name: {"prepare": self.prepare} if name == "bluetooth" else {"NativeAdapter": lambda: self.probe}
+        self.adapter.unchanged = lambda: True
+
+    def call(self):
+        with patch.object(boot.time, "monotonic", side_effect=lambda: self.clock):
+            return self.adapter.prepare_bluetooth()
+
+    def test_cache_reauthenticated_source_rechecked_and_independent_probe_closed(self):
+        self.assertEqual(self.call(), self.receipt)
+        self.assertEqual(self.events, ["target", "bind", "authenticate", "cache_unchanged",
+            ("prepare", {"timeout": 20.0}), "cache_unchanged", "close_probe"])
+        self.assertIsNone(self.adapter.connection)
+
+    def test_bad_module_or_source_never_calls_prepare(self):
+        for bad in (False, OSError("PRIVATE")):
+            def changed():
+                if isinstance(bad, Exception): raise bad
+                return bad
+            self.adapter.unchanged = changed
+            with self.assertRaisesRegex(boot.BootError, "sources_invalid"): self.call()
+        self.assertFalse(self.events)
+
+    def test_cache_changed_before_or_after_helper_remains_fatal(self):
+        self.before_ok = False
+        with self.assertRaisesRegex(boot.BootError, "sources_invalid"): self.call()
+        self.assertNotIn("prepare", [x[0] for x in self.events if type(x) is tuple])
+        self.before_ok, self.after_ok = True, False
+        with self.assertRaisesRegex(boot.BootError, "sources_invalid"): self.call()
+        self.assertEqual(self.events[-1], "close_probe")
+
+    def test_helper_exception_is_unavailable_and_bindings_still_rechecked(self):
+        def error(**_kwargs):
+            self.events.append(("prepare", {}))
+            raise OSError("PRIVATE_HARDWARE")
+        self.prepare = error
+        self.assertEqual(self.call(), {"status": "unavailable"})
+        self.assertEqual(self.events[-2:], ["cache_unchanged", "close_probe"])
+
+    def test_remaining_boot_budget_only_limits_optional_helper(self):
+        self.clock = 141.0
+        self.call()
+        self.assertIn(("prepare", {"timeout": 9.0}), self.events)
+        self.events.clear()
+        self.clock = 151.0
+        self.assertEqual(self.call()["error"], "runtime_timeout")
+        self.assertFalse(self.events)
+
+    def test_expired_during_authentication_skips_helper_but_preserves_cache_checks(self):
+        def slow_auth():
+            self.clock = 151.0
+            return True
+        self.probe.authenticate_cache = slow_auth
+        self.assertEqual(self.call()["error"], "runtime_timeout")
+        self.assertFalse(any(type(x) is tuple for x in self.events))
+        self.assertEqual(self.events[-2:], ["cache_unchanged", "close_probe"])
+
+    def test_service_orders_bluetooth_without_requiring_it(self):
+        unit = (SOURCE.parents[1] / "overlay-test-access/inkyos-test-access.service").read_text()
+        self.assertIn("Wants=bluetooth.service\n", unit)
+        self.assertTrue(any(line.startswith("After=") and "bluetooth.service" in line for line in unit.splitlines()))
+        self.assertFalse(any(line.startswith("Requires=") and "bluetooth.service" in line for line in unit.splitlines()))
+        self.assertIn("TimeoutStartSec=180s\n", unit)
+        self.assertGreaterEqual(180.0 - boot.BLUETOOTH_LATEST_END,
+                                20.0 + 2 * 2.0 + 3.0 + boot.DIAGNOSTIC_TIMEOUT)
 
 
 class DiagnosticPersistenceTests(unittest.TestCase):
@@ -571,7 +699,7 @@ class DiagnosticPersistenceTests(unittest.TestCase):
             result = boot.boot(fixture)
             elapsed = time.monotonic() - started
         self.assertTrue(result["passed"])
-        self.assertEqual(fixture.calls, ["bind", "import", "connect", "config", "publish", "verify", "ssh", "close"])
+        self.assertEqual(fixture.calls, ["bind", "import", "connect", "bluetooth", "config", "publish", "verify", "ssh", "close"])
         self.assertLess(bind_times[0] - started, 0.75)
         self.assertLess(elapsed, 0.75)
         self.assertEqual(len(children), 2)

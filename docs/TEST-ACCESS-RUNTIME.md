@@ -1,5 +1,23 @@
 # Runtime du premier accès opérateur TEST
 
+Au 11 octobre 2026, un [boot physique](validation/2026-10-11-radio-readiness-network-observation.json)
+établit SSH authentifié et Wi-Fi connecté ; les contrôles applicatifs restent
+bloqués. Le nouveau code prépare Bluetooth après import signé et connexion
+Wi-Fi vérifiée : contrôleur `hci0` unique, absence de hard block, déblocage,
+allumage BlueZ et relecture. Cette étape a un budget de 20 secondes et laisse
+une marge de 30 secondes avant le timeout de l'unité. Un échec matériel est
+consigné et conserve l'accès SSH ; une modification des bindings bloque le boot.
+Elle n'effectue ni scan, advertising ni démarrage applicatif. Sa présence dans
+les sources ne qualifie pas encore le Bluetooth du Pi.
+
+Le préflight et l'activation observent maintenant la synchronisation UTC via
+`adjtimex(modes=0)`, avec l'ABI ARM64 contrôlée et le critère du
+[systemd épinglé](https://github.com/systemd/systemd/blob/v257.13/src/timedate/timedated.c#L522-L534).
+Cette lecture ne règle pas l'heure et ne dépend pas de la présence du service
+à activation ponctuelle `timedated`. La référence UTC indépendante reste exigée.
+
+Les paragraphes historiques suivants décrivent l'introduction des interfaces.
+
 État du 4 octobre 2026 : le dispatcher SSH, le runner privilégié et le contrôle
 du pays sont raccordés dans une [image privée TEST](TEST-ACCESS-IMAGE.md).
 Le runner accepte les profils historiques v1 et les nouveaux profils v2,

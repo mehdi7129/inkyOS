@@ -13,14 +13,14 @@ import hashlib,io,json,pathlib,subprocess,sys,tarfile
 root=pathlib.Path.cwd()
 names={'Makefile', 'overlay/usr/local/lib/inkyos/firstboot.py',
        'overlay/etc/systemd/system/inkyos-firstboot.service',
-       'tests/fixtures/preflight-fdf5a12.py.txt'}
+       'tests/fixtures/preflight-fdf5a12.py.txt', 'tests/fixtures/preflight-9cda15bf.py.txt'}
 for pattern in ('scripts/*.py','scripts/*.sh','tests/test_*.py','tests/fixtures/*.json','config/*.json',
                 'diagnostic/*.py','diagnostic/*.service','diagnostic/*.timer',
                 'overlay-test-enrollment/*.service', 'overlay-test-access/*.service',
                 'overlay-test-access/*.conf',
                 'overlay-test-access/sshd_config', 'overlay-test-access/sudoers',
                 'overlay-test-access/NetworkManager.service.d/*.conf',
-                'overlay-test-access/NetworkManager.conf.d/*.conf'):
+                'overlay-test-access/NetworkManager.conf.d/*.conf', 'staging/bootstrap/*.service'):
     names.update(str(p) for p in pathlib.Path('.').glob(pattern))
 blobs={}
 for name in sorted(names):

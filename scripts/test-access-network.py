@@ -32,7 +32,7 @@ import time
 RADIO = "/usr/local/lib/inkyos/observe-test-radio.py"
 HELPER = "/usr/local/lib/inkyos/test-lan-preflight.py"
 PINS = {RADIO: "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
-        HELPER: "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba"}
+        HELPER: "e22ee8b73637510cee3df55509eb9f6a8ad5893834e1fd9c571b56885b216996"}
 MODEL = "/sys/firmware/devicetree/base/model"
 PI_MODEL = b"Raspberry Pi Zero 2 W Rev 1.0\0"
 LOCK = "inkyos-test-country.lock"

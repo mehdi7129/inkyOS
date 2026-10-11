@@ -35,7 +35,7 @@ class ConfigureAccessTests(unittest.TestCase):
         self.seed.setUp()
         self.addCleanup(self.seed.doCleanups)
         self.seed.select_candidate()
-        self.seed.write(self.seed.source, 'scripts/test-lan-preflight.py', (ROOT / 'scripts/test-lan-preflight.py').read_text())
+        self.seed.write(self.seed.source, 'scripts/test-lan-preflight.py', (ROOT / 'tests/fixtures/preflight-9cda15bf.py.txt').read_text())
         self.seed.refresh_inputs()
         self.seed.configure()
         self.root, self.boot = self.seed.root, self.seed.boot
@@ -167,6 +167,23 @@ class ConfigureAccessTests(unittest.TestCase):
                 os.chown(path, info.st_uid, info.st_gid)
         self.assertTrue(self.verify(metadata)['passed'])
 
+    def test_only_pinned_parent_observation_can_be_replaced(self):
+        path = self.root / 'usr/local/lib/inkyos/test-lan-preflight.py'
+        path.chmod(0o755)
+        path.write_text('# unreviewed parent observation\n')
+        path.chmod(0o555)
+        with self.assertRaisesRegex(ValueError, 'Exact replaced parent'):
+            self.configure()
+        self.pristine()
+
+    def test_replacement_is_current_probe_and_preserves_parent_receipt(self):
+        marker = self.root / overlay.prepared.MARKER_PATH
+        before = marker.read_bytes()
+        self.configure()
+        self.assertEqual(marker.read_bytes(), before)
+        self.assertEqual((self.root / 'usr/local/lib/inkyos/test-lan-preflight.py').read_bytes(),
+                         (ROOT / 'scripts/test-lan-preflight.py').read_bytes())
+
     def test_only_current_parent_tuple_and_never_booted_image_are_admitted_before_writes(self):
         with self.assertRaises(ValueError):
             overlay.configure(self.root, self.boot, self.source, self.profile_path, 'a' * 64, **self.kwargs)
@@ -285,8 +302,8 @@ class ConfigureAccessTests(unittest.TestCase):
                 self.configure()
             self.pristine()
 
-    def test_inherited_preflight_and_generic_parent_bytes_are_not_replaced(self):
-        name = next(iter(overlay.INHERITED_PAYLOADS))
+    def test_modified_parent_preflight_is_not_replaced(self):
+        name = next(iter(overlay.REPLACED_PARENT_PAYLOADS))
         path = self.root / name
         original = path.read_bytes()
         path.chmod(0o755)

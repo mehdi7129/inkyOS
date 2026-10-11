@@ -75,16 +75,16 @@ class WrapperTests(unittest.TestCase):
         self.assertEqual(done.returncode, 0)
         self.assertIn(b'READ ONLY', done.stdout)
         self.assertIn(b'EXPECTED_SIZE EXPECTED_SHA256', done.stdout)
-        self.assertIn(b'16 files', done.stdout)
+        self.assertIn(b'21 files', done.stdout)
         done = subprocess.run(['/bin/bash', str(SCRIPT)], capture_output=True, timeout=3)
         self.assertEqual(done.returncode, 2)
         self.assertEqual(done.stdout, b'')
 
     def test_dependency_closure_and_two_reviewed_entry_pins(self):
         runner = driver()
-        self.assertEqual(len(runner['SOURCES']), 16)
-        self.assertEqual(len(runner['EXPORT']), 20)
-        self.assertEqual(len(runner['INPUT_FILES']), 38)
+        self.assertEqual(len(runner['SOURCES']), 21)
+        self.assertEqual(len(runner['EXPORT']), 21)
+        self.assertEqual(len(runner['INPUT_FILES']), 44)
         for name, pin in ((runner['PRIMITIVES'], runner['PRIMITIVES_SHA256']),
                           (runner['CONTROLLER'], runner['CONTROLLER_SHA256'])):
             self.assertEqual(hashlib.sha256((ROOT / 'scripts' / name).read_bytes()).hexdigest(), pin)

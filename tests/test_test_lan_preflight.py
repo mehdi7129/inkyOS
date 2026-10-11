@@ -1,6 +1,7 @@
 """Offline adapters, public manifests and synthetic rootfs; no LAN/radio/app activation."""
 
 import contextlib
+import errno
 import hashlib
 import importlib.util
 import io
@@ -428,11 +429,10 @@ class FilesystemLiveAdapterTests(unittest.TestCase):
         self.assertFalse(value["checks"]["hci0_powered"]["passed"])
         self.assertNotIn("powered", self.calls)
         self.assertIn("--auto-start=no", preflight.COMMANDS["powered"])
-        self.assertIn("--auto-start=no", preflight.COMMANDS["utc_sync"])
-        for name in ("powered", "utc_sync"):
-            self.assertIn("call", preflight.COMMANDS[name])
-            self.assertNotIn("get-property", preflight.COMMANDS[name])
-            self.assertIn("--allow-interactive-authorization=no", preflight.COMMANDS[name])
+        self.assertIn("call", preflight.COMMANDS["powered"])
+        self.assertNotIn("get-property", preflight.COMMANDS["powered"])
+        self.assertIn("--allow-interactive-authorization=no", preflight.COMMANDS["powered"])
+        self.assertEqual(preflight.COMMANDS["utc_sync"][:4], ("/usr/bin/python3", "-I", "-B", "-c"))
         self.adapter.command = lambda argv, **kwargs: "ActiveState=inactive\nSubState=dead\nLoadState=loaded\n" if argv == preflight.COMMANDS["nm_service"] else original(argv, **kwargs)
         self.calls.clear()
         value = preflight.preflight(self.adapter, **self.inputs)
@@ -507,6 +507,98 @@ class FilesystemLiveAdapterTests(unittest.TestCase):
         os.mkfifo(self.panel)
         with self.assertRaises(preflight.UnsafeInput):
             self.store.read_external(str(self.panel))
+
+
+class KernelClockProbeTests(unittest.TestCase):
+    def setUp(self):
+        # Import only the fixed probe definitions. Native calls are replaced in
+        # these fixtures; the separate Linux C probe validates the real ABI.
+        self.probe = {"__name__": "clock_probe_fixture"}
+        exec(compile(preflight.KERNEL_UTC_PROBE, "clock_probe_fixture", "exec"), self.probe)
+        self.ctypes = self.probe["ctypes"]
+        self.stack = contextlib.ExitStack()
+        self.addCleanup(self.stack.close)
+        self.stack.enter_context(mock.patch.object(self.probe["sys"], "platform", "linux"))
+        self.stack.enter_context(mock.patch.object(self.probe["sys"], "byteorder", "little"))
+        self.stack.enter_context(mock.patch.object(self.probe["os"], "uname", return_value=SimpleNamespace(machine="aarch64")))
+        self.loader = self.stack.enter_context(mock.patch.object(self.ctypes, "CDLL"))
+
+    def reading(self, *, maxerror, status=0, result=0):
+        def read(pointer):
+            value = self.ctypes.cast(pointer, self.ctypes.POINTER(self.probe["Timex"])).contents
+            self.assertEqual(bytes(value), bytes(self.ctypes.sizeof(value)))
+            self.assertEqual(value.modes, 0)
+            value.maxerror, value.status = maxerror, status
+            if result < 0:
+                self.ctypes.set_errno(errno.EPERM)
+            return result
+        query = mock.Mock(side_effect=read)
+        self.loader.return_value = SimpleNamespace(adjtimex=query)
+        observed = self.probe["kernel_clock_synchronized"]()
+        self.loader.assert_called_with("libc.so.6", use_errno=True)
+        query.assert_called_once()
+        self.assertEqual(query.argtypes, [self.ctypes.POINTER(self.probe["Timex"])])
+        self.assertIs(query.restype, self.ctypes.c_int)
+        return observed
+
+    def test_kernel_read_uses_zero_modes_and_systemd_maxerror_boundary(self):
+        for maximum, expected in ((0, True), (15999999, True), (16000000, False), (16000001, False)):
+            with self.subTest(maxerror=maximum):
+                self.assertIs(self.reading(maxerror=maximum), expected)
+
+    def test_sta_unsync_and_nonnegative_time_error_match_systemd_semantics(self):
+        # systemd deliberately ignores STA_UNSYNC, and checks only negative
+        # adjtimex failures. TIME_ERROR (5) itself is not a syscall failure.
+        self.assertIs(self.reading(maxerror=1000, status=0x40, result=5), True)
+
+    def test_errno_and_missing_libc_or_symbol_are_unavailable(self):
+        self.assertIsNone(self.reading(maxerror=0, result=-1))
+        self.loader.side_effect = OSError("PRIVATE_SECRET")
+        self.assertIsNone(self.probe["kernel_clock_synchronized"]())
+        self.loader.side_effect = None
+        self.loader.return_value = SimpleNamespace()
+        self.assertIsNone(self.probe["kernel_clock_synchronized"]())
+
+    def test_unsupported_platform_architecture_endianness_and_abi_never_call_libc(self):
+        cases = ((self.probe["sys"], "platform", "darwin"),
+                 (self.probe["sys"], "byteorder", "big"),
+                 (self.probe["os"], "uname", lambda: SimpleNamespace(machine="x86_64")),
+                 (self.ctypes, "sizeof", lambda _type: 4),
+                 (self.ctypes, "alignment", lambda _type: 4))
+        for owner, name, replacement in cases:
+            with self.subTest(field=name), mock.patch.object(owner, name, replacement):
+                self.assertIsNone(self.probe["kernel_clock_synchronized"]())
+        self.loader.assert_not_called()
+
+    def test_wrong_field_offset_is_rejected_even_with_correct_size_and_alignment(self):
+        original = self.probe["Timex"]
+        class WrongTimex(self.ctypes.Structure):
+            _fields_ = [("freq" if name == "offset" else "offset" if name == "freq" else name, kind)
+                        for name, kind in original._fields_]
+        # Preserve the expected field enumeration while exposing swapped offsets.
+        names = original._fields_
+        fake = SimpleNamespace(_fields_=names, **{name: getattr(WrongTimex, name) for name, _kind in names})
+        real_size, real_alignment = self.ctypes.sizeof, self.ctypes.alignment
+        with mock.patch.dict(self.probe, Timex=fake), \
+             mock.patch.object(self.ctypes, "sizeof", side_effect=lambda value: 208 if value is fake else real_size(value)), \
+             mock.patch.object(self.ctypes, "alignment", side_effect=lambda value: 8 if value is fake else real_alignment(value)):
+            self.assertIsNone(self.probe["kernel_clock_synchronized"]())
+        self.loader.assert_not_called()
+
+    def test_main_emits_only_closed_boolean_or_no_observation(self):
+        import ast
+        main = ast.Module(body=[ast.parse(preflight.KERNEL_UTC_PROBE).body[-1]], type_ignores=[])
+        for value, expected in ((True, "v b true\n"), (False, "v b false\n"), (None, "")):
+            output = io.StringIO()
+            with self.subTest(value=value), contextlib.redirect_stdout(output):
+                namespace = {"__name__": "__main__", "kernel_clock_synchronized": lambda: value}
+                if value is None:
+                    with self.assertRaises(SystemExit) as stopped:
+                        exec(compile(main, "clock_main_fixture", "exec"), namespace)
+                    self.assertEqual(stopped.exception.code, 2)
+                else:
+                    exec(compile(main, "clock_main_fixture", "exec"), namespace)
+            self.assertEqual(output.getvalue(), expected)
 
 
 class BoundedCommandTests(unittest.TestCase):

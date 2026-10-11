@@ -32,14 +32,16 @@ artifacts, diagnostic = lan.artifacts, lan.diagnostic
 ArtifactError, require = lan.ArtifactError, lan.require
 REQUIRED_REPORTS = (lan.REQUIRED_REPORTS - {'test-lan-configuration.json'}) | {
     'test-access-configuration.json', 'qualification-prepared.json', 'build.log', 'sudoers-verify.txt',
+    'test-access-packages.json',
 }
 PROTECTED_FILES = lan.PROTECTED_FILES
 INHERITED_RECIPE_FILES = lan.INHERITED_RECIPE_FILES | {
-    'application-manifest.json', 'scripts/configure-test-lan-rootfs.py', 'scripts/test-lan-preflight.py',
+    'application-manifest.json', 'scripts/configure-test-lan-rootfs.py',
     'scripts/configure-rootfs.py',
 }
 PREPARED_CHECKS = lan.overlay.CHECKS
 builder = module('_access_export_recipe', 'build-test-access.py')
+packages = module('_access_package_delta', 'install-test-access-packages.py')
 CONFIGURATION_KEYS = {
     'schema_version', 'kind', 'scope', 'passed', 'private_artifact', 'bootstrap_action',
     'application_started', 'ssh_started', 'network_connected', 'no_active_application',
@@ -157,7 +159,7 @@ def private_profile(blobs, reports, manifest_raw, recipe_raw):
     return raw
 
 
-def validate_inventory(parent, filesystem, configuration, blobs):
+def validate_inventory(parent, filesystem, configuration, blobs, package_report):
     require(filesystem['schema_version'] == 2 and filesystem['bootfs'] == parent['bootfs'], 'Access bootfs must remain identical')
     boot_snapshot = {}
     for path, row in filesystem['bootfs'].items():
@@ -171,6 +173,7 @@ def validate_inventory(parent, filesystem, configuration, blobs):
     require(sha(overlay.policy.canonical(boot_snapshot))
             == configuration['bootfs_snapshot_sha256'], 'Bootfs receipt differs from inventory')
     root, old = filesystem['rootfs'], parent['rootfs']
+    package_changes = packages.validate_report(package_report, old, root, blobs)
     lan.no_runtime_or_diagnostic(filesystem)
     allowed = {overlay.PROFILE_PATH, overlay.MANIFEST_PATH, overlay.AUTHORIZED_KEYS, overlay.ENABLE_PATH}
     directories = {overlay.PROFILE_DIRECTORY: '0700', overlay.STATE_DIRECTORY: '0700',
@@ -180,6 +183,10 @@ def validate_inventory(parent, filesystem, configuration, blobs):
         lan.regular(root.get(path), sha(blobs[name]), format(mode, '04o'), size=len(blobs[name]))
         if path in overlay.INHERITED_PAYLOADS:
             require(old.get(path) == root[path], 'Inherited source changed')
+        elif path in overlay.REPLACED_PARENT_PAYLOADS:
+            lan.regular(old.get(path), overlay.REPLACED_PARENT_PAYLOADS[path], '0555')
+            lan.unchanged_metadata(old[path], root[path], content=True)
+            allowed.add(path)
         else:
             require(path not in old, 'Access destination already present in parent')
             allowed.add(path)
@@ -219,8 +226,10 @@ def validate_inventory(parent, filesystem, configuration, blobs):
     parents = {str(parent) for path in allowed for parent in PurePosixPath(path).parents if str(parent) != '.'}
     for path in set(old) | set(root):
         before, after = old.get(path), root.get(path)
-        if before == after or path in overlay.ACCOUNT_APPEND:
+        if before == after or path in overlay.ACCOUNT_APPEND or path in package_changes:
             continue
+        if path in overlay.REPLACED_PARENT_PAYLOADS:
+            continue  # Exact old hash and new recipe bytes checked above.
         require(before is None and after is not None, 'Existing parent entry changed or removed')
         if path in allowed:
             continue
@@ -256,10 +265,13 @@ def load_export(directory, *, verify_images=True):
         diagnostic.validate_static(reports, manifest)
         validate_prepared_constraints(reports['qualification-prepared.json'], inventory)
         configuration = validate_configuration(reports, manifest, recipe_raw)
-        blobs = lan.archived_bytes(reports['recipe.tar'], set(overlay.PAYLOADS) | {overlay.PRIVATE_PROFILE, overlay.PRIVATE_MANIFEST})
+        blobs = lan.archived_bytes(reports['recipe.tar'], set(overlay.PAYLOADS)
+            | {overlay.PRIVATE_PROFILE, overlay.PRIVATE_MANIFEST, 'config/test-access-packages.lock.json'}
+            | set(builder.PACKAGE_FILES))
         private_profile(blobs, reports, manifest_raw, recipe_raw)
         filesystem = artifacts.validate_filesystem(artifacts.parse_json(reports['filesystem-manifest.json']))
-        validate_inventory(inventory, filesystem, configuration, blobs)
+        validate_inventory(inventory, filesystem, configuration, blobs,
+                           artifacts.parse_json(reports['test-access-packages.json']))
         inspected = artifacts.parse_json(reports['image-inspection.json'])
         image = inspected.get('image') if type(inspected) is dict else None
         require(type(image) is dict and image.get('sha256') == manifest['image']['sha256']

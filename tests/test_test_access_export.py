@@ -29,6 +29,7 @@ def load(name, relative):
 verify = load('access_export_verifier_fixture', 'scripts/verify-test-access.py')
 seed = load('access_export_parent_fixture', 'tests/test_verify_test_lan.py')
 profile_seed = load('access_export_profile_fixture', 'tests/test_test_access_policy.py')
+package_seed = load('access_export_package_fixture', 'tests/test_install_test_access_packages.py')
 encoded, digest, put = seed.encoded, seed.digest, seed.put
 
 
@@ -66,11 +67,16 @@ def fixture(path):
         for name, (raw, mode, gid) in accounts.items():
             row = seed.record(raw, mode); row['gid'] = gid
             put(oldroot, name, row)
-        blobs = {name: (ROOT / name).read_bytes() for name in verify.builder.RECIPE_FILES}
+        package_fixture = package_seed.synthetic_package_fixture(oldroot)
+        old['rootfs'] = oldroot = package_fixture['before']
+        blobs = {name: (ROOT / name).read_bytes() for name in verify.builder.RECIPE_FILES
+                 if name not in verify.builder.PACKAGE_FILES and name != verify.packages.LOCK}
+        blobs.update(package_fixture['blobs'])
         blobs['application-manifest.json'] = parent_blobs['application-manifest.json']
-        # The prepared preflight is inherited byte-for-byte, including its pin.
+        # The exact historical preflight is replaced by the new recipe probe.
         preflight = 'scripts/test-lan-preflight.py'
-        put(oldroot, overlay.PAYLOADS[preflight][0], seed.record(blobs[preflight], '0555'))
+        put(oldroot, overlay.PAYLOADS[preflight][0], seed.record(
+            (ROOT / 'tests/fixtures/preflight-9cda15bf.py.txt').read_bytes(), '0555'))
         for name in verify.INHERITED_RECIPE_FILES:
             parent['recipe']['files'][name] = digest(blobs[name])
         parent['image']['sha256'] = overlay.PARENT_IMAGE_SHA256
@@ -87,6 +93,7 @@ def fixture(path):
                   'files': {name: digest(raw) for name, raw in blobs.items()}}
         filesystem = copy.deepcopy(old)
         root = filesystem['rootfs']
+        root.update(package_fixture['after'])
         for name, (target, mode) in overlay.PAYLOADS.items():
             put(root, target, seed.record(blobs[name], format(mode, '04o')))
         put(root, overlay.PROFILE_PATH, seed.record(profile_raw, '0600'))
@@ -151,6 +158,7 @@ def fixture(path):
             'image-inspection.json': encoded({'image': image}),
             'build.log': b'Synthetic access export; no target execution.\n',
             'sudoers-verify.txt': b'Synthetic sudoers syntax evidence, not execution.\n',
+            'test-access-packages.json': encoded(package_fixture['report']),
         })
         manifest = {'schema_version': 1, 'kind': 'test-lan-access', 'private_artifact': True,
             'bootstrap_action': 'enrollment-then-signed-access', 'no_active_application': True,
@@ -201,7 +209,7 @@ class AccessExportTests(unittest.TestCase):
             self.assertIs(report[key], False)
         self.assertEqual(report['pristine_parent_constraints_verified_before_changes'], 17)
         self.assertEqual(report['protected_boot_grow_files_verified'], 10)
-        self.assertEqual(len(verify.overlay.PAYLOADS), 28)
+        self.assertEqual(len(verify.overlay.PAYLOADS), 29)
         self.assertEqual(set(verify.builder.REPORTS), verify.REQUIRED_REPORTS)
         self.assertTrue(any('not regenerated from image bytes' in item for item in report['limits']))
         self.assertTrue(any('Account append content' in item for item in report['limits']))
@@ -282,7 +290,8 @@ class AccessExportTests(unittest.TestCase):
             elif mutation == 'runtime_noncanonical': blobs[verify.overlay.PRIVATE_MANIFEST] += b'\n'
             else: configuration['access_runtime_manifest_sha256'] = 'e' * 64
             with self.subTest(mutation=mutation), self.assertRaises(verify.ArtifactError):
-                verify.validate_inventory(old, current, configuration, blobs)
+                verify.validate_inventory(old, current, configuration, blobs,
+                                          self.read('test-access-packages.json'))
 
     def test_account_append_size_hash_metadata_and_parent_metadata_are_bound(self):
         for name in verify.overlay.ACCOUNT_APPEND:

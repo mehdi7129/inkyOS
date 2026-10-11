@@ -578,6 +578,8 @@ class NativeAdapter:
         query = {k: request['request'][k] for k in UTC_FIELDS}
         preflight = {'__name__': 'activation_preflight_clock', '__file__': BASE + 'test-lan-preflight.py'}
         exec(compile(self.boot.sources[preflight['__file__']], preflight['__file__'], 'exec'), preflight)
+        # Reuse the pinned kernel probe and the existing bounded command path;
+        # no timedated activation or clock mutation is needed for this reading.
         return (self.command(preflight['COMMANDS']['utc_sync'], timeout=2) == (0, b'v b true\n')
                 and self.gate['reference_current'](query, elapsed=self.elapsed(request)) is True)
 

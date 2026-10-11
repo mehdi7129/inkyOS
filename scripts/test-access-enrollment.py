@@ -38,7 +38,7 @@ SOURCE_PINS = {
     LEGACY_PATH: LEGACY_SHA256, POLICY_PATH: POLICY_SHA256,
     PANEL_PATH: "6fc6b93e30beeb6c03a3867efeb88cfe30ed7e1fe58f2ea6e5c35db9a4c29164",
     RADIO_PATH: "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
-    PREFLIGHT_PATH: "9cda15bfeaef8ed5bc7c0a2d0b71f470a1411d13dda4e2043f800e9ca37e5fba",
+    PREFLIGHT_PATH: "e22ee8b73637510cee3df55509eb9f6a8ad5893834e1fd9c571b56885b216996",
 }
 MANIFEST_FIELDS = {"schema_version", "kind", "application_source_commit", "application_manifest_sha256",
                    "parent_image_sha256", "files"}
@@ -46,7 +46,7 @@ STATIC_PATHS = frozenset({
     *("usr/local/lib/inkyos/" + name + ".py" for name in (
         "test-enrollment-firstboot", "test-access-policy", "test-access-enrollment",
         "test-access-contract", "test-access-import", "test-access-connect", "test-access-boot",
-        "test-access-network", "test-access-wifi-gate", "wifi-boot-gate", "test-lan-preflight",
+        "test-access-network", "test-access-wifi-gate", "test-access-bluetooth", "wifi-boot-gate", "test-lan-preflight",
         "test-access-activation-gate", "test-access-activation", "test-access-drain",
         "observe-test-panel", "observe-test-radio")),
     "usr/local/lib/inkyos-test-ssh/dispatch.py", "usr/local/lib/inkyos-test-ssh/runner",

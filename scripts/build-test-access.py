@@ -21,12 +21,13 @@ SOURCE = 'c31b13afdc957425571810c46230eaaf52fa5d14'
 APPLICATION_MANIFEST = 'c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1'
 PROFILE = 'private-profile.json'
 PRIVATE_KEY = 'client_ed25519'
+PACKAGE_FILES = ('packages/libi2c0_4.4-2_arm64.deb', 'packages/i2c-tools_4.4-2_arm64.deb')
 RECIPE_FILES = (
     'scripts/build-test-access.py', 'scripts/build-test-access-linux.sh',
     'scripts/configure-test-access-rootfs.py', 'scripts/verify-test-access.py',
     'scripts/test-enrollment-firstboot.py',
     *('scripts/test-access-' + name + '.py' for name in (
-        'policy', 'enrollment', 'contract', 'import', 'connect', 'boot', 'network', 'wifi-gate',
+        'policy', 'enrollment', 'contract', 'import', 'connect', 'boot', 'network', 'wifi-gate', 'bluetooth',
         'activation-gate', 'activation', 'drain')),
     'scripts/wifi-boot-gate.py', 'scripts/test-operator-dispatch.py', 'scripts/test-operator-runner.py',
     *('overlay-test-access/' + name for name in (
@@ -41,6 +42,9 @@ RECIPE_FILES = (
     'scripts/configure-application-rootfs.py', 'scripts/verify-application.py',
     'scripts/verify-sd-diagnostic.py', 'scripts/verify-artifacts.py',
     'config/base-image.lock.json', 'config/system-packages.lock.json',
+    'config/test-access-packages.lock.json', 'scripts/fetch-test-access-packages.py',
+    'scripts/fetch-packages.py', 'scripts/fetch-base.py', 'scripts/install-test-access-packages.py',
+    *PACKAGE_FILES,
 )
 INHERITED = ('config/base-image.lock.json', 'config/system-packages.lock.json',
              'scripts/configure-application-rootfs.py', 'scripts/verify-application-rootfs.py')
@@ -49,11 +53,12 @@ REPORTS = (
     'test-access-configuration.json', 'qualification-prepared.json', 'qualification-static.json',
     'qualification-application.json', 'application-manifest.json', 'filesystem-manifest.json',
     'image-inspection.json', 'systemd-verify.txt', 'boot-preserved.sha256', 'fsck-ext4.txt', 'fsck-fat.txt',
-    'build.log', 'sudoers-verify.txt',
+    'build.log', 'sudoers-verify.txt', 'test-access-packages.json',
 )
 VM_REPORTS = ('test-access-configuration.json', 'qualification-prepared.json', 'qualification-static.json',
               'qualification-application.json', 'filesystem-manifest.json', 'image-inspection.json',
-              'systemd-verify.txt', 'boot-preserved.sha256', 'fsck-ext4.txt', 'fsck-fat.txt', 'sudoers-verify.txt')
+              'systemd-verify.txt', 'boot-preserved.sha256', 'fsck-ext4.txt', 'fsck-fat.txt', 'sudoers-verify.txt',
+              'test-access-packages.json')
 
 
 class ClosedError(ValueError):
@@ -211,6 +216,18 @@ def guest(*argv):
     return ['limactl', 'shell', '--workdir=/tmp', VM, *argv]
 
 
+def recipe_sources(repo):
+    """Read the exact sources and already fetched archives; never resolve APT."""
+    sources = {name: read_regular(repo / name) for name in RECIPE_FILES if name not in PACKAGE_FILES}
+    lock = json.loads(sources['config/test-access-packages.lock.json'])
+    require(tuple('packages/' + row['filename'] for row in lock['packages']) == PACKAGE_FILES)
+    for row, name in zip(lock['packages'], PACKAGE_FILES):
+        raw = read_regular(repo / 'cache/packages' / row['filename'])
+        require(len(raw) == row['size_bytes'] and hashlib.sha256(raw).hexdigest() == row['sha256'])
+        sources[name] = raw
+    return sources
+
+
 def snapshot(work, parent, parent_raw, sources, profile_raw, runtime_raw, commit, dirty):
     data = validate_parent(parent_raw)
     require(set(sources) == set(RECIPE_FILES) and re.fullmatch('[0-9a-f]{40}', commit) and type(dirty) is bool)
@@ -319,8 +336,10 @@ def main(argv=None):
         require(stat.S_ISDIR(info.st_mode))
         parent_raw = read_regular(args.parent / 'manifest.json')
         parent_data = validate_parent(parent_raw)
+        stage = 'pinned_package_archives'
+        invoke([sys.executable, '-I', 'scripts/fetch-test-access-packages.py'], timeout=120)
         stage = 'recipe_sources'
-        sources = {name: read_regular(repo / name) for name in RECIPE_FILES}
+        sources = recipe_sources(repo)
         stage = 'private_workspace'
         work = private_directory(repo)
         stage = 'parent_integrity'

@@ -1,7 +1,8 @@
 [Unit]
 Description=Private TEST enrollment or authenticated operator access
 Requires=inkyos-firstboot.service NetworkManager.service
-After=local-fs.target inkyos-firstboot.service rpi-resize.service systemd-growfs-root.service NetworkManager.service
+Wants=bluetooth.service
+After=local-fs.target inkyos-firstboot.service rpi-resize.service systemd-growfs-root.service NetworkManager.service bluetooth.service
 BindsTo=NetworkManager.service
 PartOf=NetworkManager.service
 RequiresMountsFor=/etc/inkyos-test-enrollment /var/lib/inkyos-test-enrollment /var/lib/inkyos-test-access /boot/firmware

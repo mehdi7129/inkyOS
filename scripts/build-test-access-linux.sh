@@ -55,9 +55,11 @@ application_sha256=$(python3 -I -c 'import json;print(json.load(open("recipe/par
 loop=
 root_mounted=0
 boot_mounted=0
+null_mounted=0
 cleanup() {
   local status=$? failed=0
   trap - EXIT INT TERM
+  if (( null_mounted )); then umount "$work/root/dev/null" && null_mounted=0 || failed=1; fi
   if (( boot_mounted )); then umount "$work/boot" && boot_mounted=0 || failed=1; fi
   if (( root_mounted )); then umount "$work/root" && root_mounted=0 || failed=1; fi
   if [[ -n $loop ]] && (( !root_mounted && !boot_mounted )); then losetup -d "$loop" || failed=1; fi
@@ -96,6 +98,12 @@ assert report['passed'] is True and len(report['checks']) == 17
 report['scope']='pristine-parent-before-access-configuration'
 (work/'qualification-prepared.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 PY
+[[ -c root/dev/null && ! -L root/dev/null ]] || exit 1
+mount --bind /dev/null root/dev/null
+null_mounted=1
+python3 -I recipe/scripts/install-test-access-packages.py --rootfs "$work/root" \
+  --recipe-dir "$work/recipe" --output-dir "$work"
+umount root/dev/null; null_mounted=0
 python3 -I recipe/scripts/configure-test-access-rootfs.py --rootfs "$work/root" --bootfs "$work/boot" \
   --recipe "$work/recipe" --profile "$work/recipe/private-profile.json" --parent-sha256 "$parent_sha256" \
   --output "$work/test-access-configuration.json"

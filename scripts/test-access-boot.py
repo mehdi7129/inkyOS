@@ -22,7 +22,7 @@ BASE = "/usr/local/lib/inkyos/"
 LEGACY = BASE + "test-enrollment-firstboot.py"
 LEGACY_SHA256 = "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a"
 ENROLLMENT = BASE + "test-access-enrollment.py"
-ENROLLMENT_SHA256 = "d0f45b332efd94a1ced7b721474743fcb90afc2d6a2a454bb6c76dea97f319a9"
+ENROLLMENT_SHA256 = "eeb867e5a581b686eaad47543aef2ab5cc52e0337b85de27bf4288d642184e18"
 MANIFEST = "/usr/local/share/inkyos/test-access-manifest.json"
 PROFILE = "/etc/inkyos-test-enrollment/profile.json"
 STATE = "/var/lib/inkyos-test-enrollment/state.json"
@@ -32,6 +32,13 @@ READY = RUNTIME + "/ssh-ready.json"
 DIAGNOSTICS = "/var/lib/inkyos-test-diagnostics"
 DIAGNOSTIC_LIMIT = 8192
 DIAGNOSTIC_TIMEOUT = 2.0
+# Only limit the optional Bluetooth phase. Other boot paths retain the unit's
+# existing 180-second timeout; this is not a global Python boot deadline.
+# Leave 30 seconds for the connection probe (20), two ready observations (4),
+# SSH submission (3) and final diagnostic (2). This is cooperative headroom,
+# not a guarantee against stalled kernel I/O or unrelated system delays.
+BLUETOOTH_LATEST_END = 150.0
+BLUETOOTH_BUDGET = 20.0
 ERRORS = {"target_unverified", "sources_invalid", "enrollment_invalid", "enrollment_failed",
           "import_failed", "connection_failed", "operator_config_invalid", "connection_changed",
           "ssh_start_failed", "ssh_not_ready", "boot_failed", "invalid_arguments"}
@@ -63,7 +70,12 @@ GATE_ERRORS = {"target_unverified", "manifest_invalid", "source_pin_invalid", "n
 GATE_CHECKS = ("target_verified", "sources_bound", "networkmanager_start_pre", "wlan_block_request_acknowledged",
     "wlan_blocked_before_state", "state_durably_written", "state_disabled_readback", "wlan_blocked_after_state",
     "sources_unchanged", "networkmanager_still_start_pre")
-STAGES = {"bind", "enroll", "import", "connect", "operator_config", "publish_ready", "verify_ready", "start_ssh", "cleanup", "complete"}
+BLUETOOTH_ERRORS = {"target_unverified", "controller_unavailable", "controller_changed", "hard_blocked",
+    "bluez_unavailable", "unblock_failed", "unblock_unconfirmed", "power_failed", "power_unconfirmed",
+    "runtime_timeout", "observation_unavailable", "invalid_arguments"}
+BLUETOOTH_CHECKS = ("target_verified", "controller_verified", "not_hard_blocked", "bluez_available",
+    "unblock_acknowledged", "unblocked", "power_acknowledged", "powered", "controller_unchanged")
+STAGES = {"bind", "enroll", "import", "connect", "bluetooth", "operator_config", "publish_ready", "verify_ready", "start_ssh", "cleanup", "complete"}
 
 
 def closed_observation(value, booleans, errors, *, checks=(), enums=None):
@@ -138,15 +150,34 @@ def connection_diagnostic(value):
     return output
 
 
-def boot_diagnostic(result, *, complete, stage, imported=None, connected=None):
+def bluetooth_failure(error):
+    require(error in BLUETOOTH_ERRORS, "invalid_arguments")
+    return {"schema_version": 1, "kind": "test-access-bluetooth", "passed": False,
+            "live_evidence": False, "unblock_attempted": False, "power_attempted": False,
+            "error": error, "checks": dict.fromkeys(BLUETOOTH_CHECKS, False)}
+
+
+def bluetooth_diagnostic(value):
+    if (type(value) is not dict or type(value.get("schema_version")) is not int
+            or value["schema_version"] != 1 or value.get("kind") != "test-access-bluetooth"):
+        return {"status": "unavailable"}
+    return closed_observation(value, ("passed", "live_evidence", "unblock_attempted", "power_attempted"),
+                              BLUETOOTH_ERRORS, checks=BLUETOOTH_CHECKS)
+
+
+def boot_diagnostic(result, *, complete, stage, imported=None, connected=None, bluetooth=None):
     require(type(complete) is bool and type(stage) is str and stage in STAGES, "invalid_arguments")
-    return {"schema_version": 1, "kind": "test-access-boot-diagnostic", "complete": complete, "stage": stage,
+    output = {"schema_version": 1, "kind": "test-access-boot-diagnostic", "complete": complete, "stage": stage,
         "boot": closed_observation(result, ("passed", "poweroff_requested", "ssh_start_requested",
             "wifi_off_requested_on_failure"), ERRORS, enums={"phase": {"blocked", "enrolled-stop-requested", "ssh-start-requested", "ssh-condition-passed"}}),
         "import": closed_observation(imported, ("passed", "imported", "reused_committed_cache"), IMPORT_ERRORS,
             enums={"state": {"blocked", "imported", "review-required"}}),
         "connection": connection_diagnostic(connected), "connection_authorized": False,
         "application_activation_authorized": False, "hardware_qualified": False}
+    # Historical receipts without this phase keep precisely their old shape.
+    if bluetooth is not None:
+        output["bluetooth"] = bluetooth_diagnostic(bluetooth)
+    return output
 
 
 def diagnostic_boot_id():
@@ -314,6 +345,7 @@ class NativeAdapter:
     def __init__(self):
         self.files = self.connection = None
         self.snapshots = {}
+        self.started = time.monotonic()
 
     def save_diagnostic(self, result, **observations):
         return persist_diagnostic("last-boot.json", boot_diagnostic(result, **observations))
@@ -381,6 +413,48 @@ class NativeAdapter:
     def connect(self):
         module = self.module("connect")
         return module["connect"](module["NativeAdapter"]())
+
+    def prepare_bluetooth(self):
+        # Source failures are fatal even though Bluetooth hardware failures are
+        # diagnostic-only. Never borrow the operator_config connection probe's
+        # 20-second lifetime for this preparation.
+        try:
+            require(self.unchanged() is True, "sources_invalid")
+            module = self.module("bluetooth")
+            require(callable(module.get("prepare")), "sources_invalid")
+        except Exception:
+            raise BootError("sources_invalid") from None
+        remaining = self.started + BLUETOOTH_LATEST_END - time.monotonic()
+        if remaining <= 0:
+            return bluetooth_failure("runtime_timeout")
+        probe = self.module("connect")["NativeAdapter"]()
+        try:
+            probe.deadline = probe.work_deadline = self.started + BLUETOOTH_LATEST_END
+            try:
+                require(probe.target() is True and probe.bind() is True
+                        and probe.authenticate_cache() is True and probe.unchanged() is True
+                        and self.unchanged() is True, "sources_invalid")
+            except Exception:
+                raise BootError("sources_invalid") from None
+            remaining = self.started + BLUETOOTH_LATEST_END - time.monotonic()
+            if remaining <= 0:
+                observed = bluetooth_failure("runtime_timeout")
+            else:
+                try:
+                    observed = module["prepare"](timeout=min(BLUETOOTH_BUDGET, remaining))
+                except Exception:
+                    # The loaded helper normally returns its own closed error.
+                    # Unexpected hardware/observation errors must leave SSH available.
+                    observed = {"status": "unavailable"}
+                if observed is None:
+                    observed = {"status": "unavailable"}
+            try:
+                require(probe.unchanged() is True and self.unchanged() is True, "sources_invalid")
+            except Exception:
+                raise BootError("sources_invalid") from None
+            return observed
+        finally:
+            probe.close()
 
     def connected(self):
         if self.connection is None:
@@ -484,7 +558,7 @@ def boot(adapter, *, verify_ssh=False):
               "ssh_start_requested": False, "ssh_start_verified": False, "wifi_off_requested_on_failure": False,
               "application_activation_authorized": False, "hardware_qualified": False, "release_qualified": False}
     connecting = False
-    stage, imported, connected = "bind", None, None
+    stage, imported, connected, bluetooth = "bind", None, None, None
 
     def save_diagnostic(complete):
         # Diagnostics cannot authorize access or prevent failure cleanup.
@@ -493,7 +567,7 @@ def boot(adapter, *, verify_ssh=False):
         try:
             saver = getattr(adapter, "save_diagnostic", None)
             if callable(saver):
-                saver(result, complete=complete, stage=stage, imported=imported, connected=connected)
+                saver(result, complete=complete, stage=stage, imported=imported, connected=connected, bluetooth=bluetooth)
         except Exception:
             pass
 
@@ -519,6 +593,8 @@ def boot(adapter, *, verify_ssh=False):
             stage = "connect"
             connected = adapter.connect()
             require(connected.get("passed") is True, "connection_failed")
+            stage = "bluetooth"
+            bluetooth = adapter.prepare_bluetooth()
             stage = "operator_config"
             require(adapter.operator_config() is True, "operator_config_invalid")
             stage = "publish_ready"

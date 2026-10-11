@@ -97,6 +97,7 @@ l’espace disque nécessaire et les limites du builder.
 
 ## Documentation
 
+- [Finalisation commune et critères des parcours complets](docs/COMPLETION-PLAN.md)
 - [Alignement OS/app et prochain essai](docs/OS-APP-ALIGNMENT.md)
 - [Architecture et plan de réalisation](docs/BUILD-PLAN.md)
 - [Matériel et sources officielles](docs/HARDWARE-SOURCES.md)

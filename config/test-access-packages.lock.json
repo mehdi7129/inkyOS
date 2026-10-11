@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "status": "experimental-not-hardware-qualified",
+  "scope": "test-access-only",
+  "verified_at": "2026-10-11",
+  "base_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+  "reviewed_source_commit": "2e435c9684bc6a6c59f0e6bceec04fb540371444",
+  "architecture": "arm64",
+  "debian_release": "trixie",
+  "packages": [
+    {
+      "name": "libi2c0",
+      "version": "4.4-2",
+      "architecture": "arm64",
+      "source_package": "i2c-tools",
+      "filename": "libi2c0_4.4-2_arm64.deb",
+      "url": "https://deb.debian.org/debian/pool/main/i/i2c-tools/libi2c0_4.4-2_arm64.deb",
+      "sha256": "ba334060dff683136ec37249675fb9b8542dec645a008f24fbfccd920abe257a",
+      "size_bytes": 9736,
+      "depends": "libc6 (>= 2.17)",
+      "recommends": "",
+      "suggests": "",
+      "required_dependencies_in_base": [
+        {
+          "name": "libc6",
+          "version": "2.41-12+rpt1+deb13u4",
+          "architecture": "arm64",
+          "constraints": [
+            ">= 2.17"
+          ]
+        }
+      ],
+      "required_dependencies_in_delta": []
+    },
+    {
+      "name": "i2c-tools",
+      "version": "4.4-2",
+      "architecture": "arm64",
+      "source_package": "i2c-tools",
+      "filename": "i2c-tools_4.4-2_arm64.deb",
+      "url": "https://deb.debian.org/debian/pool/main/i/i2c-tools/i2c-tools_4.4-2_arm64.deb",
+      "sha256": "3123635e7da9c00d96daa24be09fda90c2f8e571702e4b515a910ee27b43d062",
+      "size_bytes": 78840,
+      "depends": "adduser, udev, perl:any, libc6 (>= 2.34), libi2c0 (>= 4.0)",
+      "recommends": "read-edid",
+      "suggests": "libi2c-dev, python3-smbus",
+      "required_dependencies_in_base": [
+        {
+          "name": "adduser",
+          "version": "3.152",
+          "architecture": "all",
+          "constraints": []
+        },
+        {
+          "name": "udev",
+          "version": "257.13-1~deb13u1",
+          "architecture": "arm64",
+          "constraints": []
+        },
+        {
+          "name": "perl",
+          "version": "5.40.1-6+deb13u1",
+          "architecture": "arm64",
+          "constraints": [
+            "perl:any"
+          ]
+        },
+        {
+          "name": "libc6",
+          "version": "2.41-12+rpt1+deb13u4",
+          "architecture": "arm64",
+          "constraints": [
+            ">= 2.34"
+          ]
+        }
+      ],
+      "required_dependencies_in_delta": [
+        {
+          "name": "libi2c0",
+          "version": "4.4-2",
+          "architecture": "arm64",
+          "constraints": [
+            ">= 4.0"
+          ]
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "reference_lock": "config/system-packages.lock.json",
+    "reference_lock_sha256": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+    "inrelease": {
+      "url": "https://deb.debian.org/debian/dists/trixie/InRelease",
+      "sha256": "0584fba32e13e0ab8285fb16c27adea1ec03a73669c18702821094fd6ca86675",
+      "size_bytes": 140421,
+      "release_date": "Sat, 12 Sep 2026 07:55:41 UTC"
+    },
+    "packages_index": {
+      "url": "https://deb.debian.org/debian/dists/trixie/main/binary-arm64/Packages.xz",
+      "sha256": "be16b37b2f740f066ea93d35d56f04f94d63693e5a3eb421b052bf86fae75bcd",
+      "size_bytes": 9614192
+    },
+    "authenticated_release_sha256": "8604eb6fba4e103b48f029f4d945e8c96d07a418b663de8386617d0b78bd3bcf",
+    "signature_verification_record_sha256": "76a6e151ef5ff8117d3783fabf0dec024f1838a6c582a7217cb2e399a6d2f328",
+    "authentication": "previously-verified-debian-inrelease-reused"
+  },
+  "notes": [
+    "Only the missing required i2c-tools and libi2c0 packages are added to the reviewed TEST access image; existing dependencies are not upgraded.",
+    "Hashes derive from the preserved sqv-authenticated Debian InRelease and Packages.xz already reviewed for the base package delta. Repository signatures are not reverified by this fetcher.",
+    "Recommends read-edid and Suggests libi2c-dev/python3-smbus are not included. No APT resolution, installation or hardware qualification is performed.",
+    "i2c-tools postinst creates the i2c group if absent and directly reloads udev rules/triggers i2c-dev. Offline installation must isolate or neutralize these udevadm calls; policy-rc.d alone does not block them.",
+    "libi2c0 requests the ldconfig trigger. Neither package adds a service or radio configuration."
+  ]
+}

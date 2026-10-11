@@ -206,6 +206,47 @@ class WorkerTests(unittest.TestCase):
             with self.assertRaises(activation.ActivationError): adapter.wait_ready('helper')
             self.assertEqual(adapter.health.call_count, 1)
 
+    def test_fresh_utc_uses_pinned_kernel_probe_and_keeps_independent_reference(self):
+        preflight = load('activation_clock_contract', 'scripts/test-lan-preflight.py')
+        adapter = activation.NativeAdapter()
+        adapter.boot = SimpleNamespace(sources={activation.BASE + 'test-lan-preflight.py':
+                                                (ROOT / 'scripts/test-lan-preflight.py').read_bytes()})
+        adapter.elapsed = Mock(return_value=2.5)
+        reference = Mock(return_value=True)
+        adapter.gate = {'reference_current': reference}
+        adapter.command = Mock(return_value=(0, b'v b true\n'))
+        record = {'request': request()}
+        self.assertTrue(adapter.fresh_utc(record))
+        adapter.command.assert_called_once_with(preflight.COMMANDS['utc_sync'], timeout=2)
+        reference.assert_called_once_with({k: request()[k] for k in activation.UTC_FIELDS}, elapsed=2.5)
+        reference.return_value = False
+        self.assertFalse(adapter.fresh_utc(record))
+        for result in (None, (2, b''), (0, b'v b false\n'), (0, b'v b true'),
+                       (1, b'v b true\n'), (0, b'PRIVATE_SECRET')):
+            with self.subTest(result=result):
+                adapter.command.return_value = result
+                reference.reset_mock()
+                self.assertFalse(adapter.fresh_utc(record))
+                reference.assert_not_called()
+
+    def test_fresh_utc_probe_retains_activation_deadline(self):
+        adapter = activation.NativeAdapter()
+        adapter.boot = SimpleNamespace(sources={activation.BASE + 'test-lan-preflight.py':
+                                                (ROOT / 'scripts/test-lan-preflight.py').read_bytes()})
+        runner = Mock(return_value=(0, b'v b true\n'))
+        adapter.lib = {'command': runner}
+        adapter.gate = {'reference_current': lambda *args, **kwargs: True}
+        adapter.elapsed = lambda _record: 0
+        adapter.deadline = 100.5
+        with patch.object(activation.time, 'monotonic', return_value=100):
+            self.assertTrue(adapter.fresh_utc({'request': request()}))
+        self.assertEqual(runner.call_args.kwargs, {'timeout': 0.5, 'limit': 16384})
+        runner.reset_mock()
+        with patch.object(activation.time, 'monotonic', return_value=101):
+            with self.assertRaises(activation.ActivationError):
+                adapter.fresh_utc({'request': request()})
+        runner.assert_not_called()
+
     def test_cli_rejects_override_without_constructing_native_adapter(self):
         with patch.object(activation, 'NativeAdapter', side_effect=AssertionError('no native')):
             for argv in ([], ['--root', '/tmp'], ['--activate', '--yes'], ['--consume-permit']):
