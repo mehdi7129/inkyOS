@@ -1,0 +1,74 @@
+{
+  "application_activation_requested": false,
+  "application_source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+  "application_started": false,
+  "authenticated_ssh_observed": true,
+  "bluetooth_qualified": false,
+  "date": "2026-10-11",
+  "display_qualified": false,
+  "enrollment_evidence": "2026-10-11-radio-readiness-enrollment-return.json",
+  "enrollment_evidence_commit": "b1860209b1bf5eb2a740e81dc5d49ff1c41afb60",
+  "hardware_qualified": false,
+  "initial_preflight": {
+    "error": "transport_unconfirmed",
+    "response_verified": false,
+    "status": "UNCONFIRMED"
+  },
+  "integration_evidence": "2026-10-11-radio-readiness-access-image.json",
+  "ios_pairing_qualified": false,
+  "limits": [
+    "Authenticated STATUS and PREFLIGHT responses establish network reachability at the observed exchanges, not sustained network stability or definitive causality of the earlier failure.",
+    "The verified PREFLIGHT directly observed NetworkManager managing a connected wlan0; it remained BLOCKED and did not authorize application activation.",
+    "The initial unconfirmed PREFLIGHT remains unconfirmed; the later verified response is a separate observation.",
+    "The four required checks reported false do not identify their exact causes. In particular, system_packages_present=false does not by itself identify a missing package.",
+    "The three historical checks listed separately are replaced by dedicated checks in the test activation contract; those replacement gates were not assessed by these observations.",
+    "A firstboot_success check is not independent runtime or shutdown attestation. UTC agreement with the independent reference and UTC synchronization are distinct checks."
+  ],
+  "network_observation": {
+    "authenticated_ssh_observed": true,
+    "context_provenance_independently_verified": true,
+    "network_stability_qualified": false,
+    "networkmanager_manages_connected_wlan0": true,
+    "verified_status_results": 2
+  },
+  "new_network_boot_performed": true,
+  "private_identities_published": false,
+  "private_image_hash_published": false,
+  "readiness_correction_commit": "52ddfc1a2040888f3d77196819029a74d234205b",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "radio-readiness-authenticated-network-observation",
+  "source_commit": "2e435c9684bc6a6c59f0e6bceec04fb540371444",
+  "status": "NETWORK_OBSERVED_PREFLIGHT_BLOCKED",
+  "subsequent_preflight": {
+    "checks_failed": 7,
+    "checks_passed": 17,
+    "checks_replaced_by_separate_test_activation_gates": {
+      "country_phy_matches": false,
+      "panel_inventory_supplied_and_valid": false,
+      "panel_runtime_evidence_verified": false
+    },
+    "error": "preflight_blocked",
+    "failed_required_checks": {
+      "bluetooth_unblocked": false,
+      "hci0_powered": false,
+      "system_packages_present": false,
+      "utc_synchronized": false
+    },
+    "live_evidence": true,
+    "observed_checks": {
+      "app_stopped_and_masked": true,
+      "bluez_running": true,
+      "country_global_matches": true,
+      "country_operator_confirmed": true,
+      "firstboot_success": true,
+      "helper_stopped_and_masked": true,
+      "independent_reference_recent": true,
+      "utc_matches_independent_reference": true
+    },
+    "replacement_gates_assessed_in_this_observation": false,
+    "response_verified": true,
+    "ssh_exit_code": 1,
+    "status": "BLOCKED"
+  }
+}

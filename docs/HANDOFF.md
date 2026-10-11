@@ -21,7 +21,7 @@ passe désormais ses propres 35 + 10 contrôles. Le dérivé `e2image` de ce ret
 est transmis directement de la SD vers la VM, sans acquisition intégrale
 intermédiaire ni rejeu du journal. Le nouveau contexte privé est exporté après
 nettoyage vérifié ; sa capsule signée est installée et relue, puis la SD éjectée.
-L’accès réseau n’est pas encore qualifié. L’ancienne identité et l’ancienne
+À cette étape, l’accès réseau n’était pas encore qualifié. L’ancienne identité et l’ancienne
 capsule ne sont pas réutilisées.
 Une [correction de synchronisation radio](validation/2026-10-11-radio-readiness-tests.json)
 attend la disponibilité de NetworkManager avant l’unique activation ; 1 047 tests
@@ -34,15 +34,26 @@ passent ; l’éjection a été récupérée séparément, sans réécriture. Le
 [nouveau retour d’enrôlement](validation/2026-10-11-radio-readiness-enrollment-return.json)
 passe à son tour 35 contrôles du système et 10 d’infrastructure. Le contexte
 privé propre à cette image est exporté après nettoyage vérifié. Sa nouvelle
-capsule liée et signée est installée et relue, puis la SD éjectée ; le prochain
-boot réseau reste à effectuer.
+capsule liée et signée est installée et relue, puis la SD éjectée.
 Le [retour réseau avant correctif](validation/2026-10-11-network-device-state-return.json)
 confirme un échec d’activation 4, avec interface indisponible (20), venant
 d’être prise en gestion (raison 2), avant le nettoyage radio. Le budget n’est
 pas épuisé. Cela renforce la piste de disponibilité tardive, sans établir
 la cause exacte ni un rejet du mot de passe. La lecture des deux rapports
 est vérifiée ; leurs horodatages et le journal non rejoué limitent la preuve
-de fraîcheur. Aucun succès Wi-Fi/SSH ou applicatif n’est établi.
+de fraîcheur. Ce relevé antérieur n’établissait aucun succès Wi-Fi/SSH ou applicatif.
+
+Le [boot réseau de l’image corrigée](validation/2026-10-11-radio-readiness-network-observation.json)
+établit maintenant **deux STATUS SSH authentifiés PASS**. Après un premier
+préflight non confirmé, une seconde réponse authentifiée observe NetworkManager
+gérant `wlan0` connecté et le premier boot réussi. Ce préflight reste bloqué :
+**17 contrôles sur 24 passent**. Les quatre contrôles requis encore faux sont
+`bluetooth_unblocked`, `hci0_powered`, `utc_synchronized` et
+`system_packages_present`. Ces résultats ne précisent pas leur cause.
+Trois autres contrôles historiques sont remplacés par des gardes d’activation
+TEST distinctes, non évaluées dans ces observations. L’application reste arrêtée
+et masquée ; stabilité réseau, BLE, affichage et appairage iOS restent à qualifier.
+
 Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 

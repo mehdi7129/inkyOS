@@ -1,12 +1,14 @@
 # Diagnostic du boot réseau TEST
 
-État au **11 octobre 2026**. Le nouveau reçu persistant localise l'arrêt à
-l'activation de la connexion : import, garde Wi-Fi, pays et demande d'allumage
-radio passent ; la connexion échoue et la radio est refermée. La cause exacte
-reste inconnue. Aucune connexion Wi-Fi ou SSH réussie n'est établie.
+État au **11 octobre 2026**. Sur l’image contenant la correction d’attente radio,
+le [nouveau relevé réseau](validation/2026-10-11-radio-readiness-network-observation.json)
+établit deux STATUS SSH authentifiés et un préflight observant `wlan0` connecté.
+Ce préflight reste bloqué avec 17 contrôles sur 24 réussis ; l’application reste
+arrêtée et masquée. La stabilité réseau et la cause exacte de l’échec antérieur
+restent non qualifiées.
 
-Les retours historiques et le [dernier relevé réduit](validation/2026-10-11-network-activation-return.json)
-sont distingués ci-dessous. Aucun ne qualifie l'écran ou l'appairage iPhone.
+Les retours antérieurs, dont le [relevé d’activation en échec](validation/2026-10-11-network-activation-return.json),
+sont conservés ci-dessous. Ces observations ne qualifient ni l’écran ni l’appairage iPhone.
 
 ## Retour historique sans diagnostic persistant
 
@@ -268,8 +270,8 @@ Les deux rapports partagent le même identifiant de boot, conservé en privé.
 La lecture et ses contrôles de média passent ; le système de fichiers demande
 une récupération et aucun journal n’est rejoué. Les horodatages ne permettent
 pas d’attester indépendamment qu’il s’agit du dernier boot. La correction
-est désormais intégrée à une image, mais reste à valider sur le Pi ; SSH, BLE
-et l’appairage iOS restent non qualifiés.
+était alors intégrée à une image, mais son essai réseau restait à effectuer.
+Ce relevé ne qualifiait ni SSH, ni BLE, ni l’appairage iOS.
 
 ## Image intégrant l’attente radio
 
@@ -297,7 +299,74 @@ contexte est exporté après nettoyage vérifié et ses bindings sont recoupés
 avec le rapport FAT ; aucun fichier de clé privée n’est ouvert par le vérificateur.
 
 Le correctif `52ddfc1` est bien présent dans cette image. Une nouvelle capsule
-liée au contexte et signée est installée et relue, puis la SD éjectée. Son
-prochain boot réseau reste à effectuer. Ces contrôles ne
-qualifient ni son efficacité sur le Wi-Fi réel, ni SSH, BLE, l’affichage ou
-l’appairage iOS. Les observations précédentes concernent l’image sans ce correctif.
+liée au contexte et signée est installée et relue, puis la SD éjectée. Ce relevé
+d’enrôlement précède le boot réseau décrit ci-dessous. Ses contrôles seuls ne
+qualifient ni le Wi-Fi réel, ni SSH, BLE, l’affichage ou l’appairage iOS.
+Les observations de connexion en échec précédentes concernent l’image sans ce correctif.
+
+## Échanges authentifiés sur l’image corrigée
+
+Le [nouveau relevé réduit](validation/2026-10-11-radio-readiness-network-observation.json)
+concerne la recette `2e435c9`, le correctif `52ddfc1` et le même backend `c31b13a`.
+Il prolonge l’enrôlement vérifié publié dans `b186020`, avec son nouveau contexte
+privé et sa capsule signée.
+
+Deux commandes STATUS reçoivent une réponse **PASS** par SSH authentifié avec
+la clé d’hôte enrôlée. Le premier préflight reste **UNCONFIRMED** : aucune
+réponse distante vérifiée n’en est tirée. Un préflight ultérieur reçoit une
+réponse authentifiée **BLOCKED** ; sa sortie SSH 1 correspond ici au résultat
+distant bloqué, et non à un échec de vérification du transport.
+
+Ce préflight passe **17 contrôles sur 24**. Il observe directement NetworkManager
+gérant `wlan0` connecté, le contrôle `firstboot_success` réussi et l’heure UTC
+conforme à la référence indépendante. L’application et son helper restent arrêtés
+et masqués. Quatre contrôles requis rapportent `false` :
+
+- `bluetooth_unblocked` ;
+- `hci0_powered` ;
+- `utc_synchronized` ;
+- `system_packages_present`.
+
+Ces booléens ne déterminent pas les causes : ils ne suffisent notamment pas à
+conclure que Bluetooth est désactivé ou qu’un paquet précis manque. L’accord UTC
+avec une référence et la synchronisation UTC sont deux contrôles distincts.
+
+Les trois autres contrôles faux sont `country_phy_matches`,
+`panel_inventory_supplied_and_valid` et `panel_runtime_evidence_verified`.
+Le contrat d’activation TEST les remplace par des gardes dédiées ; ces gardes
+n’ont pas été évaluées lors de ces échanges et ne sont pas considérées réussies.
+
+Le Wi-Fi connecté et les échanges SSH sont établis ponctuellement. Ils ne
+qualifient ni la stabilité dans la durée ni la cause exacte de l’échec précédent.
+Aucune activation applicative n’a été demandée ; BLE, affichage et appairage iOS
+restent à qualifier.
+
+
+## Causes côté image et préparation de la correction
+
+Une inspection distincte des booléens du préflight identifie trois points :
+
+- L’inventaire scellé de l’image ne contient pas `i2c-tools`, requis par le
+  préflight ; les six autres paquets de cette vérification sont présents.
+  L’argument de format `dpkg-query` a été reproduit avec le vrai binaire de la
+  VM : il produit les lignes attendues. Ce n’est pas un défaut d’échappement.
+- L’installateur Bluetooth du backend épinglé débloque Bluetooth puis demande
+  `Adapter1.Powered=true`. L’intégration offline copie ses fichiers statiques,
+  mais aucun hook InkyOS ne reprend ces actions au boot. La session Studio
+  confirme que le backend attend un contrôleur déjà alimenté. L’état précis
+  de `hci0` sur ce boot reste à distinguer d’une commande d’observation en échec.
+- La requête `NTPSynchronized` interdit l’activation D-Bus de `timedated`.
+  Or ce [service systemd est activé à la demande et peut quitter lorsqu’il est
+  inutilisé](https://github.com/systemd/systemd/blob/v257.13/man/systemd-timedated.service.xml).
+  Dans la VM, service inactif et requête exacte donnent un échec, converti en
+  `utc_synchronized=false`. Cela prouve une limite de l’observation, pas une
+  désynchronisation du Pi. Le préflight et la vérification précédant le
+  lancement de l’app utilisent cette même requête.
+
+La prochaine correction doit couvrir ensemble le paquet requis, la préparation
+Bluetooth explicite et une observation NTP fiable. Elle doit conserver l’accès
+SSH si la préparation Bluetooth échoue, afin de pouvoir diagnostiquer le Pi.
+Les fixtures et les commandes natives doivent être vérifiées avant de préparer
+un autre essai SD. Aucun correctif de ces trois points n’est encore déployé,
+aucune activation applicative n’a été demandée et aucune nouvelle écriture SD
+n’a suivi les observations réseau.

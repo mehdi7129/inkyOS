@@ -19,8 +19,8 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Nouvelle SD corrigée : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; nouveau contexte privé exporté après nettoyage vérifié. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Correction d’attente radio intégrée à la SD et enrôlement validé. Nouvelle configuration signée installée et relue ; carte éjectée. La connexion de cette image reste à tester. |
-| Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
+| Wi-Fi | Sur la SD corrigée, NetworkManager observe `wlan0` connecté lors d’un échange authentifié. La stabilité dans la durée reste à qualifier. |
+| Accès opérateur | Deux STATUS SSH authentifiés passent. Le préflight vérifié reste bloqué avec 17 contrôles sur 24 réussis ; l’application reste arrêtée et masquée. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
 
@@ -44,7 +44,9 @@ sans échec (4 skips macOS, 1 skip Linux). Le
 [retour d’enrôlement de la SD corrigée](docs/validation/2026-10-11-radio-readiness-enrollment-return.json)
 passe 35 contrôles du système et 10 contrôles d’infrastructure. Son nouveau
 contexte privé est vérifié ; la configuration Wi-Fi signée liée à cet enrôlement
-est installée et relue, puis la carte éjectée. Le boot réseau reste à effectuer.
+est installée et relue, puis la carte éjectée. Le
+[boot réseau suivant](docs/validation/2026-10-11-radio-readiness-network-observation.json)
+établit des échanges SSH authentifiés et observe `wlan0` connecté.
 
 Sur l’image précédente, le [diagnostic réseau](docs/validation/2026-10-11-network-device-state-return.json)
 confirme que le Pi démarre et importe sa configuration, puis échoue à connecter
@@ -55,15 +57,19 @@ détaille les observations et leurs limites.
 
 La [correction de synchronisation radio](docs/validation/2026-10-11-radio-readiness-tests.json)
 attend désormais que l’interface soit disponible avant de demander la connexion.
-Les tests passent ; le dernier retour renforce cette piste sans prouver sa cause
+Les tests passent ; le retour avant correctif renforce cette piste sans prouver sa cause
 exacte. Une [image privée corrigée](docs/validation/2026-10-11-radio-readiness-access-image.json)
 est maintenant construite ; ses 123 contrôles offline passent. Elle est
 [écrite et relue sur la SD de test, puis éjectée](docs/validation/2026-10-11-radio-readiness-sd-flash.json).
-Son nouvel enrôlement est maintenant vérifié ; la connexion sur le Pi reste à valider.
-Aucun succès Wi-Fi, SSH, affichage ou appairage iPhone n’est annoncé pour ce parcours.
+Son nouvel enrôlement est vérifié et deux STATUS SSH authentifiés passent.
+Un premier préflight reste non confirmé ; le suivant fournit une réponse
+authentifiée **bloquée, avec 17 contrôles sur 24 réussis**. Quatre contrôles requis
+restent faux, ainsi que trois contrôles historiques remplacés par des gardes
+spécifiques au test. Ces observations ne qualifient ni la stabilité réseau,
+ni la cause exacte de l’ancien échec, ni l’affichage ou l’appairage iPhone.
 
-Le prochain essai accompagné doit établir l'accès réseau, vérifier les
-prérequis, puis observer le welcome, une photo et l'adoption QR/BLE depuis une
+Le prochain essai accompagné doit examiner les prérequis encore bloqués,
+puis observer le welcome, une photo et l'adoption QR/BLE depuis une
 session LAN authentifiée. La cible produit est plus simple : **allumer le cadre,
 scanner le QR, confirmer le pays, choisir le Wi-Fi et envoyer une photo**.
 Ce parcours sans LAN préalable reste à intégrer et à qualifier.
