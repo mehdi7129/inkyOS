@@ -32,7 +32,8 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Création factory | [Exporter installé](docs/FACTORY-EXPORTER-PROPOSAL.md) et [quatre cas de composition](docs/FACTORY-INSTALLED-FIXTURE.md), dont reprise sans régénération ; premier boot complet encore à intégrer. |
 | Préparation du système | [30 tests du layout passif](docs/validation/2026-10-11-factory-passive-layout-tests.json), sans activation des services. |
 | Admission des processus | [Primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md), [lanceurs](docs/FACTORY-WRITER-LAUNCHER.md) et [superviseur](docs/FACTORY-SUPERVISOR.md) développés ; [81 tests Linux ARM64](docs/validation/2026-10-11-factory-runtime-tests.json), sans skip. Les services et guards Studio restent à installer et qualifier. |
-| Suite locale actuelle | [1 467 tests macOS](docs/validation/2026-10-11-factory-runtime-tests.json), sans échec, avec 13 skips explicites. Le banc Linux de ce rapport porte sur le nouveau lot de 81 tests, pas sur toute la suite. |
+| Bundle applicatif attendu | [Planner statique](docs/FACTORY-STUDIO-BUNDLE.md), [29 tests d'archives synthétiques](docs/validation/2026-10-11-factory-studio-bundle-plan-tests.json) ; aucune wheel app réelle, installation ou closure qualifiée. |
+| Suite locale actuelle | [1 496 tests macOS](docs/validation/2026-10-11-factory-studio-bundle-plan-tests.json), sans échec, avec 13 skips explicites. Le banc Linux du lot runtime reste celui de ses 81 tests épinglés, pas de toute cette suite. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
@@ -75,6 +76,10 @@ make inspect       # inspection de la base figée
 make prototype     # prototype système sans application
 make vm-stop
 ```
+
+Ces commandes supposent que `python3` désigne Python 3.11 ou plus. Sur macOS,
+si le Python système est encore en 3.9, choisir explicitement l'interpréteur
+installé, par exemple `make test PYTHON=python3.13`.
 
 Les images et rapports restent sous `build/`. Ces commandes ne flashent aucune
 SD. L’intégration d’Inky Studio exige un payload applicatif vérifié et épinglé.

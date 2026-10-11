@@ -1,0 +1,70 @@
+{
+  "application_candidate_qualified": false,
+  "earlier_unsupported_interpreter_run": {
+    "errors": 1,
+    "exit_code": 2,
+    "log_sha256": "2abb44bc73cb94321694fd6675b535b4e36629017e8edcacf30de395bb4a1984",
+    "private_log_preserved": true,
+    "python_version": "3.9.6",
+    "reason": "Python below required 3.11 minimum lacks stdlib tomllib",
+    "skips": 13,
+    "source_inputs_unchanged": true,
+    "tests_run": 1476
+  },
+  "global_suite": {
+    "errors": 0,
+    "exit_code": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "log_sha256": "65475934654ded8439d544df742ee606dd21acd4d9022397a8949bd6e5d3e5ea",
+    "passed": 1483,
+    "shell_syntax_passed": true,
+    "skips": 13,
+    "tests_run": 1496
+  },
+  "hardware_qualified": false,
+  "image_code_executed": false,
+  "image_recipe_changed": false,
+  "independent_review": {
+    "execution_performed_by_reviewer": false,
+    "result": "PASS",
+    "source_sha256": {
+      "docs/FACTORY-STUDIO-BUNDLE.md": "c5ecd16eadfb45108f2a88abab745cb1a5b165e214c99460f6c6e240d0fd2b0d",
+      "scripts/plan-factory-studio-bundle.py": "4a8a1b11a62a3897626d3e4bc9c9c9aee07632d171a4d32e999f5f62269791c0",
+      "tests/test_factory_studio_bundle_plan.py": "69d053d17fe6aef30657ec3df98ac2157b99dd7dfd45399eadd5270283c046dd"
+    }
+  },
+  "installed_metadata_qualified": false,
+  "limits": [
+    "Expected ownership and xattrs describe the future installed tree, not locally inspected input metadata.",
+    "The planner checks pinned bytes and wheel RECORD but does not attest wheel build provenance, commit origin, dependencies or privacy.",
+    "No real Studio app wheel, noneditable installation or activation candidate is supplied.",
+    "The refreshed factory support, native ELF/loader review, frontend path integration and hardware flows remain separate work.",
+    "The Linux ARM64 runtime result in the earlier report covers its pinned 81-test lot, not this global macOS suite."
+  ],
+  "planner_tests": {
+    "errors": 0,
+    "failures": 0,
+    "fixtures": "synthetic source files and ZIP wheels only",
+    "observed_in_global_suite": true,
+    "result": "PASS",
+    "skips": 0,
+    "tests_run": 29
+  },
+  "platform": {
+    "machine": "arm64",
+    "os": "macOS",
+    "python_version": "3.13.3"
+  },
+  "schema_version": 1,
+  "scope": "factory-studio-bundle-static-plan-tests",
+  "sd_used": false,
+  "services_started": false,
+  "source_commit": "e205dca6e61a29a269fd5a0b636fbbf794724370",
+  "source_sha256": {
+    "docs/FACTORY-STUDIO-BUNDLE.md": "c5ecd16eadfb45108f2a88abab745cb1a5b165e214c99460f6c6e240d0fd2b0d",
+    "scripts/plan-factory-studio-bundle.py": "4a8a1b11a62a3897626d3e4bc9c9c9aee07632d171a4d32e999f5f62269791c0",
+    "tests/test_factory_studio_bundle_plan.py": "69d053d17fe6aef30657ec3df98ac2157b99dd7dfd45399eadd5270283c046dd"
+  },
+  "support_closure_qualified": false
+}

@@ -62,6 +62,22 @@ Les [30 tests de layout](validation/2026-10-11-factory-passive-layout-tests.json
 passent sur macOS et Linux ARM64. Seul le banc Linux root exerce les UID/GID
 0 et 1000 et l’API xattrs réels ; les fixtures macOS les substituent explicitement.
 
+## Contenu applicatif attendu avant installation
+
+Le [planner du bundle Studio](FACTORY-STUDIO-BUNDLE.md) calcule le manifeste
+attendu depuis les octets de sources et wheels épinglés. Il exige une wheel
+app préconstruite, une seule origine pour `inky_web` et des inputs sans hooks
+editable ni collisions. Le venv attendu est fixé à son chemin final sous
+`/usr/lib/inky-studio/server/.venv` ; aucun fichier de sortie pip n'est promu
+en référence attendue.
+
+Ce lot statique utilise des fixtures inertes. Il ne livre ni wheel app réelle,
+installation, support factory renouvelé ou candidat activable. La provenance
+de la wheel, ses dépendances, ses ressources frontend et sa confidentialité
+restent à vérifier avant d'en faire une entrée de recette. Le futur installer
+doit comparer l'arbre produit à ce manifeste avant freeze, puis vérifier la
+closure système propre au candidat complet.
+
 ## Ordre de démarrage et admission des writers
 
 L’ordre à réaliser et à vérifier est :
@@ -171,8 +187,10 @@ bootstrap du parcours normal, et limite le premier claim à une association
 durable suivie d’une préparation encore nécessaire. Après adoption, seuls le
 replay exact du claim et le status authentifié sont prévus ; aucun nouveau QR
 d’adoption ni droit implicite sur l’heure, le pays ou le Wi-Fi n’est accordé.
-Cette proposition reste documentaire et inactive, dans une PR draft non
-fusionnée. Elle ne remplace ni le candidat runtime ci-dessus ni le couple TEST.
+La PR draft 29 exerce désormais ces échanges dans des bancs backend/iOS avec
+interfaces injectables. Leur raccord au démarrage installé reste fermé, sans
+fusion ni activation sur la SD TEST. Les preuves wire ne qualifient pas ce
+premier boot installé et ne remplacent pas le couple TEST.
 
 ## Prochain lot et preuves attendues
 
@@ -180,8 +198,9 @@ Le [test du hook avec l’exporter installé](validation/2026-10-11-factory-inst
 passe désormais ses quatre cas et la validation Studio. Le layout passif est
 développé et testé séparément. La primitive coopérative passe
 [31 tests Linux avec des processus synthétiques](validation/2026-10-11-writer-admission-tests.json).
-Le prochain lot doit raccorder le superviseur, les wrappers et le graphe de
-services. Vérifier alors l’admission fermée en cas d’échec, l’absence
+Le superviseur et les wrappers sont développés ; leur installation et le
+graphe des services restent à raccorder. Vérifier alors l’admission fermée
+en cas d’échec, l’absence
 d’interruption d’un travail actif, la reprise sans régénération et le graphe
 sans cycle avec les vrais chemins de lancement.
 

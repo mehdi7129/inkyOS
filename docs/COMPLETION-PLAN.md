@@ -89,6 +89,11 @@ Le [nouveau lot](validation/2026-10-11-factory-runtime-tests.json) passe
 inerte conservant SH. Les adapters PID1/cgroup du superviseur restent simulés.
 Les guards Studio, les anciennes voies de maintenance, le nouveau support
 factory et l'installation des services restent à intégrer et qualifier.
+Le [planner du bundle app](FACTORY-STUDIO-BUNDLE.md) calcule maintenant son
+contenu attendu avant installation depuis des entrées épinglées ; ses
+[29 tests synthétiques](validation/2026-10-11-factory-studio-bundle-plan-tests.json)
+passent dans la suite locale de 1 496 tests, avec 13 skips. Ce lot ne fournit
+pas de wheel app réelle, d'installation non editable ou de closure qualifiée.
 Le [candidat Studio du parcours QR/Bluetooth](https://github.com/mehdi7129/inky-studio/pull/29)
 est une PR draft avec interfaces injectables ; son démarrage installé reste
 fermé. Il ne remplace pas le couple TEST actuel.
