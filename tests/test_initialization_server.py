@@ -1,4 +1,4 @@
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 import fcntl
 import hashlib
 import importlib.util
@@ -474,6 +474,7 @@ class StartupReadinessTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.parent = Path(temporary.name)
         self.runtime = self.parent / 'runtime'; self.runtime.mkdir(mode=0o750)
+        self.runtime.chmod(0o750)  # Explicit fixture metadata, including under umask 077.
         self.control = self.runtime / 'control.sock'
         self.authorization = self.parent / 'authorization'
         self.owner = {'_owner_uid': os.geteuid(), '_owner_gid': os.getegid()}
@@ -496,9 +497,15 @@ class StartupReadinessTests(unittest.TestCase):
         self.resources = self.real_listen()
         return self.resources
 
-    def worker(self, *args):
+    def worker(self, *args, **kwargs):
         self.events.append('worker')
-        return self.real_worker(*args)
+        return self.real_worker(*args, **kwargs)
+
+    def fixture_writer_guard(self):
+        # These existing readiness tests simulate admission explicitly. Actual
+        # independent flock admission is covered by test_initialization_writer_guard.
+        self.events.append('guard-fixture')
+        return nullcontext()
 
     def loaded(self):
         self.events.append('load')
@@ -518,6 +525,7 @@ class StartupReadinessTests(unittest.TestCase):
             ):
                 stack.enter_context(patch.object(target, name, value))
             stack.enter_context(patch.object(server, 'load_receipt', side_effect=load_error or self.loaded))
+            stack.enter_context(patch.object(server, 'writer_guard', side_effect=self.fixture_writer_guard))
             stack.enter_context(patch.object(server, 'listen', side_effect=listen_error or self.listen))
             stack.enter_context(patch.object(server, 'Worker', side_effect=worker_error or self.worker))
             accept_mock = stack.enter_context(patch.object(socket.socket, 'accept',
@@ -544,7 +552,7 @@ class StartupReadinessTests(unittest.TestCase):
         with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager:
             manager.bind(address); manager.settimeout(.05)
             def accept():
-                self.assertEqual(self.events, ['load', 'listen', 'worker'])
+                self.assertEqual(self.events, ['guard-fixture', 'load', 'listen', 'worker'])
                 listener, _, _ = self.resources
                 self.assertEqual(listener.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN), 1)
                 self.assertEqual(stat.S_IMODE(self.control.stat().st_mode), 0o660)

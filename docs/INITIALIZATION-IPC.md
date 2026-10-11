@@ -5,6 +5,25 @@ et `initialization.begin`. Son [unité](../staging/bootstrap/inkyos-initializati
 n’est installée ni activée par une recette. Ce travail ne démarre aucune app,
 radio ou procédure d’appairage.
 
+L'entrée installée refuse désormais avec le code **78** avant le chargement du
+reçu, le socket, `.server.lock` ou `READY=1` si la garde writer échoue. Elle lit le
+contrat public fixe `/etc/inkyos/factory-runtime-v1.json`, contrôle les sources OS
+root:root épinglées et prend une **nouvelle SH indépendante** sur l'admission
+factory. Ready, le contexte du boot/candidat et `verify_role(..., 'ipc')` doivent
+être valides. Un lancement direct au chemin installé est permis sans FD hérité ;
+il passe exactement cette même garde. Aucun argument CLI ou variable
+d'environnement ne permet d'exempter ce contrôle.
+
+Si une des variables `INKYOS_WRITER_LEASE_FD`, `INKYOS_WRITER_ROLE` ou
+`INKYOS_WRITER_CONTEXT_SHA256` est présente, les trois sont obligatoires. Le rôle
+doit être `ipc`, le SHA doit correspondre au contexte courant, et le FD doit être
+un descripteur readonly du même verrou stable, avec les mêmes métadonnées. La
+garde n'adopte ni ne convertit ce FD : après obtention de sa propre SH et toutes
+les vérifications, elle ferme le FD initial sans `LOCK_UN`, puis retire le
+triplet. Une description ouverte dupliquée ou héritée ailleurs conserve ainsi
+sa lease. Les seams Python sont réservés aux racines synthétiques différentes
+de `/` ; ils ne sont exposés ni par CLI ni par environnement.
+
 Le socket AF_UNIX `/run/inkyos-bootstrap/control.sock` appartient à
 `root:inky-provisioning` : répertoire `0750`, socket `0660`. Le serveur vérifie
 `SO_PEERCRED` et admet uniquement l’UID applicatif `1000`. Le client doit vérifier
@@ -39,12 +58,25 @@ Timeout ou réponse perdue après `begin` restent incertains, sans annulation ni
 nouvel intent automatique. Une interruption entre consommation et création de
 la base exige une récupération explicite.
 
-Un enfant effectue l’appel au reçu ; le parent conserve le délai, réserve 50 ms
-pour répondre et surveille l’enfant sans `waitpid` bloquant. Un enfant non réapé
-interdit toute nouvelle invocation. Le verrou stable du reçu sérialise aussi les
-processus après redémarrage ; une I/O kernel non interruptible ne devient pas
-pour autant annulable. Le modèle ne détecte pas la restauration complète d’un
-ancien système de fichiers.
+Un enfant effectue l’appel au reçu ; pendant une requête, le parent conserve le
+délai, réserve 50 ms pour répondre et surveille l’enfant sans `waitpid` bloquant.
+Un enfant non réapé interdit toute nouvelle invocation. L'enfant conserve les
+FD de la SH writer et de `.server.lock` hérités au fork : la mort du parent ne
+suffit pas à admettre factory ou un serveur remplaçant tant que cet enfant vit.
+Le verrou stable du reçu continue de sérialiser les opérations du reçu.
+
+Les handlers SIGTERM/SIGINT positionnent seulement un flag. Une fois ce flag
+observé, aucune nouvelle invocation n'est admise ; un enfant déjà admis peut
+encore être dans une opération de reçu. L'arrêt ferme le listener puis demande
+SIGKILL à l'enfant et attend son **reaping terminal réel, sans délai maximal**,
+avant de fermer `.server.lock` et la SH writer. Une I/O kernel non interruptible
+ne devient pas annulable. ECHILD ou une autre observation ambiguë ne prouvent pas
+la fin : les verrous restent détenus et l'observation continue, sans répéter de
+signal vers un PID dont l'identité serait devenue incertaine. Même une erreur
+de fermeture du listener ou du pipe n'autorise pas à sauter ce drain.
+Une terminaison forcée de tout le cgroup et sa vérification restent une
+responsabilité externe ; ce lot ne modifie pas la politique systemd. Le modèle
+ne détecte pas la restauration complète d'un ancien système de fichiers.
 
 L’unité garde les capabilities vides, `NoNewPrivileges`, `PrivateDevices`,
 `PrivateNetwork`, `ProtectSystem=strict` et `RestrictAddressFamilies=AF_UNIX`.
@@ -87,6 +119,12 @@ sudo /usr/bin/python3 -I -B staging/bootstrap/probe-initialization-linux.py --ru
 Le [probe](../staging/bootstrap/probe-initialization-linux.py) vérifie les sources
 épinglées, crée un état synthétique neuf et une unité transient, sans modifier de
 compte. Il transpose les chemins et utilise le groupe numérique existant `65534`.
+Il substitue explicitement la garde writer par un context manager inerte,
+annoncé par `writer_guard: explicit-fixture-substitution` et
+`installed_writer_guard_qualified: false`. Ce banc exerce le wire IPC/readiness,
+pas le contrat installé, Ready ou la garde factory. Les tests dédiés de la garde
+utilisent des verrous et processus réels dans des racines synthétiques ; leurs
+vérifications de rôle/contrat simulées ne constituent pas une image installée.
 Les clients exécutent réellement `setuid` : UID `1000` admis, `0` et `1001` refusés.
 Ce dernier représente un auxiliaire synthétique, pas un compte installé.
 Le probe arrête uniquement son unité et conserve son état de fixture pour revue.
@@ -113,6 +151,10 @@ import. Les clients s'exécutent après le changement réel d'UID : leur vérifi
 `SO_PEERCRED`, leurs IDs, leur parser et leur contrôle d'EOF ne sont pas remplacés.
 Le harness normalise ensuite uniquement le résultat Python pour ses assertions ;
 il ne constitue pas une capture du wire.
+
+Son pin du probe natif historique n'est pas promu par ce lot. Avec le probe
+modifié pour la fixture de garde, il refuse jusqu'à un raccord explicite revu ;
+les résultats historiques ci-dessus restent associés à leurs anciennes sources.
 
 Pour reproduire dans la VM marquée, copier les huit sources Studio listées dans
 `STUDIO_PINS`, depuis `server/` du commit exact, sous

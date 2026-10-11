@@ -32,7 +32,7 @@ MODULE_PINS = {
     'factory-authority.py': 'e5b04dd9ad617cf82c5476d2bc81c1ea1295bd3731c363ac4ed6f0ae5aeacb50',
     'factory-credentials-publisher.py': 'ae8d8898315631e4f5ed016fd21c1393073ae611137ece35c8f3fd4f9201bbfe',
     'initialization-receipt.py': '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6',
-    'initialization-server.py': '1c84ffaffe3c9c673a2d5bafcee928ac699a7c215895b78b8e3d76d3982d5ce1',
+    'initialization-server.py': '00a8b5543772d2313918ac67e48771012bdec094511be9b43161d8c58c7f7c38',
 }
 MARKER_VALUE = {'version': 1, 'app_uid': 1000, 'data_dir': '/var/lib/inky-studio'}
 PERMISSION_VALUE = {'version': 1, 'operation': 'create-initialization-authority'}

@@ -29,7 +29,7 @@ import time
 import uuid
 
 PINS = {
-    'scripts/initialization-server.py': '1c84ffaffe3c9c673a2d5bafcee928ac699a7c215895b78b8e3d76d3982d5ce1',
+    'scripts/initialization-server.py': '00a8b5543772d2313918ac67e48771012bdec094511be9b43161d8c58c7f7c38',
     'scripts/initialization-receipt.py': '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6',
     'staging/bootstrap/inkyos-initialization.service': '8119065639719473be2a22fd65cfa2a84924603cd293c578e3993e48cb1629de',
 }
@@ -128,6 +128,7 @@ def request(path, uid, *, begin=False, timeout=4):
 def main():
     report = {'schema_version': 1, 'status': 'FAIL', 'checks': {},
               'synthetic_authority_only': True, 'production_paths_qualified': False,
+              'writer_guard': 'explicit-fixture-substitution', 'installed_writer_guard_qualified': False,
               'production_recipe_activated': False, 'hardware_qualified': False,
               'fixture_state_preserved': False, 'unit_stopped': False,
               'unit_cgroup_empty': False}
@@ -182,13 +183,15 @@ def main():
         properties.update(Group=str(GID), SupplementaryGroups='0', RuntimeDirectory=unit,
                           Slice='system.slice',
                           ReadWritePaths=f'{state} {runtime}')
-        bootstrap = '''import importlib.util, pathlib, types
+        bootstrap = '''import contextlib, importlib.util, pathlib, types
 p=pathlib.Path(%r)
 s=importlib.util.spec_from_file_location('fixture_server',p/'initialization-server.py')
 m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 m.STATE=p/'authority';m.RECEIPT_SOURCE=p/'initialization-receipt.py'
 m.SOCKET=pathlib.Path(%r)/'control.sock'
 m.grp=types.SimpleNamespace(getgrnam=lambda name: types.SimpleNamespace(gr_gid=%d))
+# This IPC wire/readiness fixture does not install or exercise a factory contract.
+m.writer_guard=lambda: contextlib.nullcontext()
 raise SystemExit(m.main([]))
 ''' % (str(work), str(runtime), GID)
         argv = ['/usr/bin/systemd-run', '--quiet', '--unit=' + unit]

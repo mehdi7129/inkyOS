@@ -3,9 +3,10 @@
 
 The only authority is an existing initialization-receipt state. A killed or
 unanswered begin is uncertain, never rolled back. One child isolates blocking
-flock/fsync; the parent never waits synchronously for it. The receipt's stable
-lock serializes even a kernel-blocked child surviving a service restart.
+flock/fsync during requests. Shutdown retains both writer and server locks until
+that child is actually reaped, even when kernel I/O cannot be interrupted.
 """
+import contextlib
 import fcntl
 import grp
 import hashlib
@@ -27,6 +28,10 @@ SOCKET = Path('/run/inkyos-bootstrap/control.sock')
 STATE = Path('/var/lib/inkyos/initialization')
 RECEIPT_SOURCE = Path('/usr/local/lib/inkyos/initialization-receipt.py')
 RECEIPT_SHA256 = '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6'
+RUNTIME_SOURCE = Path('/usr/lib/inkyos/factory-runtime-contract.py')
+RUNTIME_MANIFEST = Path('/etc/inkyos/factory-runtime-v1.json')
+SERVER_SOURCE = Path('/usr/local/lib/inkyos/initialization-server.py')
+WRITER_ENV = {'INKYOS_WRITER_LEASE_FD', 'INKYOS_WRITER_ROLE', 'INKYOS_WRITER_CONTEXT_SHA256'}
 APP_UID = 1000
 GROUP = 'inky-provisioning'
 REQUEST_LIMIT = 1024
@@ -36,6 +41,123 @@ REPLY_RESERVE = 0.05
 NOTIFY_TIMEOUT_SECONDS = 1.0
 ERRORS = {'invalid_request', 'forbidden', 'unavailable', 'intent_conflict',
           'initialization_uncertain'}
+
+
+class WriterRefused(ValueError):
+    pass
+
+
+def writer_require(condition):
+    if not condition:
+        raise WriterRefused('writer_admission_refused')
+
+
+def file_stamp(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def public_source(path, mode, limit):
+    """Fixed public OS bootstrap only, before importing the contract module."""
+    writer_require(callable(getattr(os, 'listxattr', None)))
+    parent = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(parent)
+        writer_require((info.st_uid, info.st_gid) == (0, 0)
+                       and not stat.S_IMODE(info.st_mode) & 0o7022 and not os.listxattr(parent))
+        for part in path.parts[1:-1]:
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+            os.close(parent); parent = child
+            info = os.fstat(parent)
+            writer_require((info.st_uid, info.st_gid) == (0, 0)
+                           and not stat.S_IMODE(info.st_mode) & 0o7022 and not os.listxattr(parent))
+        before = os.stat(path.name, dir_fd=parent, follow_symlinks=False)
+        writer_require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1
+                       and (before.st_uid, before.st_gid) == (0, 0)
+                       and stat.S_IMODE(before.st_mode) == mode and 0 < before.st_size <= limit)
+        fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        try:
+            writer_require(file_stamp(before) == file_stamp(os.fstat(fd)) and not os.listxattr(fd))
+            raw = os.read(fd, limit + 1)
+            writer_require(len(raw) == before.st_size and file_stamp(before) == file_stamp(os.fstat(fd))
+                           == file_stamp(os.stat(path.name, dir_fd=parent, follow_symlinks=False)))
+            return raw
+        finally:
+            os.close(fd)
+    finally:
+        os.close(parent)
+
+
+def load_runtime():
+    writer_require(Path(__file__) == SERVER_SOURCE)
+    manifest = decode(public_source(RUNTIME_MANIFEST, 0o644, 16384))
+    writer_require(type(manifest) is dict and type(manifest.get('os_module_pins')) is dict)
+    pin = manifest['os_module_pins'].get(RUNTIME_SOURCE.name)
+    raw = public_source(RUNTIME_SOURCE, 0o555, 1024 * 1024)
+    writer_require(type(pin) is str and re.fullmatch('[0-9a-f]{64}', pin)
+                   and hashlib.sha256(raw).hexdigest() == pin)
+    module = types.ModuleType('initialization_writer_contract')
+    module.__file__ = str(RUNTIME_SOURCE)
+    exec(compile(raw, str(RUNTIME_SOURCE), 'exec'), module.__dict__)
+    return module
+
+
+@contextlib.contextmanager
+def writer_guard(*, _runtime=None, _contract=None, _environ=None):
+    """A fresh SH is the authority; an inherited descriptor is only retired."""
+    context = None; lease = None
+    try:
+        if _contract is None:
+            writer_require(_runtime is None and _environ is None)
+            runtime = load_runtime()
+            contract = runtime.load_contract()
+        else:
+            writer_require(_runtime is not None and Path(_contract._root).is_absolute()
+                           and Path(_contract._root).resolve(strict=True) != Path('/'))
+            runtime, contract = _runtime, _contract
+        environment = os.environ if _environ is None else _environ
+        admission = runtime.import_admission(contract)
+        context = admission.writer(contract._root, _owner_uid=contract._uid, _owner_gid=contract._gid)
+        lease = context.__enter__()
+        digest = runtime.context_sha256(contract)
+        runtime.verify_role(contract, 'ipc')
+        writer_require(runtime.context_sha256(contract) == digest)
+        present = {key for key in environment if key.startswith('INKYOS_WRITER_')}
+        writer_require(present <= WRITER_ENV)
+        if present:
+            writer_require(present == WRITER_ENV and environment['INKYOS_WRITER_ROLE'] == 'ipc'
+                           and environment['INKYOS_WRITER_CONTEXT_SHA256'] == digest)
+            descriptor = environment['INKYOS_WRITER_LEASE_FD']
+            writer_require(type(descriptor) is str and re.fullmatch('[1-9][0-9]{0,9}', descriptor))
+            inherited = int(descriptor)
+            writer_require(3 <= inherited <= 2147483647 and inherited != lease.fileno()
+                           and file_stamp(os.fstat(inherited)) == file_stamp(os.fstat(lease.fileno()))
+                           and fcntl.fcntl(inherited, fcntl.F_GETFL) & os.O_ACCMODE == os.O_RDONLY)
+        lease.check()
+        writer_require(runtime.context_sha256(contract) == digest)
+        if present:
+            os.close(inherited)  # Never LOCK_UN: another fork/dup may still share this OFD.
+            for key in WRITER_ENV:
+                environment.pop(key)
+    except Exception:
+        if lease is not None:
+            context.__exit__(*sys.exc_info())
+        raise WriterRefused('writer_admission_refused') from None
+    try:
+        yield lease
+    finally:
+        context.__exit__(None, None, None)
+
+
+class StopFlag:
+    def __init__(self):
+        self.requested = False
+
+    def __call__(self):
+        return self.requested
+
+    def request(self, *_):
+        self.requested = True
 
 
 class InvalidRequest(ValueError):
@@ -169,29 +291,77 @@ def read_request(connection, deadline):
 
 class Worker:
     """One outstanding child. An unreaped child prevents any next invocation."""
-    def __init__(self, receipt, close_fds=()):
+    def __init__(self, receipt, close_fds=(), *, stopping=None):
         self.receipt = receipt
         self.close_fds = tuple(close_fds)
+        self.stopping = stopping or (lambda: False)
         self.pid = None
+        self.uncertain = False
+        self.kill_sent = False
 
     def reap(self):
         if self.pid is None:
             return None
-        pid, status = os.waitpid(self.pid, os.WNOHANG)
-        if pid:
+        try:
+            pid, status = os.waitpid(self.pid, os.WNOHANG)
+        except OSError:
+            self.uncertain = True
+            raise
+        if pid == self.pid and (os.WIFEXITED(status) or os.WIFSIGNALED(status)):
             self.pid = None
             return status
+        if pid:
+            self.uncertain = True
+            raise OSError('ambiguous worker observation')
         return None
 
     def stop(self):
+        """Bounded request failure: request kill once, retain an unreaped PID."""
+        try:
+            self.reap()  # WNOHANG confirms the child before any numeric signal.
+        except OSError:
+            return
         if self.pid is not None:
+            if not self.uncertain and not self.kill_sent:
+                self.kill_sent = True
+                try:
+                    os.kill(self.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                except OSError:
+                    self.uncertain = True
             try:
-                os.kill(self.pid, signal.SIGKILL)
-            except ProcessLookupError:
+                self.reap()
+            except OSError:
                 pass
-            self.reap()  # Never blocking: kernel I/O may remain uninterruptible.
+
+    def drain(self):
+        """Shutdown has no time bound; an ambiguous child never releases locks."""
+        try:
+            self.stop()
+        except BaseException:
+            self.uncertain = True
+        while self.pid is not None:
+            try:
+                pid, status = os.waitpid(self.pid, 0)
+                if pid == self.pid and (os.WIFEXITED(status) or os.WIFSIGNALED(status)):
+                    self.pid = None
+                    return
+                self.uncertain = True
+            except InterruptedError:
+                continue
+            except BaseException:
+                # ECHILD is not proof of observed termination. In particular,
+                # never signal this numeric PID again after observation failed.
+                self.uncertain = True
+            try:
+                time.sleep(0.1)
+            except BaseException:
+                pass
 
     def run(self, connection, request, deadline):
+        if self.stopping():
+            return error(request['id'], 'unavailable')
         self.reap()
         if self.pid is not None:
             return error(request['id'], 'unavailable')
@@ -201,6 +371,9 @@ class Worker:
             return error(request['id'], 'unavailable')
         read_fd, write_fd = os.pipe()
         try:
+            if self.stopping():
+                os.close(read_fd); os.close(write_fd)
+                return error(request['id'], 'unavailable')
             pid = os.fork()
         except OSError:
             os.close(read_fd); os.close(write_fd)
@@ -209,6 +382,8 @@ class Worker:
             try:
                 for fd in {read_fd, connection.fileno(), *self.close_fds} - {write_fd}:
                     os.close(fd)
+                if self.stopping():
+                    os._exit(2)
                 raw = encode(invoke(self.receipt, request))
                 # One bounded write, well below Linux PIPE_BUF; no request logs.
                 if os.write(write_fd, raw) != len(raw):
@@ -218,11 +393,14 @@ class Worker:
             except BaseException:
                 os._exit(2)
         self.pid = pid
+        self.uncertain = False; self.kill_sent = False
         os.close(write_fd)
         raw = bytearray(); eof = False; peer_eof = False; status = None
         os.set_blocking(read_fd, False)
         try:
             while True:
+                if self.stopping():
+                    raise InterruptedError()
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise TimeoutError()
@@ -282,6 +460,8 @@ def handle_connection(connection, worker, *, _peer_uid=peer_uid, _budget=DEADLIN
             else:
                 request = read_request(connection, deadline - REPLY_RESERVE)
                 request_id = request['id']
+                if worker.stopping():
+                    raise OSError('shutdown requested')
                 # Refuse already-queued trailing bytes before any invocation.
                 queued, _, _ = select.select([connection], [], [], 0)
                 if queued and connection.recv(1, socket.MSG_PEEK):
@@ -418,29 +598,55 @@ def main(argv=None):
     if (sys.argv[1:] if argv is None else argv) or sys.platform != 'linux' or os.geteuid() != 0:
         return 1
     listener = None; lock = None; directory = None; worker = None
+    stopping = StopFlag(); previous = {}
     try:
-        receipt = load_receipt()
-        listener, lock, directory = listen()
-        worker = Worker(receipt, (listener.fileno(), lock, directory))
-        notify_ready()  # Pinned source, listening socket/permissions and worker are ready.
-        while True:
-            worker.reap()
+        with writer_guard():
             try:
-                connection, _ = listener.accept()
-            except socket.timeout:
-                continue
-            handle_connection(connection, worker)
+                for signum in (signal.SIGTERM, signal.SIGINT):
+                    previous[signum] = signal.signal(signum, stopping.request)
+                if stopping():
+                    return 0
+                receipt = load_receipt()
+                if stopping():
+                    return 0
+                listener, lock, directory = listen()
+                # Both the server lock and writer lease survive fork. A dead
+                # parent must not admit a replacement while its child still runs.
+                worker = Worker(receipt, (listener.fileno(), directory), stopping=stopping)
+                if stopping():
+                    return 0
+                notify_ready()
+                while not stopping():
+                    worker.reap()
+                    try:
+                        connection, _ = listener.accept()
+                    except socket.timeout:
+                        continue
+                    if stopping():
+                        connection.close()
+                        break
+                    handle_connection(connection, worker)
+                return 0
+            finally:
+                try:
+                    if listener is not None:
+                        listener.close()
+                finally:
+                    # Even a listener/pipe cleanup failure cannot skip drain.
+                    # No timeout or observation error counts as a reaped child.
+                    if worker is not None:
+                        worker.drain()
+                    if lock is not None:
+                        os.close(lock)
+                    if directory is not None:
+                        os.close(directory)
+    except WriterRefused:
+        return 78
     except (OSError, ValueError, KeyError, KeyboardInterrupt):
         return 1
     finally:
-        if worker is not None:
-            worker.stop()
-        if listener is not None:
-            listener.close()
-        if lock is not None:
-            os.close(lock)
-        if directory is not None:
-            os.close(directory)
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
 
 
 if __name__ == '__main__':
