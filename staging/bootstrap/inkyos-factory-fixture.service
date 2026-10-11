@@ -1,0 +1,39 @@
+# STAGING fixture only. No installation target and no production entry point.
+# The opt-in probe substitutes its pinned inert worker and private fixture paths.
+[Unit]
+Description=Isolated factory publisher service fixture
+After=local-fs.target
+
+[Service]
+Type=oneshot
+# A system unit defaults to root. The probe asserts uid/caps before work.
+# Explicit User=root causes systemd seccomp setup to drop effective CAP_SETUID.
+UMask=0077
+ExecStart=/usr/bin/false
+RemainAfterExit=yes
+Restart=no
+StandardOutput=null
+StandardError=null
+TimeoutStartSec=6s
+TimeoutStopSec=1s
+KillMode=control-group
+SendSIGKILL=yes
+TasksMax=2
+Delegate=no
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_KILL CAP_SETGID CAP_SETUID
+AmbientCapabilities=
+PrivateDevices=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
