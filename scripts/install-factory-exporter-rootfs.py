@@ -318,7 +318,8 @@ def install(args):
     shutil.rmtree(scratch)
     report.update(scope='staging-factory-exporter-install', build_uid=1000, build_gid=1000,
                   bundle_manifest_sha256=expected['manifest.json']['sha256'],
-                  pip_executed=False, application_code_executed=False, image_recipe_changed=False,
+                  image_code_executed=True, pip_executed=False,
+                  application_code_executed=False, image_recipe_changed=False,
                   scratch_removed=True, all_build_children_waited=True)
     with args.output.open('x', encoding='utf-8') as out:
         json.dump(report, out, indent=2, sort_keys=True); out.write('\n')
