@@ -1,0 +1,34 @@
+{
+  "application_activated": false,
+  "capacity_bytes": 15938355200,
+  "card_written": true,
+  "controller_cache_flush_acknowledged": true,
+  "date": "2026-10-11",
+  "enrollment_return_verified": false,
+  "first_boot_reported_by_operator": true,
+  "hardware_qualified": false,
+  "image_bytes": 3061841920,
+  "image_evidence": "2026-10-11-system-prerequisites-access-image.json",
+  "image_length_readback_verified": true,
+  "initial_ejection_failed": true,
+  "limits": [
+    "Only the image-length prefix was written and read back; remaining card bytes were not erased.",
+    "Private image and medium identities are omitted from this public reduction.",
+    "Ejection and reported power-on do not establish a successful boot, enrollment or physical poweroff.",
+    "The staged IPC service and factory hook are not part of this TEST image."
+  ],
+  "recipe_commit": "5ab139de7cf8889ee4ea1714a20aa1104690713d",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "system-prerequisites-test-sd-write-readback-and-eject",
+  "separate_ejection": {
+    "device_nodes_absent": true,
+    "ejected": true,
+    "original_receipt_preserved": true,
+    "raw_opened": false,
+    "same_medium_verified": true,
+    "sd_rewritten": false
+  },
+  "status": "PASS",
+  "write_stream_hash_matched": true
+}

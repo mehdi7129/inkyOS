@@ -18,21 +18,24 @@ pays, choisir le Wi-Fi et envoyer une photo**.
 | Base | Raspberry Pi OS Lite ARM64 figé, assemblé offline dans une VM Linux dédiée. |
 | Pi de test | Boots physiques sur Pi Zero 2 W, identité persistante et agrandissement de partition observés. |
 | Réseau | Wi-Fi connecté et échanges SSH authentifiés observés. La stabilité dans la durée reste à qualifier. |
-| Nouvelle image TEST | Corrections Bluetooth, observation de l’horloge et paquets I²C intégrés ; **132 contrôles offline réussis**. Cette image n’a pas encore démarré sur le Pi. |
+| Nouvelle image TEST | Corrections Bluetooth, observation de l’horloge et paquets I²C intégrés ; **132 contrôles offline réussis**. SD flashée et relue, premier démarrage lancé ; retour d’enrôlement à vérifier. |
 | Application | Backend épinglé, services masqués dans l’image. Welcome, photo, QR/BLE et arrêt actif restent à tester ensemble. |
 | Initialisation sans LAN | Service IPC local développé et banc Linux réussi ; il n’est pas installé dans l’image TEST. Le raccord backend/iOS est en cours. |
 | Écran | PCB 7,3″ dont les marquages corroborent l’ancienne famille sept couleurs ; driver physique et affichage non qualifiés. |
 
-La dernière suite passe **[1 159 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-system-prerequisites-tests.json)**,
+La dernière suite passe **[1 181 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-authority-tests.json)**,
 sans échec (5 skips macOS, 1 skip Linux). Le [banc IPC natif](docs/INITIALIZATION-IPC.md)
 vérifie séparément les droits des processus, la consommation unique de
 l’autorisation et la reprise après redémarrage.
+Le [vrai client Studio passe aussi le banc croisé Linux](docs/validation/2026-10-11-initialization-studio-native.json).
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles
 sur 24. La [nouvelle image](docs/validation/2026-10-11-system-prerequisites-access-image.json)
 contient les corrections des prérequis Bluetooth, I²C et heure. Sa construction
 réussie ne prouve pas encore leur fonctionnement sur le Pi.
+La [relecture du flash SD](docs/validation/2026-10-11-system-prerequisites-sd-flash.json)
+est vérifiée ; le nouveau boot reste à qualifier.
 
 Le prochain essai accompagné conserve le couple **backend `c31b13a` / iOS
 `1.0.0 (9)`**, décrit dans [l’alignement OS/app](docs/OS-APP-ALIGNMENT.md).

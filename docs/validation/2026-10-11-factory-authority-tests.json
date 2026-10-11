@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-11",
+  "factory_authority_fixtures": 22,
+  "factory_hook_installed": false,
+  "hardware_qualified": false,
+  "independent_hook_review_passed": true,
+  "linux_arm64": {
+    "architecture": "aarch64",
+    "errors": 0,
+    "failures": 0,
+    "hardware_qualified": false,
+    "log_sha256": "fd0886818b60b57ec004b9d485f9994374e0a0602e88f843087c854247021495",
+    "passed": true,
+    "python": "3.13.5",
+    "python_fixtures_passed": true,
+    "schema_version": 1,
+    "scope": "software-fixtures-only",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 1,
+    "system": "Linux",
+    "tests": 1181
+  },
+  "linux_input_files": 181,
+  "linux_inputs_sha256": "008649ba2fc431a501b54a6eb92b9573a084c01754e86a6368ff46093ac137ac",
+  "macos": {
+    "architecture": "arm64",
+    "errors": 0,
+    "failures": 0,
+    "hardware_qualified": false,
+    "log_sha256": "b2078c9d26be18971adec18e4f4c54a06ce11a33e6866f2597e4ddb9611c247d",
+    "passed": true,
+    "python": "3.13.15",
+    "python_fixtures_passed": true,
+    "schema_version": 1,
+    "scope": "software-fixtures-only",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 5,
+    "system": "Darwin",
+    "tests": 1181
+  },
+  "native_cross_evidence": "2026-10-11-initialization-studio-native.json",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "factory-authority-and-initialization-cross-software-tests",
+  "source_commit": "2ccc21ee6b6aad77fa80166a1bbdebb9bdc1478f",
+  "worktree_dirty": false
+}

@@ -2,7 +2,8 @@
 
 État du 11 octobre 2026. La [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 intègre les corrections Bluetooth, I²C et observation de l'heure ; ses 132
-contrôles offline passent. Elle attend son premier boot et un nouvel enrôlement.
+contrôles offline passent. Elle a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
+le premier démarrage a été lancé et le retour d'enrôlement reste à vérifier.
 Le [boot réseau précédent](validation/2026-10-11-radio-readiness-network-observation.json)
 confirme Wi-Fi et SSH authentifié sur l'ancienne image, avec préflight bloqué
 à 17 contrôles sur 24. Les tentatives plus anciennes décrites ci-dessous

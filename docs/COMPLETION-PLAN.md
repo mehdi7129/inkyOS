@@ -46,11 +46,15 @@ changement de protocole est coordonné entre dépôts et testé des deux côtés
 Les trois corrections système sont maintenant intégrées dans une
 [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 qui passe 132 contrôles offline. La suite complète compte
-[1 159 tests par plateforme](validation/2026-10-11-system-prerequisites-tests.json),
-sans échec. Cette image attend son premier boot physique.
+[1 181 tests par plateforme](validation/2026-10-11-factory-authority-tests.json),
+sans échec. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
+son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.
 
 Le [service IPC-A](INITIALIZATION-IPC.md) et son client Studio sont développés
 séparément ; le banc Linux du service passe, sans installation dans l'image TEST.
+Le vrai client Studio passe maintenant le [banc croisé Linux](validation/2026-10-11-initialization-studio-native.json).
+La [permission factory consommable](FACTORY-AUTHORITY.md) est développée et testée,
+sans installation dans une recette ni création des credentials applicatifs.
 Le raccord usine exige un mode explicite de l'unité
 `INKY_STUDIO_FACTORY_REQUIRED=1`, `INKY_STUDIO_DATA_DIR=/var/lib/inky-studio`
 et le marqueur root `/etc/inky-studio/factory-v1.json` :
