@@ -4,6 +4,7 @@ No image, service, app or factory hook is executed. macOS explicitly simulates
 the Linux FD xattr API; Linux exercises the real API and numeric metadata.
 """
 import copy
+from contextlib import contextmanager
 import grp
 import hashlib
 import importlib.util
@@ -39,6 +40,15 @@ def encoded(value):
     return (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode('ascii')
 
 
+@contextmanager
+def temporary_umask(value):
+    previous = os.umask(value)
+    try:
+        yield
+    finally:
+        os.umask(previous)
+
+
 class ContractFixture(unittest.TestCase):
     def setUp(self):
         if sys.platform != 'linux':
@@ -71,15 +81,26 @@ class ContractFixture(unittest.TestCase):
         }
         self.write_manifest()
 
+    def parents(self, path):
+        current = self.root
+        for part in path.relative_to(self.root).parts:
+            current /= part
+            try:
+                current.mkdir(mode=0o755)
+            except FileExistsError:
+                continue
+            current.chmod(0o755)
+
     def mkdir(self, relative, mode=0o755):
         path = self.root / relative
-        path.mkdir(parents=True, exist_ok=True, mode=mode)
+        self.parents(path.parent)
+        path.mkdir(exist_ok=True, mode=mode)
         path.chmod(mode)
         return path
 
     def write(self, relative, raw, mode=0o644):
         path = self.root / relative
-        path.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
+        self.parents(path.parent)
         if path.exists():
             path.chmod(0o600)
         path.write_bytes(raw)
@@ -91,7 +112,7 @@ class ContractFixture(unittest.TestCase):
 
     def symlink(self, relative, target):
         path = self.root / relative
-        path.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
+        self.parents(path.parent)
         path.symlink_to(target)
         if stat.S_IMODE(path.lstat().st_mode) != 0o777:
             os.chmod(path, 0o777, follow_symlinks=False)
@@ -437,6 +458,28 @@ class ContextTests(ContractFixture):
 
 
 class CandidateTests(ContractFixture):
+    def test_private_umask_creates_public_fixture_without_opening_private_parents(self):
+        with temporary_umask(0o077):
+            fixture = ContractFixture()
+            try:
+                fixture.setUp()
+                contract = fixture.full_candidate()
+                runtime.verify_candidate(contract)
+                for role in ('main', 'helper', 'ipc'):
+                    runtime.verify_role(contract, role, _identity=fixture.identity(role))
+                for directory in (fixture.root, *fixture.root.rglob('*')):
+                    if directory.is_dir():
+                        self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o755, str(directory))
+                private = fixture.mkdir('private', 0o700)
+                fixture.write('private/written/fixture', b'INERT')
+                fixture.symlink('private/linked/fixture', '/inert-target')
+                fixture.mkdir('private/directories/leaf')
+                self.assertEqual(stat.S_IMODE(private.stat().st_mode), 0o700)
+                for relative in ('written', 'linked', 'directories', 'directories/leaf'):
+                    self.assertEqual(stat.S_IMODE((private / relative).stat().st_mode), 0o755)
+            finally:
+                fixture.doCleanups()
+
     def test_complete_inert_candidate_and_all_public_roles_pass(self):
         contract = self.full_candidate()
         before = self.snapshot()
