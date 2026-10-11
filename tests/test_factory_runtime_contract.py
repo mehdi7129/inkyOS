@@ -462,6 +462,47 @@ class ContextTests(ContractFixture):
 
 
 class CandidateTests(ContractFixture):
+    def writer_parents_source(self):
+        path = runtime.WRITER_PARENTS
+        self.write(path, (ROOT / 'staging/bootstrap/writer-parents.py').read_bytes(), 0o555)
+        self.support['paths'][path] = self.record(self.root / path)
+        self.publish_candidate()
+        return self.contract()
+
+    def test_import_writer_parents_uses_required_public_support_pin(self):
+        self.full_candidate()
+        contract = self.writer_parents_source()
+        before = self.snapshot()
+        module = runtime.import_writer_parents(contract)
+        self.assertEqual(module.RECEIPT, 'run/inkyos-writer-parents/parents.json')
+        self.assertTrue(callable(module.preflight) and callable(module.prepare) and callable(module.verify))
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(set(self.manifest['os_module_pins']), runtime.MODULES)
+
+    def test_import_writer_parents_refuses_altered_bytes_before_execution(self):
+        self.full_candidate()
+        contract = self.writer_parents_source()
+        self.write(runtime.WRITER_PARENTS, b'raise AssertionError("unpinned module executed")\n', 0o555)
+        self.assert_refused(lambda: runtime.import_writer_parents(contract), 'pin_mismatch')
+
+    def test_writer_parents_module_is_mandatory_in_support_paths(self):
+        self.full_candidate()
+        del self.support['paths'][runtime.WRITER_PARENTS]
+        self.publish_candidate()
+        contract = self.contract()
+        self.assert_refused(lambda: runtime.verify_candidate(contract), 'invalid_candidate')
+        self.assert_refused(lambda: runtime.import_writer_parents(contract), 'invalid_candidate')
+
+    def test_import_writer_parents_refuses_symlink_and_writable_source(self):
+        self.full_candidate()
+        contract = self.writer_parents_source()
+        path = self.root / runtime.WRITER_PARENTS
+        path.chmod(0o755)
+        self.assert_refused(lambda: runtime.import_writer_parents(contract), 'pin_mismatch')
+        path.unlink()
+        self.symlink(runtime.WRITER_PARENTS, '/outside-unpinned-source')
+        self.assert_refused(lambda: runtime.import_writer_parents(contract), 'pin_mismatch')
+
     def test_private_umask_creates_public_fixture_without_opening_private_parents(self):
         with temporary_umask(0o077):
             fixture = ContractFixture()

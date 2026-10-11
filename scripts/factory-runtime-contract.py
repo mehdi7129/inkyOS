@@ -16,6 +16,7 @@ MANIFEST = 'etc/inkyos/factory-runtime-v1.json'
 CONTEXT_DIR = 'run/inkyos-factory'
 CONTEXT = CONTEXT_DIR + '/context.json'
 MODULE_DIR = 'usr/lib/inkyos'
+WRITER_PARENTS = MODULE_DIR + '/writer-parents.py'
 APP = 'usr/lib/inky-studio'
 EXPORTER = 'usr/lib/inkyos/factory-exporter'
 SUPPORT = 'etc/inkyos/factory-system-support.json'
@@ -28,7 +29,7 @@ MODULES = {'writer-admission.py', 'factory-runtime-contract.py', 'writer-launche
 WRITER_ENV = {'INKYOS_WRITER_LEASE_FD', 'INKYOS_WRITER_ROLE', 'INKYOS_WRITER_CONTEXT_SHA256'}
 HOOKS = (IPC, RECEIPT, 'usr/local/lib/inkyos/factory-authority.py',
          'usr/local/lib/inkyos/factory-credentials-publisher.py')
-SUPERVISOR_FILES = {MODULE_DIR + '/factory-supervisor.py': '0555',
+SUPERVISOR_FILES = {MODULE_DIR + '/factory-supervisor.py': '0555', WRITER_PARENTS: '0555',
                     'usr/lib/systemd/system/inkyos-admission-prepare.service': '0644',
                     'usr/lib/systemd/system/inkyos-factory-supervisor.service': '0644'}
 # Exact staging template bytes, independent of a caller's repinned support file.
@@ -359,6 +360,22 @@ def import_admission(contract):
     module = types.ModuleType('inkyos_writer_admission')
     module.__file__ = '/' + MODULE_DIR + '/writer-admission.py'
     exec(compile(raw, module.__file__, 'exec'), module.__dict__)
+    return module
+
+
+@boundary('invalid_module')
+def import_writer_parents(contract):
+    """Only the root OS caller imports this required support-pinned module."""
+    require((os.geteuid(), os.getegid()) == (contract._uid, contract._gid), 'wrong_identity')
+    _, _, _, records = inventories(contract)
+    with contract.tree() as tree:
+        check_path(tree, WRITER_PARENTS, records)
+        raw = tree.read(WRITER_PARENTS, 0o555, 1024 * 1024)
+    require(sha(raw) == records[WRITER_PARENTS]['sha256'], 'pin_mismatch')
+    module = types.ModuleType('inkyos_writer_parents')
+    module.__file__ = '/' + WRITER_PARENTS
+    exec(compile(raw, module.__file__, 'exec'), module.__dict__)
+    unchanged(contract)
     return module
 
 

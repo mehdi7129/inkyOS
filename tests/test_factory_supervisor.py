@@ -38,6 +38,26 @@ class Runtime:
         self.checks = 0; self.fail_check = None; self.fail_context = False
         self.fail_import = False; self.change_context = False; self.validations = 0
         self.prepared = False
+        self.parent_checks = 0; self.fail_parent_check = None
+        self.fail_parent_prepare = self.fail_parent_import = self.fail_parent_preflight = False
+
+    def import_writer_parents(self, contract):
+        self.events.append('parents-import')
+        if self.fail_parent_import:
+            raise supervisor.Refused('invalid_state')
+        def preflight(contract):
+            self.events.append('parents-preflight')
+            if self.fail_parent_preflight:
+                raise supervisor.Refused('invalid_state')
+        def prepare(contract):
+            self.events.append('parents-prepare')
+            if self.fail_parent_prepare:
+                raise supervisor.Refused('invalid_state')
+        def verify(contract):
+            self.events.append('parents-verify'); self.parent_checks += 1
+            if self.parent_checks == self.fail_parent_check:
+                raise supervisor.Refused('invalid_state')
+        return types.SimpleNamespace(preflight=preflight, prepare=prepare, verify=verify)
 
     def load_contract(self):
         self.events.append('contract')
@@ -69,9 +89,12 @@ class Runtime:
         if self.fail_import:
             raise supervisor.Refused('invalid_state')
         uid, gid = os.geteuid(), os.getegid()
+        def prepare(root):
+            self.events.append('admission-prepare')
+            return admission.prepare(self.root, _owner_uid=uid, _owner_gid=gid)
         return types.SimpleNamespace(
             factory=lambda root: admission.factory(self.root, _owner_uid=uid, _owner_gid=gid),
-            prepare=lambda root: admission.prepare(self.root, _owner_uid=uid, _owner_gid=gid))
+            prepare=prepare)
 
 
 class Manager:
@@ -198,6 +221,10 @@ class SupervisorTests(unittest.TestCase):
         self.assertLess(self.events.index('output'), self.events.index('start'))
         self.assertLess(self.events.index('start'), self.events.index('stop'))
         self.assertEqual(self.runtime.checks, 2)
+        self.assertEqual(self.runtime.parent_checks, 2)
+        self.assertLess(self.events.index('parents-verify'), self.events.index('start'))
+        self.assertLess(self.events.index('stop'), len(self.events) - 1
+                        - self.events[::-1].index('parents-verify'))
         with admission.writer(self.root, _owner_uid=os.geteuid(), _owner_gid=os.getegid()):
             pass
 
@@ -248,6 +275,39 @@ class SupervisorTests(unittest.TestCase):
         self.assertEqual(self.names(), {'lock', 'attempted'})
         self.assertEqual(self.manager.start_count, 0)
         self.assertEqual(self.manager.stop_count, 0)
+
+    def test_parent_failure_before_worker_keeps_attempt_without_start(self):
+        self.runtime.fail_parent_check = 1
+        self.refused('invalid_state')
+        self.assertEqual(self.names(), {'lock', 'attempted'})
+        self.assertEqual(self.manager.start_count, 0)
+        self.assertEqual(self.manager.stop_count, 0)
+
+    def test_parent_failure_after_drain_refuses_ready(self):
+        self.runtime.fail_parent_check = 2
+        self.refused('invalid_state')
+        self.assertTrue(self.manager.stopped)
+        self.assertEqual(self.names(), {'lock', 'attempted'})
+
+    def test_both_parent_verifications_hold_ex_and_second_follows_quiescence(self):
+        original = self.runtime.import_writer_parents
+        def imported(contract):
+            parents = original(contract); verify = parents.verify
+            def checked(contract):
+                with self.assertRaises(admission.Refused) as caught:
+                    with admission.factory(self.root, _owner_uid=os.geteuid(), _owner_gid=os.getegid()):
+                        self.fail('EX lost at parent verification')
+                self.assertEqual(caught.exception.reason, 'busy')
+                self.assertNotIn('Ready', self.names())
+                if self.runtime.parent_checks:
+                    self.assertTrue(self.manager.stopped)
+                    self.assertEqual(self.manager.descendants, 0)
+                verify(contract)
+            parents.verify = checked
+            return parents
+        self.runtime.import_writer_parents = imported
+        self.manager.descendants = 3
+        self.assertEqual(self.run_factory(), {'status': 'factory_complete'})
 
     def test_preexisting_worker_is_not_stopped(self):
         self.manager.preexisting = True
@@ -394,6 +454,49 @@ class SupervisorTests(unittest.TestCase):
             supervisor.prepare_boot(self.runtime, self.manager)
         self.assertEqual(self.events.count('prepare-context'), 2)
         self.assertEqual(self.names(), {'lock'})
+
+    def clear_admission_fixture(self):
+        directory = self.root / 'run/inkyos-admission'
+        for path in directory.iterdir():
+            path.unlink()
+        directory.rmdir()
+
+    def test_prepare_orders_source_context_parents_and_admission(self):
+        self.clear_admission_fixture()
+        self.assertEqual(supervisor.prepare_boot(self.runtime, self.manager),
+                         {'status': 'admission_prepared'})
+        self.assertEqual(self.events, ['self-group', 'contract', 'parents-import',
+                         'parents-preflight', 'prepare-context', 'parents-prepare', 'parents-verify',
+                         'admission-import', 'admission-prepare'])
+        self.assertEqual(self.names(), {'lock'})
+
+    def test_parent_source_failure_precedes_context_creation(self):
+        self.clear_admission_fixture()
+        self.runtime.fail_parent_import = True
+        with self.assertRaises(supervisor.Refused):
+            supervisor.prepare_boot(self.runtime, self.manager)
+        self.assertFalse(self.runtime.prepared)
+        self.assertFalse((self.root / 'run/inkyos-admission').exists())
+
+    def test_parent_preflight_failure_precedes_context_creation(self):
+        self.clear_admission_fixture()
+        self.runtime.fail_parent_preflight = True
+        with self.assertRaises(supervisor.Refused):
+            supervisor.prepare_boot(self.runtime, self.manager)
+        self.assertFalse(self.runtime.prepared)
+        self.assertFalse((self.root / 'run/inkyos-admission').exists())
+
+    def test_parent_prepare_failure_leaves_context_without_admission_and_retry_refuses(self):
+        self.clear_admission_fixture()
+        self.runtime.fail_parent_prepare = True
+        with self.assertRaises(supervisor.Refused):
+            supervisor.prepare_boot(self.runtime, self.manager)
+        self.assertTrue(self.runtime.prepared)
+        self.assertFalse((self.root / 'run/inkyos-admission').exists())
+        self.runtime.fail_parent_prepare = False
+        with self.assertRaises(supervisor.Refused):
+            supervisor.prepare_boot(self.runtime, self.manager)
+        self.assertEqual(self.events.count('parents-prepare'), 1)
 
     def test_worker_preflight_refuses_another_unit_before_candidate(self):
         with self.assertRaises(supervisor.Refused) as caught:

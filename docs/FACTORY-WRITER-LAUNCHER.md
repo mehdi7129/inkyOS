@@ -74,7 +74,8 @@ et la présence de cette revue ; il ne refait pas l'analyse ELF et n'assimile pa
 
 Les quatre modules OS authority, publisher, receipt et initialization-server
 doivent être inventoriés root:root `0555`. Le support `paths` public épingle
-aussi `/usr/lib/inkyos/factory-supervisor.py` `0555` et les cinq unités `0644`
+aussi `/usr/lib/inkyos/factory-supervisor.py` et
+`/usr/lib/inkyos/writer-parents.py` `0555`, et les cinq unités `0644`
 `/usr/lib/systemd/system/inkyos-admission-prepare.service` et
 `/usr/lib/systemd/system/inkyos-factory-supervisor.service`, ainsi que
 `/usr/lib/systemd/system/inkyos-initialization.service`,
@@ -171,15 +172,13 @@ La qualification du graphe effectif, `FragmentPath`, `DropInPaths`, identités
 des processus et durée de vie de leurs invocations reste distincte. Aucun
 `daemon-reload`, démarrage ou grant n'est effectué par cette vérification.
 
-Deux préconditions restent à développer avant toute intégration active :
+Deux raccords restent nécessaires avant toute intégration active :
 
 - Les parents `/run/inkyos-bootstrap` et `/run/inky-network` ne sont pas
-  provisionnés par ce lot. L'IPC exige son parent root:provisioning `0750` ;
-  le helper exige son parent avant `.helper.lock`. Son parent persistant
-  `/var/lib/inky-network` doit aussi être provisionné avant le namespace
-  `ReadWritePaths` de son unité, puis son journal et sa clé sont gérés sous SH.
-  Ce path est absent du profil passive. Le provisionnement futur devra préserver
-  les inodes au stop/restart.
+  installés ou activés par la recette actuelle. Le module OS de préparation
+  décrit ci-dessous sait créer ces parents avant admission, mais son installation
+  épinglée et le provisionnement du parent persistant appartiennent au futur
+  assemblage actif. Le profil passive conserve ce parent absent.
 - L'entry point main actuel atteint encore `initialize_factory`, qui termine
   à **78** après préparation. Les templates ne raccordent pas le lifecycle
   Phase A, n'accordent pas l'autorité owner/B et ne livrent pas un first boot.
@@ -265,6 +264,78 @@ inventaire admission ; la sortie du superviseur doit rester dans son répertoire
 séparé. Le caller doit encore garantir un `/run` réellement renouvelé au boot :
 supprimer/recréer un RuntimeDirectory au stop/restart ne constitue pas un reset
 valide et pourrait séparer les verrous sur plusieurs inodes.
+
+## Préparation stable des parents writers
+
+`staging/bootstrap/writer-parents.py` est un module OS sans CLI, à installer
+root:root `0555` à `/usr/lib/inkyos/writer-parents.py` dans le candidat actif.
+Ce fichier est obligatoire dans `support.paths` ; son import par
+`runtime.import_writer_parents(contract)` vérifie son inventaire et ses octets
+avant compilation. Le schéma fermé des trois `os_module_pins` reste inchangé.
+Les modules et units sont toujours inactifs dans la recette actuelle.
+
+Le `prepare_boot` existant charge ce module public et appelle son
+`preflight(contract)` en lecture seule avant de créer le contexte, puis appelle
+`prepare(contract)` et `verify(contract)` entre
+`prepare_boot_context(contract)` et `admission.prepare()`. Aucune nouvelle
+unité ou dépendance de stop n'est ajoutée. Les droits du namespace existant de
+prepare restent `/run` RW ; le parent persistant est seulement inspecté.
+
+| Parent fixe | UID:GID | Mode | Préparation |
+|---|---|---|---|
+| `/run/inkyos-bootstrap` | root:`provisioning_gid` | `0750` | Création exclusive au boot |
+| `/run/inky-network` | `helper_uid`:`provisioning_gid` | `0750` | Création exclusive au boot |
+| `/var/lib/inky-network` | `helper_uid`:`provisioning_gid` | `0700` | Préexistant, validation seule |
+
+Le module vérifie les identités NSS nommées utilisées par les units : `inky`
+UID/GID `1000`, `inky-network` au `helper_uid` non-root du manifest, et
+`inky-provisioning` au `provisioning_gid` du manifest. Les mappings nom/ID
+réciproques doivent correspondre. Ces vérifications ne lisent aucun mot de
+passe, journal, clé ou capsule réseau.
+
+Le preflight vérifie avant création du contexte : candidat inchangé, owner root,
+identités NSS, ancêtres root sans symlinks ni
+écriture group/other, métadonnées exactes et xattrs vides du parent persistant,
+absence d'admission, des deux parents runtime et du reçu. La préparation répète
+ces vérifications et exige aussi le contexte valide du boot/candidat courant
+avant son premier mkdir. Le persistant peut
+être non vide : son contenu n'est ni listé ni ouvert. Un parent existant n'est
+jamais réparé, chmod/chowned, adopté, remplacé ou supprimé.
+
+La création exclusive du répertoire root:root `0755`
+`/run/inkyos-writer-parents` constitue le latch avant les deux créations runtime.
+Son unique fichier `parents.json`, root:root `0644`, est un reçu public canonique
+contenant `version:1`, `boot_id`, `candidate_sha256` et le mapping `parents` des
+trois chemins relatifs fixes vers `dev`, `ino`, `uid`, `gid` et `mode`.
+Le répertoire contexte garde son seul `context.json` et l'inventaire admission
+reste inchangé. Le contexte créé exclusivement fournit aussi le latch du caller
+prepare complet. L'EX est acquis seulement par le superviseur suivant, pas par
+cette préparation initiale.
+
+`verify(contract)` ouvre uniquement le reçu public et inspecte les trois
+répertoires par FD sans suivre de symlinks. Il compare identité d'inode,
+owner/mode/xattrs, boot et candidat. Les timestamps et le nombre de liens des
+répertoires ne sont pas figés : les écritures légitimes du helper les changent.
+Un reçu partiel, parent manquant/remplacé ou boot/candidat changé provoque un
+refus sans recréation. Après la première création de latch, une erreur I/O
+peut laisser des objets partiels ; aucune reprise ou suppression automatique
+n'est prévue. Le caller doit conserver `/run` jusqu'au vrai reboot, et garantir
+son renouvellement au reboot.
+
+Le superviseur appelle `verify` sous son EX avant lancement du worker, puis
+après drain et observation finale de quiescence, avant son `publish_ready`
+existant. Le module parents ne touche pas admission/Ready, ne prend pas de
+lease et ne lance ni service ni child. Les unités writers conservent leurs
+SH/drain et leurs identités ; aucun `RuntimeDirectory`, `StateDirectory` ou
+nettoyage stop/restart n'est introduit.
+
+Les fixtures macOS substituent explicitement les métadonnées numériques du
+helper et l'API xattrs Linux. Elles exercent création, refus/reprise partielle,
+remplacement d'inodes, absence, droits, NSS, symlinks et conservation d'un
+persistant non vide sans lecture. Les tests supervisor vérifient l'ordre et
+la possession de l'EX avec la vraie primitive admission et un PID1 inerte.
+Ces tests ne prouvent pas l'ordre effectivement chargé par PID1, un namespace
+booté, les invocations live, le Pi, le Wi-Fi, le Bluetooth ou le parcours app.
 
 ## Guard commun pour les entrées directes
 

@@ -254,7 +254,11 @@ class Manager:
 def prepare_boot(runtime, manager):
     manager.assert_group(PREPARE_UNIT)
     contract = runtime.load_contract()
+    parents = runtime.import_writer_parents(contract)
+    parents.preflight(contract)
     runtime.prepare_boot_context(contract)
+    parents.prepare(contract)
+    parents.verify(contract)
     admission = runtime.import_admission(contract)
     admission.prepare(Path('/'))
     return {'status': 'admission_prepared'}
@@ -321,6 +325,8 @@ def run_factory(runtime, manager, *, _clock=time.monotonic, _sleep=time.sleep,
     unit = worker_unit(context)
     with admission.factory(Path('/')) as lease:
         runtime.verify_candidate(contract)
+        parents = runtime.import_writer_parents(contract)
+        parents.verify(contract)
         require(not _stopped(), 'interrupted')
         observed = manager.inspect(unit)
         require(observed['LoadState'] == 'not-found' and manager.empty(unit),
@@ -366,6 +372,8 @@ def run_factory(runtime, manager, *, _clock=time.monotonic, _sleep=time.sleep,
         if not drained:
             drain(manager, unit, _sleep)
             raise Refused('cgroup_unavailable')
+        require(not _stopped(), 'interrupted')
+        parents.verify(contract)
         require(not _stopped(), 'interrupted')
         lease.publish_ready()
     return {'status': 'factory_complete'}
