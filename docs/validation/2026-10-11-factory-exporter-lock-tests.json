@@ -1,0 +1,73 @@
+{
+  "base_and_package_provenance_pins_unchanged": true,
+  "candidate_code_executed": false,
+  "candidate_qualified": false,
+  "date": "2026-10-11",
+  "default_lock_unchanged": true,
+  "environment_gates_unchanged": true,
+  "image_accessed": false,
+  "limits": [
+    "The 58 Linux cases exercise CLI selection, bounded static input reads and synthetic exporter trees. Target Python, application code, a real rootfs build and a new support inventory are not executed or qualified.",
+    "The paired explicit lock options require the exact SHA-256 before parsing the same bounded no-follow snapshot. Fixtures cover malformed and half pairs, wrong pins, missing support, malformed JSON, links, concurrent replacement, target/workspace boundaries and unchanged default selection.",
+    "Base/package provenance pins, the required support pin, expected payload closure and existing environment gates remain mandatory. Fixture substitutions of platform, identities and privileged operations are not qualification of an installed builder or runtime.",
+    "The macOS test process exited zero and its structured report passed 1662 tests with 15 skips plus 23 shell syntax checks. The separate collector summary remains FAIL because its additional empty-stderr condition rejected the expected 48-byte non-root-refusal fixture diagnostic. The original summary is preserved, not rewritten as PASS.",
+    "No new lock, candidate, system support, image, service, release, radio, SD or Pi qualification follows from these fixtures. Historical native installation and hardware observations retain their own source bindings."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "pinned_inputs": 7,
+    "python": "3.13.5",
+    "skips": 0,
+    "status": "PASS",
+    "test_log_sha256": "3b1b3473d33ad1b96536be07c13f1003a7a03fcd2234b5205dd510e957da70e6",
+    "tests": 58,
+    "uid": 0
+  },
+  "macos_global": {
+    "collector_summary": {
+      "embedded_report_matches_test_report": true,
+      "expected_stderr_bytes": 48,
+      "expected_stderr_verified_exact": true,
+      "original_receipt_preserved": true,
+      "reason": "expected_nonroot_refusal_fixture_stderr_violated_silence_check",
+      "status": "FAIL"
+    },
+    "errors": 0,
+    "failures": 0,
+    "python": "3.13.3",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 15,
+    "source_unchanged": true,
+    "test_log_sha256": "79a0ad53b13f8d1e6176ecf8d088b73060c5be389c74f765fb3800e1273b6ccd",
+    "test_process_exit_code": 0,
+    "tests_passed": true,
+    "tests_run": 1662
+  },
+  "new_image_qualified": false,
+  "new_support_qualified": false,
+  "pi_or_hardware_qualified": false,
+  "radio_qualified": false,
+  "release_qualified": false,
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "factory-exporter-lock-cli-static-fixtures",
+  "sd_accessed": false,
+  "source_commit": "6d1c0d55ff186d25d7923151dc5d426a7b192ba6",
+  "source_sha256": {
+    "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+    "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+    "scripts/install-factory-exporter-rootfs.py": "c9e3b9169991a608726eb6ada6cfabd3f9c35166a97b71cd86a46f3bac9c4086",
+    "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+    "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+    "scripts/verify-factory-exporter-rootfs.py": "696b5b65797e2ba57251bee8f4d5970257854dcddb75bdebf362e4666051ed4f",
+    "tests/test_factory_exporter_rootfs.py": "79307493194d2a6fb379016e65707363469d11ac4a3ccb8126b9b17c9134bf7a"
+  },
+  "status": "PASS",
+  "support_requirements_unchanged": true
+}

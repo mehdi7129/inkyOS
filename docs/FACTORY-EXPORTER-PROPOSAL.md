@@ -124,6 +124,16 @@ sans construction ni reçu de succès. Les pins base/paquets et le pin de suppor
 restent obligatoires, ainsi que les comparaisons de support et de payload attendu.
 Ce sélecteur ne qualifie aucun nouveau candidat, support, runtime ou image.
 
+Le [banc du sélecteur de lock](validation/2026-10-11-factory-exporter-lock-tests.json)
+à `6d1c0d5` passe **58 fixtures Linux ARM64**, sous root avec Python 3.13.5,
+sans skip et avec relecture des sept inputs épinglés. La suite globale macOS
+Python 3.13.3 passe 1 662 tests avec 15 skips et 23 contrôles de syntaxe shell.
+Le récapitulatif privé du collecteur reste `FAIL` : sa condition supplémentaire
+de stderr vide refuse le diagnostic attendu d’une fixture non-root. La suite
+termine à zéro et son rapport structuré passe ; ce récapitulatif original est
+conservé. Ces résultats concernent les CLI et fixtures statiques, sans nouveau
+support, construction d’image, exécution applicative ou qualification matérielle.
+
 ## Ordre et limites
 
 Le runtime dédié résout l’intégrité des imports ; il ne remplace pas la barrière
