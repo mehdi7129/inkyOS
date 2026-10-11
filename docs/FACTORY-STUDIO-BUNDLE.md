@@ -137,6 +137,12 @@ avant freeze ; ce plan n'est ni un snapshot des inputs ni une preuve de closure.
 
 ## Installation offline du bundle planifié
 
+Le [banc ciblé](validation/2026-10-11-factory-studio-bundle-install-tests.json)
+passe 54 tests Linux ARM64 root sans skip, avec des inputs synthétiques et
+`_production_environment` remplacé par un workspace de fixture explicite. Les
+owners, xattrs et syscalls Linux sont réels ; l'admission CLI production reste
+à qualifier. La suite locale complète passe 1 585 tests avec 15 skips.
+
 `scripts/install-factory-studio-bundle-rootfs.py` matérialise désormais ce plan
 dans un rootfs de build privé. Il n'exécute ni interpréteur cible, code Studio,
 helper, pip, console script ou backend de build. Il ne lance aucun enfant, ne

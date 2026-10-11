@@ -1,0 +1,79 @@
+{
+  "application_candidate_qualified": false,
+  "date": "2026-10-11",
+  "fixture_correction_sha256": {
+    "tests/test_prepare_test_access_capsule.py": "e58dc240aed510f1c7455b416dbaa986af4ec02cdb543c9008438ea7f62d63d9"
+  },
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "installed_graph_qualified": false,
+  "limits": [
+    "Nine pinned OS/test source files, synthetic source/wheel fixtures only. No image, real application payload, radio or SD is accessed.",
+    "The 54 Linux root cases exercise real owners, xattrs, no-follow file descriptors, exclusive writes, preflight limits, exact materialized inventory and readback; _production_environment is explicitly replaced by a synthetic workspace fixture.",
+    "Only test_factory_studio_bundle_install.py is executed on Linux; the planner test file supplies fixture helpers, not another executed suite.",
+    "macOS full-suite fixtures explicitly substitute Linux ownership/xattrs where required and adjust Darwin symlink modes; 15 platform skips remain. The global run uses umask 077.",
+    "Expected records are derived from pinned inputs before writing. A pre-existing destination or receipt, path outside final depth/byte/component bounds, unsafe parent or mismatched inventory is refused; partial I/O outputs are retained and never repaired by this tool.",
+    "No target interpreter, pip, build backend, candidate import, helper or service is executed by the materializer. It does not establish UID1000 construction, native loader/import closure, provenance, privacy or frontend behavior of a real candidate.",
+    "Factory services, refreshed system support, shared build workspace and recipe integration remain separate. The TEST payload and iOS build remain unchanged."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "source_commit": "599036cfdf246f1f489faaf377147526b575d944",
+    "test_log_sha256": "65fdf97cbbf828869854030d24152289269fbedca8d6621a6e9b9ebab35de7a8",
+    "tests": 54,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 15,
+    "source_commit": "be19d90687cdeb7f9b94971446b0639ada8add78",
+    "test_log_sha256": "8e0d16c99ccbb2db2b18b239203b7aa4030b3da191334824c22b4af63dcf0a6b",
+    "tests_run": 1585
+  },
+  "prior_macos_failure": {
+    "errors": 0,
+    "failures": 1,
+    "make_test_exit_code": 2,
+    "preserved": true,
+    "reason": "An existing fixture mkdir mode 0755 was masked to 0700 by umask 077; the intended nonprivate-parent refusal was not exercised. Only the fixture now explicitly sets and checks 0755; production is unchanged.",
+    "skipped": 15,
+    "source_commit": "599036cfdf246f1f489faaf377147526b575d944",
+    "test_log_sha256": "3049f7b1d72c016edd6052e0c8da1d260bf61cb70b8ca5f067dde679e1502525",
+    "tests_run": 1585
+  },
+  "private_receipt_sha256": {
+    "linux_completion.json": "b1a4838f6e644c2ca20b54a71eb19326f1dab3801e2528e3189401b483b5e0f3",
+    "linux_pins.json": "c3e81df1681eeebd2034caedf6b5131507753e464bbbeba845d5b778fc1bfd8a",
+    "macos_completion.json": "ffcb052a8e0378a164e7bea54a666aa1cc9371047fe968af631eb08eac2983cb",
+    "prior_macos_completion.json": "2da16d22eadba9666577573ee63f5d9d9af4a3a15b537f4580881ec6c2d5c900"
+  },
+  "production_workspace_admission_qualified": false,
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "offline-factory-studio-bundle-install-synthetic-fixtures",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "be19d90687cdeb7f9b94971446b0639ada8add78",
+  "source_sha256": {
+    "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+    "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+    "scripts/install-factory-studio-bundle-rootfs.py": "6b72a3176f72fc819ba5ca0787c098e717dafd635651644bd9cfd7d90f0aeaee",
+    "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+    "scripts/plan-factory-studio-bundle.py": "4a8a1b11a62a3897626d3e4bc9c9c9aee07632d171a4d32e999f5f62269791c0",
+    "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+    "scripts/verify-factory-exporter-rootfs.py": "3141a500ea4e91eb967d37ec8e59cf07d7d11cd8e6112c42f34edbf070466e1b",
+    "tests/test_factory_studio_bundle_install.py": "8d1c9c70598fae1bff276ed381eca7fc9fe12a8529d95cb9cccf2bf7511bb060",
+    "tests/test_factory_studio_bundle_plan.py": "69d053d17fe6aef30657ec3df98ac2157b99dd7dfd45399eadd5270283c046dd"
+  },
+  "status": "PASS",
+  "support_qualified": false
+}

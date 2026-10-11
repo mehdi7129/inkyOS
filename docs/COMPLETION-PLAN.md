@@ -56,8 +56,8 @@ du candidat Studio sont recensées dans
 Les trois corrections système sont maintenant intégrées dans une
 [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 qui passe 132 contrôles offline. Le dernier banc global local consigné porte sur
-[1 531 tests macOS](validation/2026-10-11-shared-writer-guard-tests.json),
-sans échec et avec 13 skips explicites. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
+[1 585 tests macOS](validation/2026-10-11-factory-studio-bundle-install-tests.json),
+sans échec et avec 15 skips explicites. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
 son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.
 
 Le [service IPC-A](INITIALIZATION-IPC.md) et son client Studio sont développés
@@ -98,8 +98,13 @@ factory et l'installation des services restent à intégrer et qualifier.
 Le [planner du bundle app](FACTORY-STUDIO-BUNDLE.md) calcule maintenant son
 contenu attendu avant installation depuis des entrées épinglées ; ses
 [29 tests synthétiques](validation/2026-10-11-factory-studio-bundle-plan-tests.json)
-passent dans la suite locale de 1 496 tests, avec 13 skips. Ce lot ne fournit
-pas de wheel app réelle, d'installation non editable ou de closure qualifiée.
+passent dans la suite locale de 1 496 tests, avec 13 skips. Le nouvel installer matérialise ce plan sans exécuter le candidat :
+[54 tests Linux ARM64 root](validation/2026-10-11-factory-studio-bundle-install-tests.json)
+passent sans skip, avec workspace de fixture explicite et syscalls réels.
+Il ne fournit pas encore de wheel app réelle, de support complet ou de closure
+qualifiée. La première suite globale sous umask `077` a exposé une fixture
+ancienne dont le dossier `0755` devenait `0700` ; le test fixe maintenant ce
+mode explicitement. Le guard de production est inchangé et la suite repasse.
 Le [candidat Studio du parcours QR/Bluetooth](https://github.com/mehdi7129/inky-studio/pull/29)
 est une PR draft avec interfaces injectables ; son démarrage installé reste
 fermé. Il ne remplace pas le couple TEST actuel.
