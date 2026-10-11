@@ -20,12 +20,15 @@ factory. Ready, le contexte du boot/candidat et `verify_role(..., 'ipc')` doiven
 il passe exactement cette même garde. Aucun argument CLI ou variable
 d'environnement ne permet d'exempter ce contrôle.
 
-Le [banc du garde et de l'arrêt](validation/2026-10-11-initialization-writer-tests.json)
-passe **60 tests Linux ARM64 root sans skip**, dont 16 nouveaux cas. Les leases,
-forks et attentes de processus sont réels ; contrat, rôle et contexte sont des
-adapters de fixture explicites. La suite locale complète passe 1 512 tests,
-avec 13 skips. Cette preuve ne qualifie ni le candidat installé ni son graphe
-systemd, et ne réexécute pas les anciens probes de wire/readiness.
+Le [banc du garde commun et de l'arrêt](validation/2026-10-11-shared-writer-guard-tests.json)
+passe **79 tests Linux ARM64 root sans skip**, dont 19 nouveaux cas du core et
+60 cas IPC. Les leases, forks et attentes de processus sont réels. Le core
+vérifie les rôles sur un contrat et des identités synthétiques ; les cas IPC
+déclarent leurs adapters contrat/rôle/contexte. La suite locale complète passe
+1 531 tests, avec 13 skips. Cette preuve ne qualifie ni le candidat installé ni
+son graphe systemd, et ne réexécute pas les anciens probes de wire/readiness.
+La [preuve précédente du garde autonome](validation/2026-10-11-initialization-writer-tests.json)
+reste liée à ses sources, avant extraction de cette API commune.
 
 Si une des variables `INKYOS_WRITER_LEASE_FD`, `INKYOS_WRITER_ROLE` ou
 `INKYOS_WRITER_CONTEXT_SHA256` est présente, les trois sont obligatoires. Le rôle

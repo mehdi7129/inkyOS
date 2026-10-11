@@ -56,7 +56,7 @@ du candidat Studio sont recensées dans
 Les trois corrections système sont maintenant intégrées dans une
 [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 qui passe 132 contrôles offline. Le dernier banc global local consigné porte sur
-[1 512 tests macOS](validation/2026-10-11-initialization-writer-tests.json),
+[1 531 tests macOS](validation/2026-10-11-shared-writer-guard-tests.json),
 sans échec et avec 13 skips explicites. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
 son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.
 
@@ -64,8 +64,9 @@ Le [service IPC-A](INITIALIZATION-IPC.md) et son client Studio sont développés
 séparément ; le banc Linux du service passe, sans installation dans l'image TEST.
 Le vrai client Studio passe maintenant le [banc croisé Linux](validation/2026-10-11-initialization-studio-native.json).
 L'entrée IPC prend désormais sa propre réservation avant les effets et attend
-le reaping terminal avant libération : [60 tests Linux ARM64](validation/2026-10-11-initialization-writer-tests.json)
-passent sans skip, avec contrat/rôle de fixture explicites. Le garde et le
+le reaping terminal avant libération : [79 tests Linux ARM64](validation/2026-10-11-shared-writer-guard-tests.json)
+passent sans skip, dont 19 cas du guard commun, avec contrat/identités de fixture
+explicites. Le garde et le
 graphe installés restent à qualifier ; les bancs croisés historiques ne sont
 pas réexécutés par ce lot.
 La [permission factory consommable](FACTORY-AUTHORITY.md) est développée et testée,

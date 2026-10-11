@@ -1,0 +1,67 @@
+{
+  "application_activated": false,
+  "boot_qualified": false,
+  "core_admitted_role_verification_substituted": false,
+  "core_identity_and_boot_evidence": "explicit-synthetic-contract-fixtures",
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "installed_graph_qualified": false,
+  "installed_writer_guard_qualified": false,
+  "limits": [
+    "Synthetic fixed candidate trees, declared identities and inert children only. No installed image, application, service, radio or SD is accessed.",
+    "The 19 new core cases use the real role verifier on admitted paths, complete synthetic inventories and explicit identity/boot/mount/NSS fixture evidence. Refusal cases include explicit fault injection. No new numeric UID/GID drop is performed.",
+    "Linux root exercises actual file ownership, xattrs, shared flock leases, FD flags, duplicates and fork inheritance. Installed admission and physical process lifecycles remain unqualified.",
+    "The 60 IPC cases reuse explicit FakeRuntime contract/role/context adapters for their admission fixture and actual cooperative locks/process waits; this does not qualify the installed IPC candidate.",
+    "The shared context manager releases its own SH after setup failure, BaseException or caller exit. A valid inherited triplet is retired without LOCK_UN only after checks; the caller owns actual child/thread/display drain before exiting.",
+    "IPC now delegates admission to the shared API. Its existing real-wait shutdown implementation, IPC-A fields, authority receipt and staging unit are unchanged.",
+    "The historical wire/readiness probe uses an explicit guard substitution; its Studio pin was updated without rerunning or promoting the old probe results.",
+    "No new image, complete system support, Studio main/helper guard installation, pairing, UTC/country, Wi-Fi or physical display success is established.",
+    "macOS explicitly substitutes Linux xattr observations and fixture ownership where required; its full suite has 13 platform skips. The TEST image and backend/iOS payload remain unchanged."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "d3c046101b909fa6a3339a777653713aba42cefff2c95225d3c8eb2c68fbe338",
+    "tests": 79,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 13,
+    "test_log_sha256": "3760680bbddd20a95f5f43195898c2ed2b9bbbdc81c75306cffd909e981ef916",
+    "tests_run": 1531
+  },
+  "new_shared_guard_tests": 19,
+  "private_receipt_sha256": {
+    "linux_completion.json": "f1e84408aa88686b93224e3737463c1bd36246a3a198a6e07a280fcd7c88c403",
+    "linux_pins.json": "2047b5f803074212a2033dcd729fcf706ef5cbd685dcfcb758c2856775ecb35a",
+    "macos_completion.json": "eafcf621aa5acc9980b36bf93424a39380f2566ef49aa71cf51a9aa40c7ca138"
+  },
+  "schema_version": 1,
+  "scope": "shared-factory-writer-guard-and-ipc-synthetic-runtime-tests",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "d034573da36543b15bf37b62b2a7af096b5f19d6",
+  "source_sha256": {
+    "scripts/factory-runtime-contract.py": "a855327fd195abc1e57c2f421bb649804ce2ffc66676d287efa217f9e1cbc40a",
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "scripts/initialization-server.py": "946d8bc1823852839058389f59e90b3ae34810b7508aca069c43e40ed6084057",
+    "scripts/writer-launcher.py": "b7ff837423a5e5958bbd9bc723dd4e46462bb714bad417e1024e7b59aa78f213",
+    "staging/bootstrap/inkyos-initialization.service": "8119065639719473be2a22fd65cfa2a84924603cd293c578e3993e48cb1629de",
+    "staging/bootstrap/writer-admission.py": "915d2a5c0d5d8dd0367dbbb351e70f884a4e4647ef22e6422b1c54032df27884",
+    "tests/test_factory_runtime_contract.py": "a650293069431281b3f679cd3f10cc644b99a00df4bf288e9fb5d33320822c53",
+    "tests/test_factory_runtime_writer_guard.py": "9e86a78667aa9d05a38a1af3e95dc836fb3e9dc7746bb36dadf8f8f27fa12e19",
+    "tests/test_initialization_server.py": "d9dbc2060cac0f342d4552327409a9e253eac5a27071ec1742770da0b8ab7bb8",
+    "tests/test_initialization_writer_guard.py": "9b2ba53bf9bc408a525f0862923e5f8e787d57d627290e78c47ec73a37ec6d90"
+  },
+  "status": "PASS"
+}

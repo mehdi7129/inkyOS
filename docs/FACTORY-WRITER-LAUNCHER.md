@@ -89,6 +89,13 @@ revue de support restent nécessaires.
 
 ## API partagée et contexte de boot
 
+Le [banc du guard commun et de l'IPC](validation/2026-10-11-shared-writer-guard-tests.json)
+passe 79 tests Linux ARM64 root sans skip, dont 19 cas de cette API, ainsi que
+la suite locale de 1 531 tests avec 13 skips. Les cas admis du core utilisent le
+vrai vérificateur de rôle sur des inventaires et identités synthétiques ; aucun
+nouveau drop UID/GID n'est effectué. Les leases, xattrs et processus du banc
+Linux sont réels. L'installation et le drainage de Studio restent à qualifier.
+
 L'API du module est :
 
 ```python
