@@ -13,7 +13,7 @@
   "destination": "/usr/lib/inkyos/factory-exporter",
   "limitations": [
     "Four pinned Studio source files and ten dependency wheels; not a complete application candidate.",
-    "Native installation is refused before mutation until the independently reviewed system-support manifest is pinned.",
+    "System-support is pinned to the reviewed prerequisites package profile; native installation and runtime qualification remain separate.",
     "No image recipe, publisher argv v1, service, credentials or runtime activation is changed."
   ],
   "schema_version": 1,
@@ -23,10 +23,11 @@
     "inky_web/provisioning/__init__.py": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f",
     "inky_web/provisioning/factory_credentials.py": "55b3f5b11c5ebad60ae2a65cf9006dd7d1cb2ce2777fc3d5511ea0d72aa6715b"
   },
-  "status": "staging-blocked-system-closure",
+  "status": "staging-system-support-reviewed-not-runtime-qualified",
   "studio_commit": "cf17a0514989023143798570a8ae47739b829301",
-  "support_manifest_sha256": null,
+  "support_manifest_sha256": "096a789157b561d9784fb6c22ba91961ef06093ad8f5d91a43add5ba5f814879",
   "system_packages_lock_sha256": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+  "test_access_packages_lock_sha256": "af97a2b51e5cd49f1d6520a39569c27fb8d90ea6cb812f285dcd5be5a36e6752",
   "wheel_sha256": {
     "annotated_doc-0.0.5-py3-none-any.whl": "117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101",
     "annotated_types-0.8.0-py3-none-any.whl": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",

@@ -1,0 +1,871 @@
+{
+  "absence_guards_verified": 12,
+  "application_candidate_complete": false,
+  "base_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+  "base_lock_sha256": "b8dfe442703d1b2063f7006a28353427aa526858c31a2d9f73f4090dc86add18",
+  "configuration_files": {
+    "etc/ld.so.conf": {
+      "bytes": 34,
+      "sha256": "d4b198c463418b493208485def26a6f4c57279467b9dfa491b70433cedb602e8"
+    },
+    "etc/ld.so.conf.d/aarch64-linux-gnu.conf": {
+      "bytes": 103,
+      "sha256": "0a4000ec63eff65b2a41d8cab5688b6bd81efab5fbcabd72036ece1d227bf08a"
+    },
+    "etc/ld.so.conf.d/fakeroot-aarch64-linux-gnu.conf": {
+      "bytes": 39,
+      "sha256": "bb90d1c51cf60ed748afcb61c350bd0b16d98f5b9d924dabfd751fbaba92036b"
+    },
+    "etc/ld.so.conf.d/libc.conf": {
+      "bytes": 44,
+      "sha256": "90d4c7e43e7661cd116010eb9f50ad5817e43162df344bd1ad10898851b15d41"
+    },
+    "etc/python3.13/sitecustomize.py": {
+      "bytes": 155,
+      "sha256": "43d81125d92376b1a69d53a71126a041cc9a18d8080e92dea0a2ae23be138b1e"
+    },
+    "etc/ssl/openssl.cnf": {
+      "bytes": 12411,
+      "sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3"
+    }
+  },
+  "elf_graph": {
+    "usr/bin/env": {
+      "interpreter": [
+        "/lib/ld-linux-aarch64.so.1"
+      ],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/bin/env",
+      "special_dynamic_tags": []
+    },
+    "usr/bin/python3.13": {
+      "interpreter": [
+        "/lib/ld-linux-aarch64.so.1"
+      ],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libexpat.so.1": "usr/lib/aarch64-linux-gnu/libexpat.so.1.12.3",
+        "libm.so.6": "usr/lib/aarch64-linux-gnu/libm.so.6",
+        "libz.so.1": "usr/lib/aarch64-linux-gnu/libz.so.1.3.1"
+      },
+      "resolved": "usr/bin/python3.13",
+      "special_dynamic_tags": []
+    },
+    "usr/bin/setpriv": {
+      "interpreter": [
+        "/lib/ld-linux-aarch64.so.1"
+      ],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcap-ng.so.0": "usr/lib/aarch64-linux-gnu/libcap-ng.so.0.0.0"
+      },
+      "resolved": "usr/bin/setpriv",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/engines-3/afalg.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcrypto.so.3": "usr/lib/aarch64-linux-gnu/libcrypto.so.3"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/engines-3/afalg.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/engines-3/loader_attic.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcrypto.so.3": "usr/lib/aarch64-linux-gnu/libcrypto.so.3"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/engines-3/loader_attic.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libbz2.so.1.0.4": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libbz2.so.1.0.4",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libc.so.6": {
+      "interpreter": [
+        "/lib/ld-linux-aarch64.so.1"
+      ],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libc.so.6",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libcap-ng.so.0.0.0": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libcap-ng.so.0.0.0",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libcrypto.so.3": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libz.so.1": "usr/lib/aarch64-linux-gnu/libz.so.1.3.1",
+        "libzstd.so.1": "usr/lib/aarch64-linux-gnu/libzstd.so.1.5.7"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libcrypto.so.3",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libdb-5.3.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libdb-5.3.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libdl.so.2": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libdl.so.2",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libexpat.so.1.12.3": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libexpat.so.1.12.3",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libffi.so.8.1.4": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libffi.so.8.1.4",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libgcc_s.so.1": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/liblzma.so.5.8.1": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/liblzma.so.5.8.1",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libm.so.6": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libm.so.6",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libncursesw.so.6.5": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libtinfo.so.6": "usr/lib/aarch64-linux-gnu/libtinfo.so.6.5"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libncursesw.so.6.5",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libpanelw.so.6.5": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libncursesw.so.6": "usr/lib/aarch64-linux-gnu/libncursesw.so.6.5",
+        "libtinfo.so.6": "usr/lib/aarch64-linux-gnu/libtinfo.so.6.5"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libpanelw.so.6.5",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libpthread.so.0": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libpthread.so.0",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libreadline.so.8.2": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libtinfo.so.6": "usr/lib/aarch64-linux-gnu/libtinfo.so.6.5"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libreadline.so.8.2",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libsqlite3.so.0.8.6": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libm.so.6": "usr/lib/aarch64-linux-gnu/libm.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libsqlite3.so.0.8.6",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libssl.so.3": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcrypto.so.3": "usr/lib/aarch64-linux-gnu/libcrypto.so.3"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libssl.so.3",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libtinfo.so.6.5": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libtinfo.so.6.5",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libuuid.so.1.3.0": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libuuid.so.1.3.0",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libz.so.1.3.1": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libz.so.1.3.1",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/libzstd.so.1.5.7": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/libzstd.so.1.5.7",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/aarch64-linux-gnu/ossl-modules/legacy.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcrypto.so.3": "usr/lib/aarch64-linux-gnu/libcrypto.so.3"
+      },
+      "resolved": "usr/lib/aarch64-linux-gnu/ossl-modules/legacy.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/inkyos/factory-exporter/venv/lib/python3.13/site-packages/pydantic_core/_pydantic_core.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libdl.so.2": "usr/lib/aarch64-linux-gnu/libdl.so.2",
+        "libgcc_s.so.1": "usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+        "libpthread.so.0": "usr/lib/aarch64-linux-gnu/libpthread.so.0"
+      },
+      "resolved": "usr/lib/inkyos/factory-exporter/venv/lib/python3.13/site-packages/pydantic_core/_pydantic_core.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_asyncio.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/_asyncio.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_bz2.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libbz2.so.1.0": "usr/lib/aarch64-linux-gnu/libbz2.so.1.0.4",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_bz2.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_codecs_cn.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_codecs_cn.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_codecs_hk.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_codecs_hk.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_codecs_iso2022.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_codecs_iso2022.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_codecs_jp.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_codecs_jp.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_codecs_kr.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_codecs_kr.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_codecs_tw.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_codecs_tw.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_contextvars.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/_contextvars.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_ctypes.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libffi.so.8": "usr/lib/aarch64-linux-gnu/libffi.so.8.1.4"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_ctypes.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_ctypes_test.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libm.so.6": "usr/lib/aarch64-linux-gnu/libm.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_ctypes_test.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_curses.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libncursesw.so.6": "usr/lib/aarch64-linux-gnu/libncursesw.so.6.5",
+        "libtinfo.so.6": "usr/lib/aarch64-linux-gnu/libtinfo.so.6.5"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_curses.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_curses_panel.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libpanelw.so.6": "usr/lib/aarch64-linux-gnu/libpanelw.so.6.5"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_curses_panel.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_dbm.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libdb-5.3.so": "usr/lib/aarch64-linux-gnu/libdb-5.3.so"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_dbm.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_decimal.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_decimal.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_hashlib.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcrypto.so.3": "usr/lib/aarch64-linux-gnu/libcrypto.so.3"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_hashlib.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_interpchannels.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_interpchannels.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_interpqueues.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_interpqueues.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_interpreters.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_interpreters.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_lsprof.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_lsprof.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_lzma.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "liblzma.so.5": "usr/lib/aarch64-linux-gnu/liblzma.so.5.8.1"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_lzma.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_multibytecodec.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_multibytecodec.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_multiprocessing.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_multiprocessing.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_posixshmem.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_posixshmem.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_queue.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_queue.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_sqlite3.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libsqlite3.so.0": "usr/lib/aarch64-linux-gnu/libsqlite3.so.0.8.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_sqlite3.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_ssl.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libcrypto.so.3": "usr/lib/aarch64-linux-gnu/libcrypto.so.3",
+        "libssl.so.3": "usr/lib/aarch64-linux-gnu/libssl.so.3"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_ssl.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testbuffer.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_testbuffer.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testcapi.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_testcapi.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testclinic.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_testclinic.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testclinic_limited.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/_testclinic_limited.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testexternalinspection.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_testexternalinspection.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testimportmultiple.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/_testimportmultiple.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testinternalcapi.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_testinternalcapi.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testlimitedcapi.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_testlimitedcapi.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testmultiphase.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/_testmultiphase.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_testsinglephase.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/_testsinglephase.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_uuid.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libuuid.so.1": "usr/lib/aarch64-linux-gnu/libuuid.so.1.3.0"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_uuid.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_xxtestfuzz.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_xxtestfuzz.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/_zoneinfo.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/_zoneinfo.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/mmap.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/mmap.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/readline.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6",
+        "libreadline.so.8": "usr/lib/aarch64-linux-gnu/libreadline.so.8.2"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/readline.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/resource.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/resource.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/termios.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "ld-linux-aarch64.so.1": "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/termios.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/xxlimited.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/xxlimited.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/xxlimited_35.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {},
+      "resolved": "usr/lib/python3.13/lib-dynload/xxlimited_35.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    },
+    "usr/lib/python3.13/lib-dynload/xxsubtype.cpython-313-aarch64-linux-gnu.so": {
+      "interpreter": [],
+      "needed": {
+        "libc.so.6": "usr/lib/aarch64-linux-gnu/libc.so.6"
+      },
+      "resolved": "usr/lib/python3.13/lib-dynload/xxsubtype.cpython-313-aarch64-linux-gnu.so",
+      "special_dynamic_tags": []
+    }
+  },
+  "elf_roots": [
+    "usr/bin/env",
+    "usr/bin/python3.13",
+    "usr/bin/setpriv",
+    "usr/lib/aarch64-linux-gnu/engines-3/afalg.so",
+    "usr/lib/aarch64-linux-gnu/engines-3/loader_attic.so",
+    "usr/lib/aarch64-linux-gnu/ossl-modules/legacy.so",
+    "usr/lib/inkyos/factory-exporter/venv/lib/python3.13/site-packages/pydantic_core/_pydantic_core.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_asyncio.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_bz2.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_codecs_cn.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_codecs_hk.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_codecs_iso2022.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_codecs_jp.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_codecs_kr.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_codecs_tw.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_contextvars.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_ctypes.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_ctypes_test.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_curses.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_curses_panel.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_dbm.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_decimal.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_hashlib.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_interpchannels.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_interpqueues.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_interpreters.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_lsprof.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_lzma.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_multibytecodec.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_multiprocessing.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_posixshmem.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_queue.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_sqlite3.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_ssl.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testbuffer.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testcapi.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testclinic.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testclinic_limited.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testexternalinspection.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testimportmultiple.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testinternalcapi.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testlimitedcapi.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testmultiphase.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_testsinglephase.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_uuid.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_xxtestfuzz.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/_zoneinfo.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/mmap.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/readline.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/resource.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/termios.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/xxlimited.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/xxlimited_35.cpython-313-aarch64-linux-gnu.so",
+    "usr/lib/python3.13/lib-dynload/xxsubtype.cpython-313-aarch64-linux-gnu.so"
+  ],
+  "extra_inspection_roots_not_executed": [
+    "usr/bin/env",
+    "usr/bin/setpriv"
+  ],
+  "hardware_qualified": false,
+  "image_code_executed": false,
+  "kind": "factory-exporter-system-support-review",
+  "limits": [
+    "Static dependency and configuration review does not prove arbitrary dlopen paths or all uses of the standard library.",
+    "The complete multiarch and local-library inventories bind this support to the stated TEST access recipe/package profile; another profile needs its own review and pin.",
+    "No exporter installation, credential generation, startup barrier, readonly runtime mount or physical boot is exercised by this evidence."
+  ],
+  "loader_review": {
+    "method": "readelf ELF64/AArch64 headers, PT_INTERP and recursive DT_NEEDED inspection; target ld.so.cache read with builder ldconfig, without executing image code.",
+    "preload": "etc/ld.so.preload is absent; the runtime environment must omit LD_* variables.",
+    "resolution": "Every needed soname has one canonical pinned file after in-manifest symlink resolution. Whole multiarch, local-library and loader-config trees are compared exactly, including existing subdirectories. Target setpriv/env remain extra inspected files only; their NSS behavior is excluded by the numeric host launcher.",
+    "rpath_runpath_audit_filter_auxiliary": "No such dynamic tags in the 76 reviewed ELF nodes."
+  },
+  "local_library_recipe_sources": {
+    "usr/local/lib/inkyos-test-ssh/dispatch.py": {
+      "sha256": "c396b986834bd0df280d7a94189e67622909017b2d9f8d03cf65ad2b4ef96597",
+      "source": "scripts/test-operator-dispatch.py"
+    },
+    "usr/local/lib/inkyos-test-ssh/runner": {
+      "sha256": "62d292895227848d777ee8926817c83ddc38ca6d83e6382d882212550b63bc1e",
+      "source": "scripts/test-operator-runner.py"
+    },
+    "usr/local/lib/inkyos/observe-test-panel.py": {
+      "sha256": "6fc6b93e30beeb6c03a3867efeb88cfe30ed7e1fe58f2ea6e5c35db9a4c29164",
+      "source": "scripts/observe-test-panel.py"
+    },
+    "usr/local/lib/inkyos/observe-test-radio.py": {
+      "sha256": "8423207c905abbfb6f7fd4e75125e11f794b063034fee4e9a8346cf449391315",
+      "source": "scripts/observe-test-radio.py"
+    },
+    "usr/local/lib/inkyos/test-access-activation-gate.py": {
+      "sha256": "7f7ee841b2b9f4ee3c659f48a48e9881a6cb24531ffa2806e8edea836d78d590",
+      "source": "scripts/test-access-activation-gate.py"
+    },
+    "usr/local/lib/inkyos/test-access-activation.py": {
+      "sha256": "4d31caa6198543fdf30ebf8092c8c1962ea339a8a506d20d7336077ecf504919",
+      "source": "scripts/test-access-activation.py"
+    },
+    "usr/local/lib/inkyos/test-access-bluetooth.py": {
+      "sha256": "3057f2adfded0020e56d772dbd2d91a53710c866a1e23216b669ab50e2b2d357",
+      "source": "scripts/test-access-bluetooth.py"
+    },
+    "usr/local/lib/inkyos/test-access-boot.py": {
+      "sha256": "7423b576ec53c3d94269bd6922548cce2b4016f9a4bf308bd6cb25438f4b2fed",
+      "source": "scripts/test-access-boot.py"
+    },
+    "usr/local/lib/inkyos/test-access-connect.py": {
+      "sha256": "4f7bc57d3997efca45f2674365c024e3f2d7f5c9b85c9645df0ae76a2c1b9517",
+      "source": "scripts/test-access-connect.py"
+    },
+    "usr/local/lib/inkyos/test-access-contract.py": {
+      "sha256": "6a1af0206725cb19d83913ad68261be8f2f1cd948f9cfc9b2b467b9449cc4d68",
+      "source": "scripts/test-access-contract.py"
+    },
+    "usr/local/lib/inkyos/test-access-drain.py": {
+      "sha256": "d1da1ff84188da9aada802b5508d83ea17e1d6ad0ba26c72313fe63833809e67",
+      "source": "scripts/test-access-drain.py"
+    },
+    "usr/local/lib/inkyos/test-access-enrollment.py": {
+      "sha256": "72e7b5e69d7cdcf6d452716135b70773325caa65fb4df6d8939c58a63dea4387",
+      "source": "scripts/test-access-enrollment.py"
+    },
+    "usr/local/lib/inkyos/test-access-import.py": {
+      "sha256": "7b56b55730e0107c0bf1e17fde5254804ab5fb4da8e28fc35746bf74aa026710",
+      "source": "scripts/test-access-import.py"
+    },
+    "usr/local/lib/inkyos/test-access-network.py": {
+      "sha256": "69bc34f413f401d3e9912db1d9e1d3d84db7d5a8f0d7bff56156b23713733db0",
+      "source": "scripts/test-access-network.py"
+    },
+    "usr/local/lib/inkyos/test-access-policy.py": {
+      "sha256": "e29d6e79a8b9e2bfc20f57a942776bf2f91a40a506facd5d65f3bbd96a9198b0",
+      "source": "scripts/test-access-policy.py"
+    },
+    "usr/local/lib/inkyos/test-access-wifi-gate.py": {
+      "sha256": "6036be01b10a623e3e7114e41487991ee27fa81aa010c346e289323d551c229d",
+      "source": "scripts/test-access-wifi-gate.py"
+    },
+    "usr/local/lib/inkyos/test-enrollment-firstboot.py": {
+      "sha256": "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a",
+      "source": "scripts/test-enrollment-firstboot.py"
+    },
+    "usr/local/lib/inkyos/test-lan-preflight.py": {
+      "sha256": "e22ee8b73637510cee3df55509eb9f6a8ad5893834e1fd9c571b56885b216996",
+      "source": "scripts/test-lan-preflight.py"
+    },
+    "usr/local/lib/inkyos/wifi-boot-gate.py": {
+      "sha256": "96b251196cff66c60868bfafde738e9b07f528f00a98abf0e944f4af023eb6c4",
+      "source": "scripts/wifi-boot-gate.py"
+    }
+  },
+  "metadata_method": "schema-2 content, type, mode, uid/gid, symlink, hardlink and xattr comparison to captured unbooted filesystem manifest",
+  "native_wheel_bytes_matched_pinned_archive": true,
+  "openssl_review": {
+    "configuration": "Pinned /usr/lib/ssl/openssl.cnf symlink and /etc/ssl/openssl.cnf. No active .include directive, engine activation or external provider module path.",
+    "environment": "Exporter environment must omit OPENSSL_CONF, OPENSSL_CONF_INCLUDE, OPENSSL_MODULES and OPENSSL_ENGINES overrides.",
+    "initialization": "openssl_conf selects openssl_init -> provider_sect -> default_sect. This stock section names only the built-in default provider and has no module path or activation options.",
+    "modules": "Existing ossl-modules and engines-3 libraries and their recursive dependencies are inventoried and inspected as additional ELF roots.",
+    "scope": "Credential serializer hashing and scrypt; CA, request, TSA and CMP sample sections are not invoked by this path. No TLS certificate or private-key qualification."
+  },
+  "own_mount_and_loop_cleaned": true,
+  "python_review": {
+    "build": "Trusted builder launcher performs numeric credential syscalls directly, then executes target Python -I -B -S as UID/GID 1000; venv created at final absolute path without pip. Target setpriv and env are not executed.",
+    "redirectors": "Versioned Python zip, executable-adjacent _pth, pybuilddir, Modules, lib and parent pyvenv.cfg paths are absent and guarded.",
+    "remaining_gate": "Runtime must retain the closed environment and verified readonly code view; installation verification alone does not enforce those gates.",
+    "runtime": "Dedicated venv with include-system-site-packages=false; -I -B removes user site, environment Python paths and cwd from import search.",
+    "sitecustomize": "Pinned stdlib symlink resolves to pinned stock /etc/python3.13/sitecustomize.py. It attempts apport_python_hook import with ImportError handled. Neither pinned stdlib nor the exact exporter payload contains that module.",
+    "version": "3.13.5"
+  },
+  "read_method": "read-only loop partition, ext4 ro,noload,nosuid,nodev,noexec in private mount and network namespaces",
+  "recipe_source_commit": "5ab139de7cf8889ee4ea1714a20aa1104690713d",
+  "runtime_activation_qualified": false,
+  "schema_version": 1,
+  "scope": "static-reviewed-support-for-staging-exporter",
+  "status": "PASS",
+  "support_profile": "unbooted-TEST-access-prerequisites-profile; not a production factory recipe",
+  "support_records_verified": 4284,
+  "system_packages_lock_sha256": "85769aa6a159a6fba2ab0054d66ee4a31056e5cea9177380730954c83862abb2",
+  "test_access_packages_lock_sha256": "af97a2b51e5cd49f1d6520a39569c27fb8d90ea6cb812f285dcd5be5a36e6752"
+}

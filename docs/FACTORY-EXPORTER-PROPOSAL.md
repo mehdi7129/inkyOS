@@ -21,7 +21,11 @@ et leur validation. Le backend ordinaire conserve son emplacement et ses droits.
 
 ## Contrat installé proposé
 
-Le futur contrat devra versionner explicitement cet argv :
+Le contrat d’installation proposé est nommé **`factory-exporter-v2`**. Cette
+version désigne le chemin et le bundle installés ; le format credentials v2 et
+le protocole du sérialiseur restent identiques. Studio a confirmé cette
+proposition documentaire ; elle ne constitue pas une promotion du runtime.
+L’argv proposé est :
 
 ```text
 /usr/lib/inkyos/factory-exporter/venv/bin/python -I -B -m inky_web.provisioning.factory_credentials --emit-v2
@@ -47,9 +51,55 @@ Le runtime installé doit satisfaire les conditions suivantes :
 - Vue en lecture seule pendant la génération ; seuls les fichiers de données
   individuels sont publiés par le parent, sous la permission consommable.
 
-La construction peut utiliser un compte non privilégié et des wheels offline
-vérifiées, puis figer l’arborescence et son manifeste. Le fichier attendu ne doit
-pas être généré au boot à partir de fichiers déjà modifiables par l’app.
+La construction en staging crée le venv à son emplacement final dans une racine
+d’image jetable, sous UID 1000 et sans pip. Les wheels vérifiées sont extraites
+selon un contrat limité : aucun `.data`, lien, script généré ou fichier de
+personnalisation Python. Les fichiers `RECORD` sont conservés. Les octets et
+chemins attendus sont calculés depuis les archives épinglées avant le build,
+puis comparés exactement à l’arborescence figée après la fin des writers.
+Le fichier attendu ne doit pas être généré au boot à partir de fichiers déjà
+modifiables par l’app.
+
+Cette stratégie évite de déplacer un venv, opération que la
+[documentation Python 3.13](https://docs.python.org/3.13/library/venv.html)
+ne considère pas portable. `-I` n’enlève pas le chargement de `site` : les
+éventuels `.pth` et `sitecustomize` de la base doivent rester dans le support
+système vérifié. [Documentation `site`](https://docs.python.org/3.13/library/site.html).
+L’absence d’un manifeste attendu de ce support interdit l’installation ; les
+seuls pins des wheels et sources ne suffisent pas.
+
+Le launcher de build utilise le Python de confiance du builder et prépare ses
+imports avant le `chroot`. Il applique ensuite directement les identifiants
+numériques et vérifie la disparition des capabilities avant le premier exec
+cible. Les erreurs après `chroot` terminent le processus sans charger de module
+de diagnostic depuis l’image. Cela exclut les recherches NSS réalisées par
+[`setpriv`, même avec un UID numérique](https://github.com/util-linux/util-linux/blob/v2.41/sys-utils/setpriv.c).
+
+La revue du support couvre aussi la configuration OpenSSL, ses providers et
+ses engines ; les dépendances ELF seules ne décrivent pas les modules que
+cette configuration peut charger. [Configuration OpenSSL](https://docs.openssl.org/3.5/man5/config/).
+
+## Support système vérifié
+
+Le [manifeste attendu](../config/factory-exporter-system-support.json) couvre
+4 284 entrées et 12 absences contrôlées. La [revue statique](validation/2026-10-11-factory-exporter-system-support.json)
+vérifie 54 racines ELF et 126 dépendances, ainsi que les configurations Python,
+loader et OpenSSL. Les fichiers `setpriv` et `env` restent des entrées examinées
+supplémentaires ; le nouveau launcher ne les exécute pas dans l’image.
+
+Ce pin correspond au profil TEST access non démarré de la recette `5ab139de`,
+avec les paquets I²C épinglés. Il inclut aussi 19 scripts de recette inchangés
+sous `/usr/local/lib`, hors des chemins d’import de l’exporter. Ces entrées ne
+contiennent aucune identité de test. Un autre profil d’image nécessite sa propre
+comparaison et son propre pin ; ce manifeste ne promeut pas le profil TEST en
+recette destinée à la production.
+
+Les scripts [installer](../scripts/install-factory-exporter-rootfs.py) et
+[verifier](../scripts/verify-factory-exporter-rootfs.py) comparent le support
+avant et après construction, puis le bundle aux octets attendus. Les quatre
+sources Studio et dix wheels produisent 325 fichiers de payload attendus.
+La génération de credentials et le démarrage applicatif restent séparés de
+cette construction.
 
 ## Ordre et limites
 
@@ -62,8 +112,9 @@ durable, autorité durable, fin de l’unité factory, readiness IPC, puis runti
 applicatif. Un processus resté en drain SPI n’est jamais arrêté de force pour
 permettre cette séquence.
 
-Le nouveau chemin, le bundle complet, sa construction offline, les droits Linux,
-les reprises après interruption et les unités restent à implémenter et vérifier
-ensemble avant toute installation dans une image. Le banc ponctuel des quatre
-sources Studio avec des wheels existantes ne qualifie pas ce nouveau contrat
-installé ni une release applicative complète.
+Les scripts de construction et de vérification sont développés en staging,
+avec un support système revu statiquement. La construction Linux réelle, les
+reprises après interruption et les unités doivent être vérifiées ensemble avant
+l’intégration à une recette d’image. Le banc ponctuel des quatre sources Studio
+avec des wheels existantes ne qualifie pas ce nouveau contrat installé ni une
+release applicative complète.

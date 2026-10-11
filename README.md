@@ -27,7 +27,8 @@ La dernière suite passe **[1 219 tests sur macOS et Linux ARM64](docs/validatio
 sans échec (6 skips macOS, 2 skips Linux). Le [banc IPC natif](docs/INITIALIZATION-IPC.md)
 vérifie séparément les droits des processus, la consommation unique de
 l’autorisation et la reprise après redémarrage.
-Le [vrai client Studio passe aussi le banc croisé Linux](docs/validation/2026-10-11-initialization-studio-native.json).
+La readiness du service et le [vrai client Studio passent les deux bancs Linux](docs/validation/2026-10-11-ipc-notify-readiness-native.json) :
+10 contrôles chacun, complétés par 57 tests ciblés sans échec.
 Le [publisher de credentials factory](docs/FACTORY-CREDENTIALS.md) passe
 27 tests ciblés Linux, dont la chute effective de privilèges. Le hook compose
 désormais permission, publication puis autorité. Le vrai sérialiseur Studio
