@@ -56,6 +56,15 @@ duplicate scalar headers or normalized extras, malformed requirements and
 incompatible `Requires-Python` are refused. Multiple distinct requirements for
 one distribution remain valid and all active constraints apply.
 
+For a prebuilt wheel, [`Dynamic`](https://packaging.python.org/en/latest/specifications/core-metadata/#dynamic-multiple-use)
+is informational: the value was calculated during wheel construction. It does
+not make the delivered `Requires-Dist`, `Requires-Python` or `Provides-Extra`
+unresolved, and those fields undergo the same complete checks above. `Dynamic`
+requires metadata version 2.2 or later; `Name`, `Version` and `Metadata-Version`
+are forbidden dynamic field names, compared case-insensitively. This does not
+authenticate correspondence with an sdist or another wheel, and does not run
+the build or infer missing metadata.
+
 The root app may have an explicitly pinned release-candidate version. A
 transitive prerelease or development release is accepted only when **every
 active incoming requirement** explicitly admits prereleases through its version

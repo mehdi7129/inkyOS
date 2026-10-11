@@ -114,9 +114,11 @@ class FactoryStudioDependencyTests(unittest.TestCase):
         return sha(raw)
 
     def add_wheel(self, distribution, version='1.0', *, requires=(), extras=(),
-                  requires_python=None, metadata=None, record_transform=None, app=False):
+                  requires_python=None, metadata=None, record_transform=None, app=False,
+                  metadata_version='2.3', dynamic=()):
         if metadata is None:
-            lines = ['Metadata-Version: 2.3', 'Name: ' + distribution, 'Version: ' + version]
+            lines = ['Metadata-Version: ' + metadata_version, 'Name: ' + distribution, 'Version: ' + version]
+            lines.extend('Dynamic: ' + field for field in dynamic)
             if requires_python is not None:
                 lines.append('Requires-Python: ' + requires_python)
             lines.extend('Provides-Extra: ' + extra for extra in extras)
@@ -313,6 +315,52 @@ class FactoryStudioDependencyTests(unittest.TestCase):
     def test_unknown_requested_dependency_extra_refuses(self):
         self.add_app(('foundation[absent]>=1',))
         self.refused()
+
+    def test_dynamic_requires_dist_keeps_dependency_and_version_checks(self):
+        self.add_wheel('foundation', '1.5', requires=('leaf>=1',), dynamic=('Requires-Dist',))
+        self.add_wheel('leaf')
+        receipt = self.succeeds(receipt=self.output.parent / 'valid.json')
+        self.assertEqual(receipt['reached_distributions'], ['foundation', 'inky-studio', 'leaf'])
+        self.add_wheel('foundation', '1.5', requires=('leaf>=2',), dynamic=('Requires-Dist',))
+        self.refused(reason='dependency_version')
+        self.add_wheel('foundation', '1.5', requires=('missing>=1',), dynamic=('Requires-Dist',))
+        self.refused(reason='missing_dependency')
+
+    def test_dynamic_requires_python_still_checks_fixed_target(self):
+        self.add_wheel('foundation', '1.5', requires_python='>=3.13,<3.14', dynamic=('requires-python',))
+        self.succeeds(receipt=self.output.parent / 'valid.json')
+        self.add_wheel('foundation', '1.5', requires_python='<3.13', dynamic=('requires-python',))
+        self.refused(reason='requires_python')
+
+    def test_dynamic_provides_extra_still_activates_transitive_requirements(self):
+        self.add_app(('foundation[render]>=1',), dynamic=('Provides-Extra', 'Requires-Dist'))
+        self.add_wheel('foundation', '1.5', extras=('render',),
+                       requires=('leaf>=1; extra == "render"',),
+                       dynamic=('Provides-Extra', 'Requires-Dist'))
+        self.add_wheel('leaf')
+        receipt = self.succeeds(receipt=self.output.parent / 'valid.json')
+        self.assertEqual(receipt['activated_extras']['foundation'], ['render'])
+        self.assertIn('leaf', receipt['reached_distributions'])
+        self.add_wheel('foundation', '1.5', extras=(), dynamic=('Provides-Extra',))
+        self.refused(reason='unknown_extra')
+
+    def test_dynamic_identity_fields_are_refused_case_insensitively(self):
+        for field in ('Name', 'nAmE', 'Version', 'vErSiOn', 'Metadata-Version', 'mEtAdAtA-vErSiOn'):
+            with self.subTest(field=field):
+                self.add_wheel('foundation', '1.5', dynamic=(field,))
+                self.refused(reason='dynamic_metadata')
+
+    def test_dynamic_is_refused_before_metadata_2_2(self):
+        for version in ('1.0', '1.2', '2.1'):
+            with self.subTest(version=version):
+                self.add_wheel('foundation', '1.5', metadata_version=version, dynamic=('Summary',))
+                self.refused(reason='dynamic_metadata')
+
+    def test_dynamic_metadata_version_comparison_is_numeric(self):
+        for version in ('2.2', '2.4', '2.10'):
+            with self.subTest(version=version):
+                self.add_wheel('foundation', '1.5', metadata_version=version, dynamic=('Summary',))
+                self.succeeds(receipt=self.output.parent / (version + '.json'))
 
     def test_unknown_marker_variables_even_on_inactive_edges_refuse(self):
         for variable in ('platform_release', 'platform_version', 'extras', 'dependency_groups'):

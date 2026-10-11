@@ -201,14 +201,20 @@ def load_metadata(raw, filename, api):
     metadata_paths = [path for path in payload if path.endswith('.dist-info/METADATA')]
     require(len(metadata_paths) == 1, 'invalid_metadata')
     message = headers(payload[metadata_paths[0]])
-    require(re.fullmatch(r'[12]\.[0-9]+', one(message, 'Metadata-Version')), 'invalid_metadata')
+    metadata_version = one(message, 'Metadata-Version')
+    require(re.fullmatch(r'[12]\.[0-9]+', metadata_version), 'invalid_metadata')
     require(api['utils'].canonicalize_name(one(message, 'Name'), validate=True) == name
             and api['version'].Version(one(message, 'Version')) == version, 'metadata_identity')
     python = one(message, 'Requires-Python', required=False)
     if python is not None:
         require(api['specifiers'].SpecifierSet(python).contains('3.13.5'), 'requires_python')
-    dynamic = {str(value).strip().lower() for value in message.get_all('Dynamic', [])}
-    require(not dynamic & {'name', 'version', 'requires-python', 'requires-dist', 'provides-extra'},
+    dynamic = {str(value).strip().casefold() for value in message.get_all('Dynamic', [])}
+    # In a prebuilt wheel Dynamic is informational, not an unresolved value:
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#dynamic-multiple-use
+    # Validate the delivered dependency fields normally, including all extras.
+    require(not dynamic or tuple(map(int, metadata_version.split('.'))) >= (2, 2),
+            'dynamic_metadata')
+    require(not dynamic & {'name', 'version', 'metadata-version'},
             'dynamic_metadata')
     extras, declared = set(), message.get_all('Provides-Extra', [])
     require(len(declared) <= MAX_EXTRAS, 'extra_limit')
