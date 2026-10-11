@@ -30,6 +30,12 @@ APP_WHEEL = 'inky_studio-1.2.3-py3-none-any.whl'
 DEP_WHEEL = 'fixture_dep-4.5.6-py3-none-any.whl'
 SITE = 'server/.venv/lib/python3.13/site-packages'
 EMPTY_XATTRS = {'status': 'inspected', 'entries': {}}
+NUMPY_FIXTURE_WHEEL = 'numpy-2.5.3-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl'
+NUMPY_PASSIVE_PAYLOAD = {
+    'numpy/_core/tests/examples/cython/setup.py': b'raise AssertionError("passive cython example executed")\n',
+    'numpy/_core/tests/examples/limited_api/setup.py': b'raise AssertionError("passive limited API example executed")\n',
+    'numpy/f2py/setup.cfg': b'[inert-fixture]\nnever-execute = true\n',
+}
 STUDIO_TAG_CASES = (
     'py3-none-any',
     'py2.py3-none-any',
@@ -260,6 +266,109 @@ class FactoryStudioBundlePlanTests(unittest.TestCase):
         spec.loader.exec_module(runtime)
         manifest, _ = self.plan()
         runtime.records_schema(json.loads(manifest)['records'])
+
+    def test_numpy_passive_exact_files_and_original_record_are_preserved(self):
+        payload = self.replace_wheel(NUMPY_FIXTURE_WHEEL, NUMPY_PASSIVE_PAYLOAD)
+        raw = (self.wheels / NUMPY_FIXTURE_WHEEL).read_bytes()
+        # Synthetic bytes do not match the production pin. Only this digest seam
+        # authorizes the inert fixture; filenames/path policy remain unchanged.
+        self.refused(self.publish)
+        before = self.snapshot()
+        with patch.object(planner, 'NUMPY_PASSIVE_SHA256', sha(raw)):
+            manifest, receipt = self.plan()
+            self.assertEqual(planner.wheel_payload(raw, NUMPY_FIXTURE_WHEEL), payload)
+        self.assertEqual(self.snapshot(), before)
+        records = json.loads(manifest)['records']
+        original_record = 'numpy-2.5.3.dist-info/RECORD'
+        for name in (*NUMPY_PASSIVE_PAYLOAD, original_record):
+            content = payload[name]
+            self.assertEqual(records[SITE + '/' + name], {
+                'type': 'file', 'uid': 0, 'gid': 0, 'mode': '0644',
+                'xattrs': EMPTY_XATTRS, 'size_bytes': len(content), 'sha256': sha(content),
+            }, name)
+        self.assertFalse(receipt['image_code_executed'])
+        self.assertFalse(receipt['application_candidate_qualified'])
+
+    def test_numpy_passive_exception_requires_exact_filename_and_digest(self):
+        for filename in (NUMPY_FIXTURE_WHEEL.replace('2.5.3-', '2.5.4-'),
+                         NUMPY_FIXTURE_WHEEL.replace('numpy-', 'other_numpy-'),
+                         'numpy-2.5.3-cp313-cp313-linux_aarch64.whl'):
+            with self.subTest(filename=filename):
+                self.replace_wheel(filename, NUMPY_PASSIVE_PAYLOAD)
+                with patch.object(planner, 'NUMPY_PASSIVE_SHA256', sha((self.wheels / filename).read_bytes())):
+                    self.refused(self.publish)
+                (self.wheels / filename).unlink()
+                del self.inputs['wheel_sha256'][filename]
+                self.write_inputs()
+        self.replace_wheel(NUMPY_FIXTURE_WHEEL, NUMPY_PASSIVE_PAYLOAD)
+        with patch.object(planner, 'NUMPY_PASSIVE_SHA256', '0' * 64):
+            self.refused(self.publish)
+
+    def test_numpy_passive_files_must_all_exist_as_regular_exact_paths(self):
+        first = next(iter(NUMPY_PASSIVE_PAYLOAD))
+        variants = [(f'missing:{name}', {key: value for key, value in NUMPY_PASSIVE_PAYLOAD.items()
+                                      if key != name}, {}) for name in NUMPY_PASSIVE_PAYLOAD]
+        for kind, mode in (('missing_type', 0o644), ('symlink', stat.S_IFLNK | 0o777),
+                           ('fifo', stat.S_IFIFO | 0o644)):
+            variants.append((kind, NUMPY_PASSIVE_PAYLOAD, {'special_modes': {first: mode}}))
+        variants.append(('directory', {key: value for key, value in NUMPY_PASSIVE_PAYLOAD.items()
+                                       if key != first},
+                         {'extra_members': ((first + '/', b''),),
+                          'special_modes': {first + '/': stat.S_IFDIR | 0o755}}))
+        for path in ('setup.py', 'setup.cfg', 'numpy/_core/tests/examples/other/setup.py',
+                     'numpy/_core/tests/examples/cython/setup.py/child.txt'):
+            variants.append((path, {**NUMPY_PASSIVE_PAYLOAD, path: b'FORBIDDEN'}, {}))
+        for label, files, options in variants:
+            with self.subTest(case=label):
+                self.replace_wheel(NUMPY_FIXTURE_WHEEL, files, **options)
+                digest = sha((self.wheels / NUMPY_FIXTURE_WHEEL).read_bytes())
+                with patch.object(planner, 'NUMPY_PASSIVE_SHA256', digest):
+                    self.refused(self.publish)
+
+    def test_numpy_passive_exception_cannot_become_app_namespace_authority(self):
+        # Make the pinned fixture the app wheel so the dependency-only namespace
+        # check cannot hide an adapter that wrongly grants this exception to app.
+        (self.wheels / APP_WHEEL).unlink()
+        del self.inputs['wheel_sha256'][APP_WHEEL]
+        self.inputs['app_wheel'] = NUMPY_FIXTURE_WHEEL
+        self.replace_wheel(NUMPY_FIXTURE_WHEEL, {**NUMPY_PASSIVE_PAYLOAD, **self.app_files})
+        digest = sha((self.wheels / NUMPY_FIXTURE_WHEEL).read_bytes())
+        with patch.object(planner, 'NUMPY_PASSIVE_SHA256', digest):
+            self.refused(self.publish)
+
+    def test_numpy_passive_exception_preserves_hook_and_record_checks(self):
+        variants = [({**NUMPY_PASSIVE_PAYLOAD, name: b'FORBIDDEN'}, {})
+                    for name in ('numpy/unsafe.pth', 'sitecustomize.py',
+                                 'numpy/__editable__fixture.py', 'numpy/direct_url.json')]
+        variants.append((NUMPY_PASSIVE_PAYLOAD,
+                         {'record_transform': lambda raw: raw.replace(b'sha256=', b'sha512=', 1)}))
+        variants.append((NUMPY_PASSIVE_PAYLOAD,
+                         {'extra_members': (('numpy/setup.cfg/', b''),),
+                          'special_modes': {'numpy/setup.cfg/': stat.S_IFDIR | 0o755}}))
+        for files, options in variants:
+            with self.subTest(extra=set(files) - set(NUMPY_PASSIVE_PAYLOAD), options=set(options)):
+                self.replace_wheel(NUMPY_FIXTURE_WHEEL, files, **options)
+                digest = sha((self.wheels / NUMPY_FIXTURE_WHEEL).read_bytes())
+                with patch.object(planner, 'NUMPY_PASSIVE_SHA256', digest):
+                    self.refused(self.publish)
+
+    def test_numpy_passive_exception_does_not_relax_source_build_config_policy(self):
+        self.replace_wheel(NUMPY_FIXTURE_WHEEL, NUMPY_PASSIVE_PAYLOAD)
+        digest = sha((self.wheels / NUMPY_FIXTURE_WHEEL).read_bytes())
+        for name, content in NUMPY_PASSIVE_PAYLOAD.items():
+            source_name = 'client/dist/' + name
+            path = self.write(self.sources / source_name, content)
+            self.inputs['source_sha256'][source_name] = sha(content)
+            self.write_inputs()
+            with self.subTest(source=source_name), patch.object(planner, 'NUMPY_PASSIVE_SHA256', digest):
+                self.refused(self.publish)
+            del self.inputs['source_sha256'][source_name]
+            path.unlink()
+            parent = path.parent
+            while parent != self.sources / 'client/dist':
+                parent.rmdir()
+                parent = parent.parent
+            self.write_inputs()
 
     def test_input_map_order_does_not_change_planned_bundle(self):
         first, _ = self.plan()

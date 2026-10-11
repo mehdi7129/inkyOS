@@ -102,6 +102,26 @@ globales sont 128 wheels, 20 000 fichiers sources/délivrés, 256 MiB de payload
 100 000 records et 32 MiB de manifest produit ; le manifest d'entrée est borné
 à 1 MiB.
 
+Une exception fermée admet uniquement trois fichiers réguliers de la wheel
+`numpy-2.5.3-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl`,
+dont le SHA-256 complet est
+`c76d5dde9f445058f83d0c02af00557a4db91de9a9a57c0df87d1535001d654b` :
+
+- `numpy/_core/tests/examples/cython/setup.py` ;
+- `numpy/_core/tests/examples/limited_api/setup.py` ;
+- `numpy/f2py/setup.cfg`.
+
+L'adapter commun au planner et au second passage de l'installer conserve leurs
+octets, leurs hashes et le RECORD original. Il les traite comme des données
+pendant le build statique : cela ne signifie pas que ces scripts seraient
+inexécutables dans un autre contexte. L'exception exige les trois fichiers,
+ne permet aucun namespace `inky_web`, et ne s'étend ni aux sources, ni aux
+autres chemins, ni à une autre wheel ou un autre digest. Les contrôles de type,
+hooks, RECORD et collisions restent appliqués ; aucun flag CLI ou champ du
+manifest ne peut élargir cette exception. Sa validation ici utilise des
+fixtures synthétiques avec substitution explicite du pin ; elle ne qualifie
+pas le candidat réel ni le comportement de NumPy.
+
 Cette whitelist ne constitue pas un audit de privacy. Un fichier JS ou METADATA
 peut contenir des données privées ; sa publication requiert une revue séparée.
 Un SHA fourni par le caller n'atteste pas non plus l'origine de la wheel, son lien

@@ -29,6 +29,13 @@ MAX_BYTES = 256 * 1024 * 1024
 BUILD_NAMES = {'.git', '.hg', '.svn', '.env', '.venv', 'venv', 'pyvenv.cfg',
                'pip.conf', '.python-version', 'pyproject.toml', 'setup.py', 'setup.cfg',
                'direct_url.json'}
+NUMPY_PASSIVE_WHEEL = 'numpy-2.5.3-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl'
+NUMPY_PASSIVE_SHA256 = 'c76d5dde9f445058f83d0c02af00557a4db91de9a9a57c0df87d1535001d654b'
+NUMPY_PASSIVE_FILES = frozenset({
+    'numpy/_core/tests/examples/cython/setup.py',
+    'numpy/_core/tests/examples/limited_api/setup.py',
+    'numpy/f2py/setup.cfg',
+})
 STUDIO_FILENAME_TAGS = frozenset({
     ('py3', 'none', 'any'),
     ('py2.py3', 'none', 'any'),
@@ -144,8 +151,21 @@ def app_metadata(payload, filename):
 
 
 def wheel_payload(raw, filename):
-    """Studio's closed tags and inert native-header preflight, not a loader."""
+    """Shared member policy and inert native-header preflight, not a loader."""
     payload = exporter.wheel_payload(raw, filename, allowed_filename_tags=STUDIO_FILENAME_TAGS)
+    numpy_data = filename == NUMPY_PASSIVE_WHEEL and exporter.sha(raw) == NUMPY_PASSIVE_SHA256
+    if numpy_data:
+        require(NUMPY_PASSIVE_FILES <= set(payload), 'missing_passive_data')
+        require(not any(path == 'inky_web' or path.startswith(('inky_web/', 'inky_web.'))
+                        for path in payload), 'app_namespace_collision')
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        for member in archive.infolist():
+            path = member.filename[:-1] if member.is_dir() else member.filename
+            if numpy_data and path in NUMPY_PASSIVE_FILES:
+                require(not member.is_dir() and stat.S_ISREG(member.external_attr >> 16),
+                        'invalid_passive_data')
+            else:
+                safe_name(path)
     pure_tag = filename[:-4].split('-')[-1] == 'any'
     for path, content in payload.items():
         shared_object = re.search(r'\.so(?:\.|$)', PurePosixPath(path).name) is not None
@@ -169,16 +189,12 @@ def derive(value, sources, wheels):
         raw = exporter.ordinary(wheels / filename)
         require(exporter.sha(raw) == pin, 'pin_mismatch')
         payload = wheel_payload(raw, filename)
-        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-            for member in archive.infolist():
-                safe_name(member.filename[:-1] if member.is_dir() else member.filename)
         if filename == value['app_wheel']:
             app_metadata(payload, filename)
         else:
             require(not any(path == 'inky_web' or path.startswith(('inky_web/', 'inky_web.')) for path in payload),
                     'app_namespace_collision')
         for path, content in payload.items():
-            safe_name(path)
             require(path not in site_names, 'wheel_collision')
             site_names.add(path)
             total += len(content)

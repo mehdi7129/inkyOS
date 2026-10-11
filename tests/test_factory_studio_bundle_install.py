@@ -234,6 +234,61 @@ class FactoryStudioBundleInstallTests(unittest.TestCase):
             del self.inputs['wheel_sha256'][filename]
             self.write_inputs()
 
+    def numpy_passive_fixture(self):
+        raw, payload = fixtures.synthetic_wheel(fixtures.NUMPY_FIXTURE_WHEEL,
+                                                fixtures.NUMPY_PASSIVE_PAYLOAD)
+        self.write(self.wheels / fixtures.NUMPY_FIXTURE_WHEEL, raw)
+        self.inputs['wheel_sha256'][fixtures.NUMPY_FIXTURE_WHEEL] = fixtures.sha(raw)
+        self.write_inputs()
+        return raw, payload
+
+    def test_numpy_passive_files_and_original_record_materialize_exactly(self):
+        raw, payload = self.numpy_passive_fixture()
+        # Only the synthetic wheel digest is substituted, never the path/type
+        # policy or the installer's real planning, materialization and readback.
+        with patch.object(installer.planner, 'NUMPY_PASSIVE_SHA256', fixtures.sha(raw)):
+            receipt = self.install()
+            records = json.loads((self.bundle / 'manifest.json').read_bytes())['records']
+            for name in (*fixtures.NUMPY_PASSIVE_PAYLOAD, 'numpy-2.5.3.dist-info/RECORD'):
+                path = self.bundle / fixtures.SITE / name
+                self.assertEqual(path.read_bytes(), payload[name], name)
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o644)
+                self.assertEqual(records[fixtures.SITE + '/' + name]['sha256'], fixtures.sha(payload[name]))
+            before = self.snapshot()
+            self.assertEqual(self.verify(), dict(receipt, operation='verify'))
+            self.assertEqual(self.snapshot(), before)
+        self.assertFalse(receipt['application_code_executed'])
+        self.assertFalse(receipt['runtime_qualified'])
+
+    def test_numpy_passive_second_pass_rejects_revoked_pin_before_any_write(self):
+        raw, _ = self.numpy_passive_fixture()
+        digest = fixtures.sha(raw)
+        original_expected = installer._expected
+        original_payload = installer.planner.wheel_payload
+        calls = []
+
+        def revoke_after_expected(*args):
+            expected = original_expected(*args)
+            installer.planner.NUMPY_PASSIVE_SHA256 = '0' * 64
+            return expected
+
+        def observe_adapter(content, filename):
+            calls.append((filename, installer.planner.NUMPY_PASSIVE_SHA256))
+            return original_payload(content, filename)
+
+        with patch.object(installer.planner, 'NUMPY_PASSIVE_SHA256', digest), \
+                patch.object(installer, '_expected', revoke_after_expected), \
+                patch.object(installer.planner, 'wheel_payload', observe_adapter), \
+                patch.object(installer.planner, 'plan', wraps=installer.planner.plan) as plan_calls:
+            self.refused_without_write(self.install)
+            # A fallback to the late repeat of plan() would not prove that the
+            # materializer's own byte-reading pass used the guarded adapter.
+            self.assertEqual(plan_calls.call_count, 1)
+        self.assertEqual([pin for filename, pin in calls if filename == fixtures.NUMPY_FIXTURE_WHEEL],
+                         [digest, '0' * 64])
+        self.assertFalse((self.rootfs / 'usr').exists())
+        self.assertFalse(self.receipt.exists())
+
     def test_new_native_tag_cannot_bypass_wheel_tags_or_record_before_write(self):
         filename = 'fixture_native-1.0-cp311-abi3-manylinux_2_34_aarch64.whl'
         for kwargs in ({'wheel_tags': ['cp311-abi3-manylinux_2_34_x86_64']},
