@@ -29,8 +29,75 @@ copy_regular = verifier.application_installer.copy_regular
 DESTINATION = Path('/' + verifier.DESTINATION)
 SCRATCH = Path('/var/tmp/inkyos-factory-exporter-install')
 
+# This is passed to the already trusted HOST interpreter after unshare. All
+# imports, ctypes symbols and definitions are prepared before chroot: no target
+# setpriv/env/Python, NSS lookup, dynamic helper or exception hook runs as root.
+HOST_LAUNCHER = '''import ctypes,errno,os,sys
+class Header(ctypes.Structure):
+ _fields_=[('version',ctypes.c_uint32),('pid',ctypes.c_int)]
+class Data(ctypes.Structure):
+ _fields_=[('effective',ctypes.c_uint32),('permitted',ctypes.c_uint32),('inheritable',ctypes.c_uint32)]
+libc=ctypes.CDLL(None,use_errno=True)
+prctl=libc.prctl;prctl.argtypes=[ctypes.c_int,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_ulong];prctl.restype=ctypes.c_int
+capget=libc.capget;capget.argtypes=[ctypes.POINTER(Header),ctypes.POINTER(Data)];capget.restype=ctypes.c_int
+capset=libc.capset;capset.argtypes=capget.argtypes;capset.restype=ctypes.c_int
+# sysconfig computes its user base while importing; HOME avoids pwd/NSS even
+# though the build never enables user site-packages or installs into that path.
+environment={'HOME':'/home/inky','PATH':'/usr/bin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','TZ':'UTC',
+ 'PYTHONNOUSERSITE':'1','PYTHONDONTWRITEBYTECODE':'1','PYTHONHASHSEED':'0'}
+def require(value):
+ if not value: raise RuntimeError('launcher_guard')
+def control(option,a=0,b=0,c=0,d=0):
+ value=prctl(option,a,b,c,d)
+ require(value>=0)
+ return value
+def capabilities():
+ header=Header(0x20080522,0);data=(Data*2)()
+ require(capget(ctypes.byref(header),data)==0 and header.version==0x20080522)
+ return header,data
+try:
+ require(len(sys.argv)>=3 and os.getresuid()==(0,0,0))
+ root=sys.argv[1];command=sys.argv[2:]
+ require(root.startswith('/var/tmp/inkyos-work/prototype.') and root.endswith('/root')
+         and all(p not in ('.','..','') for p in root.split('/')[1:]))
+ require(command[0]=='/usr/bin/python3.13')
+ # Keep effective CHROOT/SETUID/SETGID until their numeric syscalls finish,
+ # but remove all routes for capabilities to survive or return after exec.
+ control(28,0);require(control(27)==0)  # SET/GET_SECUREBITS, including KEEP_CAPS=0
+ control(38,1);require(control(39)==1)  # SET/GET_NO_NEW_PRIVS
+ control(47,4)  # PR_CAP_AMBIENT_CLEAR_ALL
+ known=[]
+ for capability in range(65):
+  ctypes.set_errno(0);value=prctl(23,capability,0,0,0)  # PR_CAPBSET_READ
+  if value<0:
+   require(ctypes.get_errno()==errno.EINVAL and capability>0)
+   break
+  require(value in (0,1) and capability<64)
+  known.append(capability);control(24,capability)  # PR_CAPBSET_DROP
+ else: raise RuntimeError('unsupported_capability_range')
+ header,data=capabilities()
+ for item in data: item.inheritable=0
+ require(capset(ctypes.byref(header),data)==0)
+ os.chroot(root);os.chdir('/')
+ os.setgroups([]);os.setresgid(1000,1000,1000);os.setresuid(1000,1000,1000)
+ require(os.getresuid()==(1000,1000,1000) and os.getresgid()==(1000,1000,1000) and os.getgroups()==[])
+ header,data=capabilities()
+ require(all(item.effective==item.permitted==item.inheritable==0 for item in data))
+ require(control(27)==0 and control(39)==1)
+ for capability in known:
+  require(control(23,capability)==0 and control(47,1,capability)==0)
+ os.execve(command[0],command,environment)
+ raise RuntimeError('exec_returned')
+except BaseException:
+ # Especially after chroot, never use traceback/print/logging/sys.exit: an
+ # exception hook or lazy import must not consult the target tree under root.
+ try: os.write(2,b'factory_exporter_launcher_failed\\n')
+ except BaseException: pass
+ os._exit(127)
+'''
+
 # Root prepares and validates immutable input snapshots. This trusted extraction
-# driver is executed only after chroot + setpriv, never evaluated by root.
+# driver is executed only after chroot + numeric UID/GID drop, never by root.
 EXTRACT = '''import hashlib,json,os,zipfile
 from pathlib import Path
 assert os.getresuid()==(1000,1000,1000) and os.getresgid()==(1000,1000,1000) and os.getgroups()==[]
@@ -103,16 +170,24 @@ def check_environment(rootfs, sources, wheels, support, output):
             verifier.secure_record(verifier.single_record(path))
 
 
+def host_interpreter():
+    """The same trusted host Python, never a program discovered in the image."""
+    executable = Path(sys.executable)
+    require(executable.is_absolute(), 'Absolute host Python interpreter required')
+    executable = executable.resolve(strict=True)
+    checked_path(executable)
+    for path in (executable, *executable.parents):
+        verifier.secure_record(verifier.single_record(path))
+    require(stat.S_ISREG(executable.stat().st_mode) and executable.stat().st_mode & 0o111,
+            'Regular executable host interpreter required')
+    return str(executable)
+
+
 def child_command(rootfs, command):
     # PID namespace init exit waits for namespace children to be killed/reaped;
     # the unshare supervisor itself is always waited before any freeze/chown.
     return ['/usr/bin/unshare', '--pid', '--ipc', '--fork', '--kill-child=KILL',
-            '/usr/sbin/chroot', str(rootfs), '/usr/bin/setpriv', '--reuid=1000',
-            '--regid=1000', '--clear-groups', '--no-new-privs', '--inh-caps=-all',
-            '--ambient-caps=-all', '--bounding-set=-all', '/usr/bin/env', '-i',
-            'PATH=/usr/bin:/bin', 'LANG=C.UTF-8', 'LC_ALL=C.UTF-8', 'TZ=UTC',
-            'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', 'PYTHONHASHSEED=0',
-            *command]
+            host_interpreter(), '-I', '-B', '-S', '-c', HOST_LAUNCHER, str(rootfs), *command]
 
 
 def install_steps():

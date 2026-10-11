@@ -4,9 +4,11 @@ Local bundle checks explicitly normalize UID/GID and the host xattr capability;
 they are not native Linux ownership or runtime qualification.
 """
 import base64
+import builtins
 import contextlib
 import copy
 import csv
+import ctypes
 import hashlib
 import importlib.util
 import io
@@ -18,6 +20,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 import warnings
 from unittest.mock import Mock, call, patch
@@ -38,6 +41,176 @@ verify = module('factory_exporter_verifier_fixture', 'verify-factory-exporter-ro
 installer = module('factory_exporter_installer_fixture', 'install-factory-exporter-rootfs.py')
 WHEEL_NAME = 'fixture-1.0-py3-none-any.whl'
 INERT = b'raise AssertionError("FIXTURE_MUST_NEVER_BE_IMPORTED")\n'
+
+
+class LauncherExit(BaseException):
+    pass
+
+
+class HostLauncherFixture:
+    """Run launcher logic with no real OS/libc/process operation available."""
+    ROOT = '/var/tmp/inkyos-work/prototype.fixture/root'
+    COMMAND = ['/usr/bin/python3.13', '-I', '-B', '-S', '/inert.py']
+
+    def __init__(self, failure=None):
+        self.failure = failure
+        self.events = []
+        self.uid = self.gid = (0, 0, 0)
+        self.groups = [0, 27]
+        self.chrooted = False
+        self.securebits = 0x3f
+        self.nnp = 0
+        self.ambient = {0, 1}
+        self.bounding = set(range(41))
+        self.caps = [[0xffffffff, 0xffffffff, 0x7], [0x1ff, 0x1ff, 0x3]]
+        self.error = 0
+        self.capget_count = 0
+        self.exec_calls = []
+        self.output = []
+        self.libc = types.SimpleNamespace(prctl=Mock(side_effect=self.prctl),
+                                          capget=Mock(side_effect=self.capget),
+                                          capset=Mock(side_effect=self.capset))
+        self.ctypes = types.SimpleNamespace(
+            Structure=ctypes.Structure, c_uint32=ctypes.c_uint32,
+            c_int=ctypes.c_int, c_ulong=ctypes.c_ulong,
+            POINTER=ctypes.POINTER, byref=ctypes.byref,
+            CDLL=self.cdll, set_errno=self.set_errno, get_errno=lambda: self.error)
+        self.os = types.SimpleNamespace(
+            getresuid=lambda: self.uid, getresgid=lambda: self.gid,
+            getgroups=lambda: list(self.groups), chroot=self.chroot, chdir=self.chdir,
+            setgroups=self.setgroups, setresgid=self.setresgid, setresuid=self.setresuid,
+            execve=self.execve, write=self.write, _exit=self.exit)
+        self.sys = types.SimpleNamespace(argv=['-c', self.ROOT, *self.COMMAND])
+
+    def cdll(self, name, **kwargs):
+        self.events.append(('CDLL', name, kwargs, self.chrooted))
+        return self.libc
+
+    def set_errno(self, value):
+        self.error = value
+
+    def prctl(self, option, a=0, b=0, c=0, d=0):
+        self.events.append(('prctl', option, a, b, self.chrooted))
+        if self.failure == ('prctl', option, a):
+            self.error = 1
+            return -1
+        if option == 28:  # PR_SET_SECUREBITS
+            self.securebits = a
+            return 0
+        if option == 27:
+            return self.securebits
+        if option == 38:  # PR_SET_NO_NEW_PRIVS
+            self.nnp = a
+            return 0
+        if option == 39:
+            return self.nnp
+        if option == 47 and a == 4:  # PR_CAP_AMBIENT_CLEAR_ALL
+            if self.failure != 'ambient_residual':
+                self.ambient.clear()
+            return 0
+        if option == 47 and a == 1:
+            return int(b in self.ambient)
+        if option == 23:  # PR_CAPBSET_READ
+            if a >= 41:
+                self.error = 22
+                return -1
+            return int(a in self.bounding)
+        if option == 24:  # PR_CAPBSET_DROP
+            if self.failure != 'bounding_residual':
+                self.bounding.discard(a)
+            return 0
+        raise AssertionError('Unexpected prctl in launcher fixture')
+
+    def capget(self, header, data):
+        self.capget_count += 1
+        self.events.append(('capget', self.chrooted))
+        if self.failure == ('capget', self.capget_count):
+            return -1
+        if self.failure == 'bad_cap_version':
+            header._obj.version = 0
+        for item, values in zip(data, self.caps):
+            item.effective, item.permitted, item.inheritable = values
+        return 0
+
+    def capset(self, header, data):
+        values = [[item.effective, item.permitted, item.inheritable] for item in data]
+        self.events.append(('capset', values, self.chrooted))
+        if self.failure == 'capset':
+            return -1
+        self.caps = values
+        return 0
+
+    def chroot(self, path):
+        self.events.append(('chroot', path, self.uid))
+        self.chrooted = True
+
+    def chdir(self, path):
+        self.events.append(('chdir', path))
+        if self.failure == 'chdir':
+            raise OSError('private fixture error must never be rendered')
+
+    def setgroups(self, groups):
+        self.events.append(('setgroups', list(groups)))
+        if self.failure == 'setgroups':
+            raise OSError('private fixture error must never be rendered')
+        self.groups = [27] if self.failure == 'groups_residual' else list(groups)
+
+    def setresgid(self, *gid):
+        self.events.append(('setresgid', gid))
+        self.gid = (1000, 1000, 0) if self.failure == 'gid_residual' else gid
+
+    def setresuid(self, *uid):
+        self.events.append(('setresuid', uid))
+        self.uid = (1000, 1000, 0) if self.failure == 'uid_residual' else uid
+        self.caps = [[0, 0, values[2]] for values in self.caps]
+        for index, label in enumerate(('effective', 'permitted', 'inheritable')):
+            if self.failure == label + '_residual':
+                self.caps[1][index] = 1  # Check both 32-bit capability words.
+        if self.failure == 'securebits_residual':
+            self.securebits = 1
+        if self.failure == 'nnp_residual':
+            self.nnp = 0
+
+    def execve(self, filename, command, environment):
+        self.events.append(('execve', filename))
+        self.exec_calls.append({'filename': filename, 'command': list(command),
+                               'environment': dict(environment), 'uid': self.uid,
+                               'gid': self.gid, 'groups': list(self.groups),
+                               'caps': copy.deepcopy(self.caps),
+                               'bounding': set(self.bounding), 'ambient': set(self.ambient),
+                               'securebits': self.securebits, 'nnp': self.nnp})
+        # The fake deliberately returns. The real launcher must refuse this;
+        # successful-exec assertions inspect the captured call, never a child.
+
+    def write(self, fd, raw):
+        self.output.append((fd, raw))
+        return len(raw)
+
+    def exit(self, status):
+        self.events.append(('_exit', status))
+        raise LauncherExit(status)
+
+    def run(self):
+        modules = {'ctypes': self.ctypes, 'errno': types.SimpleNamespace(EINVAL=22),
+                   'os': self.os, 'sys': self.sys}
+
+        def import_host(name, globals=None, locals=None, fromlist=(), level=0):
+            self.events.append(('import', name, self.chrooted))
+            if self.chrooted or level or name not in modules:
+                raise AssertionError('Non-host import or NSS lookup refused by fixture')
+            return modules[name]
+
+        safe_builtins = dict(vars(builtins), __import__=import_host)
+        for name in ('open', 'print', 'input', 'eval', 'exec', 'compile', 'breakpoint'):
+            safe_builtins[name] = Mock(side_effect=AssertionError('No real IO or dynamic execution'))
+        namespace = {'__builtins__': safe_builtins, '__name__': 'host_launcher_fixture'}
+        try:
+            exec(installer.HOST_LAUNCHER, namespace)
+        except LauncherExit as exc:
+            self.exit_status = exc.args[0]
+        else:
+            raise AssertionError('Launcher unexpectedly returned without exec or _exit')
+        return self
 
 
 def digest(raw):
@@ -102,6 +275,7 @@ class ExporterFixture(unittest.TestCase):
             'base_image_sha256': '1' * 64,
             'base_lock_sha256': '2' * 64,
             'system_packages_lock_sha256': '3' * 64,
+            'test_access_packages_lock_sha256': '6' * 64,
         }
         self.write(self.wheels / WHEEL_NAME, self.raw_wheel)
         for path, raw in self.source_files.items():
@@ -185,8 +359,6 @@ class ExporterFixture(unittest.TestCase):
         # Deliberately non-ELF bytes: load_support validates a trusted inventory
         # contract, never loads the interpreter or claims to perform ELF review.
         paths['usr/bin/python3.13'] = verify.file_record(b'INERT_INTERPRETER', '0755')
-        paths['usr/bin/setpriv'] = verify.file_record(b'INERT_SETPRIV', '0755')
-        paths['usr/bin/env'] = verify.file_record(b'INERT_ENV', '0755')
         paths['usr/bin/python3'] = {'type': 'symlink', 'uid': 0, 'gid': 0, 'mode': '0777',
                                   'target': 'python3.13', 'xattrs': copy.deepcopy(verify.EMPTY_XATTRS)}
         paths['etc/ld.so.cache'] = verify.file_record(b'INERT_CACHE')
@@ -199,11 +371,12 @@ class ExporterFixture(unittest.TestCase):
                     absent=sorted(verify.ABSENCE_GUARDS),
                     elf_closure_review={'method': 'INERT_FIXTURE_NOT_A_NATIVE_REVIEW',
                                         'evidence_sha256': '4' * 64,
-                                        'roots': ['usr/bin/python3.13', 'usr/bin/setpriv', 'usr/bin/env'],
-                                        'files': ['usr/bin/python3.13', 'usr/bin/setpriv', 'usr/bin/env'],
+                                        'roots': ['usr/bin/python3.13'],
+                                        'files': ['usr/bin/python3.13'],
                                         'search_paths': ['usr/lib/aarch64-linux-gnu']},
                     **{key: self.lock[key] for key in
-                       ('base_image_sha256', 'base_lock_sha256', 'system_packages_lock_sha256')})
+                       ('base_image_sha256', 'base_lock_sha256', 'system_packages_lock_sha256',
+                        'test_access_packages_lock_sha256')})
 
     def load_support_fixture(self, support):
         raw = json.dumps(support, sort_keys=True).encode()
@@ -447,7 +620,8 @@ class SupportTests(ExporterFixture):
         support = self.support_fixture(); support['paths']['usr']['uid'] = 1000; cases.append(support)
         support = self.support_fixture(); support['paths']['usr']['xattrs'] = {'status': 'unsupported', 'reason': 'platform'}; cases.append(support)
         support = self.support_fixture(); support['elf_closure_review']['evidence_sha256'] = ''; cases.append(support)
-        support = self.support_fixture(); support['elf_closure_review']['roots'].remove('usr/bin/setpriv'); cases.append(support)
+        support = self.support_fixture(); support['elf_closure_review']['roots'] = ['etc/ld.so.cache']; cases.append(support)
+        support = self.support_fixture(); support['test_access_packages_lock_sha256'] = 'a' * 64; cases.append(support)
         for index, support in enumerate(cases):
             with self.subTest(case=index), self.assertRaises(ValueError):
                 self.load_support_fixture(support)
@@ -514,7 +688,8 @@ class InstallerTests(ExporterFixture):
         process.wait.return_value = 0
         log = self.base / 'normal-step.log'
         with patch.object(installer.subprocess, 'Popen', return_value=process) as popen, \
-                patch.object(installer.os, 'killpg') as killpg:
+                patch.object(installer.os, 'killpg') as killpg, \
+                patch.object(installer, 'host_interpreter', return_value='/HOST/python3'):
             installer.run_step(self.root, ['/INERT_COMMAND'], log, timeout=7)
         popen.assert_called_once()
         process.wait.assert_called_once_with(timeout=7)
@@ -536,6 +711,7 @@ class InstallerTests(ExporterFixture):
             process.wait.side_effect = wait
             with self.subTest(failure=type(failure).__name__), \
                     patch.object(installer.subprocess, 'Popen', return_value=process), \
+                    patch.object(installer, 'host_interpreter', return_value='/HOST/python3'), \
                     patch.object(installer.os, 'killpg',
                                  side_effect=lambda pid, sig: events.append(('killpg', pid, sig))) as killpg:
                 with self.assertRaises(type(failure)) as raised:
@@ -587,20 +763,116 @@ class InstallerTests(ExporterFixture):
         self.assertIn('--without-scm-ignore-files', steps[0][1])
         self.assertNotIn('--system-site-packages', steps[0][1])
 
-    def test_child_command_drops_identity_and_groups_before_target_python(self):
+    def test_child_command_enters_namespace_using_only_the_validated_host_launcher(self):
         command = ['/usr/bin/python3.13', '-I', '-B', '-S', '/inert.py']
-        child = installer.child_command(self.root, command)
-        self.assertEqual(child[-len(command):], command)
-        boundary = child.index('/usr/bin/setpriv')
-        self.assertLess(child.index('/usr/sbin/chroot'), boundary)
-        self.assertIn(str(self.root), child[:boundary])
-        for argument in ('--reuid=1000', '--regid=1000', '--clear-groups', '--no-new-privs',
-                         '--inh-caps=-all', '--ambient-caps=-all', '--bounding-set=-all'):
-            self.assertIn(argument, child[boundary:child.index('/usr/bin/env')])
-        self.assertEqual(child[child.index('/usr/bin/env') + 1], '-i')
-        self.assertIn('--kill-child=KILL', child)
-        self.assertIn('--pid', child)
-        self.assertIn('--fork', child)
+        with patch.object(installer, 'host_interpreter', return_value='/HOST/python3') as host:
+            child = installer.child_command(self.root, command)
+        host.assert_called_once_with()
+        self.assertEqual(child, ['/usr/bin/unshare', '--pid', '--ipc', '--fork', '--kill-child=KILL',
+                                 '/HOST/python3', '-I', '-B', '-S', '-c',
+                                 installer.HOST_LAUNCHER, str(self.root), *command])
+        self.assertNotIn('/usr/bin/setpriv', child)
+        self.assertNotIn('/usr/bin/env', child)
+        self.assertNotIn('/usr/sbin/chroot', child)
+
+    def test_host_launcher_resolves_symbols_before_chroot_and_execs_only_after_numeric_drop(self):
+        fixture = HostLauncherFixture().run()
+        self.assertEqual(len(fixture.exec_calls), 1)
+        attempted = fixture.exec_calls[0]
+        self.assertEqual(attempted['filename'], '/usr/bin/python3.13')
+        self.assertEqual(attempted['command'], fixture.COMMAND)
+        self.assertEqual(attempted['uid'], (1000, 1000, 1000))
+        self.assertEqual(attempted['gid'], (1000, 1000, 1000))
+        self.assertEqual(attempted['groups'], [])
+        self.assertEqual(attempted['caps'], [[0, 0, 0], [0, 0, 0]])
+        self.assertEqual(attempted['bounding'], set())
+        self.assertEqual(attempted['ambient'], set())
+        self.assertEqual((attempted['securebits'], attempted['nnp']), (0, 1))
+        self.assertEqual(attempted['environment'], {
+            'HOME': '/home/inky', 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC',
+            'PYTHONNOUSERSITE': '1', 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'})
+        self.assertEqual([e for e in fixture.events if e[0] == 'import'],
+                         [('import', name, False) for name in ('ctypes', 'errno', 'os', 'sys')])
+        self.assertEqual([e for e in fixture.events if e[0] == 'CDLL'],
+                         [('CDLL', None, {'use_errno': True}, False)])
+        transitions = [event[0] for event in fixture.events
+                       if event[0] in {'chroot', 'chdir', 'setgroups', 'setresgid', 'setresuid', 'execve'}]
+        self.assertEqual(transitions, ['chroot', 'chdir', 'setgroups', 'setresgid', 'setresuid', 'execve'])
+        capset = [e for e in fixture.events if e[0] == 'capset']
+        self.assertEqual(len(capset), 1)
+        self.assertFalse(capset[0][-1])
+        self.assertTrue(all(row[0] and row[1] and row[2] == 0 for row in capset[0][1]))
+        # Our fake execve returned, which must be an explicit refusal path.
+        self.assertEqual(fixture.exit_status, 127)
+        self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
+
+    def test_host_launcher_capability_syscall_failures_never_reach_exec(self):
+        failures = (('prctl', 28, 0), ('prctl', 38, 1), ('prctl', 24, 0),
+                    ('prctl', 47, 4), ('capget', 1), ('capget', 2), 'capset', 'bad_cap_version')
+        for failure in failures:
+            with self.subTest(failure=failure):
+                fixture = HostLauncherFixture(failure).run()
+                self.assertEqual(fixture.exec_calls, [])
+                self.assertEqual(fixture.exit_status, 127)
+                self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
+                self.assertFalse(any(e[0] == 'import' and e[-1] for e in fixture.events))
+
+    def test_host_launcher_residual_identity_or_capabilities_block_exec(self):
+        for kind in ('uid', 'gid', 'groups', 'effective', 'permitted', 'inheritable',
+                     'bounding', 'ambient', 'securebits', 'nnp'):
+            with self.subTest(kind=kind):
+                fixture = HostLauncherFixture(kind + '_residual').run()
+                self.assertTrue(fixture.chrooted)
+                self.assertEqual(fixture.exec_calls, [])
+                self.assertEqual(fixture.exit_status, 127)
+                self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
+
+    def test_host_launcher_root_failure_after_chroot_uses_only_literal_diagnostic_and_exit(self):
+        for failure in ('chdir', 'setgroups'):
+            with self.subTest(failure=failure):
+                fixture = HostLauncherFixture(failure).run()
+                self.assertTrue(fixture.chrooted)
+                self.assertEqual(fixture.uid, (0, 0, 0))
+                self.assertEqual(fixture.exec_calls, [])
+                self.assertEqual(fixture.exit_status, 127)
+                self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
+                self.assertFalse(any(e[0] == 'import' and e[-1] for e in fixture.events))
+                self.assertFalse(any(e[0] == 'setresuid' for e in fixture.events))
+
+    def test_host_interpreter_covers_real_executable_and_every_parent_including_root(self):
+        binary = self.write(self.base / 'host/python3', b'INERT_HOST_BINARY', 0o755)
+        alias = self.base / 'python-alias'; alias.symlink_to(binary)
+        observed = []
+
+        def trusted_host_record(path):
+            observed.append(path)
+            record = verify.single_record(path)
+            return dict(record, uid=0, gid=0, xattrs=copy.deepcopy(verify.EMPTY_XATTRS))
+
+        with patch.object(installer.sys, 'executable', str(alias)), \
+                patch.object(installer.verifier, 'single_record', side_effect=trusted_host_record):
+            self.assertEqual(installer.host_interpreter(), str(binary))
+        self.assertEqual(observed, [binary, *binary.parents])
+        self.assertIn(Path('/'), observed)
+        record = verify.single_record(Path('/'))
+        self.assertEqual(record['type'], 'directory')
+        self.assertEqual(record['uid'], Path('/').stat().st_uid)
+
+    def test_host_interpreter_refuses_relative_path_or_writable_parent(self):
+        with patch.object(installer.sys, 'executable', 'python3'), \
+                self.assertRaisesRegex(ValueError, 'Absolute'):
+            installer.host_interpreter()
+        binary = self.write(self.base / 'host/python3', b'INERT_HOST_BINARY', 0o755)
+
+        def writable_parent(path):
+            record = verify.single_record(path)
+            return dict(record, uid=0, gid=0, xattrs=copy.deepcopy(verify.EMPTY_XATTRS),
+                        mode='0777' if path == binary.parent else record['mode'])
+
+        with patch.object(installer.sys, 'executable', str(binary)), \
+                patch.object(installer.verifier, 'single_record', side_effect=writable_parent), \
+                self.assertRaisesRegex(ValueError, 'Writable'):
+            installer.host_interpreter()
 
     def test_guard_preserves_existing_destination_scratch_and_symlink_parent(self):
         self.write(self.root / 'usr/lib/keep', b'preserve')

@@ -106,7 +106,8 @@ def load_lock(path=ROOT / 'config/factory-exporter.lock.json'):
             if field == 'wheel_sha256':
                 require('/' not in path and path.endswith('.whl'), 'Invalid wheel name')
     for path, field in (('config/base-image.lock.json', 'base_lock_sha256'),
-                        ('config/system-packages.lock.json', 'system_packages_lock_sha256')):
+                        ('config/system-packages.lock.json', 'system_packages_lock_sha256'),
+                        ('config/test-access-packages.lock.json', 'test_access_packages_lock_sha256')):
         require(sha(ordinary(ROOT / path)) == lock[field], 'OS lock pin mismatch')
     require(strict_json(ordinary(ROOT / 'config/base-image.lock.json'))['image']['extracted_sha256']
             == lock['base_image_sha256'], 'Base image mismatch')
@@ -261,6 +262,17 @@ def secure_record(record, *, owner=(0, 0), fixture=False):
 
 def single_record(path):
     """Reuse schema-2 inventory primitives without walking an entire parent."""
+    if path == Path('/'):
+        fd = inventory_module._open_root(path)
+        try:
+            before = os.fstat(fd)
+            record = {'type': 'directory', 'uid': before.st_uid, 'gid': before.st_gid,
+                      'mode': format(stat.S_IMODE(before.st_mode), '04o'),
+                      'xattrs': inventory_module._xattrs(fd)}
+            inventory_module._check_stable(before, os.fstat(fd))
+            return record
+        finally:
+            os.close(fd)
     fd = inventory_module._open_root(path.parent)
     try:
         before = os.stat(path.name, dir_fd=fd, follow_symlinks=False)
@@ -335,7 +347,8 @@ def load_support(lock, path):
     support = strict_json(raw)
     require(support['schema_version'] == 1 and support['kind'] == 'factory-exporter-system-support',
             'Unsupported system-support manifest')
-    for field in ('base_image_sha256', 'base_lock_sha256', 'system_packages_lock_sha256'):
+    for field in ('base_image_sha256', 'base_lock_sha256', 'system_packages_lock_sha256',
+                  'test_access_packages_lock_sha256'):
         require(support[field] == lock[field], 'Support provenance mismatch')
     configuration(support['python_version'])
     records = support_records(support)
@@ -343,13 +356,10 @@ def load_support(lock, path):
             'usr/lib/aarch64-linux-gnu' in support['trees'] and
             'usr/local/lib' in support['trees'] and 'etc/ld.so.conf.d' in support['trees'],
             'Complete reviewed Python and loader search trees required')
-    for path in ('usr/bin/python3', 'usr/bin/python3.13', 'usr/bin/setpriv', 'usr/bin/env',
-                 'etc/ld.so.cache', 'etc/ld.so.conf'):
+    for path in ('usr/bin/python3', 'usr/bin/python3.13', 'etc/ld.so.cache', 'etc/ld.so.conf'):
         require(path in records, 'Required Python/loader support missing')
     require(resolve_record('usr/bin/python3', records) == 'usr/bin/python3.13'
             and records['usr/bin/python3.13']['type'] == 'file', 'External Python interpreter refused')
-    for path in ('usr/bin/setpriv', 'usr/bin/env'):
-        require(records[resolve_record(path, records)]['type'] == 'file', 'External build tool refused')
     absent = support['absent']
     require(isinstance(absent, list) and len(absent) == len(set(absent)) and
             ABSENCE_GUARDS <= set(absent), 'Required absence guards missing')
@@ -368,11 +378,11 @@ def load_support(lock, path):
             if key != 'roots' or not path.startswith(DESTINATION + '/'):
                 require(path in records or key == 'search_paths' and path in absent,
                         'ELF review names unpinned support')
-    native_roots = {'usr/bin/python3.13', 'usr/bin/setpriv', 'usr/bin/env'} | {
+    native_roots = {'usr/bin/python3.13'} | {
         path for path, record in records.items()
         if path.startswith('usr/lib/python3.13/') and path.endswith('.so')
         and record['type'] == 'file'}
-    require(native_roots <= set(review['roots']), 'Interpreter, build tools or stdlib ELF review missing')
+    require(native_roots <= set(review['roots']), 'Interpreter or stdlib ELF review missing')
     return support, records
 
 
