@@ -23,7 +23,7 @@ import sys
 import time
 
 STUDIO_COMMIT = 'da966c6bb6bbb74fae70e20044ff16282d99ef43'
-NATIVE_PROBE_SHA = 'defcb99434c8f000a473de2f2c326f6055dc95345a879a385824398c62fbe379'
+NATIVE_PROBE_SHA = '89b51afed9cd37c402350993710fec4cf4e5344779d209f9bb452670e9b0e87e'
 STUDIO_PINS = {
     'inky_web/__init__.py': 'eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc',
     'inky_web/provisioning/__init__.py': 'fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f',
@@ -155,7 +155,8 @@ def main():
                       client_uids=[0, 1001, 1000], client_group=native.GID,
                       response_loss_injected=False)
         require(code == 0 and observation['status'] == 'PASS' and observation['unit_stopped'] is True
-                and len(observation['checks']) == 8 and all(observation['checks'].values()))
+                and observation['unit_cgroup_empty'] is True
+                and len(observation['checks']) == 10 and all(value is True for value in observation['checks'].values()))
         report['status'] = 'PASS'
     except Exception:
         report['status'] = 'FAIL'

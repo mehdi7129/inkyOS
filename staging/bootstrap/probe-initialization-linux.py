@@ -29,9 +29,9 @@ import time
 import uuid
 
 PINS = {
-    'scripts/initialization-server.py': '71052d82be30f25ea6c0f1414fcefeec2014bac125a3bbeb3b78428027514e53',
+    'scripts/initialization-server.py': '1c84ffaffe3c9c673a2d5bafcee928ac699a7c215895b78b8e3d76d3982d5ce1',
     'scripts/initialization-receipt.py': '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6',
-    'staging/bootstrap/inkyos-initialization.service': '5abb940039d25f5094346d1c32a8b9caa1961b041463f64fc2b7c7d2fcd31ea1',
+    'staging/bootstrap/inkyos-initialization.service': '8119065639719473be2a22fd65cfa2a84924603cd293c578e3993e48cb1629de',
 }
 BUILDER = Path('/var/lib/inkyos-build')
 # Numeric existing unprivileged group: systemd still resolves Group through NSS.
@@ -129,8 +129,9 @@ def main():
     report = {'schema_version': 1, 'status': 'FAIL', 'checks': {},
               'synthetic_authority_only': True, 'production_paths_qualified': False,
               'production_recipe_activated': False, 'hardware_qualified': False,
-              'fixture_state_preserved': False, 'unit_stopped': False}
-    unit = None; unit_attempted = False
+              'fixture_state_preserved': False, 'unit_stopped': False,
+              'unit_cgroup_empty': False}
+    unit = None; unit_attempted = False; cgroup = None
     try:
         require(sys.argv[1:] == ['--run'] and sys.platform == 'linux' and os.geteuid() == 0)
         require(grp.getgrgid(GID).gr_gid == GID and grp.getgrgid(0).gr_gid == 0)
@@ -179,6 +180,7 @@ def main():
         properties = dict(config['Service'])
         properties.pop('ExecStart')
         properties.update(Group=str(GID), SupplementaryGroups='0', RuntimeDirectory=unit,
+                          Slice='system.slice',
                           ReadWritePaths=f'{state} {runtime}')
         bootstrap = '''import importlib.util, pathlib, types
 p=pathlib.Path(%r)
@@ -194,7 +196,20 @@ raise SystemExit(m.main([]))
             argv.append('--property=' + key + '=' + value)
         require(command(['/usr/bin/systemctl', 'show', unit, '--property=LoadState', '--value']).strip() == b'not-found')
         unit_attempted = True
-        command(argv + ['/usr/bin/python3', '-I', '-B', '-c', bootstrap])
+        command(argv + ['/usr/bin/python3', '-I', '-B', '-c', bootstrap], timeout=12)
+        def manager_ready():
+            observed = dict(line.split('=', 1) for line in command([
+                '/usr/bin/systemctl', 'show', unit,
+                '--property=Type,NotifyAccess,ActiveState,SubState,Slice,ControlGroup',
+            ]).decode().splitlines())
+            require(observed == {
+                'Type': 'notify', 'NotifyAccess': 'main', 'ActiveState': 'active',
+                'SubState': 'running', 'Slice': 'system.slice',
+                'ControlGroup': '/system.slice/' + unit + '.service',
+            })
+            return Path('/sys/fs/cgroup') / observed['ControlGroup'].lstrip('/')
+        cgroup = manager_ready()
+        report['checks']['manager_ready_after_start'] = True
         def ready():
             deadline = time.monotonic() + 5
             # A restart can preserve the old socket path. Require an actual
@@ -230,7 +245,10 @@ raise SystemExit(m.main([]))
         first = request(control, 1000, begin=True)
         require(first['ok'] is True and first['result']['status'] == 'newly_consumed')
         report['checks']['begin_durable_with_empty_capabilities'] = True
-        command(['/usr/bin/systemctl', 'restart', unit]); ready()
+        command(['/usr/bin/systemctl', 'restart', unit], timeout=12)
+        require(manager_ready() == cgroup)
+        report['checks']['manager_ready_after_restart'] = True
+        ready()
         require(request(control, 1000, begin=True)['result'] == {**first['result'], 'status': 'already_consumed'})
         report['checks']['same_receipt_after_service_restart'] = True
         lock = os.open(state / 'lock', os.O_RDONLY | os.O_NOFOLLOW)
@@ -257,10 +275,23 @@ raise SystemExit(m.main([]))
                     status = command(['/usr/bin/systemctl', 'is-active', unit], accepted=(3, 4)).strip()
                 require(status in {b'inactive', b'unknown'})
                 report['unit_stopped'] = True
+                if cgroup is not None:
+                    deadline = time.monotonic() + 2
+                    while cgroup.exists():
+                        try:
+                            events = (cgroup / 'cgroup.events').read_text()
+                        except FileNotFoundError:
+                            require(not cgroup.exists()); break
+                        if 'populated 0' in events.splitlines():
+                            break
+                        require(time.monotonic() < deadline); time.sleep(.02)
+                    report['unit_cgroup_empty'] = True
+                else:
+                    report['status'] = 'FAIL'
             except Exception:
                 report['status'] = 'FAIL'
         print(json.dumps(report, sort_keys=True))
-    return 0 if report['status'] == 'PASS' and report['unit_stopped'] else 1
+    return 0 if report['status'] == 'PASS' and report['unit_stopped'] and report['unit_cgroup_empty'] else 1
 
 
 if __name__ == '__main__':
