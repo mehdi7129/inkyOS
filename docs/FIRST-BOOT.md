@@ -1,9 +1,19 @@
 # Premier démarrage sans LAN
 
-**Point actuel — 9 octobre 2026 :** l'[alignement OS/app](OS-APP-ALIGNMENT.md)
+**Point actuel — 11 octobre 2026 :** l'[alignement OS/app](OS-APP-ALIGNMENT.md)
 conserve le backend `c31b13a` pour le banc LAN avec iOS build 9. Le parcours
 usine entièrement sans LAN reste à raccorder. Les références datées ci-dessous
 documentent les décisions et bancs successifs, pas le payload actuellement sur SD.
+
+Le [hook factory](FACTORY-AUTHORITY.md) compose maintenant consommation de la
+permission, publication des credentials et création de l’autorité. Ses
+[fixtures de reprise](validation/2026-10-11-factory-composition-tests.json)
+passent ; le [service IPC-A](INITIALIZATION-IPC.md) est également développé.
+Ces composants restent hors de l’image TEST. Le runtime Studio doit encore
+raccorder QR, bootstrap, adoption et réparation de l’heure ; la
+[politique d’heure](BOOTSTRAP-TIME-POLICY.md) et le
+[runtime exporter proposé](FACTORY-EXPORTER-PROPOSAL.md) ne constituent pas
+des services installés.
 
 État au 28 septembre 2026 : développement en cours, **pas encore un parcours
 utilisable de bout en bout**. Le candidat applicatif `6a697d1` ne sait pas ouvrir

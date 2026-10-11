@@ -23,8 +23,8 @@ pays, choisir le Wi-Fi et envoyer une photo**.
 | Initialisation sans LAN | Service IPC local développé et banc Linux réussi ; il n’est pas installé dans l’image TEST. Le raccord backend/iOS est en cours. |
 | Écran | PCB 7,3″ dont les marquages corroborent l’ancienne famille sept couleurs ; driver physique et affichage non qualifiés. |
 
-La dernière suite passe **[1 181 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-authority-tests.json)**,
-sans échec (5 skips macOS, 1 skip Linux). Le [banc IPC natif](docs/INITIALIZATION-IPC.md)
+La dernière suite passe **[1 219 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-composition-tests.json)**,
+sans échec (6 skips macOS, 2 skips Linux). Le [banc IPC natif](docs/INITIALIZATION-IPC.md)
 vérifie séparément les droits des processus, la consommation unique de
 l’autorisation et la reprise après redémarrage.
 Le [vrai client Studio passe aussi le banc croisé Linux](docs/validation/2026-10-11-initialization-studio-native.json).
