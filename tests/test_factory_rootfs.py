@@ -214,6 +214,67 @@ class FactoryRootfsTests(unittest.TestCase):
                 self.assert_refused_without_mutation()
                 path.write_bytes(original)
 
+    def test_readonly_uninitialized_machine_id_is_preserved(self):
+        path = self.root / 'etc/machine-id'
+        path.chmod(0o444)
+        before = verify.stamp(path.lstat())
+        raw = path.read_bytes()
+        self.assertEqual(raw, b'uninitialized\n')
+        self.assertTrue(self.prepare()['passed'])
+        self.assertTrue(self.check()['passed'])
+        self.assertEqual(verify.stamp(path.lstat()), before)
+        self.assertEqual(path.read_bytes(), raw)
+        self.assertEqual(os.listxattr(path), [])
+
+    def test_machine_id_modes_other_than_0444_and_0644_are_refused(self):
+        path = self.root / 'etc/machine-id'
+        for mode in (0o400, 0o440, 0o555, 0o600, 0o640, 0o646, 0o664, 0o666, 0o755, 0o444 | stat.S_ISUID):
+            with self.subTest(mode=oct(mode)):
+                path.chmod(mode)
+                self.assert_refused_without_mutation()
+                self.assertEqual(stat.S_IMODE(path.lstat().st_mode), mode)
+
+    def test_actual_machine_identity_is_refused_in_both_permitted_modes(self):
+        path = self.root / 'etc/machine-id'
+        path.write_bytes(b'a' * 32 + b'\n')
+        for mode in (0o444, 0o644):
+            with self.subTest(mode=oct(mode)):
+                path.chmod(mode)
+                self.assert_refused_without_mutation()
+
+    def test_machine_id_mode_change_before_open_or_during_read_refuses_before_layout_mutation(self):
+        path = self.root / 'etc/machine-id'
+        original_read = os.read
+        original_bytes = configure.verification.LayoutTree.bytes
+        for boundary, start, finish in (('before_open', 0o444, 0o644), ('during_read', 0o444, 0o644),
+                                        ('before_open', 0o644, 0o444), ('during_read', 0o644, 0o444)):
+            with self.subTest(boundary=boundary, start=oct(start), finish=oct(finish)):
+                path.chmod(start)
+                before = self.snapshot()
+                pin = path.lstat()
+                changed = []
+
+                def bytes_with_mode_change(tree, name, **options):
+                    if boundary == 'before_open' and name == 'etc/machine-id' and not changed:
+                        path.chmod(finish)
+                        changed.append(True)
+                    return original_bytes(tree, name, **options)
+
+                def read_with_mode_change(fd, count):
+                    opened = os.fstat(fd)
+                    if boundary == 'during_read' and (opened.st_dev, opened.st_ino) == (pin.st_dev, pin.st_ino) and not changed:
+                        path.chmod(finish)
+                        changed.append(True)
+                    return original_read(fd, count)
+
+                with patch.object(configure.verification.LayoutTree, 'bytes', new=bytes_with_mode_change), \
+                        patch.object(os, 'read', side_effect=read_with_mode_change), self.assertRaises(ValueError):
+                    self.prepare()
+                self.assertEqual(changed, [True])
+                after = self.snapshot()
+                self.assertEqual({name for name in before if before[name] != after[name]}, {'etc/machine-id'})
+                self.assertFalse((self.root / verify.PERMISSION).exists())
+
     def test_host_identity_is_refused_without_mutation(self):
         path = self.write('etc/ssh/ssh_host_ed25519_key', b'INERT IDENTITY SENTINEL\n', 0o600)
         self.assert_refused_without_mutation()

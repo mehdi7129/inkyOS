@@ -44,6 +44,13 @@ contrôle précis du layout, gates système, freeze RO, inventaire et fsck exist
 Le venv et ses symlinks d'interpréteur sont présents dans le bundle final ; aucun
 interpréteur applicatif, helper ou service n'est lancé.
 
+La sentinelle `etc/machine-id` conserve les bytes exacts `uninitialized\n` et son
+mode amont : le contrôle factory admet uniquement `0444` ou `0644` pour ce fichier.
+Il épingle le mode observé pour la lecture, avec les contrôles existants du type,
+owner, lien unique, xattrs, taille et stabilité des métadonnées. Aucun chmod ni
+normalisation n'est réalisé ; une identité existante ou un changement de mode
+pendant la lecture reste refusé. Les modes des autres fichiers restent inchangés.
+
 Le layout conserve DATA vide `1000:1000/0700`, la permission générique non
 consommée et les quatre modules OS épinglés. Studio, helper et ancien cadre sont
 masqués ; les unités factory, supervisor et IPC sont absentes. L'image ne contient

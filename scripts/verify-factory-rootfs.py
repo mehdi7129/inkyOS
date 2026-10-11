@@ -146,7 +146,9 @@ def tree(rootfs, uid, gid):
 
 
 def unused(tree):
-    require(tree.bytes('etc/machine-id', mode=0o644, limit=256) == b'uninitialized\n')
+    machine_id_mode = stat.S_IMODE(tree.metadata('etc/machine-id').st_mode)
+    require(machine_id_mode in (0o444, 0o644))
+    require(tree.bytes('etc/machine-id', mode=machine_id_mode, limit=256) == b'uninitialized\n')
     if not tree.absent('var/lib/dbus/machine-id'):
         info = tree.metadata('var/lib/dbus/machine-id')
         if stat.S_ISLNK(info.st_mode):
