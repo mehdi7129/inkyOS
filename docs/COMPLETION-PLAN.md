@@ -81,6 +81,10 @@ couvre publication et autorité, et une reprise après consommation ne génère
 jamais de nouveaux credentials implicitement. Le futur profil doit encore
 exclure les processus applicatifs concurrents et installer
 l’[exporter dédié proposé](FACTORY-EXPORTER-PROPOSAL.md).
+La [primitive coopérative d’admission](FACTORY-WRITER-ADMISSION.md) passe
+31 tests Linux ARM64, dont la concurrence et les droits UID/GID 1000. Elle
+n’est raccordée à aucun service : le superviseur, les wrappers et les refus
+des anciennes voies de maintenance restent à intégrer avec Studio.
 La [politique d'heure proposée](BOOTSTRAP-TIME-POLICY.md) fixe les bornes,
 le délai et les preuves attendues ; l'admission partagée avec Studio et le
 service privilégié restent à développer. Ce document ne règle aucune horloge.

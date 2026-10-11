@@ -23,28 +23,19 @@ pays, choisir le Wi-Fi et envoyer une photo**.
 | Initialisation sans LAN | Service IPC local développé et banc Linux réussi ; il n’est pas installé dans l’image TEST. Le raccord backend/iOS est en cours. |
 | Écran | PCB 7,3″ dont les marquages corroborent l’ancienne famille sept couleurs ; driver physique et affichage non qualifiés. |
 
-Le dernier banc global consigné passe **[1 273 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-exporter-workspace-tests.json)**,
-sans échec (8 skips macOS, 2 skips Linux). Le [banc IPC natif](docs/INITIALIZATION-IPC.md)
-vérifie séparément les droits des processus, la consommation unique de
-l’autorisation et la reprise après redémarrage.
-La readiness du service et le [vrai client Studio passent les deux bancs Linux](docs/validation/2026-10-11-ipc-notify-readiness-native.json) :
-10 contrôles chacun, complétés par 57 tests ciblés sans échec.
-Le [publisher de credentials factory](docs/FACTORY-CREDENTIALS.md) passe
-27 tests ciblés Linux, dont la chute effective de privilèges. Le hook compose
-désormais permission, publication puis autorité. Le vrai sérialiseur Studio
-passe aussi un [banc Linux isolé](docs/validation/2026-10-11-factory-studio-serializer-native.json),
-et le [superviseur passe dix cas](docs/FACTORY-SERVICE-FIXTURE.md).
-Le [runtime exporter dédié](docs/FACTORY-EXPORTER-PROPOSAL.md) est installé sur
-une copie d’image et [vérifié en Linux ARM64](docs/validation/2026-10-11-factory-exporter-native-install.json) :
-325 fichiers de payload et 390 entrées contrôlées.
-Le [test de composition installé](docs/FACTORY-INSTALLED-FIXTURE.md) passe
-52 fixtures inertes et un [banc Linux réel](docs/validation/2026-10-11-factory-installed-composition-native.json) :
-création, reprise sans régénération et deux refus attendus, avec validation des
-credentials par Studio sous UID 1000. L’intégration au premier boot et les
-essais matériels restent à qualifier. Le [lot de recette factory](docs/FACTORY-IMAGE-INTEGRATION.md)
-recense les raccords OS/Studio encore nécessaires avant une image utilisable.
-Son préparateur offline passe [30 tests sur macOS et Linux ARM64](docs/validation/2026-10-11-factory-passive-layout-tests.json),
-sans activation de service ; il n’est pas encore raccordé au build d’image.
+Les validations logicielles restent distinctes des essais sur le cadre :
+
+| Lot vérifié | Preuve et limite |
+|---|---|
+| Suite globale consignée | [1 273 tests macOS/Linux ARM64](docs/validation/2026-10-11-factory-exporter-workspace-tests.json), sans échec, avec 8/2 skips. Ce rapport correspond à son commit épinglé. |
+| Initialisation locale | [Service IPC et client Studio testés en Linux](docs/INITIALIZATION-IPC.md), sans installation dans l’image TEST. |
+| Création factory | [Exporter installé](docs/FACTORY-EXPORTER-PROPOSAL.md) et [quatre cas de composition](docs/FACTORY-INSTALLED-FIXTURE.md), dont reprise sans régénération ; premier boot complet encore à intégrer. |
+| Préparation du système | [30 tests du layout passif](docs/validation/2026-10-11-factory-passive-layout-tests.json), sans activation des services. |
+| Admission des processus | [31 tests Linux de la primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md) ; superviseur et chemins de lancement réels encore à raccorder. |
+
+Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
+raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
+est une proposition documentaire commune ; il n’est pas encore activé.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles

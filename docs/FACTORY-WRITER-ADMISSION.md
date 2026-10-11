@@ -1,6 +1,7 @@
 # Admission coopérative factory — primitive de staging
 
-`staging/bootstrap/writer-admission.py` fournit une exclusion locale avec `flock`.
+La [primitive staging](../staging/bootstrap/writer-admission.py) fournit une
+exclusion locale avec `flock`.
 Il n'installe aucune unité, ne lance aucun worker, ne signale aucun processus et
 ne modifie ni Studio, ni les pins, ni la recette image. Il n'a pas de CLI et ne
 choisit jamais `/` ou `/run` par défaut. Les seuls objets créés sont génériques :
@@ -98,3 +99,8 @@ ni renouvellement `/run`, ni graphe systemd, ni superviseur, ni application,
 image, boot ou matériel. Mac utilise des substitutions explicites d'ownership
 et xattrs. Le cas Linux root descend réellement à UID/GID1000 ; il est skipped
 avec raison sur les autres environnements et sa preuve reste séparée.
+
+Le [banc synthétique du 11 octobre 2026](validation/2026-10-11-writer-admission-tests.json)
+passe 31 tests sous Linux ARM64 root, sans skip, dont les accès du writer
+UID/GID 1000. Sur macOS, 28 tests passent et les trois cas Linux root sont
+explicitement ignorés. Ces résultats ne changent aucune des limites ci-dessus.

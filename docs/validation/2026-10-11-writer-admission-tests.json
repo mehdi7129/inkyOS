@@ -1,0 +1,51 @@
+{
+  "boot_qualified": false,
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "limits": [
+    "Synthetic trees and child processes only. No image, installed service, application, radio, screen or SD is accessed.",
+    "Cooperative flock primitive only; unguarded entry points are not blocked by this module.",
+    "The attempted latch prevents another factory attempt in the same fixture after a crash. A real reboot and fresh /run are not tested.",
+    "Ready is a generic assertion. Hook success, candidate pins, worker cgroup quiescence and boot provenance require a separate supervisor and are not established here.",
+    "A late Ready publication error may leave a complete marker accepted by a reader; it is an uncertain response, not revocation.",
+    "Leases retained across dup and fork are exercised. Installed exec wrappers, inherited descriptors across application children, real service drains and NetworkManager or physical display quiescence remain unqualified.",
+    "macOS substitutes fixture ownership and the xattr API. Linux root exercises UID/GID 1000 reads and refusal of state creation with the real APIs."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "694bb67ff7ee4d20b6b2889c4813f582430d34785e50d9626a16bb48b0f84a7e",
+    "tests": 31,
+    "uid": 0
+  },
+  "linux_fixture_writer_gid": 1000,
+  "linux_fixture_writer_uid": 1000,
+  "macos": {
+    "errors": 0,
+    "failures": 0,
+    "ownership_and_xattr_api_substituted": true,
+    "python": "3.13.3",
+    "skip_reason": "Three tests require Linux root and real numeric ownership.",
+    "skipped": 3,
+    "tests_run": 31
+  },
+  "private_receipt_sha256": {
+    "completion.json": "baede02b17c4207eb7e2789aa00d8c9ca44c8609876aa4002c613cec1dd57d20"
+  },
+  "schema_version": 1,
+  "scope": "cooperative-writer-admission-synthetic-process-tests",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "b7c25bb17e1369c0b442934ae6cea1e511865405",
+  "source_sha256": {
+    "staging/bootstrap/writer-admission.py": "915d2a5c0d5d8dd0367dbbb351e70f884a4e4647ef22e6422b1c54032df27884",
+    "tests/test_writer_admission.py": "451440ba150e8f230f955e753e2a1f197a70dc991ec66d6ef06fa8e326011be8"
+  },
+  "status": "PASS",
+  "writer_barrier_qualified": false
+}
