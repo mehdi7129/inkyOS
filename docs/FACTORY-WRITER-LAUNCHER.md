@@ -192,6 +192,28 @@ recette passive actuelle. L'ordre des pins reste : bundle et modules/unités,
 puis support, manifest exporter lié à ce support, et enfin manifest runtime.
 Les manifests support/runtime restent exclus de leur propre inventaire.
 
+## Preuve native des templates et de leur fermeture
+
+Le [banc Linux des writers](validation/2026-10-12-factory-writer-units.json)
+passe **85 tests** répartis en quatre suites sous Debian 13 ARM64, en root avec
+Python **3.13.5**, sans failure, error ou skip. Il a utilisé un snapshot gelé
+non committé basé sur `11942d8` ; les octets des **12 inputs** sont identiques
+au commit `368be24`, et leurs SHA-256 figurent dans le rapport.
+
+La suite globale macOS au même commit passe **1 717 tests**, avec **15 skips**,
+zéro failure ou error, et les **23 scripts Bash** passent le contrôle de syntaxe.
+Les **378 sources**, HEAD et l'état Git restent identiques avant et après.
+
+Les xattrs sous FD, les leases `flock`, l'héritage par `fork` et les identités
+numériques utilisent les APIs Linux. Les inventaires candidats, `mountinfo`
+et NSS restent des fixtures synthétiques explicites. Le launcher effectue
+un vrai `exec` d'un enfant Python inerte, sans exécuter l'argv applicatif installé.
+
+Ces preuves portent sur des bancs logiciels. Elles ne qualifient ni le graphe
+PID1, ni l'admission installée, ni l'application, une image bootée, le Pi ou le
+premier appairage. Aucun service, Studio, helper ou serveur IPC n'est lancé ou
+importé par le banc natif. Le banc natif n'accède à aucune image ni carte SD.
+
 ## API partagée et contexte de boot
 
 Le [banc du guard commun et de l'IPC](validation/2026-10-11-shared-writer-guard-tests.json)
