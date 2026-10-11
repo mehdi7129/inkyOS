@@ -47,6 +47,9 @@ Le couple TEST actuel reste en 2.3.0 jusqu'à livraison d'un candidat commun.
 Les étapes 2 et 3 peuvent avancer en parallèle. Les composants provisoires ne
 sont pas assemblés implicitement à partir de branches différentes. Chaque
 changement de protocole est coordonné entre dépôts et testé des deux côtés.
+Les adaptations de recette, les voies de lancement à couvrir et les limites
+du candidat Studio sont recensées dans
+[FACTORY-IMAGE-INTEGRATION.md](FACTORY-IMAGE-INTEGRATION.md).
 
 ## Limites actuelles
 
