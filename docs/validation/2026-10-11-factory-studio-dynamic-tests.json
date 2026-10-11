@@ -1,0 +1,48 @@
+{
+  "abi_qualified": false,
+  "actual_candidate_metadata_verified_by_this_fixture_run": false,
+  "candidate_code_executed": false,
+  "candidate_qualified": false,
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "limits": [
+    "The 39 cases execute the pinned validator and host packaging tooling against synthetic metadata/wheels. No candidate code, installer, service, image or hardware is exercised.",
+    "Dynamic fields are informational in prebuilt wheels. The fixtures retain dependency closure, version constraints, Requires-Python and requested-extras checks; Dynamic Name, Version and Metadata-Version remain refused case-insensitively.",
+    "Dynamic before Metadata-Version 2.2 is refused, with numeric version-pair comparison. Dependency parsers, marker checks and closure policy are unchanged.",
+    "The Linux root fixture result verifies this source commit and the readback of ten pinned inputs; it does not qualify candidate ABI, loader closure, support, runtime, radio or hardware.",
+    "The macOS global suite has 15 platform skips. The Linux dependency suite has none.",
+    "The earlier real-input static-plan proof remains immutable and accurately records that this later Linux fixture run had not yet been observed at its publication."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "pinned_inputs": 10,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "f1b3381f9c4acc15b1a86a7ea56b049fd0da2e36e728b56c16ed7e18e76a3661",
+    "tests": 39,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 15,
+    "test_log_sha256": "a4533ff68d061c154e10ec2d1d1cd9a1354c226407896545cd8d421f5907b401",
+    "tests_run": 1650,
+    "umask": "0077"
+  },
+  "radio_qualified": false,
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "offline-studio-dependency-dynamic-metadata-fixtures",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "8102d08ef6a45550eba1ebca146b936ed4a52a94",
+  "status": "PASS"
+}

@@ -3,7 +3,14 @@
 État du 11 octobre 2026. La [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
 intègre les corrections Bluetooth, I²C et observation de l'heure ; ses 132
 contrôles offline passent. Elle a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
-le premier démarrage a été lancé et le retour d'enrôlement reste à vérifier.
+son [retour d’enrôlement](validation/2026-10-11-prerequisites-enrollment-return.json)
+passe les 35 contrôles de comparaison et les 10 contrôles d’infrastructure.
+Un nouveau contexte privé est exporté après nettoyage vérifié. Une capsule
+neuve signée a été copiée et relue, puis la SD éjectée ; les nœuds du lecteur
+sont absents après éjection. **La SD est prête pour le prochain boot réseau,
+sans reflash.** Wi-Fi, Bluetooth et application restent non observés sur
+cette nouvelle image issue des sources `5ab139de`, avec backend `c31b13a`
+et iOS `1.0.0 (9)`.
 Le [boot réseau précédent](validation/2026-10-11-radio-readiness-network-observation.json)
 confirme Wi-Fi et SSH authentifié sur l'ancienne image, avec préflight bloqué
 à 17 contrôles sur 24. Les tentatives plus anciennes décrites ci-dessous
@@ -153,6 +160,20 @@ rootfs applicatif exact et des identités synthétiques sur tmpfs ; aucune
 application ni connexion radio n’est lancée.
 
 ## Vérification du retour
+
+Le [retour de la nouvelle image à prérequis corrigés](validation/2026-10-11-prerequisites-enrollment-return.json)
+conserve ses 43 fichiers d’entrée et son seal inchangés après les contrôles.
+Les démontages et le détachement de la loop sont vérifiés indépendamment.
+Deux fichiers de contexte sont exportés en privé ; aucune identité ni hash
+d’artefact privé ne figure dans la projection publique.
+
+La lecture ciblée des deux diagnostics privés passe séparément, avec schémas
+fermés et cleanup indépendant. La garde WLAN est complète et ses 10 checks
+sont vrais. Le diagnostic de boot reste au marqueur initial incomplet `bind`,
+sans erreur enregistrée ni observation d’import, de connexion ou de Bluetooth.
+Cela ne localise aucune panne et ne contredit pas l’enrôlement vérifié.
+La capsule copiée prépare l’essai suivant ; son import et le fonctionnement
+réseau, applicatif et matériel sur cette image restent à vérifier.
 
 Le rapport d'installation des paquets est validé dans l'export attendu. Leurs
 fichiers ne sont pas relus sur le retour SD : ce contrôle reste une comparaison
