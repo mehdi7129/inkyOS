@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "scope": "staged-initialization-ipc-native-fixture",
+  "status": "PASS",
+  "source_sha256": {
+    "server": "7cc014be9e0a3ca3d45798f5cb2e3a007f7047712297c87925c220ac49064573",
+    "receipt": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "unit": "5abb940039d25f5094346d1c32a8b9caa1961b041463f64fc2b7c7d2fcd31ea1",
+    "native_probe": "6db559b3ba5cca95844f3abbaf96337875d9b50269ea465543c8d9fcb25a740d"
+  },
+  "portable_tests": {
+    "platform": "macos",
+    "run": 45,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "linux_peer_credentials_skip": true
+  },
+  "shared_contract_vectors": {
+    "successes": 4,
+    "refusals": 6,
+    "errors": 5,
+    "passed": true
+  },
+  "native": {
+    "platform": "linux-arm64-builder-vm",
+    "exit_code": 0,
+    "check_count": 8,
+    "socket_owners_modes_and_empty_capabilities": true,
+    "root_refused": true,
+    "non_app_fixture_uid_refused": true,
+    "app_uid_admitted_without_earlier_consumption": true,
+    "begin_durable_with_empty_capabilities": true,
+    "same_receipt_after_service_restart": true,
+    "locked_receipt_bounded_and_uncertain": true,
+    "no_duplicate_authority_after_timeout": true,
+    "synthetic_authority_only": true,
+    "accounts_modified": false,
+    "unit_stopped": true
+  },
+  "qualification": {
+    "production_paths_and_group_lookup": false,
+    "production_recipe_activated": false,
+    "image": false,
+    "first_boot": false,
+    "application": false,
+    "hardware": false
+  },
+  "limits": [
+    "The transient fixture reuses unit hardening with synthetic paths and an existing numeric group.",
+    "EOF refusal was verified for a valid bounded request; malformed excess input can still reset the connection.",
+    "Uninterruptible kernel I/O cannot be made cancellable by the parent deadline.",
+    "Restoring an entire older filesystem remains outside the receipt model protection."
+  ]
+}

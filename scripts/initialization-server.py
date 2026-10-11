@@ -266,7 +266,15 @@ def handle_connection(connection, worker, *, _peer_uid=peer_uid, _budget=DEADLIN
         connection.setblocking(False)
         try:
             if _peer_uid(connection) != APP_UID:
-                response = error(None, 'forbidden')
+                # Decide refusal from kernel credentials first. Consume at most
+                # one bounded frame, without ever invoking the worker. Closing
+                # a Linux AF_UNIX stream with an unread valid request otherwise
+                # delivers ECONNRESET after our reply instead of its required EOF.
+                try:
+                    request_id = read_request(connection, deadline - REPLY_RESERVE)['id']
+                except (InvalidRequest, OSError, TimeoutError):
+                    request_id = None
+                response = error(request_id, 'forbidden')
             else:
                 request = read_request(connection, deadline - REPLY_RESERVE)
                 request_id = request['id']

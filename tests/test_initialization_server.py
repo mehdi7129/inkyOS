@@ -186,7 +186,14 @@ class SocketTests(unittest.TestCase):
         self.create()
         for uid in (0, 997, 1001):
             result = self.exchange(wire(request(True)), uid=uid)
-            self.assertEqual(result, server.error(None, 'forbidden'))
+            self.assertEqual(result, server.error(ID, 'forbidden'))
+        self.assertEqual(receipt.inspect(self.path, **self.owner), {'status': 'authorized'})
+
+    def test_malformed_unauthorized_request_stays_forbidden_without_worker(self):
+        self.create()
+        with patch.object(self.worker, 'run') as operation:
+            self.assertEqual(self.exchange(b'{broken}\n', uid=0), server.error(None, 'forbidden'))
+            operation.assert_not_called()
         self.assertEqual(receipt.inspect(self.path, **self.owner), {'status': 'authorized'})
 
     def test_invalid_requests_and_pipelining_never_consume(self):
