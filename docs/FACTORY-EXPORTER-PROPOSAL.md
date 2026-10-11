@@ -1,10 +1,12 @@
-# Exporter factory dédié — proposition d’intégration
+# Exporter factory dédié — contrat staging et intégration
 
 Décision de conception coordonnée le 11 octobre 2026 : préparer un runtime
-exporter distinct, non modifiable par l’utilisateur applicatif. **Cette
-proposition ne change aucun argv, hook, service ou artefact installé.** Le
-[publisher actuel](FACTORY-CREDENTIALS.md) et son contrat Studio `cf17a051`
-conservent le chemin du venv applicatif utilisé dans leurs preuves datées.
+exporter distinct, non modifiable par l’utilisateur applicatif. Le
+[publisher staging](FACTORY-CREDENTIALS.md), appelé par le hook, utilise
+désormais l’argv `factory-exporter-v2` convenu avec Studio. **Aucune recette
+d’image ni aucun service ne l’installe ou ne l’active.** Les preuves historiques
+de l’appel v1 restent attachées à leur ancien chemin de venv applicatif ou de
+fixture ; elles ne qualifient pas ce nouveau parcours installé.
 
 ## Pourquoi un runtime distinct
 
@@ -14,18 +16,18 @@ vérifie pas tous les modules que Python peut importer. Empêcher tous les write
 UID 1000 de modifier ces modules pendant l’exécution ajouterait une contrainte
 au runtime applicatif et à ses mises à jour.
 
-La variante proposée copie les mêmes sources applicatives épinglées et leurs
+L’exporter staging copie les mêmes sources applicatives épinglées et leurs
 dépendances dans un petit runtime factory distinct. Il ne s’agit pas d’une
 réimplémentation du schéma credentials : Studio conserve le sérialiseur, le KDF
 et leur validation. Le backend ordinaire conserve son emplacement et ses droits.
 
-## Contrat installé proposé
+## Contrat staging `factory-exporter-v2`
 
-Le contrat d’installation proposé est nommé **`factory-exporter-v2`**. Cette
+Le contrat d’installation staging est nommé **`factory-exporter-v2`**. Cette
 version désigne le chemin et le bundle installés ; le format credentials v2 et
 le protocole du sérialiseur restent identiques. Studio a confirmé cette
-proposition documentaire ; elle ne constitue pas une promotion du runtime.
-L’argv proposé est :
+évolution ; elle ne constitue pas une promotion dans une recette d’image.
+L’argv du publisher staging est :
 
 ```text
 /usr/lib/inkyos/factory-exporter/venv/bin/python -I -B -m inky_web.provisioning.factory_credentials --emit-v2
@@ -41,9 +43,10 @@ Le runtime installé doit satisfaire les conditions suivantes :
 
 - Sources non editables, issues du candidat Studio identifié par son commit et
   ses octets ; aucun fichier source corrigé localement dans le bundle.
-- Interpréteur, sources, dépendances, configuration du venv et éventuels `.pth`
-  couverts par les entrées attendues. Les cibles de symlinks et les composants
-  système utilisés doivent appartenir à la base OS épinglée ou au bundle.
+- Interpréteur, sources, dépendances et configuration du venv couverts par les
+  entrées attendues. Les fichiers `.pth`, `.egg-link`, `sitecustomize` et
+  `usercustomize` sont refusés dans le bundle. Les cibles de symlinks et les
+  composants système utilisés doivent appartenir à la base OS épinglée ou au bundle.
 - Aucun composant ni parent modifiable par UID 1000. Un manifeste attendu
   root-owned décrit la fermeture importable ; quatre hashes de sources ne
   remplacent pas cet inventaire. Pas de chemin vers un checkout editable,

@@ -1,11 +1,11 @@
-"""STAGING ONLY: collect one app-owned serializer result and publish opaque bytes.
+"""STAGING ONLY: collect one Studio serializer result and publish opaque bytes.
 
-No CLI, installation, permission creation or authorization creation. The future
+No CLI, installation, permission creation or authorization creation. The
 factory hook MUST first consume and fsync its permission, hold its stable lock,
-verify the reviewed candidate and exclude app/helper/other data writers. This
-module neither proves those conditions nor accepts a boolean as their proof.
+verify the exporter bundle/system support and exclude app/helper/data writers.
+This module neither proves those conditions nor accepts a boolean as their proof.
 
-The app-owned interpreter is executed only after dropping uid/gid/groups. Its
+The factory-exporter-v2 interpreter runs only after dropping uid/gid/groups. Its
 pure serializer contract excludes forks and data writes; a process group is
 cleanup for a failed invocation, not confinement of hostile descendants. Service
 startup ordering, source integrity and cgroup lifecycle remain external duties.
@@ -33,7 +33,7 @@ NAME = 'credentials.json'
 MAX_OUTPUT = 8192
 PRODUCER_TIMEOUT = 30.0
 ARGV = (
-    '/home/inky/inky-studio/server/.venv/bin/python', '-I', '-B', '-m',
+    '/usr/lib/inkyos/factory-exporter/venv/bin/python', '-I', '-B', '-m',
     'inky_web.provisioning.factory_credentials', '--emit-v2',
 )
 CWD = '/'

@@ -121,8 +121,11 @@ class PublisherTests(unittest.TestCase):
                                      'INKY_STUDIO_PASSWORD': CANARY}):
             self.publish(producer)
         argv, options = producer.calls[0]
-        self.assertEqual(argv, ('/home/inky/inky-studio/server/.venv/bin/python', '-I', '-B', '-m',
+        self.assertEqual(argv, ('/usr/lib/inkyos/factory-exporter/venv/bin/python', '-I', '-B', '-m',
                                'inky_web.provisioning.factory_credentials', '--emit-v2'))
+        lock = json.loads((SOURCE.parents[1] / 'config/factory-exporter.lock.json').read_bytes())
+        self.assertEqual(lock['contract'], 'factory-exporter-v2')
+        self.assertEqual(argv, tuple(lock['argv']))
         self.assertEqual(options['cwd'], '/')
         self.assertFalse(any(CANARY in value for value in options['env'].values()))
 

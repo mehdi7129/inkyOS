@@ -25,7 +25,7 @@ import uuid
 BUILDER = Path('/var/lib/inkyos-build')
 PUBLISHER = 'scripts/factory-credentials-publisher.py'
 TEMPLATE = 'staging/bootstrap/inkyos-factory-fixture.service'
-PUBLISHER_SHA = '82c071dd2ab841c91464a680e9757a469dbf5f2d105f68999c18a387b70bb222'
+PUBLISHER_SHA = 'ae8d8898315631e4f5ed016fd21c1393073ae611137ece35c8f3fd4f9201bbfe'
 TEMPLATE_SHA = '69eed59cac22e76d0e152f02a0568672f47e1f898c017199e060367da36d6d3f'
 CAPS = {'CAP_CHOWN': 0, 'CAP_DAC_OVERRIDE': 1, 'CAP_KILL': 5,
         'CAP_SETGID': 6, 'CAP_SETUID': 7}

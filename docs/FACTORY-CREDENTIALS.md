@@ -12,9 +12,12 @@ Le contrat applicatif est celui de la [PR Studio #27](https://github.com/mehdi71
 figé pour cette revue au [commit `cf17a051`](https://github.com/mehdi7129/inky-studio/blob/cf17a0514989023143798570a8ae47739b829301/docs/inkyos/FACTORY-CREDENTIALS.md).
 Cette référence documentaire ne remplace pas la vérification du candidat
 réellement installé.
-L’[exporter dédié proposé](FACTORY-EXPORTER-PROPOSAL.md) décrit l’évolution
-coordonnée vers un runtime non modifiable par UID 1000 ; le chemin actuel et
-les octets de ce banc ne changent pas implicitement.
+Le publisher staging utilise désormais le contrat
+[`factory-exporter-v2`](FACTORY-EXPORTER-PROPOSAL.md), avec un runtime dédié
+non modifiable par UID 1000. Le protocole et le format credentials v2 restent
+identiques. Ce changement d’argv ne qualifie pas le parcours installé : les
+preuves datées ci-dessous restent celles de l’ancien appel v1 via le venv
+applicatif ou un interpréteur de fixture.
 
 ## Appel et responsabilités de l’intégration
 
@@ -26,10 +29,11 @@ extrait de pipe, stderr ou message d’exception interne n’est journalisé.
 Les paramètres préfixés `_` servent aux fixtures avec racine synthétique ; ils
 ne constituent pas une interface de configuration ou un protocole applicatif.
 
-Avant cet appel, l’intégration devra vérifier le candidat et ses sources et
-exclure réellement l’app, le helper et tout autre writer. Le hook consomme sa
-permission positive et synchronise cette consommation. Son verrou stable
-reste détenu jusqu’après création durable de l’autorité. Le publisher
+Avant cet appel, l’intégration devra vérifier le bundle exporter attendu et son
+support système épinglé, puis exclure réellement l’app, le helper et tout autre
+writer. Le hook consomme sa permission positive et synchronise cette
+consommation. Son verrou stable reste détenu jusqu’après création durable de
+l’autorité. Le publisher
 ne prouve aucune de ces conditions et ne reçoit pas un booléen les simulant.
 L’ordre prévu est :
 
@@ -45,10 +49,10 @@ privilèges dans l’enfant avant exec** vers UID/GID 1000 et suppression des
 groupes supplémentaires. Le parent reste root pour la publication :
 
 ```text
-/home/inky/inky-studio/server/.venv/bin/python -I -B -m inky_web.provisioning.factory_credentials --emit-v2
+/usr/lib/inkyos/factory-exporter/venv/bin/python -I -B -m inky_web.provisioning.factory_credentials --emit-v2
 ```
 
-Le code et le venv applicatifs ne sont jamais exécutés sous root. Le cwd vaut
+Le code Studio et le venv exporter ne sont jamais exécutés sous root. Le cwd vaut
 `/`, stdin et stderr sont `DEVNULL`, stdout est un pipe anonyme privé. Les seuls
 éléments d’environnement sont `HOME=/home/inky`, `PATH=/usr/bin:/bin` et
 `LANG=LC_ALL=C.UTF-8`. Les FDs inutiles sont fermés et l’umask vaut `0077`.
@@ -95,12 +99,19 @@ ne confine pas un descendant hostile et ne prouve pas l’exclusion des autres
 processus UID 1000. La barrière, les pins du candidat et le cycle de vie du
 cgroup restent des obligations externes.
 
+## Tests locaux et preuves historiques
+
+Les tests locaux suivent l’argv staging `factory-exporter-v2` et utilisent des
+producteurs inertes. Les rapports datés liés dans cette section précèdent ce
+changement : ils restent des preuves de l’appel v1 et ne sont ni réécrits ni
+promus en preuve du hook composé avec l’exporter dédié installé.
+
 Le budget ne rend pas annulables les appels noyau de création de processus ou
 de filesystem, notamment `fsync`. Les [27 cas de test](../tests/test_factory_credentials_publisher.py)
 locaux utilisent des racines synthétiques et des producteurs inertes : framing,
 EOF/exit, limites, timeouts, erreurs, symlinks, substitutions, writes courts,
-relecture et interruptions de processus. La suite macOS passe avec un cas
-Linux privilégié non exécuté (résultats locaux du 11 octobre 2026).
+relecture et interruptions de processus. La preuve macOS historique passe avec
+un cas Linux privilégié non exécuté (résultats locaux du 11 octobre 2026).
 Le [banc Linux ARM64 root séparé](validation/2026-10-11-factory-credentials-publisher.json)
 passe les 27 cas sans skip et vérifie les UID/GID réels, effectifs et sauvés à
 1000, avec groupes supplémentaires vides, dans un interpréteur inerte.

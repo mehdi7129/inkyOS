@@ -106,7 +106,7 @@ class FactoryAuthorityTests(unittest.TestCase):
         """Only an inert interpreter runs; the pinned OS publisher stays real."""
         self.spawn_count += 1
         self.assertEqual(tuple(argv), (
-            '/home/inky/inky-studio/server/.venv/bin/python', '-I', '-B', '-m',
+            '/usr/lib/inkyos/factory-exporter/venv/bin/python', '-I', '-B', '-m',
             'inky_web.provisioning.factory_credentials', '--emit-v2'))
         self.assertEqual((options.pop('user'), options.pop('group'),
                           options.pop('extra_groups')), (1000, 1000, []))
