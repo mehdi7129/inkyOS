@@ -437,17 +437,28 @@ class NotificationTests(unittest.TestCase):
 
     @unittest.skipUnless(server.sys.platform == 'linux', 'Linux UNIX datagram queue semantics only')
     def test_full_manager_queue_has_bounded_notification_failure(self):
-        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager, \
-                socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as filler:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as manager, ExitStack() as fillers:
             manager.bind(self.address)
-            filler.setblocking(False)
-            for _ in range(4096):
-                try:
-                    filler.sendto(b'occupied', self.address)
-                except BlockingIOError:
+            sent = 0
+            for _ in range(32):
+                filler = fillers.enter_context(socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM))
+                filler.setblocking(False)
+                sender_sent = 0
+                while sent < 4096:
+                    try:
+                        filler.sendto(b'occupied', self.address)
+                    except BlockingIOError:
+                        break
+                    sent += 1
+                    sender_sent += 1
+                else:
+                    self.fail('Fixture manager queue exceeded its datagram budget')
+                # A previously used sender can exhaust its own SO_SNDBUF while
+                # the manager still has room. A fresh sender must also block.
+                if sender_sent == 0:
                     break
             else:
-                self.fail('Fixture manager queue did not fill')
+                self.fail('Fixture manager queue exceeded its sender budget')
             with patch.dict(os.environ, {'NOTIFY_SOCKET': self.address}), \
                     patch.object(server, 'NOTIFY_TIMEOUT_SECONDS', .05):
                 started = time.monotonic()
