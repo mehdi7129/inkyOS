@@ -52,6 +52,30 @@ Les exceptions `ReadWritePaths` se limitent à l’état existant et au runtime.
 `inky-provisioning`, avec `root` comme groupe supplémentaire pour les fichiers
 du reçu ; aucun `StateDirectory` ne crée implicitement une autorité.
 
+L'unité utilise désormais `Type=notify`, `NotifyAccess=main` et
+`TimeoutStartSec=10s`. Le processus principal envoie une seule notification
+`READY=1` après la vérification du module de reçu épinglé, l'ouverture du listener
+et la création de l'objet worker, avant d'accepter les requêtes. `NOTIFY_SOCKET` est
+retiré de son environnement avant un éventuel fork ; un échec de notification
+arrête le démarrage sans consommer l'autorité.
+
+La [preuve de readiness native](validation/2026-10-11-ipc-notify-readiness-native.json)
+consigne **57 tests serveur/reçu PASS sous Linux ARM64, sans skip**, puis deux
+bancs distincts de **10 contrôles PASS** : client de fixture et client Studio
+épinglé. Chacun vérifie le manager `notify/main`, `active/running` au retour de
+start et de restart, puis les échanges IPC. Les unités sont arrêtées et les
+cgroups liés au manager sont vides ou absents après l'arrêt. Ces observations
+ne qualifient ni la readiness de l'app ni la barrière factory.
+
+Le premier passage Linux avait révélé un défaut de la fixture de saturation :
+le sender de remplissage bloquait après 278 datagrammes, alors que la limite du
+récepteur était de 512 et qu'un nouveau sender pouvait encore envoyer `READY=1`.
+Le test confondait donc le blocage du sender avec une queue manager pleine.
+La correction `c369431` conserve plusieurs senders jusqu'au blocage du premier
+envoi d'un nouveau socket, avec des bornes de 32 senders et 4096 datagrammes.
+Seul le test a changé ; le serveur, l'unité et les réglages de queue du système
+sont restés inchangés. Le passage corrigé est celui des 57 tests PASS ci-dessus.
+
 ## Banc natif reproductible
 
 Dans la VM Linux de build marquée, depuis une copie des sources correspondantes :
@@ -67,12 +91,14 @@ Les clients exécutent réellement `setuid` : UID `1000` admis, `0` et `1001` re
 Ce dernier représente un auxiliaire synthétique, pas un compte installé.
 Le probe arrête uniquement son unité et conserve son état de fixture pour revue.
 
-La [preuve du 11 octobre](validation/2026-10-11-initialization-ipc-native.json)
+La [preuve initiale du 11 octobre](validation/2026-10-11-initialization-ipc-native.json)
 consigne **8 contrôles natifs PASS**, dont les permissions, capabilities vides,
 consommation durable, même reçu après redémarrage et délai avec verrou bloqué.
-Les tests portables comptent **46 tests, zéro échec et un ignoré sur Mac** pour les
-credentials kernel Linux. Trois tests socket rejoués indépendamment sous Linux
+Les tests portables de ce premier relevé comptent **46 tests, zéro échec et un ignoré
+sur Mac** pour les credentials kernel Linux. Trois tests socket rejoués indépendamment sous Linux
 confirment aussi le refus après échec des credentials, son EOF et sa borne de temps.
+Ses sources et résultats historiques sont conservés ; le probe courant ajoute
+les deux contrôles manager consignés dans la preuve de readiness ci-dessus.
 Le banc ne qualifie ni les chemins/groupe de production,
 ni une image, le premier boot, le cadre ou l’app iOS. Le
 [hook de création initiale](FACTORY-AUTHORITY.md) est développé séparément ;
@@ -81,7 +107,7 @@ son installation, le raccord applicatif et leur qualification restent à intégr
 ## Banc croisé avec le client Studio
 
 Le [probe croisé](../staging/bootstrap/probe-initialization-studio-linux.py)
-réutilise le même banc et ses huit contrôles, avec le vrai `InitializationIPCClient`
+réutilise le même banc et ses dix contrôles courants, avec le vrai `InitializationIPCClient`
 Studio issu de `da966c6`. Ses huit fichiers Python sont vérifiés par SHA-256 avant
 import. Les clients s'exécutent après le changement réel d'UID : leur vérification
 `SO_PEERCRED`, leurs IDs, leur parser et leur contrôle d'EOF ne sont pas remplacés.
@@ -99,7 +125,8 @@ par les autres utilisateurs. Python doit disposer de `cryptography` (version
 sudo /usr/bin/python3 -I -B staging/bootstrap/probe-initialization-studio-linux.py --run
 ```
 
-La [preuve croisée](validation/2026-10-11-initialization-studio-native.json)
-consigne huit contrôles PASS et l'arrêt de l'unité transitoire. Aucun démarrage
-de l'app, BLE, perte de réponse injectée, boot d'image ou essai matériel n'est
+La [preuve croisée initiale](validation/2026-10-11-initialization-studio-native.json)
+conserve huit contrôles PASS et l'arrêt de l'unité transitoire sur ses sources
+épinglées. Le nouveau passage à dix contrôles figure dans la preuve de readiness.
+Aucun démarrage de l'app, BLE, perte de réponse injectée, boot d'image ou essai matériel n'est
 revendiqué par ce banc.

@@ -1,0 +1,131 @@
+{
+  "application_startup_qualified": false,
+  "date": "2026-10-11",
+  "fixture_correction": {
+    "commit": "c369431482bf765863a10f410dca48163158569f",
+    "corrected_fixture": {
+      "fillers_retained_until_check": true,
+      "max_datagrams": 4096,
+      "max_senders": 32,
+      "requires_first_send_of_fresh_sender_to_block": true
+    },
+    "diagnosis": {
+      "datagrams_sent_before_sender_blocked": 278,
+      "fresh_sender_ready_datagram_accepted": true,
+      "manager_queue_limit": 512
+    },
+    "failure_kind": "sender_block_misidentified_as_receiver_queue_full",
+    "initial_linux_tests": {
+      "errors": 0,
+      "failures": 1,
+      "skips": 0,
+      "tests": 57
+    },
+    "runtime_changed": false,
+    "system_queue_settings_changed": false
+  },
+  "hardware_qualified": false,
+  "image_qualified": false,
+  "limits": [
+    "The tests use synthetic authority and runtime paths in the marked Linux ARM64 builder, with an existing numeric fixture group and no account changes.",
+    "The manager state is checked immediately after start and restart, followed by actual IPC exchanges. This does not qualify application readiness or the factory exclusion barrier.",
+    "The pinned Studio client checks actual peer credentials and protocol framing; harness results are normalized Python values, not wire captures.",
+    "The Linux failure was in the queue-saturation fixture. The corrected test retains bounded senders until a fresh sender also blocks; runtime sources and system queue settings are unchanged.",
+    "No production unit installation, image boot, application startup, BLE, display, Pi or SD qualification. No response-loss injection.",
+    "Earlier eight-check proofs retain their original source pins and scope; this proof records the new ten-check executions."
+  ],
+  "native": {
+    "check_count": 10,
+    "checks": {
+      "app_uid_admitted_without_earlier_consumption": true,
+      "begin_durable_with_empty_capabilities": true,
+      "helper_refused": true,
+      "locked_receipt_bounded_and_uncertain": true,
+      "manager_ready_after_restart": true,
+      "manager_ready_after_start": true,
+      "no_duplicate_authority_after_timeout": true,
+      "root_refused": true,
+      "same_receipt_after_service_restart": true,
+      "socket_owners_modes_and_empty_capabilities": true
+    },
+    "duration_seconds": 3.619,
+    "fixture_state_preserved": true,
+    "status": "PASS",
+    "synthetic_authority_only": true,
+    "unit_cgroup_empty": true,
+    "unit_stopped": true
+  },
+  "os_sources": {
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "scripts/initialization-server.py": "1c84ffaffe3c9c673a2d5bafcee928ac699a7c215895b78b8e3d76d3982d5ce1",
+    "staging/bootstrap/inkyos-initialization.service": "8119065639719473be2a22fd65cfa2a84924603cd293c578e3993e48cb1629de",
+    "staging/bootstrap/probe-initialization-linux.py": "89b51afed9cd37c402350993710fec4cf4e5344779d209f9bb452670e9b0e87e",
+    "staging/bootstrap/probe-initialization-studio-linux.py": "76cefc9d8ad3290b9bcf536663f496e137768e772a32f148f58053131f7ca8df",
+    "tests/test_initialization_receipt.py": "63f2ededb70ac2a995ac118fd6a8f465c102b0e5b4af2ffab60afdcb2cd38669",
+    "tests/test_initialization_server.py": "31ff26e9ecfe15a6680c14a2c835348b1a969ce89ad03ee3bbbd2e119645ba19"
+  },
+  "platform": {
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "system": "Linux"
+  },
+  "probe_source_commit": "bafb2a63698773bf857a8d24893d4e56e9f08af1",
+  "production_paths_qualified": false,
+  "production_recipe_activated": false,
+  "runtime_source_commit": "6922c1323e6d0cfaea056bf1570127a39a6ec808",
+  "schema_version": 1,
+  "scope": "initialization-ipc-notify-readiness-native-fixture",
+  "server_and_receipt_tests": {
+    "duration_seconds": 2.683,
+    "errors": 0,
+    "failures": 0,
+    "skips": 0,
+    "tests": 57
+  },
+  "status": "PASS",
+  "studio_cross": {
+    "actual_client_unmodified": true,
+    "actual_peer_credentials": true,
+    "check_count": 10,
+    "checks": {
+      "app_uid_admitted_without_earlier_consumption": true,
+      "begin_durable_with_empty_capabilities": true,
+      "helper_refused": true,
+      "locked_receipt_bounded_and_uncertain": true,
+      "manager_ready_after_restart": true,
+      "manager_ready_after_start": true,
+      "no_duplicate_authority_after_timeout": true,
+      "root_refused": true,
+      "same_receipt_after_service_restart": true,
+      "socket_owners_modes_and_empty_capabilities": true
+    },
+    "duration_seconds": 3.515,
+    "fixture_state_preserved": true,
+    "normalized_result_not_wire_capture": true,
+    "response_loss_injected": false,
+    "source_sha256": {
+      "inky_web/__init__.py": "eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc",
+      "inky_web/provisioning/__init__.py": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f",
+      "inky_web/provisioning/bootstrap_identity.py": "85b8105eb851b9bc0138d5ddcefface6bb57d0f4369c999982ad100d5fb1c9c4",
+      "inky_web/provisioning/factory.py": "26665699c4ce594b0654c0979e67adafc296febb8b56d9608c54c379b1efe02b",
+      "inky_web/provisioning/first_boot.py": "b71f8d634db039340d402305c3894bd8e441264b672ca869d8313b4a18e4cd41",
+      "inky_web/provisioning/identity.py": "22fdbd6cda126fc46e6ea26bba77e0ac26d3d3cc6730db97fb5b463e0a2a1e71",
+      "inky_web/provisioning/initialization_ipc.py": "ed39708d17d150511ae2bf4db4008c65e3d954760ccfcb2bf70e703cbcd4389a",
+      "inky_web/provisioning/ownership.py": "8cda6bf806f066470fe8137b23ab43d6357650917cfeaed815d765938e68a867"
+    },
+    "status": "PASS",
+    "studio_commit": "da966c6bb6bbb74fae70e20044ff16282d99ef43",
+    "synthetic_authority_only": true,
+    "unit_cgroup_empty": true,
+    "unit_stopped": true
+  },
+  "test_source_commit": "c369431482bf765863a10f410dca48163158569f",
+  "transferred_sources_rehashed_after_execution": true,
+  "unit_readiness": {
+    "configured_start_timeout_seconds": 10,
+    "manager_active_state_after_start_and_restart": "active",
+    "manager_sub_state_after_start_and_restart": "running",
+    "notify_access": "main",
+    "type": "notify"
+  }
+}
