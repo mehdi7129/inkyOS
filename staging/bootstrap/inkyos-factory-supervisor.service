@@ -1,0 +1,34 @@
+# Runtime template: install only with the complete pinned factory profile.
+[Unit]
+Description=Supervise InkyOS factory with exclusive admission
+Wants=inkyos-admission-prepare.service
+After=local-fs.target inkyos-admission-prepare.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/factory-supervisor.py --run
+RemainAfterExit=yes
+Restart=no
+UMask=0077
+# A descendant that cannot drain keeps admission EX; no timeout kills its owner.
+TimeoutStartSec=infinity
+TimeoutStopSec=infinity
+KillMode=mixed
+SendSIGKILL=no
+StandardInput=null
+StandardOutput=journal
+StandardError=null
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/run
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+
+# No Install/RuntimeDirectory and no dependency propagating stop to writers.

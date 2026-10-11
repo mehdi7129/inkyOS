@@ -1,0 +1,33 @@
+# Runtime template: install only with the complete pinned factory profile.
+[Unit]
+Description=Prepare InkyOS admission once during this boot
+After=local-fs.target
+Before=inkyos-factory-supervisor.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/factory-supervisor.py --prepare-boot
+RemainAfterExit=yes
+Restart=no
+UMask=0077
+TimeoutStartSec=30s
+TimeoutStopSec=infinity
+KillMode=mixed
+SendSIGKILL=no
+StandardInput=null
+StandardOutput=journal
+StandardError=null
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/run
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+
+# No Install/RuntimeDirectory: image integration controls activation and /run.
