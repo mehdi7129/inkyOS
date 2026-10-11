@@ -134,3 +134,89 @@ ELF/loader/OpenSSL, les identités, le build sous UID1000, la vérification post
 le graphe d'activation et le hardware sont hors de ce lot. Un futur installer
 devra revérifier les mêmes inputs et comparer l'arbre obtenu aux records attendus
 avant freeze ; ce plan n'est ni un snapshot des inputs ni une preuve de closure.
+
+## Installation offline du bundle planifié
+
+`scripts/install-factory-studio-bundle-rootfs.py` matérialise désormais ce plan
+dans un rootfs de build privé. Il n'exécute ni interpréteur cible, code Studio,
+helper, pip, console script ou backend de build. Il ne lance aucun enfant, ne
+consulte pas NSS, ne crée aucun compte et n'utilise ni mount, chroot, service ou
+réseau. Les wheels doivent donc être déjà construites et épinglées ; ce lot ne
+prouve pas leur origine ni leur construction sous UID1000.
+
+```python
+receipt = install_bundle(rootfs, input_manifest, input_sha256, sources_dir,
+                         wheels_dir, receipt_output=receipt_path)
+receipt = verify_bundle(rootfs, input_manifest, input_sha256, sources_dir, wheels_dir)
+```
+
+La CLI n'expose que `--rootfs`, `--input-manifest`, `--input-sha256`,
+`--sources-dir`, `--wheels-dir` et `--receipt`. Elle exige Linux root avec GID
+primaire 0 et le rootfs canonique
+`/var/lib/inkyos-build/factory-studio.<token alnum>/root`. Le workspace parent
+doit être root:root `0700`, et le marker root-owned
+`/var/lib/inkyos-build/owner` doit contenir exactement `inkyos-builder-v1` suivi
+d'un LF. Aucun prérequis ARM64 n'est nécessaire pour cette copie statique.
+
+Tous les chemins doivent être absolus sans traversal ni symlink. Chaque parent
+est ouvert par FD avec `O_NOFOLLOW`, gardé ouvert et revérifié par identité avant
+publication. Les parents, inputs et fichiers lus doivent être root:root, sans
+write groupe/other, bits privilégiés ou xattrs. Les inputs et le reçu restent
+dans le workspace, hors rootfs et sans recouvrement entre eux. Sources et
+wheelhouse conservent les inventaires exacts et les limites du planner.
+
+L'installateur admet un sous-ensemble matérialisable des plans du planner, sans
+modifier ce dernier : chaque chemin final, préfixe site-packages compris, et
+`manifest.json` doivent avoir au plus 64 composants et 4096 octets UTF-8. Chaque
+composant doit aussi respecter en octets encodés le `PC_NAME_MAX` obtenu par
+`fpathconf` sur le FD parent de la destination. Le nom du reçu est contrôlé sur
+son propre parent. Une limite indéterminée/non positive est refusée. Ce contrôle
+complet précède toute création générique ou de bundle ; un membre wheel accepté
+par le planner mais dépassant ces limites ne provoque aucune écriture.
+
+`/usr/lib/inky-studio` doit être entièrement absent, qu'il s'agisse d'un fichier,
+d'un répertoire ou d'un lien. Les parents `usr` et `usr/lib` préexistants doivent
+être sûrs et leurs droits restent inchangés. Si l'un manque, seules ces deux
+directories génériques planifiées sont créées, root:root `0755`. Un reçu
+préexistant est refusé avant toute création dans le rootfs.
+
+Le planner dérive les records avant la première écriture. Un second passage
+borné ouvre les octets sources et wheels par FD, valide leurs pins et RECORD,
+puis compare chaque taille/hash et l'ensemble des fichiers aux records attendus.
+Il revérifie le plan et les inputs avant les créations exclusives. Les bytes
+sont ensuite livrés directement dans les chemins planifiés, avec les
+directories, `pyvenv.cfg` et les quatre symlinks du scaffold. Aucun `extractall`,
+editable, activate ou script console généré n'est utilisé.
+
+L'inventaire réel comprend bytes, types, modes, owners et xattrs Linux ; il doit
+être exactement égal au plan **avant** `manifest.json`. Les inputs sont relus et
+revérifiés à cette frontière. Seuls les bytes du manifest précédemment dérivé
+sont alors publiés exclusivement en `0644`, puis l'arbre et ces bytes sont
+revérifiés. Le reçu neuf `0600` est écrit et relu en dernier. `verify_bundle`
+refait ces vérifications sans écriture et sans réparer une divergence.
+
+Une erreur I/O peut laisser des directories, fichiers ou un manifest/reçu
+partiel. Ces sorties sont conservées ; aucune suppression, reprise, réparation,
+écrasement, rollback ou transaction multi-fichiers n'est revendiqué. Une nouvelle
+installation sur ce même bundle ou reçu refuse. Un reçu n'est accepté qu'après
+le retour réussi et sa vérification ; sa présence seule après une erreur ne
+constitue pas une preuve.
+
+Le receipt porte `scope: offline-factory-studio-bundle-install`,
+`operation: install` ou `verify`, les pins et comptes du plan,
+`record_metadata: inspected-root-owned-no-xattrs` et `bundle_verified: true`.
+Il déclare explicitement `support_verified`, `image_code_executed`,
+`application_code_executed`, `runtime_qualified` et `hardware_qualified` à false.
+Les comptes hérités du plan excluent son propre `manifest.json`. Aucun chemin
+local, identité, secret, runtime manifest, autorité, Ready ou credentials n'est
+produit par ce receipt.
+
+Le caller doit posséder un workspace exclusif sans writer concurrent, y compris
+sous root. Les FDs et rechecks protègent le chemin sélectionné ; ils ne créent ni
+verrou d'exclusion de build ni réservation runtime. Les tests Mac utilisent
+uniquement un root synthétique différent de `/`, des owners locaux, une
+observation xattrs Linux simulée et des symlinks Darwin ajustés par `lchmod` à
+`0777`. La CLI ne propose aucun bypass fixture. La qualification Linux doit
+exercer les syscalls et xattrs réels ; ces fixtures n'établissent pas le support
+système, les imports, dependencies, provenance, privacy, frontend, guards,
+graphe installé, premier boot ou matériel.
