@@ -1,0 +1,70 @@
+{
+  "actual_client_unmodified": true,
+  "actual_peer_credentials": true,
+  "application_startup_qualified": false,
+  "client_group": 65534,
+  "client_uids": [
+    0,
+    1001,
+    1000
+  ],
+  "cross_probe_sha256": "6c1b5ba46885ab6fe70fb05d28f06c51cc88987766a19b3201e581679498a696",
+  "cryptography_version": "43.0.0",
+  "date": "2026-10-11",
+  "duration_seconds": 3.877,
+  "hardware_qualified": false,
+  "image_qualified": false,
+  "independent_source_review_passed": true,
+  "limits": [
+    "Synthetic authority and socket paths in the marked Linux ARM64 builder; no production group lookup or account changes.",
+    "Unmodified Studio client verifies real kernel server credentials, request IDs, schema and EOF. Harness envelopes are normalized Python results, not captured wire bytes.",
+    "The existing transient OS unit hardening is retained with fixture paths and numeric group.",
+    "No application startup, credentials creation, BLE, country, time mutation, display, Pi or SD qualification.",
+    "No response loss was injected. Locked-state timeout and subsequent receipt inspection were checked."
+  ],
+  "native": {
+    "checks": {
+      "app_uid_admitted_without_earlier_consumption": true,
+      "begin_durable_with_empty_capabilities": true,
+      "helper_refused": true,
+      "locked_receipt_bounded_and_uncertain": true,
+      "no_duplicate_authority_after_timeout": true,
+      "root_refused": true,
+      "same_receipt_after_service_restart": true,
+      "socket_owners_modes_and_empty_capabilities": true
+    },
+    "fixture_state_preserved": true,
+    "hardware_qualified": false,
+    "production_paths_qualified": false,
+    "production_recipe_activated": false,
+    "schema_version": 1,
+    "status": "PASS",
+    "synthetic_authority_only": true,
+    "unit_stopped": true
+  },
+  "native_probe_sha256": "defcb99434c8f000a473de2f2c326f6055dc95345a879a385824398c62fbe379",
+  "normalized_result_not_wire_capture": true,
+  "os_source_commit": "6c0578a8cffca5146d505d9c5a48b23aca8ba42d",
+  "os_sources": {
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "scripts/initialization-server.py": "71052d82be30f25ea6c0f1414fcefeec2014bac125a3bbeb3b78428027514e53",
+    "staging/bootstrap/inkyos-initialization.service": "5abb940039d25f5094346d1c32a8b9caa1961b041463f64fc2b7c7d2fcd31ea1",
+    "staging/bootstrap/probe-initialization-linux.py": "defcb99434c8f000a473de2f2c326f6055dc95345a879a385824398c62fbe379",
+    "staging/bootstrap/probe-initialization-studio-linux.py": "6c1b5ba46885ab6fe70fb05d28f06c51cc88987766a19b3201e581679498a696"
+  },
+  "response_loss_injected": false,
+  "schema_version": 1,
+  "scope": "initialization-studio-native-cross-fixture",
+  "source_sha256": {
+    "inky_web/__init__.py": "eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc",
+    "inky_web/provisioning/__init__.py": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f",
+    "inky_web/provisioning/bootstrap_identity.py": "85b8105eb851b9bc0138d5ddcefface6bb57d0f4369c999982ad100d5fb1c9c4",
+    "inky_web/provisioning/factory.py": "26665699c4ce594b0654c0979e67adafc296febb8b56d9608c54c379b1efe02b",
+    "inky_web/provisioning/first_boot.py": "b71f8d634db039340d402305c3894bd8e441264b672ca869d8313b4a18e4cd41",
+    "inky_web/provisioning/identity.py": "22fdbd6cda126fc46e6ea26bba77e0ac26d3d3cc6730db97fb5b463e0a2a1e71",
+    "inky_web/provisioning/initialization_ipc.py": "ed39708d17d150511ae2bf4db4008c65e3d954760ccfcb2bf70e703cbcd4389a",
+    "inky_web/provisioning/ownership.py": "8cda6bf806f066470fe8137b23ab43d6357650917cfeaed815d765938e68a867"
+  },
+  "status": "PASS",
+  "studio_commit": "da966c6bb6bbb74fae70e20044ff16282d99ef43"
+}

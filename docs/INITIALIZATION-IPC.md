@@ -74,5 +74,32 @@ Les tests portables comptent **46 tests, zéro échec et un ignoré sur Mac** po
 credentials kernel Linux. Trois tests socket rejoués indépendamment sous Linux
 confirment aussi le refus après échec des credentials, son EOF et sa borne de temps.
 Le banc ne qualifie ni les chemins/groupe de production,
-ni une image, le premier boot, le cadre ou l’app iOS. Le hook de création initiale
-de l’autorité, le raccord applicatif et leur qualification restent à intégrer.
+ni une image, le premier boot, le cadre ou l’app iOS. Le
+[hook de création initiale](FACTORY-AUTHORITY.md) est développé séparément ;
+son installation, le raccord applicatif et leur qualification restent à intégrer.
+
+## Banc croisé avec le client Studio
+
+Le [probe croisé](../staging/bootstrap/probe-initialization-studio-linux.py)
+réutilise le même banc et ses huit contrôles, avec le vrai `InitializationIPCClient`
+Studio issu de `da966c6`. Ses huit fichiers Python sont vérifiés par SHA-256 avant
+import. Les clients s'exécutent après le changement réel d'UID : leur vérification
+`SO_PEERCRED`, leurs IDs, leur parser et leur contrôle d'EOF ne sont pas remplacés.
+Le harness normalise ensuite uniquement le résultat Python pour ses assertions ;
+il ne constitue pas une capture du wire.
+
+Pour reproduire dans la VM marquée, copier les huit sources Studio listées dans
+`STUDIO_PINS`, depuis `server/` du commit exact, sous
+`staging/bootstrap/studio-client/`, en conservant leurs chemins relatifs.
+Le staging et ses parents doivent appartenir à root et ne pas être modifiables
+par les autres utilisateurs. Python doit disposer de `cryptography` (version
+`43.0.0` lors du banc).
+
+```sh
+sudo /usr/bin/python3 -I -B staging/bootstrap/probe-initialization-studio-linux.py --run
+```
+
+La [preuve croisée](validation/2026-10-11-initialization-studio-native.json)
+consigne huit contrôles PASS et l'arrêt de l'unité transitoire. Aucun démarrage
+de l'app, BLE, perte de réponse injectée, boot d'image ou essai matériel n'est
+revendiqué par ce banc.
