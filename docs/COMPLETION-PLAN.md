@@ -22,6 +22,13 @@ La matrice détaillée des écrans reste dans [DISPLAY-COMPATIBILITY.md](DISPLAY
 Un modèle indisponible reste explicitement non qualifié ; aucune preuve d'un
 autre écran ne lui est transférée.
 
+Le lot écrans reste commun aux deux projets : évaluer `inky` 2.4.0, adapter
+l'observateur busy AC073 qui exige actuellement 2.3.0, puis aligner les
+catalogues OS (notamment variantes 14, 26 et 27), validateurs et manifeste
+applicatif. Un changement de dépendance seul ne suffit pas. Le catalogue de
+modèles présenté par l'app ne constitue pas une qualification matérielle.
+Le couple TEST actuel reste en 2.3.0 jusqu'à livraison d'un candidat commun.
+
 ## Ordre de réalisation
 
 1. Corriger ensemble les trois écarts système observés : initialisation
@@ -55,6 +62,15 @@ séparément ; le banc Linux du service passe, sans installation dans l'image TE
 Le vrai client Studio passe maintenant le [banc croisé Linux](validation/2026-10-11-initialization-studio-native.json).
 La [permission factory consommable](FACTORY-AUTHORITY.md) est développée et testée,
 sans installation dans une recette ni création des credentials applicatifs.
+Studio propose désormais un sérialiseur de credentials v2 à sortie privée ;
+le publisher OS est en cours de développement séparé. Leur composition doit
+consommer la permission avant une unique génération, publier exclusivement
+le fichier individuel, puis créer l'autorité durable, sous le même verrou et
+avant tout autre processus applicatif. Une reprise après consommation ne
+génère jamais de nouveaux credentials implicitement.
+La [politique d'heure proposée](BOOTSTRAP-TIME-POLICY.md) fixe les bornes,
+le délai et les preuves attendues ; l'admission partagée avec Studio et le
+service privilégié restent à développer. Ce document ne règle aucune horloge.
 Le raccord usine exige un mode explicite de l'unité
 `INKY_STUDIO_FACTORY_REQUIRED=1`, `INKY_STUDIO_DATA_DIR=/var/lib/inky-studio`
 et le marqueur root `/etc/inky-studio/factory-v1.json` :
