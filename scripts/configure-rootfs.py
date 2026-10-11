@@ -6,6 +6,7 @@ Account/package mutations are performed separately by build-image-linux.sh.
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -82,7 +83,11 @@ class Tree:
         p.symlink_to(target)
 
 
-def configure(root, boot, recipe):
+def configure(root, boot, recipe, *, factory=None):
+    if factory is not None:
+        spec = importlib.util.spec_from_file_location('factory_profile', Path(__file__).with_name('factory-passive-profile.py'))
+        profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
+        profile.validate_metadata(factory)
     root, boot, recipe = Tree(root), Tree(boot), Tree(recipe)
     # Leave the first-boot resize contract untouched, including machine-id.
     if root.read('etc/machine-id') != 'uninitialized\n':
@@ -125,6 +130,7 @@ def configure(root, boot, recipe):
     if 'WirelessEnabled=false' not in nm:
         raise ValueError('Unexpected base NetworkManager state')
     root.write('var/lib/NetworkManager/NetworkManager.state',
+               '[main]\nWirelessEnabled=false\n' if factory else
                nm.replace('WirelessEnabled=false', 'WirelessEnabled=true'), mode=0o600)
     root.write('etc/modules-load.d/inkyos.conf', 'i2c-dev\n')
     base_config = boot.read('config.txt')
@@ -141,6 +147,8 @@ def configure(root, boot, recipe):
                'base_image_sha256': base['image']['extracted_sha256'],
                'packages': [{k: p[k] for k in ('name', 'version', 'architecture', 'sha256')}
                             for p in packages['packages']], 'recipe_inputs': inputs}
+    if factory:
+        release.update(kind='factory-passive', factory=factory, runtime_qualified=False, hardware_qualified=False)
     root.write('etc/inkyos-release.json', json.dumps(release, indent=2, sort_keys=True) + '\n')
 
 
@@ -149,10 +157,12 @@ def main():
     p.add_argument('--rootfs', required=True)
     p.add_argument('--bootfs', required=True)
     p.add_argument('--recipe', required=True)
+    p.add_argument('--factory-passive', type=Path)
     a = p.parse_args()
     if os.geteuid() != 0:
         p.error('Run only through the isolated Linux image builder')
-    configure(a.rootfs, a.bootfs, a.recipe)
+    factory = json.loads(a.factory_passive.read_bytes()) if a.factory_passive else None
+    configure(a.rootfs, a.bootfs, a.recipe, factory=factory)
 
 
 if __name__ == '__main__':

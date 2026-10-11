@@ -1,12 +1,74 @@
 # Intégration du profil factory dans l’image
 
-État du 11 octobre 2026. Ce document définit le prochain lot de recette ; il
-ne décrit pas une image factory livrée. Le profil TEST et son couple
+État du 12 octobre 2026. La recette dispose maintenant d'un profil intermédiaire
+`factory-passive`, développé et testé avec des fixtures. Aucune image de ce
+profil n'a été construite ni démarrée. Le profil TEST et son couple
 backend `c31b13a` / iOS build 9 restent distincts.
+
+## Recette intermédiaire inactive
+
+Le même [build-prototype.sh](../scripts/build-prototype.sh) conserve ses voies
+system et application. Le profil factory passif exige une sélection explicite
+et quatre entrées Studio : manifeste, SHA-256 revu, sources et wheels.
+Les options application legacy sont incompatibles avec cette sélection.
+
+```sh
+PYTHON=python3.13 bash scripts/build-prototype.sh \
+  --profile factory-passive \
+  --studio-input-manifest /absolute/reviewed/inputs.json \
+  --studio-input-sha256 REVIEWED_SHA256 \
+  --studio-sources-dir /absolute/reviewed/sources \
+  --studio-wheels-dir /absolute/reviewed/wheels
+```
+
+Cette commande est un exemple à préparer avec des entrées revues, pas une
+instruction de flash. Les métadonnées et la fermeture des dépendances runtime
+`[pi]` sont vérifiées avant le snapshot. Le staging copie exclusivement les
+fichiers épinglés, au plus 64 MiB par fichier et 128 MiB cumulés, puis applique
+les limites de payload du planner. Il transfère la whitelist des outils,
+leurs imports transitifs et le wheel `packaging` revu ; aucune archive récursive
+du checkout ou du home n'est produite. Les sources et wheels Studio servent à
+inspecter des bytes : leur code n'est jamais importé ou exécuté.
+
+Le guest workspace `/var/lib/inkyos-build/factory-image.<token>` est créé
+exclusivement par root, mode `0700` ; son rootfs est monté sous `root`.
+Les entrées et rapports
+restent dans ce workspace protégé. Le build Linux relit les hashes de la
+recette, de la base, des packages et des inputs Studio, puis recalcule les
+métadonnées et le plan avant le premier montage et la première écriture rootfs.
+
+Le raccord réutilise cet ordre : base et packages système épinglés, préparation
+du compte et de la base avec Wi-Fi fermé, layout factory vierge, matérialisation
+du bundle Studio dans `/usr/lib/inky-studio`, relecture complète du bundle,
+contrôle précis du layout, gates système, freeze RO, inventaire et fsck existants.
+Le venv et ses symlinks d'interpréteur sont présents dans le bundle final ; aucun
+interpréteur applicatif, helper ou service n'est lancé.
+
+Le layout conserve DATA vide `1000:1000/0700`, la permission générique non
+consommée et les quatre modules OS épinglés. Studio, helper et ancien cadre sont
+masqués ; les unités factory, supervisor et IPC sont absentes. L'image ne contient
+ni exporter, ni manifeste de support/runtime, ni autorité `Ready`, credentials,
+pays ou profil Wi-Fi. Les masks ne bloquent pas une exécution manuelle par root.
+
+Le kind exporté est `factory-passive`, avec `application=null`, `startup=masked`,
+`runtime_qualified=false` et `hardware_qualified=false`. La gate système utilise
+le scope séparé `offline-factory-passive-contract`. Son contrôle
+`EMPTY_VAR_LIB_INKYOS` exige la permission générique exacte via le vérificateur
+factory ; il n'ignore pas ce dossier. Le vérificateur d'artefacts exige les pins
+Studio, métadonnées, plan, installation, relecture et layout, puis compare tout
+le bundle attendu à son inventaire final. Il refuse une qualification runtime,
+un mélange legacy/factory ou un renommage du profil.
+
+Les tests de recette couvrent les refus de profil, pins, source non épinglée,
+dépendance manquante, target Python, données non vierges, permission modifiée,
+radio ouverte, pays préconfiguré, unité non masquée et inventaire divergent.
+Ils utilisent des payloads inertes ; ils ne prouvent pas un build Linux réel,
+le boot, l'admission helper/IPC ou le premier appairage. Le profil complet reste
+à intégrer et qualifier après le raccord runtime commun avec Studio.
 
 ## Entrées et installation
 
-Le profil opt-in doit réunir un candidat Studio complet, l’exporter dédié,
+Le futur profil factory actif doit réunir un candidat Studio complet, l’exporter dédié,
 les modules OS et leurs unités dans une même liste d’entrées épinglées.
 Le lock exporter courant couvre quatre sources Studio et dix wheels ; il
 ne qualifie pas à lui seul le backend complet.
@@ -21,12 +83,12 @@ Le configurateur factory doit préparer :
 - les unités et leurs dépendances, sans créer d’identité, de credentials
   ni de répertoire d’autorité dans l’image distribuée.
 
-Deux adaptations de recette sont nécessaires avant cet assemblage :
+Deux points distinguent ce raccord passif de l'assemblage actif :
 
 1. Le build courant utilise `/var/tmp/inkyos-work/prototype.<token>/root`,
    tandis que les deux installers acceptent désormais le chemin commun exact
-   `/var/lib/inkyos-build/factory-image.<token>/root`. Le build doit encore
-   sélectionner explicitement ce workspace et le profil factory.
+   `/var/lib/inkyos-build/factory-image.<token>/root`. Le profil passif sélectionne
+   maintenant ce workspace ; son chemin n'autorise aucun runtime actif.
 2. Le support exporter actuel ferme tout `/usr/local/lib`, avec les scripts
    du profil TEST. L’ajout des modules factory et IPC exige un nouveau
    manifeste attendu propre au profil complet. Le pin TEST ne peut pas être
@@ -45,13 +107,10 @@ Le matérialiseur Studio conserve `factory-studio.<token>/root`. Aucun autre
 préfixe factory ou chemin `/var/tmp` n'est admis par ces installers. Ce raccord
 permet de viser le même rootfs ; il ne déplace pas les venv ni leurs chemins finaux.
 
-`build-prototype.sh` et `build-image-linux.sh` restent inchangés : ils sélectionnent
-encore seulement system/application et ne disposent d'aucun opt-in factory.
-Leur staging actuel n'est pas rendu compatible par cette extension. Le futur
-lot de recette devra créer le workspace commun sous root avec un mode `0700`
-explicite, sans dépendre de l'umask, puis raccorder ses inputs, contrôles et
-métadonnées de profil. Aucun support, package, unité ou enablement n'est modifié
-par le seul raccord de workspace.
+`build-prototype.sh` et `build-image-linux.sh` raccordent seulement le profil
+`factory-passive` décrit plus haut. L'exporter, son support complet, l'admission
+et les services actifs ne font pas partie de cette option. Le seul raccord de
+workspace ne constitue pas leur installation ou leur enablement.
 
 Le configurateur applicatif TEST crée actuellement un dossier `0755` et
 `photos/`. Un configurateur factory séparé doit préserver ces exigences TEST
@@ -61,8 +120,8 @@ Le [banc du workspace commun](validation/2026-10-11-factory-image-workspace-test
 passe 102 tests Linux ARM64 root sans skip (43 exporter, 59 installer Studio),
 ainsi que 1 590 tests macOS avec 15 skips. Les inputs et les seams d'admission
 sont des fixtures explicites ; le launcher host ne réalise pas de drop UID,
-chroot ou exec cible réel dans ce banc. Le sélecteur factory, le support et
-l'image complète restent à construire et qualifier.
+chroot ou exec cible réel dans ce banc. Le support factory actif et l'image
+complète restent à construire et qualifier.
 
 ## Préparation offline du layout passif
 
@@ -83,9 +142,10 @@ l’ensemble de l’image ni tous les emplacements possibles de données privée
 Une erreur I/O peut laisser une préparation partielle. Un fichier réservé déjà
 créé fera refuser une nouvelle préparation ; les seuls répertoires génériques
 encore vides peuvent être acceptés. Aucun rollback ni nettoyage implicite n’est
-effectué. L’exporter, son support complet, les unités actives et le raccord au
-build restent des étapes séparées. Ces outils ne produisent pas une image
-flashable et ne constituent pas la barrière runtime des writers.
+effectué. L’exporter, son support complet et les unités actives restent des
+étapes séparées. Ces deux outils seuls ne produisent pas une image flashable
+et ne constituent pas la barrière runtime des writers ; leur raccord passif au
+build est maintenant décrit ci-dessus.
 Les [30 tests de layout](validation/2026-10-11-factory-passive-layout-tests.json)
 passent sur macOS et Linux ARM64. Seul le banc Linux root exerce les UID/GID
 0 et 1000 et l’API xattrs réels ; les fixtures macOS les substituent explicitement.

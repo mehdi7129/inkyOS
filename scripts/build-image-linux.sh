@@ -2,18 +2,27 @@
 # Mutate only the verified prototype.img copy in the dedicated Lima builder.
 set -Eeuo pipefail
 umask 077
-[[ $# == 1 && $(uname -s) == Linux && $(uname -m) == aarch64 && $EUID == 0 ]] || {
+profile=system
+if [[ $# == 3 && $2 == --profile && $3 == factory-passive ]]; then
+  profile=factory-passive
+elif [[ $# != 1 ]]; then
+  echo 'Unknown or incomplete build profile.' >&2; exit 2
+fi
+[[ $(uname -s) == Linux && $(uname -m) == aarch64 && $EUID == 0 ]] || {
   echo 'Usage: sudo bash build-image-linux.sh /var/tmp/inkyos-work/prototype.XXXXXXXX' >&2; exit 2;
 }
 [[ $(cat /var/lib/inkyos-build/owner) == inkyos-builder-v1 ]] || exit 2
 work=$(readlink -e -- "$1")
-[[ $work =~ ^/var/tmp/inkyos-work/prototype\.[a-zA-Z0-9]+$ && ! -L $1 ]] || {
+if [[ $profile == factory-passive ]]; then
+  [[ $work =~ ^/var/lib/inkyos-build/factory-image\.[a-zA-Z0-9]+$ && $work == "$1" && ! -L $1 ]] || exit 2
+  python3 -I -B -S -c 'import os,stat,sys; p=sys.argv[1]; s=os.lstat(p); assert stat.S_ISDIR(s.st_mode) and (s.st_uid,s.st_gid,stat.S_IMODE(s.st_mode))==(0,0,0o700)' "$work"
+elif [[ ! $work =~ ^/var/tmp/inkyos-work/prototype\.[a-zA-Z0-9]+$ || -L $1 ]]; then
   echo 'Only a dedicated prototype work directory is accepted.' >&2; exit 2;
-}
+fi
 # No target command can use the builder network, its mounts or its UTS hostname.
 if [[ ${INKYOS_PRIVATE_NAMESPACE:-} != 1 ]]; then
   exec unshare --mount --net --uts --propagation private \
-    env INKYOS_PRIVATE_NAMESPACE=1 bash "$0" "$work"
+    env INKYOS_PRIVATE_NAMESPACE=1 bash "$0" "$@"
 fi
 cd "$work"
 [[ -f prototype.img && ! -L prototype.img && ! -e root && ! -e boot ]] || exit 2
@@ -47,6 +56,14 @@ for p in lock['packages']:
     with open(path,'rb') as f:
         assert hashlib.file_digest(f,'sha256').hexdigest()==p['sha256'], 'Package hash mismatch'
 PY
+if [[ $profile == factory-passive ]]; then
+  [[ ! -e recipe/application-manifest.json && ! -L recipe/application-manifest.json ]] || exit 2
+  # All candidate metadata, closure and input hashes are reread before mount/write.
+  python3 -I -B -S recipe/scripts/factory-passive-profile.py verify-inputs --work "$work"
+  cmp -- recipe/factory-passive.json factory-inputs/factory-passive.json
+else
+  [[ ! -e recipe/factory-passive.json && ! -e factory-inputs ]] || exit 2
+fi
 loop=
 root_mounted=0
 boot_mounted=0
@@ -113,9 +130,17 @@ chroot root /usr/sbin/usermod --login inky --home /home/inky --move-home pi
 chroot root /usr/sbin/groupmod --new-name inky pi
 chroot root /usr/sbin/usermod --groups spi,i2c,gpio --shell /usr/sbin/nologin --lock inky
 chroot root /usr/bin/id inky
-python3 recipe/scripts/configure-rootfs.py --rootfs "$work/root" --bootfs "$work/boot" \
-  --recipe "$work/recipe"
+system_options=()
+if [[ $profile == factory-passive ]]; then
+  system_options=(--factory-passive "$work/recipe/factory-passive.json")
+fi
+python3 -I -B -S recipe/scripts/configure-rootfs.py --rootfs "$work/root" --bootfs "$work/boot" \
+  --recipe "$work/recipe" "${system_options[@]}"
 application_options=()
+if [[ $profile == factory-passive ]]; then
+  python3 -I -B -S recipe/scripts/factory-passive-profile.py prepare-rootfs --work "$work"
+  application_options=(--factory-passive "$work/recipe/factory-passive.json")
+fi
 if [[ -f recipe/application-manifest.json ]]; then
   application_sha256=$(python3 -c 'import json; print(json.load(open("recipe/recipe-inputs.json"))["files"]["application-manifest.json"])')
   python3 recipe/scripts/install-application-rootfs.py --rootfs "$work/root" \
@@ -140,7 +165,7 @@ chroot root /usr/bin/env -i PATH=/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 \
 chroot root /usr/bin/systemd-analyze verify inkyos-firstboot.service \
   NetworkManager.service avahi-daemon.service bluetooth.service rpi-resize.service \
   > systemd-verify.txt 2>&1 || { cat systemd-verify.txt >&2; exit 1; }
-if (( ${#application_options[@]} )); then
+if [[ -f recipe/application-manifest.json ]]; then
   # Explicit vendor paths allow syntax verification despite deliberate local masks.
   chroot root /usr/bin/systemd-analyze verify /usr/lib/systemd/system/inky-studio.service \
     /usr/lib/systemd/system/inky-network.service >> systemd-verify.txt 2>&1 || {

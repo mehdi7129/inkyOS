@@ -141,9 +141,52 @@ def no_ssh_host_keys(root):
     return not any(name.startswith("ssh_host_") for name, _ in root.entries("etc/ssh"))
 
 
-def verify(rootfs, bootfs, package_lock, *, application=None, _owner_uid=0):
+def factory_runtime_absent(root):
+    paths = ('etc/inkyos/factory-runtime-v1.json', 'etc/inkyos/factory-system-support.json',
+             'usr/lib/inkyos/factory-exporter', 'usr/lib/inkyos/factory-runtime-contract.py',
+             'usr/lib/inkyos/factory-supervisor.py', 'run/inkyos-factory',
+             'run/inkyos-bootstrap', 'var/lib/inkyos/initialization')
+    units = {'inkyos-factory.service', 'inkyos-initialization.service',
+             'inkyos-admission-prepare.service', 'inkyos-factory-supervisor.service'}
+    if not all(missing(root, p) for p in paths):
+        return False
+    count = 0
+    for base in ('etc/systemd/system', 'run/systemd/system',
+                 'usr/lib/systemd/system', 'usr/local/lib/systemd/system'):
+        if missing(root, base):
+            continue
+        pending = [(base, 0)]
+        while pending:
+            path, depth = pending.pop()
+            if depth > 8:
+                return False
+            for name, info in root.entries(path):
+                count += 1
+                if count > 20000 or name in units or name in {unit + '.d' for unit in units}:
+                    return False
+                child = path + '/' + name
+                if stat.S_ISDIR(info.st_mode):
+                    pending.append((child, depth + 1))
+                elif stat.S_ISLNK(info.st_mode) and Path(readlink(root, child)).name in units:
+                    return False
+    return True
+
+
+def verify(rootfs, bootfs, package_lock, *, application=None, factory=None,
+           _owner_uid=0, _owner_gid=0, _app_uid=1000, _app_gid=1000):
     """_owner_uid supports unprivileged fixtures; the CLI always requires root-owned files."""
     checks = []
+    factory_report = None
+    if factory is not None:
+        if application is not None:
+            raise ValueError('Factory-passive and legacy application profiles are incompatible')
+        spec = importlib.util.spec_from_file_location('_factory_profile', ROOT / 'scripts/factory-passive-profile.py')
+        profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
+        profile.validate_metadata(factory)
+        spec = importlib.util.spec_from_file_location('_factory_layout', ROOT / 'scripts/verify-factory-rootfs.py')
+        layout = importlib.util.module_from_spec(spec); spec.loader.exec_module(layout)
+        factory_report = layout.verify(rootfs, _owner_uid=_owner_uid, _owner_gid=_owner_gid,
+                                       _app_uid=_app_uid, _app_gid=_app_gid)
 
     def check(identifier, predicate, requirement):
         try:
@@ -160,8 +203,11 @@ def verify(rootfs, bootfs, package_lock, *, application=None, _owner_uid=0):
                 data = json.loads(root.read("etc/inkyos-release.json", 64 * 1024))
                 return (isinstance(data, dict) and type(data.get("schema_version")) is int
                         and data["schema_version"] == 1
-                        and data.get("kind") == ("application-prototype" if application else "system-prototype")
-                        and "application" in data and data["application"] == application)
+                        and data.get("kind") == ('factory-passive' if factory else
+                                                "application-prototype" if application else "system-prototype")
+                        and "application" in data and data["application"] == application
+                        and (not factory or data.get('factory') == factory
+                             and data.get('runtime_qualified') is False and data.get('hardware_qualified') is False))
 
             check("RELEASE_METADATA", metadata_contract, "schema_version=1, explicit prototype kind and matching application pin")
             for path, executable in (("etc/inkyos-release.json", False),
@@ -194,9 +240,16 @@ def verify(rootfs, bootfs, package_lock, *, application=None, _owner_uid=0):
                          "home/inky/inky-studio/server/data", "opt/inky-studio/server/data",
                          "root/.ssh", "home/inky/.ssh", "etc/NetworkManager/system-connections",
                          "run/NetworkManager/system-connections", "var/lib/bluetooth"):
-                check("EMPTY_" + path.upper().replace("/", "_"), lambda p=path: empty_or_missing(root, p),
-                      f"/{path}: absent or empty directories only; no content values disclosed")
-            check("NETWORKMANAGER_GENERIC_STATE", lambda: nm_state_contract(root, enabled=application is None),
+                predicate = (lambda: factory_report['checks']['FACTORY_LAYOUT']) if factory and path == 'var/lib/inkyos' else (lambda p=path: empty_or_missing(root, p))
+                requirement = ("exact generic pending permission, no other factory data" if factory and path == 'var/lib/inkyos' else
+                               f"/{path}: absent or empty directories only; no content values disclosed")
+                check("EMPTY_" + path.upper().replace("/", "_"), predicate, requirement)
+            if factory:
+                check('FACTORY_PASSIVE_LAYOUT', lambda: factory_report['passed'],
+                      'precise factory layout verifies virgin DATA, pending permission, source pins, masks and closed Wi-Fi')
+                check('FACTORY_RUNTIME_ABSENT', lambda: factory_runtime_absent(root),
+                      'no exporter, runtime/support manifest, Ready state or factory/IPC service')
+            check("NETWORKMANAGER_GENERIC_STATE", lambda: nm_state_contract(root, enabled=application is None and factory is None),
                   "only NetworkManager.state; Wi-Fi disabled for application prototype pending country contract")
             check("NO_BUILD_POLICY_RC", lambda: missing(root, "usr/sbin/policy-rc.d"), "temporary build policy-rc.d removed")
             for unit in MASKS:
@@ -207,7 +260,7 @@ def verify(rootfs, bootfs, package_lock, *, application=None, _owner_uid=0):
             for name in ("user-data", "network-config", "meta-data", "userconf", "userconf.txt", "firstrun.sh", "ssh", "ssh.txt"):
                 check("BOOT_ABSENT_" + name, lambda p=name: missing(boot, p), f"boot/{name} absent")
             check("BOOT_RESIZE", lambda: "resize" in boot.read("cmdline.txt", 64 * 1024).split(), "boot cmdline retains resize token")
-            if application:
+            if application or factory:
                 check('BOOT_NO_COUNTRY', lambda: not any(token.startswith('cfg80211.ieee80211_regdom=')
                       for token in boot.read('cmdline.txt', 64 * 1024).split()),
                       'application prototype has no preselected country in kernel cmdline')
@@ -256,7 +309,7 @@ def verify(rootfs, bootfs, package_lock, *, application=None, _owner_uid=0):
     finally:
         root.close()
     failures = [check["id"] for check in checks if not check["passed"]]
-    return {"schema_version": 1, "scope": "offline-system-prototype-contract", "passed": not failures,
+    return {"schema_version": 1, "scope": "offline-factory-passive-contract" if factory else "offline-system-prototype-contract", "passed": not failures,
             "qualification": "not-hardware-qualified", "checks": checks, "failed_checks": failures,
             "method": {"image_code_executed": False, "symlinks_followed": False, "secret_values_included": False},
             "limitations": ["Static contract only; no proof of boot, service health, hardware or application behavior.",
@@ -272,6 +325,7 @@ def main(argv=None):
     parser.add_argument("--packages-lock", type=Path, default=ROOT / "config/system-packages.lock.json")
     parser.add_argument("--application-manifest", type=Path)
     parser.add_argument("--application-sha256")
+    parser.add_argument('--factory-passive', type=Path)
     args = parser.parse_args(argv)
     try:
         output = args.output.absolute()
@@ -280,6 +334,11 @@ def main(argv=None):
         with args.packages_lock.open("r", encoding="utf-8") as stream:
             lock = json.load(stream)
         application = None
+        factory = None
+        if args.factory_passive:
+            if args.application_manifest or args.application_sha256:
+                raise ValueError('Incompatible factory/legacy application profiles')
+            factory = json.loads(args.factory_passive.read_bytes())
         if args.application_manifest or args.application_sha256:
             if not (args.application_manifest and args.application_sha256):
                 raise ValueError("Both application manifest and SHA-256 are required")
@@ -288,7 +347,7 @@ def main(argv=None):
             spec.loader.exec_module(config)
             application = config.application_metadata(
                 config.load_manifest(args.application_manifest, args.application_sha256), args.application_sha256)
-        report = verify(args.rootfs, args.bootfs, lock, application=application)
+        report = verify(args.rootfs, args.bootfs, lock, application=application, factory=factory)
         fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             json.dump(report, stream, indent=2, ensure_ascii=False)

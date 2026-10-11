@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -45,6 +46,21 @@ APPLICATION_CHECKS = frozenset({
     'WIFI_DISABLED', 'NO_PRESEEDED_COUNTRY', 'APP_VENV', 'NO_APP_RUNTIME_STATE', 'NO_PYTHON_BYTECODE',
     'APP_DATA_DIRECTORIES',
 })
+FACTORY_REPORTS = frozenset({'factory-passive.json', 'factory-studio-inputs.json',
+                           'factory-dependencies.json', 'factory-studio-plan.json',
+                           'factory-bundle-manifest.json', 'factory-studio-installation.json',
+                           'factory-studio-verification.json', 'qualification-factory.json'})
+FACTORY_CHECKS = frozenset({'BOOT_NO_COUNTRY', 'FACTORY_PASSIVE_LAYOUT', 'FACTORY_RUNTIME_ABSENT',
+                          'EMPTY_VAR_LIB_INKYOS', 'EMPTY_VAR_LIB_INKY-STUDIO', 'EMPTY_VAR_LIB_INKY-NETWORK'})
+
+
+def factory_profile(value):
+    spec = importlib.util.spec_from_file_location('_artifact_factory_profile', Path(__file__).with_name('factory-passive-profile.py'))
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    try:
+        return module.validate_metadata(value)
+    except ValueError as error:
+        raise ArtifactError(str(error)) from None
 
 
 class ArtifactError(ValueError):
@@ -165,14 +181,23 @@ def validate_recipe(recipe):
 
 def validate_build(value):
     if (not isinstance(value, dict) or type(value.get("schema_version")) is not int
-            or value["schema_version"] != 1 or value.get("kind") not in {"system-prototype", "application-prototype"}
+            or value["schema_version"] != 1 or value.get("kind") not in {"system-prototype", "application-prototype", 'factory-passive'}
             or value.get("hardware_qualified") is not False
             or "application" not in value):
         raise ArtifactError("Expected schema 1 prototype with explicit application and hardware_qualified=false")
     validate_recipe(value.get("recipe"))
     application = value['application']
     required_reports = REQUIRED_REPORTS
-    if value['kind'] == 'system-prototype':
+    if value['kind'] != 'factory-passive' and ('factory' in value or 'factory-passive.json' in value['recipe']['files']):
+        raise ArtifactError('Factory profile must not be relabelled as a legacy prototype')
+    if value['kind'] == 'factory-passive':
+        pin = factory_profile(value.get('factory'))
+        if (application is not None or value.get('runtime_qualified') is not False
+                or value['recipe']['files'].get('factory-passive.json') != hashlib.sha256((canonical(pin) + '\n').encode('ascii')).hexdigest()
+                or 'application-manifest.json' in value['recipe']['files']):
+            raise ArtifactError('Factory-passive must be explicitly inactive and independent from legacy application')
+        required_reports |= FACTORY_REPORTS
+    elif value['kind'] == 'system-prototype':
         if application is not None:
             raise ArtifactError('System prototype requires application=null')
     else:
@@ -198,6 +223,9 @@ def validate_build(value):
             or any(not basename(name) or not valid_hash(digest) for name, digest in reports.items())
             or {"manifest.json", image["filename"]} & set(reports)):
         raise ArtifactError("Invalid report names/hashes or required build reports are missing")
+    if (value['kind'] == 'factory-passive' and APPLICATION_REPORTS & set(reports)
+            or value['kind'] != 'factory-passive' and FACTORY_REPORTS & set(reports)):
+        raise ArtifactError('Factory and legacy application evidence must not be mixed')
     return value
 
 
@@ -267,7 +295,7 @@ def validate_filesystem(value):
 def validate_gates(reports, manifest):
     gate = parse_json(reports["qualification-static.json"])
     if (not isinstance(gate, dict) or type(gate.get("schema_version")) is not int or gate["schema_version"] != 1
-            or gate.get("scope") != "offline-system-prototype-contract" or gate.get("passed") is not True
+            or gate.get("scope") != ('offline-factory-passive-contract' if manifest['kind'] == 'factory-passive' else "offline-system-prototype-contract") or gate.get("passed") is not True
             or gate.get("failed_checks") != [] or not isinstance(gate.get("checks"), list)):
         raise ArtifactError("Static gate is missing or does not report a valid PASS")
     checks = gate["checks"]
@@ -289,6 +317,102 @@ def validate_gates(reports, manifest):
         if 'BOOT_NO_COUNTRY' not in {check['id'] for check in checks}:
             raise ArtifactError('Application prototype omits the boot country check')
         validate_application_gates(reports, manifest)
+    elif manifest['kind'] == 'factory-passive':
+        if not FACTORY_CHECKS <= {check['id'] for check in checks}:
+            raise ArtifactError('Factory-passive omits precise layout, radio or inactive runtime checks')
+        validate_factory_gates(reports, manifest)
+
+
+def validate_factory_gates(reports, manifest):
+    def object_report(name):
+        value = parse_json(reports[name])
+        if not isinstance(value, dict):
+            raise ArtifactError('Factory report must be an object')
+        return value
+    pin = manifest['factory']
+    raw = reports['factory-passive.json']
+    if parse_json(raw) != pin or hashlib.sha256(raw).hexdigest() != manifest['recipe']['files']['factory-passive.json']:
+        raise ArtifactError('Factory profile differs from recipe pin')
+    inputs_raw = reports['factory-studio-inputs.json']
+    inputs = parse_json(inputs_raw)
+    if (hashlib.sha256(inputs_raw).hexdigest() != pin['input_manifest_sha256']
+            or not isinstance(inputs, dict) or inputs.get('kind') != 'factory-studio-bundle-inputs'
+            or type(inputs.get('schema_version')) is not int or inputs['schema_version'] != 1
+            or inputs.get('studio_commit') != pin['studio_commit'] or inputs.get('python_version') != '3.13.5'
+            or not isinstance(inputs.get('source_sha256'), dict) or not isinstance(inputs.get('wheel_sha256'), dict)
+            or not inputs['source_sha256'] or not inputs['wheel_sha256']
+            or inputs.get('app_wheel') not in inputs['wheel_sha256']
+            or any(not relative_path(name) or not valid_hash(digest)
+                   for field in ('source_sha256', 'wheel_sha256') for name, digest in inputs[field].items())):
+        raise ArtifactError('Factory input manifest differs from pinned Studio inputs')
+    bundle_raw = reports['factory-bundle-manifest.json']
+    bundle = parse_json(bundle_raw)
+    if (hashlib.sha256(bundle_raw).hexdigest() != pin['bundle_manifest_sha256']
+            or not isinstance(bundle, dict) or bundle.get('kind') != 'factory-studio-bundle-manifest'
+            or type(bundle.get('schema_version')) is not int or bundle['schema_version'] != 1
+            or bundle.get('studio_commit') != pin['studio_commit'] or not isinstance(bundle.get('records'), dict)):
+        raise ArtifactError('Factory expected bundle differs from its pin')
+    deps = object_report('factory-dependencies.json')
+    tooling_pin = manifest['recipe']['files'].get('vendor/build-tooling/packaging-26.3-py3-none-any.whl')
+    if (not valid_hash(tooling_pin) or type(deps.get('schema_version')) is not int or deps['schema_version'] != 1
+            or deps.get('scope') != 'factory-studio-dependency-metadata-only'
+            or deps.get('input_manifest_sha256') != pin['input_manifest_sha256']
+            or deps.get('studio_commit') != pin['studio_commit']
+            or deps.get('target') != {'architecture': 'arm64', 'python_version': '3.13.5', 'debian_release': 'trixie'}
+            or deps.get('tooling_sha256') != tooling_pin or deps.get('candidate_code_executed') is not False
+            or deps.get('application_candidate_qualified') is not False
+            or deps.get('wheel_count') != len(inputs['wheel_sha256'])):
+        raise ArtifactError('Factory dependency metadata report exceeds or contradicts its scope')
+    for name, scope, operation in (('factory-studio-plan.json', 'factory-studio-bundle-plan-only', None),
+                                   ('factory-studio-installation.json', 'offline-factory-studio-bundle-install', 'install'),
+                                   ('factory-studio-verification.json', 'offline-factory-studio-bundle-install', 'verify')):
+        receipt = object_report(name)
+        if (receipt.get('scope') != scope or type(receipt.get('schema_version')) is not int or receipt['schema_version'] != 1
+                or any(receipt.get(key) != pin[key] for key in ('studio_commit', 'input_manifest_sha256', 'bundle_manifest_sha256'))
+                or receipt.get('source_files') != len(inputs['source_sha256'])
+                or receipt.get('wheel_files') != len(inputs['wheel_sha256'])
+                or receipt.get('bundle_entries') != len(bundle['records'])
+                or any(type(receipt.get(key)) is not int or receipt[key] <= 0
+                       for key in ('source_files', 'wheel_files', 'bundle_entries', 'payload_files'))
+                or receipt.get('image_code_executed') is not False):
+            raise ArtifactError('Factory plan/install/readback does not match pinned inputs')
+        if operation is None:
+            if receipt.get('application_candidate_qualified') is not False:
+                raise ArtifactError('Factory planner must not qualify a candidate')
+        elif (receipt.get('operation') != operation or receipt.get('bundle_verified') is not True
+              or any(receipt.get(key) is not False for key in ('support_verified', 'application_code_executed',
+                                                              'runtime_qualified', 'hardware_qualified'))):
+            raise ArtifactError('Factory bundle must be inspected without target execution or runtime support')
+    layout = object_report('qualification-factory.json')
+    source_names = {'factory-authority.py', 'factory-credentials-publisher.py',
+                    'initialization-receipt.py', 'initialization-server.py'}
+    expected_sources = {name: manifest['recipe']['files'].get('scripts/' + name) for name in source_names}
+    if (type(layout.get('schema_version')) is not int or layout['schema_version'] != 1
+            or layout.get('scope') != 'offline-factory-layout' or layout.get('passed') is not True
+            or layout.get('failed_checks') != []
+            or layout.get('checks') != dict.fromkeys(('UNUSED_IDENTITY_STATE', 'WIFI_CLOSED', 'SERVICES_MASKED', 'FACTORY_LAYOUT'), True)
+            or any(value is not True for value in layout['checks'].values())
+            or any(not valid_hash(digest) for digest in expected_sources.values())
+            or layout.get('source_sha256') != expected_sources
+            or any(layout.get(key) is not False for key in ('image_code_executed', 'services_enabled', 'secret_values_included',
+                                                          'exporter_support_verified', 'full_image_verified', 'writer_barrier_qualified',
+                                                          'runtime_qualified', 'hardware_qualified'))):
+        raise ArtifactError('Factory layout PASS is incomplete, mixed or overqualified')
+
+
+def validate_factory_inventory(reports, filesystem):
+    if filesystem['schema_version'] != 2:
+        raise ArtifactError('Factory-passive requires metadata and xattrs in filesystem inventory')
+    expected = parse_json(reports['factory-bundle-manifest.json'])['records'].copy()
+    raw = reports['factory-bundle-manifest.json']
+    expected['manifest.json'] = {'type': 'file', 'mode': '0644', 'uid': 0, 'gid': 0,
+                                 'size_bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),
+                                 'xattrs': {'status': 'inspected', 'entries': {}}}
+    prefix = 'usr/lib/inky-studio'
+    actual = {'.' if name == prefix else name[len(prefix) + 1:]: record
+              for name, record in filesystem['rootfs'].items() if name == prefix or name.startswith(prefix + '/')}
+    if actual != expected:
+        raise ArtifactError('Final filesystem inventory differs from the entire pinned Studio bundle')
 
 
 def validate_application_gates(reports, manifest):
@@ -359,6 +483,8 @@ def load_export(directory, *, verify_images=True):
             reports[name] = raw
         validate_gates(reports, manifest)
         filesystem = validate_filesystem(parse_json(reports["filesystem-manifest.json"]))
+        if manifest['kind'] == 'factory-passive':
+            validate_factory_inventory(reports, filesystem)
         export.image(manifest["image"], verify_hash=verify_images)
     finally:
         export.close()
@@ -372,6 +498,8 @@ def load_export(directory, *, verify_images=True):
                          "Reports are checked for integrity and consistency; their tests are not rerun.",
                          "Filesystem records are not regenerated from the image; no mounting, extraction or image execution occurs.",
                          "No boot or hardware qualification is established."]}
+    if manifest['kind'] == 'factory-passive':
+        result.update(kind='factory-passive', runtime_qualified=False, startup='masked')
     if not verify_images:
         result["limits"].append("Image bytes were not hashed; only file type and size were checked.")
     if filesystem["schema_version"] == 1:
