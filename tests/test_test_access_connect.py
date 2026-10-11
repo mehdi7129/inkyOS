@@ -143,7 +143,7 @@ class ConnectTests(unittest.TestCase):
         native.country_module = vars(country)
         cases = [("load_profile", access.LOAD, (0, b"loaded private text never exported\n")),
                  ("profile_restricted", access.PROPERTIES, (0, access.PROPERTY_BYTES)),
-                 ("radio_on", access.RADIO_ON, (0, b"")), ("activate", access.UP, (0, b"activated\n")),
+                 ("activate", access.UP, (0, b"activated\n")),
                  ("radio_off", access.RADIO_OFF, (0, b"")),
                  ("radio_off_verified", country.WIFI_STATE, (0, b"v b false\n"))]
         for method, command, response in cases:
@@ -263,6 +263,124 @@ class ConnectTests(unittest.TestCase):
             self.assertEqual(result.stderr, b"")
 
 
+class RadioReadinessTests(unittest.TestCase):
+    READY = (0, b"30 (disconnected)\nyes\n\n")
+    WAITING = (0, b"20 (unavailable)\nyes\n\n")
+
+    def run_connection(self, observe, *, before_radio=0.0, read_elapsed=0.0):
+        """Exercise native radio/activation/cleanup with an inert monotonic clock."""
+        fixture, clock, calls, sleeps = Fixture(), [0.0], [], []
+        fixture.country_module = vars(country)
+        def runner(argv, **kwargs):
+            calls.append((argv, dict(kwargs), clock[0]))
+            if argv == access.DEVICE:
+                clock[0] += read_elapsed
+                return observe(clock[0])
+            if argv == country.WIFI_STATE:
+                return (0, b"v b false\n")
+            return (0, b"")
+        fixture.lib = {"command": runner}
+        fixture.command = lambda argv, **kwargs: access.NativeAdapter.command(fixture, argv, **kwargs)
+        def guard():
+            clock[0] = before_radio
+            return fixture.step("immediately_ready")
+        fixture.immediately_ready = guard
+        for name in ("radio_on", "activate", "radio_off", "radio_off_verified"):
+            def operation(name=name):
+                fixture.step(name)
+                return getattr(access.NativeAdapter, name)(fixture)
+            setattr(fixture, name, operation)
+        def sleep(delay):
+            sleeps.append(delay)
+            clock[0] += delay
+        with patch.object(access.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(access.time, "sleep", side_effect=sleep):
+            result = access.connect(fixture)
+        return result, fixture, calls, sleeps, clock[0]
+
+    def test_delayed_device_readiness_precedes_single_full_activation(self):
+        result, fixture, calls, sleeps, elapsed = self.run_connection(
+            lambda now: self.READY if now >= 0.1 else self.WAITING)
+        self.assertTrue(result["passed"])
+        self.assertEqual([call[0] for call in calls], [access.RADIO_ON, access.DEVICE, access.DEVICE, access.UP])
+        self.assertEqual(sleeps, [0.25])
+        self.assertEqual(elapsed, 0.25)
+        self.assertEqual(calls[-1][1], {"timeout": 37.0, "limit": 4096})
+        self.assertEqual(fixture.events, EXPECTED_ORDER + ["close"])
+        self.assertFalse(any(result["cleanup"].values()))
+        self.assertEqual((fixture.work_deadline, fixture.deadline), (84, 90))
+
+    def test_already_ready_device_has_no_unconditional_delay(self):
+        result, _, calls, sleeps, elapsed = self.run_connection(lambda _now: self.READY)
+        self.assertTrue(result["passed"])
+        self.assertEqual([call[0] for call in calls], [access.RADIO_ON, access.DEVICE, access.UP])
+        self.assertEqual((sleeps, elapsed), ([], 0.0))
+
+    def test_never_ready_stops_within_cap_without_up_and_still_verifies_radio_off(self):
+        result, fixture, calls, sleeps, elapsed = self.run_connection(lambda _now: self.WAITING)
+        self.assertEqual(result["error"], "radio_enable_failed")
+        self.assertFalse(result["checks"]["radio_enable_acknowledged"])
+        self.assertNotIn(access.UP, [call[0] for call in calls])
+        self.assertIsNone(result["activation_diagnostic"])
+        self.assertGreater(elapsed, 0)
+        self.assertLessEqual(elapsed, 10.0)
+        self.assertTrue(all(0 < delay <= 0.25 for delay in sleeps))
+        self.assertTrue(all(result["cleanup"].values()))
+        self.assertEqual([call[0] for call in calls[-2:]], [access.RADIO_OFF, country.WIFI_STATE])
+        self.assertEqual((fixture.work_deadline, fixture.deadline), (84, 90))
+
+    def test_malformed_active_unmanaged_or_failed_observation_refuses_without_wait_or_up(self):
+        observations = [None, (False, self.READY[1]), (1, b""), (0, "PRIVATE"),
+                        (0, b"30 (PRIVATE)\nyes\nPRIVATE_UUID\n"),
+                        (0, b"100 (connected)\nyes\n\n"), (0, b"30 (disconnected)\nno\n\n"),
+                        (0, b"30 (disconnected)\nyes\n--\n"),
+                        (0, b"30 (disconnected)\nyes\n\nEXTRA\n"),
+                        (0, b"30 (PRIVATE\x00)\nyes\n\n"), (0, b"x" * 4097)]
+        for observed in observations:
+            with self.subTest(observed=observed):
+                result, _, calls, sleeps, _ = self.run_connection(lambda _now: observed)
+                self.assertEqual(result["error"], "radio_enable_failed")
+                self.assertEqual([call[0] for call in calls],
+                                 [access.RADIO_ON, access.DEVICE, access.RADIO_OFF, country.WIFI_STATE])
+                self.assertEqual(sleeps, [])
+                self.assertTrue(all(result["cleanup"].values()))
+                self.assertNotIn("PRIVATE", json.dumps(result))
+
+    def test_low_work_budget_limits_read_timeout_and_preserves_activation_and_cleanup(self):
+        result, fixture, calls, _, elapsed = self.run_connection(lambda _now: self.WAITING, before_radio=37.0)
+        self.assertEqual(result["error"], "radio_enable_failed")
+        self.assertEqual(calls[0][1]["timeout"], 0.5)
+        self.assertEqual(calls[1][1]["timeout"], 0.5)
+        self.assertLessEqual(elapsed, 37.75)
+        self.assertGreaterEqual(fixture.work_deadline - elapsed, 37.0 + 9.0 + 0.25)
+        self.assertTrue(all(result["cleanup"].values()))
+        self.assertNotIn(access.UP, [call[0] for call in calls])
+
+    def test_no_budget_refuses_before_radio_on_and_still_attempts_cleanup(self):
+        result, _, calls, sleeps, _ = self.run_connection(lambda _now: self.READY, before_radio=37.5)
+        self.assertEqual(result["error"], "runtime_timeout")
+        self.assertEqual([call[0] for call in calls], [access.RADIO_OFF, country.WIFI_STATE])
+        self.assertEqual(sleeps, [])
+        self.assertTrue(all(result["cleanup"].values()))
+
+    def test_late_ready_response_cannot_escape_readiness_deadline(self):
+        result, _, calls, sleeps, _ = self.run_connection(lambda _now: self.READY, read_elapsed=10.0)
+        self.assertEqual(result["error"], "radio_enable_failed")
+        self.assertNotIn(access.UP, [call[0] for call in calls])
+        self.assertEqual(sleeps, [])
+        self.assertTrue(all(result["cleanup"].values()))
+
+    def test_activation_refuses_truncated_wait_after_scheduling_delay(self):
+        native = access.NativeAdapter()
+        native.work_deadline, native.deadline = 84.0, 90.0
+        with patch.object(access.time, "monotonic", return_value=38.0), patch.object(native, "command") as command:
+            with self.assertRaisesRegex(access.ConnectError, "runtime_timeout"):
+                native.activate()
+        command.assert_not_called()
+        self.assertFalse(native.activation_attempted)
+        self.assertIsNone(native.activation_result)
+
+
 class ActivationDiagnosticTests(unittest.TestCase):
     @staticmethod
     def value():
@@ -346,7 +464,7 @@ class ActivationDiagnosticTests(unittest.TestCase):
     def test_failure_snapshot_uses_only_work_budget_and_never_cleanup_reserve(self):
         for finished in (83.5, 83.8, 84.0, 85.0):
             native = access.NativeAdapter(); native.work_deadline, native.deadline = 84.0, 90.0
-            clock, calls = [70.0], []
+            clock, calls = [30.0], []
             def runner(argv, **kwargs):
                 calls.append((argv, kwargs))
                 if argv == access.UP:
@@ -356,14 +474,14 @@ class ActivationDiagnosticTests(unittest.TestCase):
             native.lib = {"command": runner}
             with patch.object(access.time, "monotonic", side_effect=lambda: clock[0]):
                 self.assertFalse(native.activate())
-            self.assertEqual(calls[0], (access.UP, {"timeout": 14.0, "limit": 4096}))
+            self.assertEqual(calls[0], (access.UP, {"timeout": 37.0, "limit": 4096}))
             if finished == 83.5:
                 self.assertEqual(calls[1:], [(access.FAILURE_DEVICE, {"timeout": 0.25, "limit": 4096})])
             else:
                 self.assertEqual(len(calls), 1)
                 self.assertEqual(native.activation_result["device"], {"status": "unavailable"})
             self.assertEqual(native.activation_result["work_budget_exhausted"], finished >= 84)
-            self.assertFalse(native.activation_result["full_wait_budget_available"])
+            self.assertTrue(native.activation_result["full_wait_budget_available"])
             self.assertEqual((native.work_deadline, native.deadline), (84, 90))
 
     def test_snapshot_exception_or_projection_failure_cannot_change_cleanup(self):

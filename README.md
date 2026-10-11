@@ -19,7 +19,7 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
 | Enrôlement de test | Nouveau candidat : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; nouveau contexte SSH privé exporté après nettoyage vérifié. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Boot réseau précédent : import signé, garde radio et pays France validés ; activation NetworkManager en échec, puis radio désactivée. Le nouveau candidat attend son essai réseau. |
+| Wi-Fi | Retour réseau précédent : activation NetworkManager en échec après import, garde radio et pays validés. Une attente de disponibilité radio est corrigée et testée dans les sources ; elle n’est pas encore intégrée à la SD. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
@@ -39,7 +39,7 @@ backend `c31b13a` et iOS `1.0.0 (9)`. Le payload ARM64 et son manifeste restent
 épinglés ; la tête de la branche iOS ne remplace pas les corrections matériel
 et arrêt intégrées dans l'image.
 
-La dernière suite enregistrée compte **1 039 tests sur macOS et Linux ARM64**,
+La dernière suite enregistrée compte [**1 047 tests sur macOS et Linux ARM64**](docs/validation/2026-10-11-radio-readiness-tests.json),
 sans échec (4 skips macOS, 1 skip Linux). Les preuves comprennent le
 [candidat activation/drain construit](docs/validation/2026-10-04-test-access-lifecycle-image.json),
 les [contrôles SSH/runtime](docs/validation/2026-10-04-test-access-transport-return.json)
@@ -64,10 +64,15 @@ passe les 35 + 10 contrôles natifs. Cette fois, un dérivé `e2image` est trans
 directement de la SD vers la VM, sans copie intégrale intermédiaire ; le hash
 du flux et la relecture dans la VM concordent. Le nouveau contexte privé est
 exporté après nettoyage vérifié. Sa capsule signée est installée et relue,
-la SD éjectée. Le prochain essai réseau reste à effectuer.
+la SD éjectée. Aucune connexion réseau réussie n’est encore qualifiée.
 L'inspection ciblée du retour réseau précédent ne trouve aucun journal système
 persistant dans son périmètre ; elle ne permet pas de préciser la cause.
 Ces résultats ne qualifient pas l'affichage, l'arrêt actif ou l'appairage iPhone.
+
+Une [correction de synchronisation radio](docs/validation/2026-10-11-radio-readiness-tests.json)
+attend désormais que NetworkManager soit prêt avant l’unique demande de connexion.
+La course est reproduite en simulation ; son rôle dans la panne réelle reste à établir.
+Cette correction est testée dans les sources, sans nouvelle image ni modification de la SD.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les
 prérequis, puis observer le welcome, une photo et l'adoption QR/BLE depuis une

@@ -46,8 +46,12 @@ d'indexation macOS a ensuite réussi, sans réécriture. Son
 est cohérent avec son profil. Son [retour natif](validation/2026-10-11-nm-diagnostic-enrollment-return.json)
 passe maintenant ses propres 35 + 10 contrôles ; un nouveau contexte privé est
 exporté après nettoyage vérifié. La nouvelle capsule signée est installée et
-relue, puis la SD éjectée. L’essai réseau reste à effectuer. Le relevé
+relue, puis la SD éjectée. L’accès réseau n’est pas encore qualifié. Le relevé
 préliminaire reste une preuve historique distincte.
+
+La [correction de disponibilité radio](validation/2026-10-11-radio-readiness-tests.json)
+est postérieure à ce candidat issu des sources `07271cf`. Elle passe 1 047 tests
+sur macOS et Linux ARM64, mais n’est intégrée à aucune nouvelle image ou SD.
 
 L’ancien enrôlement reste inchangé. Le profil **v2** ajoute le hash du manifest
 des programmes d’accès ; l’état durable d’enrôlement conserve son schéma 1.
@@ -83,6 +87,15 @@ Le connecteur refuse les autres profils et les PHY supplémentaires. Il appelle
 le contrôle France avec Wi-Fi désactivé, relit les gardes immédiatement avant
 l’activation, puis vérifie l’unique connexion autorisée. En cas d’échec après
 la tentative d’activation radio, il demande Wi-Fi off et relit l’état.
+
+Dans les sources corrigées, l’acquittement radio est suivi d’une attente bornée
+de `wlan0` managed, disconnected et sans UUID actif, avant l’unique activation.
+Le plafond est de 10 secondes, dans le budget existant de 90 secondes ; 37 secondes
+d’activation, 9 de contrôles suivants et 6 de nettoyage sont réservées.
+`radio_enable_acknowledged=true` signifie désormais acquittement **et disponibilité** ;
+`radio_enable_failed` couvre aussi une disponibilité absente ou invalide.
+Le [diagnostic détaillé](BOOT-NETWORK-DIAGNOSIS.md#attente-de-disponibilité-radio) distingue
+ces tests logiciels de la qualification Wi-Fi physique.
 
 Le banc exécutant **NetworkManager 1.52.1-1+rpt4** du parent a confirmé que
 le daemon crée une connexion loopback par défaut. La variante ajoute donc

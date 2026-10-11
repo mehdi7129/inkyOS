@@ -21,8 +21,13 @@ passe désormais ses propres 35 + 10 contrôles. Le dérivé `e2image` de ce ret
 est transmis directement de la SD vers la VM, sans acquisition intégrale
 intermédiaire ni rejeu du journal. Le nouveau contexte privé est exporté après
 nettoyage vérifié ; sa capsule signée est installée et relue, puis la SD éjectée.
-Le nouvel essai réseau reste à effectuer. L’ancienne identité et l’ancienne
+L’accès réseau n’est pas encore qualifié. L’ancienne identité et l’ancienne
 capsule ne sont pas réutilisées.
+Une [correction de synchronisation radio](validation/2026-10-11-radio-readiness-tests.json)
+attend la disponibilité de NetworkManager avant l’unique activation ; 1 047 tests
+passent sur macOS et Linux ARM64. La course est reproduite en simulation,
+sans cause matérielle établie. La SD actuelle, issue des sources `07271cf`,
+ne contient pas cette correction ; aucune nouvelle image n’a été construite pour elle.
 Les versions
 du paragraphe « État réel de départ » ci-dessous sont historiques.
 

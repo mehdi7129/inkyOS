@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-11",
+  "scope": "networkmanager-radio-readiness-software-validation",
+  "software_passed": true,
+  "independent_review_passed": true,
+  "source_sha256": {
+    "scripts/test-access-connect.py": "4f7bc57d3997efca45f2674365c024e3f2d7f5c9b85c9645df0ae76a2c1b9517",
+    "tests/test_test_access_connect.py": "b98fbe467992cc074291f4c1bd4e29fb3c3dba6f16a06442c38fa82595eeca09"
+  },
+  "targeted_tests": {
+    "tests": 39,
+    "failures": 0,
+    "errors": 0,
+    "independent_replay_passed": true
+  },
+  "macos": {
+    "tests": 1047,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 4,
+    "python": "3.13.15",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    }
+  },
+  "linux_arm64": {
+    "tests": 1047,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "python": "3.13.5",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    }
+  },
+  "readiness": {
+    "delayed_availability_reproduced_in_simulation": true,
+    "ready_before_single_activation": true,
+    "timeout_seconds": 10,
+    "poll_sleep_max_seconds": 0.25,
+    "total_budget_seconds": 90,
+    "activation_reserve_seconds": 37,
+    "post_activation_reserve_seconds": 9,
+    "cleanup_reserve_seconds": 6,
+    "command_teardown_margin_seconds": 0.25,
+    "malformed_or_active_state_refused": true,
+    "missing_readiness_prevents_activation": true,
+    "insufficient_budget_prevents_activation": true,
+    "failure_cleanup_preserved": true,
+    "activation_retries_added": false
+  },
+  "result_schema_changed": false,
+  "radio_enable_acknowledged_requires_readiness": true,
+  "new_image_built_for_change": false,
+  "sd_modified_for_change": false,
+  "target_boot_tested": false,
+  "physical_wifi_association_tested": false,
+  "hwsim_association_tested": false,
+  "observed_boot_failure_cause_established": false,
+  "authenticated_ssh_qualified": false,
+  "ios_pairing_qualified": false,
+  "bluetooth_qualified": false,
+  "hardware_qualified": false,
+  "release_qualified": false,
+  "private_network_data_published": false,
+  "limits": [
+    "Tests reproduce delayed device availability with inert fixtures; they do not establish the cause of a physical boot failure.",
+    "The current diagnostic SD uses source commit 07271cf849e24d3a09307898d6fd166253f27a89 and does not contain this correction.",
+    "No new image or SD deployment was performed for this correction.",
+    "The unchanged radio_enable_acknowledged field now requires both the radio command acknowledgement and device readiness; historical receipts retain their earlier meaning.",
+    "Software validation does not qualify Wi-Fi association, SSH, Bluetooth, the application or hardware."
+  ]
+}

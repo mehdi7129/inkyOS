@@ -205,10 +205,36 @@ d’infrastructure. Un dérivé `e2image` est transmis directement de la SD vers
 la VM, sans copie intégrale intermédiaire ni rejeu du journal ; le hash du
 flux et sa relecture concordent. Le nouveau contexte privé est exporté après
 nettoyage vérifié ; sa capsule signée est installée et relue, puis la SD éjectée.
-Le nouvel essai réseau reste à effectuer ; aucune correction de la panne
-Wi-Fi n’est encore établie.
+Aucune connexion Wi-Fi réussie ni cause matérielle de la panne n’est encore établie.
 Les [1 039 tests macOS et Linux ARM64](validation/2026-10-11-activation-diagnostics-tests.json)
 passent, avec une revue indépendante du bornage et de la projection.
 Le lecteur hors ligne de la future image devra être mis à jour et épinglé
 pour valider le nouveau champ `connection.activation` ; les lecteurs de
 l'ancienne SD conservent leur schéma actuel.
+
+## Attente de disponibilité radio
+
+Une course est reproduite en simulation : l’acquittement de `nmcli radio wifi on`
+peut précéder la disponibilité du périphérique, alors que le connecteur demandait
+immédiatement l’activation. Dans NetworkManager 1.52.1, la [commande radio](https://github.com/NetworkManager/NetworkManager/blob/1.52.1/src/nmcli/general.c#L1058-L1102)
+acquitte la propriété ; l’[interface supplicant démarre de façon asynchrone](https://github.com/NetworkManager/NetworkManager/blob/1.52.1/src/core/devices/wifi/nm-device-wifi.c#L3292-L3312).
+Ce défaut de synchronisation n’est pas encore identifié comme la cause du boot réel.
+
+Les sources corrigées attendent `wlan0` managed, état 30 (disconnected), sans UUID
+actif, avec des pauses de 250 ms au plus entre lectures, pendant 10 secondes au maximum.
+Le budget global reste 90 secondes : l’attente préserve 37 secondes pour l’unique
+activation, 9 pour les contrôles suivants et les 6 de nettoyage, avec marge de
+terminaison de commande. Aucun scan ni second essai d’activation n’est ajouté.
+Une sortie invalide, un délai dépassé ou un budget insuffisant provoque le nettoyage.
+Le schéma est inchangé : `radio_enable_acknowledged=true` signifie maintenant
+acquittement **et disponibilité** ; `radio_enable_failed` inclut l’échec de cette attente.
+Les anciens reçus conservent leur sens antérieur. En sortie terse, un
+[UUID inactif nul](https://github.com/NetworkManager/NetworkManager/blob/1.52.1/src/nmcli/devices.c#L229-L231)
+devient une [ligne vide](https://github.com/NetworkManager/NetworkManager/blob/1.52.1/src/nmcli/utils.c#L1068-L1074), vérifiée strictement.
+
+Les [tests de la correction](validation/2026-10-11-radio-readiness-tests.json)
+passent : 39 ciblés relus indépendamment, puis 1 047 sur macOS et Linux ARM64.
+Ils couvrent notamment readiness retardée, absente ou invalide, budgets et activation
+unique. Ils ne réalisent aucune association Wi-Fi physique ou simulée par hwsim.
+La SD actuelle provient toujours des sources `07271cf` ; aucune nouvelle image
+n’a été construite ni flashée pour cette correction.

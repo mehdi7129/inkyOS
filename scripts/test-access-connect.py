@@ -44,7 +44,8 @@ DEVICE = (NMCLI, "-g", "GENERAL.STATE,GENERAL.NM-MANAGED,GENERAL.CON-UUID", "dev
 FAILURE_DEVICE = (NMCLI, "-g", "GENERAL.STATE,GENERAL.REASON", "device", "show", "wlan0")
 BUDGET, CLEANUP_RESERVE = 90.0, 6.0
 ACTIVATION_TIMEOUT, DIAGNOSTIC_TIMEOUT = 37.0, 1.0
-DIAGNOSTIC_TEARDOWN_RESERVE = 0.25  # legacy command() allows 0.2 s after killing its child
+READINESS_TIMEOUT, READINESS_POLL, POST_ACTIVATION_RESERVE = 10.0, 0.25, 9.0
+COMMAND_TEARDOWN_RESERVE = 0.25  # legacy command() allows 0.2 s after killing its child
 # NetworkManager 1.52.1 public enums, independent of any command output.
 NMCLI_EXIT_CODES = {0, 1, 2, 3, 4, 8, 10}
 NM_DEVICE_STATES = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120}
@@ -134,6 +135,22 @@ def device_failure_diagnostic(result):
     if state not in NM_DEVICE_STATES or reason not in NM_DEVICE_REASONS:
         return unavailable
     return {"status": "available", "state": state, "reason": reason}
+
+
+def device_readiness(result):
+    """True when managed and disconnected, False while inactive, None if unsafe."""
+    if (type(result) is not tuple or len(result) != 2 or type(result[0]) is not int or result[0] != 0
+            or type(result[1]) is not bytes or len(result[1]) > 4096):
+        return None
+    # Terse nmcli emits an empty CON-UUID for an inactive device. Labels are
+    # discarded; an active UUID, unknown state or malformed response is refused.
+    match = re.fullmatch(rb"(0|10|20|30) \([^\r\n\x00]*\)\n(yes|no)\n\n", result[1])
+    if match is None:
+        return None
+    state, managed = match.groups()
+    if state == b"30":
+        return True if managed == b"yes" else None
+    return False
 
 
 class ConnectError(ValueError):
@@ -332,9 +349,34 @@ class NativeAdapter:
             os.close(directory)
 
     def radio_on(self):
-        return self.command(RADIO_ON) == (0, b"")
+        # Radio acknowledgement precedes NetworkManager's asynchronous device
+        # transition. Observe readiness before the one activation request while
+        # preserving its full wait, final checks and the separate cleanup budget.
+        deadline = min(time.monotonic() + READINESS_TIMEOUT,
+                       self.work_deadline - ACTIVATION_TIMEOUT - POST_ACTIVATION_RESERVE
+                       - COMMAND_TEARDOWN_RESERVE)
+        remaining = deadline - time.monotonic() - COMMAND_TEARDOWN_RESERVE
+        require(remaining > 0, "runtime_timeout")
+        if self.command(RADIO_ON, timeout=min(2.0, remaining)) != (0, b""):
+            return False
+        while True:
+            remaining = deadline - time.monotonic() - COMMAND_TEARDOWN_RESERVE
+            if remaining <= 0:
+                return False
+            observed = self.command(DEVICE, timeout=min(2.0, remaining))
+            if time.monotonic() >= deadline:
+                return False
+            ready = device_readiness(observed)
+            if ready is not False:
+                return ready is True
+            remaining = deadline - time.monotonic() - COMMAND_TEARDOWN_RESERVE
+            if remaining <= 0:
+                return False
+            time.sleep(min(READINESS_POLL, remaining))
 
     def activate(self):
+        require(self.work_deadline - time.monotonic()
+                >= ACTIVATION_TIMEOUT + POST_ACTIVATION_RESERVE + COMMAND_TEARDOWN_RESERVE, "runtime_timeout")
         self.activation_attempted = True
         self.activation_result = {
             "status": "available", "nmcli_exit_code": None, "work_budget_exhausted": False,
@@ -351,8 +393,8 @@ class NativeAdapter:
             # Never borrow cleanup time or retry activation to obtain diagnostics.
             try:
                 remaining = min(DIAGNOSTIC_TIMEOUT, self.work_deadline - time.monotonic())
-                if remaining > DIAGNOSTIC_TEARDOWN_RESERVE:
-                    observed = self.command(FAILURE_DEVICE, timeout=remaining - DIAGNOSTIC_TEARDOWN_RESERVE)
+                if remaining > COMMAND_TEARDOWN_RESERVE:
+                    observed = self.command(FAILURE_DEVICE, timeout=remaining - COMMAND_TEARDOWN_RESERVE)
                     self.activation_result["device"] = device_failure_diagnostic(observed)
             except BaseException:
                 pass
