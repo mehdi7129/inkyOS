@@ -115,9 +115,14 @@ durable, autorité durable, fin de l’unité factory, readiness IPC, puis runti
 applicatif. Un processus resté en drain SPI n’est jamais arrêté de force pour
 permettre cette séquence.
 
-Les scripts de construction et de vérification sont développés en staging,
-avec un support système revu statiquement. La construction Linux réelle, les
-reprises après interruption et les unités doivent être vérifiées ensemble avant
-l’intégration à une recette d’image. Le banc ponctuel des quatre sources Studio
-avec des wheels existantes ne qualifie pas ce nouveau contrat installé ni une
-release applicative complète.
+La [construction Linux ARM64 réelle](validation/2026-10-11-factory-exporter-native-install.json)
+réussit sur une copie d’image : 325 fichiers de payload, 390 entrées du bundle,
+puis vérification séparée après remontage en lecture seule. Le Python système
+de l’image construit le venv sous UID/GID 1000 ; aucun code Studio n’est exécuté
+pendant cette installation. La source reste inchangée et le montage, le loop
+et l’unité de build sont nettoyés.
+
+La génération depuis ce runtime, le hook composé, les reprises après
+interruption et les unités doivent encore être vérifiés ensemble avant
+l’intégration à une recette de premier boot. Cette installation ne qualifie ni
+une release applicative complète, ni un parcours d’appairage sur le matériel.

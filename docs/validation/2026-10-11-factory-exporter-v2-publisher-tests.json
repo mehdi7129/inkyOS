@@ -1,0 +1,49 @@
+{
+  "architecture": "aarch64",
+  "contract": "factory-exporter-v2",
+  "date": "2026-10-11",
+  "duration_seconds": 1.786,
+  "errors": 0,
+  "failures": 0,
+  "fixtures_cleaned_their_own_roots": true,
+  "hardware_qualified": false,
+  "image_modified": false,
+  "limits": [
+    "Synthetic data roots and inert producers only; no execution of the installed exporter, composed production hook, image or SD.",
+    "The UID/GID/groups check executes a native inert interpreter through the publisher privilege drop. The remaining cases exercise permission consumption, publication errors and recovery refusal."
+  ],
+  "log_sha256": "0079a0e66d9988fd87f1b481e2992c332c427c97951a222c528b1c544b077dc0",
+  "native_supplementary_groups_empty_verified": true,
+  "native_uid_gid_real_effective_saved_1000_verified": true,
+  "normal_root_home_verified": true,
+  "passed": true,
+  "private_results_sha256": "0d228205df022555de7df5ce060a58572da313116efe47983d6689a50bbbee19",
+  "production_authority_created": false,
+  "python": "3.13.5",
+  "real_studio_serializer_invoked": false,
+  "schema_version": 1,
+  "scope": "factory-publisher-and-authority-inert-linux-root-fixtures",
+  "service_activated": false,
+  "skipped": 0,
+  "source_commit": "cea7f2e5a75d5920f9532e9496114c5b5ef26056",
+  "source_sha256": {
+    "config/factory-exporter.lock.json": "5297428d96649774f40d7518873bb6bbc08db77760f729d3b4e4348dc6bc4525",
+    "scripts/build-image-linux.sh": "bd4ccc6b11b973d43f573d64742a91d386264b03a7864383e2973c8febdbf834",
+    "scripts/build-prototype.sh": "1ec990634d39d967977217735eb66ce383974c2c0a16b016aa61d66e46d88f3f",
+    "scripts/configure-application-rootfs.py": "fa5c76cc8edcdf6978e856ace9a3e4d391b6429556f5a9f63d3009238c706c3f",
+    "scripts/configure-rootfs.py": "f0b3c6202b51018ff2bd74f2788f6ec899a3a29911e947c45db5ad27f300a3a4",
+    "scripts/factory-authority.py": "e5b04dd9ad617cf82c5476d2bc81c1ea1295bd3731c363ac4ed6f0ae5aeacb50",
+    "scripts/factory-credentials-publisher.py": "ae8d8898315631e4f5ed016fd21c1393073ae611137ece35c8f3fd4f9201bbfe",
+    "scripts/initialization-receipt.py": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
+    "tests/test_factory_authority.py": "4515eff564afd3adeb7a19eb651c6ff678823b1084b4a33576612724fe8ced01",
+    "tests/test_factory_credentials_publisher.py": "7b588281df2cd53521dd7327fd8b1b460f9c3e3e7843aac943d171cfa8cc6a3e"
+  },
+  "sources_unchanged_after_tests": true,
+  "status": "PASS",
+  "successful_by_module": {
+    "authority": 33,
+    "publisher": 27
+  },
+  "system": "Linux",
+  "tests": 60
+}

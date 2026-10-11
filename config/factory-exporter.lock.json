@@ -14,7 +14,7 @@
   "limitations": [
     "Four pinned Studio source files and ten dependency wheels; not a complete application candidate.",
     "System-support is pinned to the reviewed prerequisites package profile; native installation and runtime qualification remain separate.",
-    "No image recipe, publisher argv v1, service, credentials or runtime activation is changed."
+    "This lock does not install a production image recipe or service; runtime activation remains unqualified."
   ],
   "schema_version": 1,
   "source_sha256": {

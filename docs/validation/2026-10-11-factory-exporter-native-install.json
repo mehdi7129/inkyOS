@@ -1,0 +1,63 @@
+{
+  "application_code_executed": false,
+  "build_gid": 1000,
+  "build_uid": 1000,
+  "bundle_entries": 390,
+  "bundle_manifest_sha256": "734799342de9d03c8003baeda75d48e45339fbee319a7314f0aa5e3cbfd87c36",
+  "checks": {
+    "all_build_children_waited": true,
+    "separate_readonly_verification_passed": true,
+    "installation_passed": true,
+    "loop_detached": true,
+    "observed_cgroup_empty": true,
+    "original_image_unchanged": true,
+    "rootfs_unmounted": true,
+    "scratch_removed": true,
+    "unit_stopped": true
+  },
+  "contract": "factory-exporter-v2",
+  "date": "2026-10-11",
+  "factory_hook_executed": false,
+  "hardware_qualified": false,
+  "image_recipe_changed": false,
+  "limits": [
+    "Native ARM64 builder installation on a disposable copy of the unbooted TEST access prerequisites profile; not a booted or production factory image.",
+    "The installed exporter command, composed factory hook, startup barrier, real credential generation and interrupted boot recovery remain separate validation steps.",
+    "Four Studio sources and ten wheels do not constitute a complete application candidate or an iPhone pairing test."
+  ],
+  "payload_files": 325,
+  "pip_executed": false,
+  "preliminary_attempt": {
+    "correction_commit": "c138c5f012237eec4c7638c86083a08b8f771de5",
+    "reason": "Unsafe ownership and permissions on the previous build workspace parent. Refusal occurred before clone creation or installation. A separate root-owned workspace was then used.",
+    "status": "REFUSED"
+  },
+  "private_receipt_sha256": {
+    "completion.json": "cb1c34b44cc71d24d1c4142e0611e2a10158861da3f5e442c4bc2bf30a8fc5a2",
+    "execution.json": "1f1826fb555c0d8977eb354405563682b0db333fe902266449e4a13d43c3c7e6",
+    "work-completion.json": "bcb13b5f3885cf0578a291ea406fe368ae299cc33fc589c1ac9d6dd682ccbeb4",
+    "work-install.json": "f841046bc04e87641f03c186ec9000d712631b36901a1ecece8dad2ba15359c0",
+    "work-verify.json": "e0b326849d879d2db610e1d4cd14d5c23a30da6876687eaa8cf57648d58b6cea"
+  },
+  "receipt_scope_correction": {
+    "correct_interpretation": "Target system Python and its standard library ran as UID/GID 1000 to build the venv; no application or serializer code ran. The installer inherited a static-verifier-only flag.",
+    "field": "image_code_executed",
+    "native_run_repeated_after_report_only_correction": false,
+    "raw_install_receipt_value": false,
+    "report_only_correction_commit": "d4567fc999b49afafbcf5b9aa4466c7128999c4c"
+  },
+  "runtime_activated": false,
+  "schema_version": 1,
+  "scope": "standalone-factory-exporter-native-install-and-static-verification",
+  "serializer_executed": false,
+  "source_commit": "512056ff355ed32ff84826b56b5a7a9aa157c605",
+  "source_sha256": {
+    "config/factory-exporter.lock.json": "5297428d96649774f40d7518873bb6bbc08db77760f729d3b4e4348dc6bc4525",
+    "scripts/install-factory-exporter-rootfs.py": "36bd56af021245e6f9396cd4e8e54b9bb6598c4d6132da70b964b9cacb9da8db",
+    "scripts/verify-factory-exporter-rootfs.py": "3141a500ea4e91eb967d37ec8e59cf07d7d11cd8e6112c42f34edbf070466e1b"
+  },
+  "status": "PASS",
+  "studio_commit": "cf17a0514989023143798570a8ae47739b829301",
+  "support_manifest_sha256": "096a789157b561d9784fb6c22ba91961ef06093ad8f5d91a43add5ba5f814879",
+  "target_system_python_executed": true
+}

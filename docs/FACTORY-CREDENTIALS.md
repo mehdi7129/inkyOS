@@ -102,7 +102,10 @@ cgroup restent des obligations externes.
 ## Tests locaux et preuves historiques
 
 Les tests locaux suivent l’argv staging `factory-exporter-v2` et utilisent des
-producteurs inertes. Les rapports datés liés dans cette section précèdent ce
+producteurs inertes. Le [banc Linux root de ce raccord](validation/2026-10-11-factory-exporter-v2-publisher-tests.json)
+passe 60 tests sans skip : 27 pour le publisher, 33 pour le hook et l’autorité.
+Il vérifie notamment la chute effective UID/GID 1000 et les groupes vides.
+Les autres rapports datés liés ci-dessous précèdent ce
 changement : ils restent des preuves de l’appel v1 et ne sont ni réécrits ni
 promus en preuve du hook composé avec l’exporter dédié installé.
 

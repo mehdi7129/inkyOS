@@ -34,9 +34,10 @@ Le [publisher de credentials factory](docs/FACTORY-CREDENTIALS.md) passe
 désormais permission, publication puis autorité. Le vrai sérialiseur Studio
 passe aussi un [banc Linux isolé](docs/validation/2026-10-11-factory-studio-serializer-native.json),
 et le [superviseur passe dix cas](docs/FACTORY-SERVICE-FIXTURE.md).
-Le [runtime exporter dédié](docs/FACTORY-EXPORTER-PROPOSAL.md) est développé en staging,
-avec ses sources et son support système épinglés. L’intégration complète et
-son installation dans l’image restent à qualifier.
+Le [runtime exporter dédié](docs/FACTORY-EXPORTER-PROPOSAL.md) est installé sur
+une copie d’image et [vérifié en Linux ARM64](docs/validation/2026-10-11-factory-exporter-native-install.json) :
+325 fichiers de payload et 390 entrées contrôlées. La génération depuis ce
+runtime, l’intégration du premier boot et les essais matériels restent à qualifier.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles
