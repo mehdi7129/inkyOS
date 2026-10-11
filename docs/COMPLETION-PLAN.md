@@ -61,14 +61,16 @@ Le [service IPC-A](INITIALIZATION-IPC.md) et son client Studio sont développés
 séparément ; le banc Linux du service passe, sans installation dans l'image TEST.
 Le vrai client Studio passe maintenant le [banc croisé Linux](validation/2026-10-11-initialization-studio-native.json).
 La [permission factory consommable](FACTORY-AUTHORITY.md) est développée et testée,
-sans installation dans une recette ni création des credentials applicatifs.
+sans installation dans une recette. Son hook compose désormais consommation
+durable, publication des credentials puis création de l’autorité.
 Studio propose désormais un sérialiseur de credentials v2 à sortie privée ;
 le [publisher OS isolé](FACTORY-CREDENTIALS.md) passe ses fixtures macOS et
-Linux ARM64, sans raccord au hook ni à une image. Leur composition doit
-consommer la permission avant une unique génération, publier exclusivement
-le fichier individuel, puis créer l'autorité durable, sous le même verrou et
-avant tout autre processus applicatif. Une reprise après consommation ne
-génère jamais de nouveaux credentials implicitement.
+Linux ARM64. Le raccord au hook est testé avec des producteurs inertes ;
+le vrai sérialiseur et l’intégration dans l’image restent à qualifier. Le verrou
+couvre publication et autorité, et une reprise après consommation ne génère
+jamais de nouveaux credentials implicitement. Le futur profil doit encore
+exclure les processus applicatifs concurrents et installer
+l’[exporter dédié proposé](FACTORY-EXPORTER-PROPOSAL.md).
 La [politique d'heure proposée](BOOTSTRAP-TIME-POLICY.md) fixe les bornes,
 le délai et les preuves attendues ; l'admission partagée avec Studio et le
 service privilégié restent à développer. Ce document ne règle aucune horloge.

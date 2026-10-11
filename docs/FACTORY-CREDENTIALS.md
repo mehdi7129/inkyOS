@@ -2,16 +2,21 @@
 
 Le [publisher](../scripts/factory-credentials-publisher.py) collecte une seule
 sortie du sérialiseur Studio et publie ses octets à destination fixe. Ce module
-**STAGING** n’est installé ni appelé par une recette, un service ou le
-[hook factory](FACTORY-AUTHORITY.md). Il ne crée ni permission ni autorité IPC-A
-et ne dispose d’aucune CLI. Le parcours réel de premier boot reste à intégrer.
+**STAGING** est maintenant appelé par le [hook factory](FACTORY-AUTHORITY.md),
+après consommation durable de sa permission et avant création de l’autorité.
+Aucune recette ni aucun service ne les installe ou ne les active. Le publisher
+ne crée lui-même ni permission ni autorité IPC-A et ne dispose d’aucune CLI.
+Le parcours réel de premier boot reste à intégrer.
 
 Le contrat applicatif est celui de la [PR Studio #27](https://github.com/mehdi7129/inky-studio/pull/27),
 figé pour cette revue au [commit `cf17a051`](https://github.com/mehdi7129/inky-studio/blob/cf17a0514989023143798570a8ae47739b829301/docs/inkyos/FACTORY-CREDENTIALS.md).
 Cette référence documentaire ne remplace pas la vérification du candidat
 réellement installé.
+L’[exporter dédié proposé](FACTORY-EXPORTER-PROPOSAL.md) décrit l’évolution
+coordonnée vers un runtime non modifiable par UID 1000 ; le chemin actuel et
+les octets de ce banc ne changent pas implicitement.
 
-## Appel et responsabilité du futur hook
+## Appel et responsabilités de l’intégration
 
 L’API privée `publish()` retourne uniquement `{"status":"published"}`. Elle
 lève `PublisherError` avec un code fermé : `configuration_invalid`,
@@ -21,10 +26,10 @@ extrait de pipe, stderr ou message d’exception interne n’est journalisé.
 Les paramètres préfixés `_` servent aux fixtures avec racine synthétique ; ils
 ne constituent pas une interface de configuration ou un protocole applicatif.
 
-Avant cet appel, le futur hook devra vérifier le candidat et ses sources,
-exclure réellement l’app, le helper et tout autre writer, puis consommer sa
-permission positive et synchroniser cette consommation. Son verrou stable
-devra rester détenu jusqu’après création durable de l’autorité. Le publisher
+Avant cet appel, l’intégration devra vérifier le candidat et ses sources et
+exclure réellement l’app, le helper et tout autre writer. Le hook consomme sa
+permission positive et synchronise cette consommation. Son verrou stable
+reste détenu jusqu’après création durable de l’autorité. Le publisher
 ne prouve aucune de ces conditions et ne reçoit pas un booléen les simulant.
 L’ordre prévu est :
 
@@ -73,12 +78,13 @@ bindings des parents sont revérifiés autour de la publication.
 
 Après consommation de la permission, aucun échec n’autorise un retry du
 générateur. Fichier partiel ou complet, erreur de synchronisation, réponse
-perdue ou autorité non créée exigent la reprise explicite définie par le futur
+perdue ou autorité non créée exigent la reprise explicite définie par le
 hook. Le module ne supprime, ne remplace et ne répare aucun artefact. Un appel
 sur une destination déjà présente est refusé avant toute nouvelle génération.
 Une autorité durable existante devra suivre sa propre reprise : metadata
 courantes et validation Studio, sans comparer un hash initial des credentials
-qui empêcherait une rotation légitime. Ce chemin n’est pas implémenté ici.
+qui empêcherait une rotation légitime. Le hook contrôle les metadata ; la
+validation du format par Studio reste une obligation du runtime applicatif.
 
 Le sérialiseur convenu est pur et ne fork pas. En cas d’échec, le publisher peut
 arrêter son groupe de processus, puis attend le seul enfant direct dans le
