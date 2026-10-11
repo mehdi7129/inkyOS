@@ -1,0 +1,119 @@
+{
+  "application_startup_qualified": false,
+  "checks": {
+    "app_code_never_imported_by_root": true,
+    "effective_real_saved_uid_gid_1000_and_empty_groups": true,
+    "exact_private_publication_preserved": true,
+    "existing_credentials_refused_before_spawn": true,
+    "pinned_sources_and_wheel_payloads_unchanged": true,
+    "private_network_namespace": true,
+    "two_publications_validated_by_studio": true
+  },
+  "credential_bytes_exported": false,
+  "date": "2026-10-11",
+  "factory_barrier_qualified": false,
+  "hardware_qualified": false,
+  "independent_outputs_differ_observed": true,
+  "limits": [
+    "Four exact Studio sources plus ten wheels from the existing TEST payload; not the full application candidate.",
+    "Fixture interpreter path replaces only argv[0]; installed production paths are not exercised.",
+    "Two distinct outputs are observed; entropy quality is not established by this test.",
+    "TasksMax=2 applies to the probe unit, not the offline venv and pip setup units.",
+    "No composed factory hook execution, app/helper writer barrier, image integration or hardware qualification.",
+    "Generated credential contents and hashes remain private and are not included in this report."
+  ],
+  "native_report_sha256": "b7083674665e6752524d54cfda140a81c54eab4dc2d2c5a9d1e1ced69996ae13",
+  "phase": "complete",
+  "platform": {
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "system": "Linux"
+  },
+  "probe_sha256": "cf1aa5a613f08696df6f46dd3a4a5f4b2e9ea42fc869846c29fb04ae046b4dfc",
+  "production_paths_qualified": false,
+  "publisher_sha256": "82c071dd2ab841c91464a680e9757a469dbf5f2d105f68999c18a387b70bb222",
+  "schema_version": 1,
+  "scope": "real-studio-serializer-private-fixture",
+  "serializer_invocations": 2,
+  "source_sha256": {
+    "inky_web/__init__.py": "eb46584f68f555f175241641fc930408af7747bc7d45c997216dad6df2be88cc",
+    "inky_web/auth.py": "758a867cb1d6c769befdfb0178841e81d2a7d47b0395f4eb54b90a6f2ab7803d",
+    "inky_web/provisioning/__init__.py": "fa80434eb14bdd643937dedfc52f345a517f856335428bd9b047bcb24be0645f",
+    "inky_web/provisioning/factory_credentials.py": "55b3f5b11c5ebad60ae2a65cf9006dd7d1cb2ce2777fc3d5511ea0d72aa6715b"
+  },
+  "status": "PASS",
+  "studio_commit": "cf17a0514989023143798570a8ae47739b829301",
+  "units": [
+    {
+      "cgroup_empty": true,
+      "cgroup_empty_after_stop": true,
+      "completed": true,
+      "control_group_observed": true,
+      "execution_identity_checked": true,
+      "execution_uid": 1000,
+      "label": "venv",
+      "sandbox": {
+        "CapabilityBoundingSet": "cap_chown cap_dac_override cap_kill cap_setgid cap_setuid",
+        "KillMode": "control-group",
+        "NoNewPrivileges": "yes",
+        "PrivateDevices": "yes",
+        "PrivateNetwork": "yes",
+        "ProtectSystem": "strict",
+        "TasksMax": "3400"
+      },
+      "stopped": true
+    },
+    {
+      "cgroup_empty": true,
+      "cgroup_empty_after_stop": true,
+      "completed": true,
+      "control_group_observed": true,
+      "execution_identity_checked": true,
+      "execution_uid": 1000,
+      "label": "pip",
+      "sandbox": {
+        "CapabilityBoundingSet": "cap_chown cap_dac_override cap_kill cap_setgid cap_setuid",
+        "KillMode": "control-group",
+        "NoNewPrivileges": "yes",
+        "PrivateDevices": "yes",
+        "PrivateNetwork": "yes",
+        "ProtectSystem": "strict",
+        "TasksMax": "3400"
+      },
+      "stopped": true
+    },
+    {
+      "cgroup_empty": true,
+      "cgroup_empty_after_stop": true,
+      "completed": true,
+      "control_group_observed": true,
+      "execution_identity_checked": false,
+      "execution_uid": 0,
+      "label": "probe",
+      "sandbox": {
+        "CapabilityBoundingSet": "cap_chown cap_dac_override cap_kill cap_setgid cap_setuid",
+        "KillMode": "control-group",
+        "NoNewPrivileges": "yes",
+        "PrivateDevices": "yes",
+        "PrivateNetwork": "yes",
+        "ProtectSystem": "strict",
+        "TasksMax": "2"
+      },
+      "stopped": true
+    }
+  ],
+  "wheel_payload_files_verified": 311,
+  "wheel_sha256": {
+    "annotated_doc-0.0.5-py3-none-any.whl": "117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101",
+    "annotated_types-0.8.0-py3-none-any.whl": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+    "anyio-4.15.1-py3-none-any.whl": "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101",
+    "fastapi-0.141.1-py3-none-any.whl": "bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3",
+    "idna-3.20-py3-none-any.whl": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+    "pydantic-2.13.5-py3-none-any.whl": "346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73",
+    "pydantic_core-2.46.5-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "193375f3548919d3f0b60936ca113ada3e38f264f91b9b8e0508efaad57be931",
+    "starlette-1.7.0-py3-none-any.whl": "67f8e99895493dd2911a03f11314af6ceebeae4e704bb9f43dfc6a9db151c93e",
+    "typing_extensions-4.16.0-py3-none-any.whl": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+    "typing_inspection-0.4.4-py3-none-any.whl": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147"
+  },
+  "wheelhouse_manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1"
+}

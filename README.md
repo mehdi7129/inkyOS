@@ -30,8 +30,10 @@ l’autorisation et la reprise après redémarrage.
 Le [vrai client Studio passe aussi le banc croisé Linux](docs/validation/2026-10-11-initialization-studio-native.json).
 Le [publisher de credentials factory](docs/FACTORY-CREDENTIALS.md) passe
 27 tests ciblés Linux, dont la chute effective de privilèges. Le hook compose
-désormais permission, publication puis autorité ; le vrai sérialiseur Studio
-et l’intégration dans l’image restent à qualifier ensemble.
+désormais permission, publication puis autorité. Le vrai sérialiseur Studio
+passe aussi un [banc Linux isolé](docs/validation/2026-10-11-factory-studio-serializer-native.json),
+et le [superviseur passe dix cas](docs/FACTORY-SERVICE-FIXTURE.md).
+L’intégration complète et son installation dans l’image restent à qualifier.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)
 reste associé à l’ancienne image de test : son préflight est bloqué à 17 contrôles

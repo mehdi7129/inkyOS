@@ -66,7 +66,10 @@ durable, publication des credentials puis création de l’autorité.
 Studio propose désormais un sérialiseur de credentials v2 à sortie privée ;
 le [publisher OS isolé](FACTORY-CREDENTIALS.md) passe ses fixtures macOS et
 Linux ARM64. Le raccord au hook est testé avec des producteurs inertes ;
-le vrai sérialiseur et l’intégration dans l’image restent à qualifier. Le verrou
+le [vrai sérialiseur Studio](validation/2026-10-11-factory-studio-serializer-native.json)
+passe aussi un banc isolé sous UID 1000, avec deux publications validées par
+Studio. Le [superviseur](FACTORY-SERVICE-FIXTURE.md) passe dix cas distincts.
+Ces bancs ne qualifient pas l’intégration complète dans l’image. Le verrou
 couvre publication et autorité, et une reprise après consommation ne génère
 jamais de nouveaux credentials implicitement. Le futur profil doit encore
 exclure les processus applicatifs concurrents et installer

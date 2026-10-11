@@ -112,6 +112,24 @@ Linux : droits du parent et de l’enfant, limite de tâches, timeouts et arrêt
 du cgroup. Il reste un modèle staging avec producteurs inertes ; il ne prouve
 pas la barrière entre les services applicatifs.
 
+Le [banc croisé avec le vrai sérialiseur Studio](validation/2026-10-11-factory-studio-serializer-native.json)
+passe séparément sur Linux ARM64. Il utilise quatre fichiers exacts du commit
+`cf17a051`, avec dix wheels épinglés provenant du payload TEST existant.
+Le venv est construit offline sous UID 1000 ; le parent OS lance deux
+générations dans deux racines privées. Le parser et la vérification de mot de
+passe Studio, exécutés sous UID 1000, acceptent les deux records v2 et refusent
+un mot de passe différent. Une nouvelle publication sur chaque destination
+existante est refusée avant tout spawn. Les sorties différentes constituent
+une observation sur ces deux générations, pas une preuve de qualité de l’entropie.
+
+Les 311 fichiers de payload des wheels et les quatre sources sont revérifiés
+après l’essai. L’unité du probe impose `TasksMax=2` ; cette limite ne concerne
+pas la construction du venv. Les trois unités du banc sont arrêtées et leurs
+cgroups vérifiés vides ou absents. Aucun credential n’est exporté du banc privé.
+L’interpréteur utilise un chemin de fixture : ce résultat ne qualifie ni le
+candidat applicatif complet, ni le chemin installé, ni le hook composé avec
+le vrai générateur, ni le parcours usine sur SD.
+
 ```sh
 python3 -I -B -m unittest discover -s tests -p test_factory_credentials_publisher.py -v
 ```
