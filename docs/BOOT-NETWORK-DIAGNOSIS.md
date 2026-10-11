@@ -287,3 +287,17 @@ premier boot d’enrôlement et arrêt, retour SD pour les 35 + 10 contrôles,
 puis installation d’une capsule nouvellement signée avant le boot réseau.
 Le changement de manifeste interdit de réutiliser l’ancien contexte ou de
 remplacer seulement le connecteur sur la SD existante.
+
+## Retour d’enrôlement de l’image corrigée
+
+Après son boot d’enrôlement, le [retour de la SD issue de `2e435c9`](validation/2026-10-11-radio-readiness-enrollment-return.json)
+passe **35 contrôles du système et 10 d’infrastructure**. La lecture compacte
+produit un dérivé privé, sans copie intégrale ni rejeu du journal. Le nouveau
+contexte est exporté après nettoyage vérifié et ses bindings sont recoupés
+avec le rapport FAT ; aucun fichier de clé privée n’est ouvert par le vérificateur.
+
+Le correctif `52ddfc1` est bien présent dans cette image. Une nouvelle capsule
+liée au contexte et signée est installée et relue, puis la SD éjectée. Son
+prochain boot réseau reste à effectuer. Ces contrôles ne
+qualifient ni son efficacité sur le Wi-Fi réel, ni SSH, BLE, l’affichage ou
+l’appairage iOS. Les observations précédentes concernent l’image sans ce correctif.

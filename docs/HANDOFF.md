@@ -30,10 +30,13 @@ sans cause matérielle établie. La SD du retour réseau, issue des sources `072
 ne contenait pas cette correction. Une [nouvelle image privée](validation/2026-10-11-radio-readiness-access-image.json)
 intègre maintenant le correctif : recette `2e435c9`, arbre propre, 123 contrôles
 offline réussis, même candidat applicatif. Son [flash et sa relecture](validation/2026-10-11-radio-readiness-sd-flash.json)
-passent ; l’éjection a été récupérée séparément, sans réécriture. Un nouvel
-enrôlement, un contexte vérifié et une capsule liée restent nécessaires avant
-le prochain essai réseau.
-Le [retour réseau avec codes](validation/2026-10-11-network-device-state-return.json)
+passent ; l’éjection a été récupérée séparément, sans réécriture. Le
+[nouveau retour d’enrôlement](validation/2026-10-11-radio-readiness-enrollment-return.json)
+passe à son tour 35 contrôles du système et 10 d’infrastructure. Le contexte
+privé propre à cette image est exporté après nettoyage vérifié. Sa nouvelle
+capsule liée et signée est installée et relue, puis la SD éjectée ; le prochain
+boot réseau reste à effectuer.
+Le [retour réseau avant correctif](validation/2026-10-11-network-device-state-return.json)
 confirme un échec d’activation 4, avec interface indisponible (20), venant
 d’être prise en gestion (raison 2), avant le nettoyage radio. Le budget n’est
 pas épuisé. Cela renforce la piste de disponibilité tardive, sans établir

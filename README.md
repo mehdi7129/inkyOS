@@ -17,9 +17,9 @@ iOS. L’application et son protocole restent communs avec Inky Studio.
 | Base système | Raspberry Pi OS Lite ARM64 figé ; assemblage offline dans une VM Linux dédiée. |
 | Premier démarrage | Boots physiques observés sur Raspberry Pi Zero 2 W ; identité persistante et agrandissement de la partition vérifiés. |
 | Application | Nouveau candidat écran/arrêt intégré dans une image ARM64 vérifiée, services masqués. Affichage réel et arrêt actif restent à qualifier. |
-| Enrôlement de test | Retour précédent avant correctif : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis. La nouvelle SD corrigée reste à enrôler. |
+| Enrôlement de test | Nouvelle SD corrigée : 35 contrôles ext4/FAT et 10 contrôles d’infrastructure réussis ; nouveau contexte privé exporté après nettoyage vérifié. |
 | Écran | PCB 7,3″ dont les marquages sont cohérents avec l’ancienne famille sept couleurs ; code couleur EEPROM non reconnu. Driver physique et affichage non qualifiés. |
-| Wi-Fi | Dernier rapport avant correctif : activation en échec, interface encore indisponible avant le nettoyage. La nouvelle image corrigée est flashée et relue ; l’essai sur le Pi reste à faire. |
+| Wi-Fi | Correction d’attente radio intégrée à la SD et enrôlement validé. Nouvelle configuration signée installée et relue ; carte éjectée. La connexion de cette image reste à tester. |
 | Accès opérateur | Image privée avec enrôlement v2, garde Wi-Fi, SSH restreint, activation explicite et drain asynchrone. Aucun accès SSH authentifié ni lancement applicatif confirmé sur ce boot. |
 | Appairage iOS | Build TestFlight 9 disponible. Contrats du parcours LAN/QR/BLE comparés au backend de la SD ; essais de bout en bout encore à réaliser. |
 | Premier allumage sans LAN | Cible convenue ; modèles et bancs disponibles, raccords runtime/iOS/OS encore nécessaires. |
@@ -41,11 +41,12 @@ et arrêt intégrées dans l'image.
 
 La dernière suite enregistrée compte [**1 047 tests sur macOS et Linux ARM64**](docs/validation/2026-10-11-radio-readiness-tests.json),
 sans échec (4 skips macOS, 1 skip Linux). Le
-[retour d’enrôlement de la SD avant correctif](docs/validation/2026-10-11-nm-diagnostic-enrollment-return.json)
-passe 35 contrôles du système et 10 contrôles d’infrastructure. Son contexte
-SSH privé et sa configuration Wi-Fi signée ont été vérifiés.
+[retour d’enrôlement de la SD corrigée](docs/validation/2026-10-11-radio-readiness-enrollment-return.json)
+passe 35 contrôles du système et 10 contrôles d’infrastructure. Son nouveau
+contexte privé est vérifié ; la configuration Wi-Fi signée liée à cet enrôlement
+est installée et relue, puis la carte éjectée. Le boot réseau reste à effectuer.
 
-Le [dernier diagnostic réseau](docs/validation/2026-10-11-network-device-state-return.json)
+Sur l’image précédente, le [diagnostic réseau](docs/validation/2026-10-11-network-device-state-return.json)
 confirme que le Pi démarre et importe sa configuration, puis échoue à connecter
 le Wi-Fi. NetworkManager renvoie le code 4 ; l’interface est encore indisponible
 (état 20, raison 2), avant sa désactivation par le nettoyage. Ces codes ne
@@ -58,7 +59,7 @@ Les tests passent ; le dernier retour renforce cette piste sans prouver sa cause
 exacte. Une [image privée corrigée](docs/validation/2026-10-11-radio-readiness-access-image.json)
 est maintenant construite ; ses 123 contrôles offline passent. Elle est
 [écrite et relue sur la SD de test, puis éjectée](docs/validation/2026-10-11-radio-readiness-sd-flash.json).
-Le nouvel enrôlement et la connexion sur le Pi restent à valider.
+Son nouvel enrôlement est maintenant vérifié ; la connexion sur le Pi reste à valider.
 Aucun succès Wi-Fi, SSH, affichage ou appairage iPhone n’est annoncé pour ce parcours.
 
 Le prochain essai accompagné doit établir l'accès réseau, vérifier les
