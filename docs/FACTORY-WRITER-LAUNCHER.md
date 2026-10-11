@@ -74,9 +74,12 @@ et la présence de cette revue ; il ne refait pas l'analyse ELF et n'assimile pa
 
 Les quatre modules OS authority, publisher, receipt et initialization-server
 doivent être inventoriés root:root `0555`. Le support `paths` public épingle
-aussi `/usr/lib/inkyos/factory-supervisor.py` `0555` et les deux unités `0644`
+aussi `/usr/lib/inkyos/factory-supervisor.py` `0555` et les cinq unités `0644`
 `/usr/lib/systemd/system/inkyos-admission-prepare.service` et
-`/usr/lib/systemd/system/inkyos-factory-supervisor.service`.
+`/usr/lib/systemd/system/inkyos-factory-supervisor.service`, ainsi que
+`/usr/lib/systemd/system/inkyos-initialization.service`,
+`/usr/lib/systemd/system/inky-network.service` et
+`/usr/lib/systemd/system/inky-studio.service`.
 Le manifest runtime et le manifest support restent hors inventaire support pour
 éviter un cycle de hashes. Les manifests app/exporter sont épinglés séparément.
 
@@ -86,6 +89,108 @@ doit notamment contenir `inky_web/main.py` dans son site-packages. L'ancienne
 installation editable TEST et son support ne satisfont pas ce contrat ; aucun
 relocating ou conversion n'est effectué ici. Un nouvel inventaire factory et sa
 revue de support restent nécessaires.
+
+## Templates writers et fermeture statique
+
+Les trois templates sous `staging/bootstrap` restent **inactifs**, sans
+installation dans la recette, section `[Install]` ou lien d'activation. Ils
+utilisent exclusivement ces commandes déjà prises en charge :
+
+```text
+/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py main
+/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py helper
+/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py ipc
+```
+
+| Unité | Identité et groupes | Ordre et démarrage |
+| --- | --- | --- |
+| `inky-studio.service` | `inky:inky`, groupes supplémentaires `spi i2c gpio inky-provisioning` | `Type=exec`, après IPC et helper |
+| `inky-network.service` | `inky-network:inky-provisioning`, aucun groupe supplémentaire | `Type=exec`, après IPC et NetworkManager |
+| `inkyos-initialization.service` | `root:inky-provisioning`, groupe supplémentaire `root` | `Type=notify`, `NotifyAccess=main`, après préparation et superviseur |
+
+Les relations sont `Wants` et `After`. Elles ne propagent pas un arrêt du
+superviseur vers les writers. La SH et les guards existants restent la barrière
+avant effets : l'ordre systemd seul ne constitue pas une admission. Le launcher
+transmet le triplet existant et fournit l'environnement factory fermé ; les
+templates ne créent ni nouveau rôle, ni variable d'override, ni wire IPC.
+
+Après la fin du worker factory et l'observation du cgroup vide, le superviseur
+publie Ready. L'IPC prend ensuite sa propre SH, charge le receipt, ouvre son
+listener et crée son worker avant d'envoyer `READY=1`. Ce notify termine son
+job de démarrage avant les jobs helper/app ordonnés après lui. `Type=exec`
+pour ces deux derniers ne prouve pas que leur socket ou leur parcours produit
+soit prêt ; aucun notify helper/app n'existe dans les interfaces actuelles.
+
+Chaque template writer garde `Restart=no`, `KillMode=mixed`,
+`KillSignal=SIGTERM`, `TimeoutStopSec=infinity` et `SendSIGKILL=no`. Le main
+conserve sa lease jusqu'au drain SPI, le helper jusqu'à la fin observée de ses
+effets/rollback NetworkManager et l'IPC jusqu'à la récolte effective de son
+enfant. Aucun `ExecStop`, `ExecStopPost`, `RuntimeDirectory` ou `StateDirectory`
+ne recrée leurs dossiers/verrous ou libère admission par un timeout PID1.
+
+`verify_candidate()` impose maintenant les **bytes exacts** des cinq templates,
+via une politique de SHA-256 dans le module runtime lui-même, même si les
+records support sont réépinglés. Les cinq fichiers vendor doivent être des
+fichiers simples root:root `0644`, inventoriés dans `support.paths`. Le schéma
+support ne change pas ; sa liste `absent` doit aussi contenir les **535 chemins
+d'influence** du module : les 55 fragments concurrents et les 480 directories
+de drop-ins/dépendances applicables aux cinq noms, leurs préfixes avec tiret et
+au type `service`. Une directory vide, un symlink ou un mask à un de ces chemins
+ne satisfait pas l'absence.
+
+La politique couvre les douze lookup roots systemd standard : `.control`,
+transient, generators early/normal/late, system, attached, `/usr/local/lib` et
+le vendor `/usr/lib`. Elle refuse `.d`, `.wants`, `.requires` et `.upholds`
+applicables. Un parcours borné, sans suivre les symlinks, refuse également les
+aliases et les liens d'activation entrants visant ces cinq noms. Les autres
+unités du système peuvent rester présentes ; les symlinks de directories
+`*.d`, `*.wants`, `*.requires` et `*.upholds` sont cependant refusés pour ne
+pas suivre un parent non contrôlé qui cacherait ces liens. Les deux collectes
+de chaque directory sous FD sont incrémentales et refusent dès dépassement du
+budget, avant toute allocation de listing non bornée. L'absence de ces liens ne prouve
+pas l'inactivité : d'autres unités peuvent contenir des `Wants`/`Requires`
+textuels ou un caller peut demander un démarrage explicite. La fermeture porte
+sur les influences statiques de ces cinq fragments, sans recenser tous les
+exécutables ou tous les demandeurs de lancement. Le profil usine épinglé est
+usr-merged : `/lib` peut être absent ou être le symlink root immuable exact
+`usr/lib` ou `/usr/lib`, qui désigne le même vendor contrôlé. Un arbre split
+`/lib` ou un alias différent refuse au lieu d'ajouter silencieusement un root.
+
+Ces règles suivent les sources officielles **systemd 257.13** :
+[lookup roots](https://github.com/systemd/systemd/blob/v257.13/src/libsystemd/sd-path/path-lookup.c#L443),
+[préfixes/type et extensions](https://github.com/systemd/systemd/blob/v257.13/src/shared/dropin.c#L140),
+[dépendances ajoutées](https://github.com/systemd/systemd/blob/v257.13/src/core/load-dropin.c#L80)
+et [aliases](https://github.com/systemd/systemd/blob/v257.13/src/shared/unit-file.c#L325).
+
+Ce contrôle décrit **les fichiers du candidat**, pas le graphe chargé par PID1.
+Un `SYSTEMD_UNIT_PATH` du manager ou des paths compilés différents peuvent
+changer les lookup roots ; l'environnement du caller ne les prouve pas
+([règle officielle](https://github.com/systemd/systemd/blob/v257.13/man/systemd.unit.xml#L324)).
+Les générateurs peuvent aussi publier un override après cette observation.
+La qualification du graphe effectif, `FragmentPath`, `DropInPaths`, identités
+des processus et durée de vie de leurs invocations reste distincte. Aucun
+`daemon-reload`, démarrage ou grant n'est effectué par cette vérification.
+
+Deux préconditions restent à développer avant toute intégration active :
+
+- Les parents `/run/inkyos-bootstrap` et `/run/inky-network` ne sont pas
+  provisionnés par ce lot. L'IPC exige son parent root:provisioning `0750` ;
+  le helper exige son parent avant `.helper.lock`. Son parent persistant
+  `/var/lib/inky-network` doit aussi être provisionné avant le namespace
+  `ReadWritePaths` de son unité, puis son journal et sa clé sont gérés sous SH.
+  Ce path est absent du profil passive. Le provisionnement futur devra préserver
+  les inodes au stop/restart.
+- L'entry point main actuel atteint encore `initialize_factory`, qui termine
+  à **78** après préparation. Les templates ne raccordent pas le lifecycle
+  Phase A, n'accordent pas l'autorité owner/B et ne livrent pas un first boot.
+
+Les masks du profil **factory-passive** restent légitimes et inchangés. Ce
+profil n'appelle pas le nouveau contrat runtime complet ; un candidat runtime
+doit satisfaire sa propre fermeture avant une future activation explicitement
+qualifiée. Les templates, nouveaux pins et cette politique restent hors de la
+recette passive actuelle. L'ordre des pins reste : bundle et modules/unités,
+puis support, manifest exporter lié à ce support, et enfin manifest runtime.
+Les manifests support/runtime restent exclus de leur propre inventaire.
 
 ## API partagée et contexte de boot
 

@@ -597,10 +597,13 @@ class StagingTests(unittest.TestCase):
         raw = (ROOT / 'staging/bootstrap/inkyos-initialization.service').read_text()
         for line in ('Type=notify', 'NotifyAccess=main', 'TimeoutStartSec=10s',
                      'User=root', 'Group=inky-provisioning', 'SupplementaryGroups=root',
-                     'RuntimeDirectoryMode=0750', 'CapabilityBoundingSet=', 'KillMode=control-group',
+                     'CapabilityBoundingSet=', 'KillMode=mixed', 'TimeoutStopSec=infinity',
+                     'SendSIGKILL=no', 'Restart=no',
+                     'ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py ipc',
                      'RestrictAddressFamilies=AF_UNIX', 'ProtectSystem=strict'):
             self.assertIn(line + '\n', raw)
         self.assertNotIn('StateDirectory=', raw)
+        self.assertNotIn('RuntimeDirectory=', raw)
         self.assertNotIn('[Install]', raw)
         self.assertNotIn('create_authorization', (ROOT / 'scripts/initialization-server.py').read_text())
 

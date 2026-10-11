@@ -31,6 +31,39 @@ HOOKS = (IPC, RECEIPT, 'usr/local/lib/inkyos/factory-authority.py',
 SUPERVISOR_FILES = {MODULE_DIR + '/factory-supervisor.py': '0555',
                     'usr/lib/systemd/system/inkyos-admission-prepare.service': '0644',
                     'usr/lib/systemd/system/inkyos-factory-supervisor.service': '0644'}
+# Exact staging template bytes, independent of a caller's repinned support file.
+# The two existing supervisor units participate in the same closed file graph.
+UNIT_TEMPLATES = {
+    'inky-studio.service': '48f4a5245794ad19fef8e9155a27db814f200eaa99779aefb13be6e6f39350ac',
+    'inky-network.service': 'b14c14c8b43e3fec48255dd60ebf539282d9464ab4ddc37e0c7bfb6497f33019',
+    'inkyos-initialization.service': '049661642ac18b8efd8c81ef82fefa4cfba2b450b2a4dee8ba1bf573b7bd47c7',
+    'inkyos-admission-prepare.service': '8bda5a8691453353345c44bb90e6be1ffd687d888dc823af6746239316baf90e',
+    'inkyos-factory-supervisor.service': '26b7cb8a1daf3858ce2f90afc0bb245d1ec6e8efd810c5772c2b13ee36b5c837',
+}
+UNIT_VENDOR_DIR = 'usr/lib/systemd/system'
+WRITER_FILES = {UNIT_VENDOR_DIR + '/' + unit: '0644' for unit in UNIT_TEMPLATES}
+# systemd v257.13 path-lookup.c: normal system-manager lookup roots. This is a
+# file policy, not an observation of PID1's compiled paths or UNIT_PATH override.
+UNIT_LOOKUP_DIRS = (
+    'etc/systemd/system.control', 'run/systemd/system.control', 'run/systemd/transient',
+    'run/systemd/generator.early', 'etc/systemd/system', 'etc/systemd/system.attached',
+    'run/systemd/system', 'run/systemd/system.attached', 'run/systemd/generator',
+    'usr/local/lib/systemd/system', UNIT_VENDOR_DIR, 'run/systemd/generator.late',
+)
+UNIT_EXTENSION_NAMES = {'service'} | {
+    stem for unit in UNIT_TEMPLATES
+    for stem in (unit, *(unit[:match.end()] + '.service' for match in re.finditer('-', unit)))
+}
+# load-dropin.c and shared/dropin.c apply type/dash prefixes to dependencies too.
+UNIT_ABSENT = {
+    directory + '/' + unit for directory in UNIT_LOOKUP_DIRS if directory != UNIT_VENDOR_DIR
+    for unit in UNIT_TEMPLATES
+} | {
+    directory + '/' + stem + '.' + suffix for directory in UNIT_LOOKUP_DIRS
+    for stem in UNIT_EXTENSION_NAMES for suffix in ('d', 'wants', 'requires', 'upholds')
+}
+UNIT_SCAN_LIMIT = 20000
+UNIT_SCAN_DEPTH = 8
 TEST_SCRIPTS = ('test-enrollment-firstboot', 'test-access-policy', 'test-access-enrollment',
                 'test-access-contract', 'test-access-import', 'test-access-connect', 'test-access-boot',
                 'test-access-network', 'test-access-wifi-gate', 'test-access-bluetooth', 'test-lan-preflight',
@@ -541,7 +574,7 @@ def inventories(contract):
     records_schema(records)
     absent = support['absent']
     require(type(absent) is list and all(type(path) is str for path in absent)
-            and len(absent) == len(set(absent)) and TEST_ABSENT | ABSENCE_GUARDS <= set(absent))
+            and len(absent) == len(set(absent)) and TEST_ABSENT | ABSENCE_GUARDS | UNIT_ABSENT <= set(absent))
     for path in absent:
         name(path); require(path not in records)
     require(MANIFEST not in records and SUPPORT not in records)
@@ -562,12 +595,13 @@ def inventories(contract):
             records[path] = record
     records_schema(records)
     for path in records: resolve(path, records)
-    for path in ('usr/bin/python3', 'usr/bin/python3.13', 'etc/ld.so.cache', 'etc/ld.so.conf', HELPER, *HOOKS, *SUPERVISOR_FILES):
+    for path in ('usr/bin/python3', 'usr/bin/python3.13', 'etc/ld.so.cache', 'etc/ld.so.conf',
+                 HELPER, *HOOKS, *SUPERVISOR_FILES, *WRITER_FILES):
         require(path in records, 'invalid_candidate')
     require(resolve('usr/bin/python3', records) == 'usr/bin/python3.13'
             and records['usr/bin/python3.13']['type'] == 'file', 'invalid_candidate')
     for path in (HELPER, *HOOKS): require(records[path]['type'] == 'file' and records[path]['mode'] == '0555')
-    for path, mode in SUPERVISOR_FILES.items():
+    for path, mode in (SUPERVISOR_FILES | WRITER_FILES).items():
         require(path in support['paths'] and records[path]['type'] == 'file' and records[path]['mode'] == mode)
     for filename, digest in contract.manifest['os_module_pins'].items():
         path = MODULE_DIR + '/' + filename
@@ -594,11 +628,72 @@ def check_venv(tree, prefix, version):
     require(raw == expected, 'invalid_candidate')
 
 
+def _unit_entries(fd, budget):
+    """Stop at budget + 1 before materializing an unbounded directory listing."""
+    result = set()
+    with os.scandir(fd) as entries:
+        for entry in entries:
+            require(len(result) < budget and entry.name not in result, 'invalid_candidate')
+            result.add(entry.name)
+    return result
+
+
+def check_unit_files(tree):
+    """Closed files only; does not query PID1 or admit a live helper/IPC caller."""
+    for unit, digest in UNIT_TEMPLATES.items():
+        require(sha(tree.read(UNIT_VENDOR_DIR + '/' + unit, 0o644, 16384)) == digest, 'invalid_candidate')
+    for path in UNIT_ABSENT:
+        require(tree.absent(path), 'invalid_candidate')
+    # The pinned factory base is usr-merged. A legacy split /lib would create an
+    # additional lookup root; accept only absence or the identical usr/lib alias.
+    if not tree.absent('lib'):
+        record = actual_record(tree, 'lib')
+        require(record['type'] == 'symlink' and record['target'] in {'usr/lib', '/usr/lib'}, 'invalid_candidate')
+    # Catch alternate names and enable/dependency links to a closed unit. Do not
+    # follow symlinks or execute/parse unrelated unit payloads. The inventory is
+    # bounded, including attached/generated/control roots and nested target wants.
+    count = 0
+    for base in UNIT_LOOKUP_DIRS:
+        if tree.absent(base): continue
+        pending = [(base, 0)]
+        while pending:
+            directory, depth = pending.pop()
+            require(depth <= UNIT_SCAN_DEPTH, 'invalid_candidate')
+            parent, leaf = tree.parent(directory)
+            try:
+                fd = os.open(leaf, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+            finally: os.close(parent)
+            try:
+                tree.directory_fd(fd)
+                before = os.fstat(fd)
+                entries = _unit_entries(fd, UNIT_SCAN_LIMIT - count)
+                count += len(entries)
+                for entry in entries:
+                    path = directory + '/' + entry
+                    info = os.stat(entry, dir_fd=fd, follow_symlinks=False)
+                    if entry in UNIT_TEMPLATES:
+                        require(directory == UNIT_VENDOR_DIR and stat.S_ISREG(info.st_mode), 'invalid_candidate')
+                    if stat.S_ISDIR(info.st_mode):
+                        pending.append((path, depth + 1))
+                    elif stat.S_ISLNK(info.st_mode):
+                        # systemd follows extension directory links. Refuse such
+                        # links even for unrelated units instead of following an
+                        # unchecked parent that could hide incoming dependencies.
+                        require(not entry.endswith(('.d', '.wants', '.requires', '.upholds')), 'invalid_candidate')
+                        target = os.readlink(entry, dir_fd=fd)
+                        require(stamp(os.stat(entry, dir_fd=fd, follow_symlinks=False)) == stamp(info), 'invalid_candidate')
+                        require(PurePosixPath(target).name not in UNIT_TEMPLATES, 'invalid_candidate')
+                require(_unit_entries(fd, len(entries)) == entries
+                        and stamp(os.fstat(fd)) == stamp(before), 'invalid_candidate')
+            finally: os.close(fd)
+
+
 @boundary('invalid_candidate')
 def verify_candidate(contract):
     require((os.geteuid(), os.getegid()) == (contract._uid, contract._gid), 'wrong_identity')
     app, exporter, support, records = inventories(contract)
     with contract.tree() as tree:
+        check_unit_files(tree)
         for prefix, bundle in ((APP, app), (EXPORTER, exporter)):
             check_tree(tree, prefix, bundle['records'], {'manifest.json'})
         for prefix, values in support['trees'].items(): check_tree(tree, prefix, values)

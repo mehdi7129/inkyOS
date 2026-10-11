@@ -1,0 +1,34 @@
+# Inactive factory template: no image recipe, enable target or runtime provisioning.
+[Unit]
+Description=Inky Studio admitted Wi-Fi configuration helper
+Wants=inkyos-initialization.service NetworkManager.service
+After=local-fs.target inkyos-initialization.service NetworkManager.service
+
+[Service]
+Type=exec
+User=inky-network
+Group=inky-provisioning
+ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py helper
+UMask=0077
+Restart=no
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=infinity
+SendSIGKILL=no
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadWritePaths=/run/inky-network /var/lib/inky-network
+
+# No Install/RuntimeDirectory/StateDirectory: preserve admission and writer locks.

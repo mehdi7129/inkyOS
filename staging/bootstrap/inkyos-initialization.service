@@ -1,7 +1,8 @@
-# Staging only: deliberately absent from every image recipe and enable target.
+# Inactive factory template: no image recipe, enable target or runtime provisioning.
 [Unit]
 Description=Explicit one-use initialization receipt IPC
-After=local-fs.target
+Wants=inkyos-admission-prepare.service inkyos-factory-supervisor.service
+After=local-fs.target inkyos-admission-prepare.service inkyos-factory-supervisor.service
 
 [Service]
 Type=notify
@@ -11,12 +12,11 @@ User=root
 Group=inky-provisioning
 SupplementaryGroups=root
 UMask=0077
-RuntimeDirectory=inkyos-bootstrap
-RuntimeDirectoryMode=0750
-RuntimeDirectoryPreserve=restart
-ExecStart=/usr/bin/python3 -I -B /usr/local/lib/inkyos/initialization-server.py
-KillMode=control-group
-TimeoutStopSec=4s
+ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py ipc
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=infinity
+SendSIGKILL=no
 Restart=no
 NoNewPrivileges=true
 CapabilityBoundingSet=
@@ -36,3 +36,5 @@ RestrictSUIDSGID=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
 ReadWritePaths=-/var/lib/inkyos/initialization /run/inkyos-bootstrap
+
+# No Install/RuntimeDirectory/StateDirectory: preserve admission and writer locks.

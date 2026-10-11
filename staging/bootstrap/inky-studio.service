@@ -1,0 +1,26 @@
+# Inactive factory template: no image recipe, enable target or runtime provisioning.
+[Unit]
+Description=Inky Studio admitted factory runtime
+Wants=inkyos-initialization.service inky-network.service bluetooth.service
+After=local-fs.target inkyos-initialization.service inky-network.service bluetooth.service
+
+[Service]
+Type=exec
+User=inky
+Group=inky
+SupplementaryGroups=spi i2c gpio inky-provisioning
+WorkingDirectory=/usr/lib/inky-studio/server
+ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py main
+UMask=0077
+Restart=no
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=infinity
+SendSIGKILL=no
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/inky-studio
+
+# No Install/RuntimeDirectory/StateDirectory: preserve admission and writer locks.

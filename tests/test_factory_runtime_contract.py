@@ -151,7 +151,10 @@ class ContractFixture(unittest.TestCase):
         for path in runtime.HOOKS:
             self.write(path, b'raise AssertionError("fixture factory hook must not execute")\n', 0o555)
         for path, mode in runtime.SUPERVISOR_FILES.items():
-            self.write(path, b'# inert supervisor or unit\n', int(mode, 8))
+            self.write(path, b'# inert supervisor\n', int(mode, 8))
+        for unit in runtime.UNIT_TEMPLATES:
+            self.write(runtime.UNIT_VENDOR_DIR + '/' + unit,
+                       (ROOT / 'staging/bootstrap' / unit).read_bytes())
         self.write('usr/bin/python3.13', b'INERT_INTERPRETER_NOT_EXECUTED', 0o755)
         self.symlink('usr/bin/python3', 'python3.13')
         self.write('etc/ld.so.conf', b'include /etc/ld.so.conf.d/*.conf\n')
@@ -181,10 +184,11 @@ class ContractFixture(unittest.TestCase):
                  runtime.MODULE_DIR, 'usr/lib/systemd', 'usr/lib/systemd/system'}
         paths.update(runtime.MODULE_DIR + '/' + item for item in runtime.MODULES)
         paths.update(runtime.SUPERVISOR_FILES)
+        paths.update(runtime.WRITER_FILES)
         self.support = {
             'schema_version': 1, 'kind': 'factory-exporter-system-support',
             'python_version': '3.13.5', 'paths': {path: self.record(self.root / path) for path in paths},
-            'trees': trees, 'absent': sorted(runtime.ABSENCE_GUARDS | runtime.TEST_ABSENT),
+            'trees': trees, 'absent': sorted(runtime.ABSENCE_GUARDS | runtime.TEST_ABSENT | runtime.UNIT_ABSENT),
             'elf_closure_review': {
                 'method': 'INERT_FIXTURE_NOT_A_NATIVE_REVIEW', 'evidence_sha256': '4' * 64,
                 'roots': ['usr/bin/python3.13'], 'files': ['usr/bin/python3.13'],
