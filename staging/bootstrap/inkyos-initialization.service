@@ -1,0 +1,36 @@
+# Staging only: deliberately absent from every image recipe and enable target.
+[Unit]
+Description=Explicit one-use initialization receipt IPC
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+Group=inky-provisioning
+SupplementaryGroups=root
+UMask=0077
+RuntimeDirectory=inkyos-bootstrap
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=restart
+ExecStart=/usr/bin/python3 -I -B /usr/local/lib/inkyos/initialization-server.py
+KillMode=control-group
+TimeoutStopSec=4s
+Restart=no
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateDevices=true
+PrivateTmp=true
+PrivateNetwork=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+ReadWritePaths=-/var/lib/inkyos/initialization /run/inkyos-bootstrap
