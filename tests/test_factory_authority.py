@@ -8,6 +8,8 @@ import multiprocessing
 import os
 from pathlib import Path
 import stat
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -74,6 +76,7 @@ class FactoryAuthorityTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.base = Path(temporary.name)
         self.owner = {'_owner_uid': os.geteuid(), '_owner_gid': os.getegid()}
+        self.spawn_count = 0
         self.root = self.make_root('root')
 
     def make_root(self, name):
@@ -84,6 +87,10 @@ class FactoryAuthorityTests(unittest.TestCase):
         self.write(root / factory.MARKER, factory.MARKER_VALUE, 0o644)
         source = root / factory.SOURCE
         source.write_bytes((ROOT / 'scripts/initialization-receipt.py').read_bytes()); source.chmod(0o555)
+        publisher = root / factory.PUBLISHER_SOURCE
+        publisher.write_bytes((ROOT / 'scripts/factory-credentials-publisher.py').read_bytes())
+        publisher.chmod(0o555)
+        (root / factory.DATA).mkdir(mode=0o700)
         permission = root / factory.PERMISSION; permission.mkdir(mode=0o700)
         self.write(permission / 'pending.json', factory.PERMISSION_VALUE, 0o600)
         (permission / 'lock').touch(mode=0o600)
@@ -93,7 +100,18 @@ class FactoryAuthorityTests(unittest.TestCase):
         path.write_text(json.dumps(value) + '\n'); path.chmod(mode)
 
     def options(self, root=None):
-        return {'_root': root or self.root, **self.owner, '_environ': dict(ENV)}
+        return {'_root': root or self.root, **self.owner, '_environ': dict(ENV), '_spawn': self.spawn}
+
+    def spawn(self, argv, **options):
+        """Only an inert interpreter runs; the pinned OS publisher stays real."""
+        self.spawn_count += 1
+        self.assertEqual(tuple(argv), (
+            '/home/inky/inky-studio/server/.venv/bin/python', '-I', '-B', '-m',
+            'inky_web.provisioning.factory_credentials', '--emit-v2'))
+        self.assertEqual((options.pop('user'), options.pop('group'),
+                          options.pop('extra_groups')), (1000, 1000, []))
+        return subprocess.Popen((sys.executable, '-I', '-B', '-c',
+                                 "import os; os.write(1, b'opaque-fixture\\n')"), **options)
 
     def initialize(self, **extra):
         return factory.initialize(**{**self.options(), **extra})
@@ -117,15 +135,17 @@ class FactoryAuthorityTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), before)
         self.assertEqual((state / 'state.json').read_bytes(), original)
         self.assertEqual(set(p.name for p in (self.root / factory.PERMISSION).iterdir()), {'lock', 'consumed.json'})
-        self.assertFalse((self.root / 'var/lib/inky-studio').exists())
+        self.assertEqual((self.root / factory.DATA / 'credentials.json').read_bytes(), b'opaque-fixture\n')
+        self.assertEqual(self.spawn_count, 1)
 
-    def test_consumed_receipt_remains_consumed_without_app_data(self):
+    def test_consumed_receipt_remains_consumed_with_current_credentials(self):
         self.initialize(); state = self.root / factory.AUTHORITY
         result = receipt.begin(state, '12345678-1234-4234-8234-123456789abc', **self.owner)
         before = self.snapshot()
         self.assertEqual(self.initialize(), {'status': 'existing', 'authority_status': 'consumed'})
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(receipt.inspect(state, **self.owner)['receipt'], result['receipt'])
+        self.assertEqual(self.spawn_count, 1)
 
     def test_env_absent_or_inexact_refuses_before_mutation(self):
         before = self.snapshot()
@@ -240,6 +260,7 @@ class FactoryAuthorityTests(unittest.TestCase):
     def test_marker_source_and_lock_links_refused(self):
         for relative, code in ((factory.MARKER, 'configuration_invalid'),
                                (factory.SOURCE, 'configuration_invalid'),
+                               (factory.PUBLISHER_SOURCE, 'configuration_invalid'),
                                (factory.PERMISSION / 'lock', 'recovery_required')):
             with self.subTest(relative=relative):
                 root = self.make_root('link-' + relative.name)
@@ -305,10 +326,40 @@ class FactoryAuthorityTests(unittest.TestCase):
             self.assertEqual(self.initialize()['status'], 'created')
         self.assertEqual(events[:2], ['permission_fsynced', 'create'])
 
+    def test_publication_is_durable_before_authority_and_after_permission(self):
+        events = []
+        original_spawn = self.spawn
+        original_fsync = factory.os.fsync
+        def spawn(*args, **kwargs):
+            self.assertIn('permission_synced', events)
+            self.assertFalse((self.root / factory.AUTHORITY).exists())
+            events.append('spawn')
+            return original_spawn(*args, **kwargs)
+        def fsync(fd):
+            result = original_fsync(fd)
+            if os.fstat(fd).st_ino == (self.root / factory.PERMISSION).stat().st_ino:
+                events.append('permission_fsync_returned')
+            return result
+        def checkpoint(stage):
+            if stage == 'before_authority_create':
+                self.assertIn('publisher_directory_synced', events)
+                self.assertIn('credentials_published', events)
+                self.assertEqual((self.root / factory.DATA / 'credentials.json').read_bytes(), b'opaque-fixture\n')
+            events.append(stage)
+        with patch.object(factory.os, 'fsync', fsync):
+            self.assertEqual(self.initialize(_spawn=spawn, _checkpoint=checkpoint)['status'], 'created')
+        self.assertLess(events.index('permission_fsync_returned'), events.index('spawn'))
+        self.assertLess(events.index('publisher_published'), events.index('before_authority_create'))
+        self.assertEqual(self.spawn_count, 1)
+
     @unittest.skipUnless(hasattr(os, 'fork'), 'process interruption requires fork')
     def test_process_interruptions_and_restart(self):
         ctx = multiprocessing.get_context('fork')
         for stage in ('validated', 'permission_renamed', 'permission_synced',
+                      'before_credentials_publish', 'publisher_producer_finished',
+                      'publisher_file_created', 'publisher_file_written',
+                      'publisher_file_synced', 'publisher_directory_synced',
+                      'publisher_published', 'credentials_published',
                       'before_authority_create', 'authority_created'):
             with self.subTest(stage=stage):
                 root = self.make_root(stage)
@@ -323,8 +374,10 @@ class FactoryAuthorityTests(unittest.TestCase):
                     self.assertEqual(self.initialize(_root=root)['status'], 'existing')
                     self.assertEqual(self.snapshot(root), before)
                 else:
+                    before = self.snapshot(root)
                     self.assert_error('recovery_required', _root=root)
                     self.assertFalse((root / factory.AUTHORITY).exists())
+                    self.assertEqual(self.snapshot(root), before)
 
     @unittest.skipUnless(hasattr(os, 'fork'), 'process interruption requires fork')
     def test_interrupted_receipt_create_preserves_partial_state_and_refuses_retry(self):
@@ -359,9 +412,147 @@ class FactoryAuthorityTests(unittest.TestCase):
 
     def test_source_pin_and_hook_stays_uninstalled(self):
         self.assertEqual(hashlib.sha256((ROOT / 'scripts/initialization-receipt.py').read_bytes()).hexdigest(), factory.RECEIPT_SHA256)
+        self.assertEqual(hashlib.sha256((ROOT / 'scripts/factory-credentials-publisher.py').read_bytes()).hexdigest(), factory.PUBLISHER_SHA256)
         for relative in ('scripts/build-prototype.sh', 'scripts/build-image-linux.sh',
                          'scripts/configure-rootfs.py', 'scripts/configure-application-rootfs.py'):
             self.assertNotIn('factory-authority', (ROOT / relative).read_text())
+
+    def test_bad_publisher_pin_or_mode_never_consumes_or_executes(self):
+        source = self.root / factory.PUBLISHER_SOURCE
+        with patch.object(factory, 'PUBLISHER_SHA256', '0' * 64):
+            self.assert_error('configuration_invalid')
+        source.chmod(0o755)
+        self.assert_error('configuration_invalid')
+        source.write_text('raise RuntimeError("UNTRUSTED_SOURCE_CANARY")\n'); source.chmod(0o555)
+        self.assert_error('configuration_invalid')
+        self.assertEqual(self.spawn_count, 0)
+        self.assertTrue((self.root / factory.PERMISSION / 'pending.json').exists())
+
+    def test_publisher_failure_after_consumption_never_creates_or_retries(self):
+        def failed_spawn(*args, **kwargs):
+            raise OSError('SECRET_CANARY')
+        with contextlib.redirect_stdout(io.StringIO()) as stdout, contextlib.redirect_stderr(io.StringIO()) as stderr:
+            self.assert_error('recovery_required', _spawn=failed_spawn)
+        self.assertEqual(stdout.getvalue() + stderr.getvalue(), '')
+        self.assertTrue((self.root / factory.PERMISSION / 'consumed.json').exists())
+        self.assertFalse((self.root / factory.AUTHORITY).exists())
+        before = self.snapshot()
+        self.assert_error('recovery_required')
+        self.assertEqual(self.spawn_count, 0)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_existing_credentials_refuse_publication_without_overwrite_or_regeneration(self):
+        path = self.root / factory.DATA / 'credentials.json'
+        path.write_bytes(b'existing-private-fixture\n'); path.chmod(0o600)
+        self.assert_error('recovery_required')
+        self.assertTrue((self.root / factory.PERMISSION / 'consumed.json').exists())
+        self.assertEqual(path.read_bytes(), b'existing-private-fixture\n')
+        self.assertEqual(self.spawn_count, 0)
+        self.assertFalse((self.root / factory.AUTHORITY).exists())
+        self.assert_error('recovery_required')
+        self.assertEqual(self.spawn_count, 0)
+
+    def test_publication_fsync_failure_preserves_file_and_refuses_restart(self):
+        original = factory.os.fsync
+        data = self.root / factory.DATA
+        def fsync(fd):
+            if os.fstat(fd).st_ino == data.stat().st_ino:
+                raise OSError('SECRET_CANARY')
+            return original(fd)
+        with patch.object(factory.os, 'fsync', fsync):
+            self.assert_error('recovery_required')
+        self.assertFalse((self.root / factory.AUTHORITY).exists())
+        self.assertTrue((data / 'credentials.json').exists())
+        before = self.snapshot()
+        self.assert_error('recovery_required')
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.spawn_count, 1)
+
+    def test_restart_checks_metadata_only_and_accepts_rotation_and_other_app_state(self):
+        self.initialize()
+        data = self.root / factory.DATA
+        replacement = data / 'rotated'
+        replacement.write_bytes(b'rotated-opaque-content-not-json\n'); replacement.chmod(0o600)
+        replacement.replace(data / 'credentials.json')
+        (data / 'ownership.sqlite3').write_bytes(b'other-app-state')
+        original_open = factory.os.open
+        def open_(name, *args, **kwargs):
+            self.assertNotEqual(Path(name).name, 'credentials.json', 'credentials file was opened')
+            return original_open(name, *args, **kwargs)
+        before = self.snapshot()
+        with patch.object(factory.os, 'open', open_):
+            self.assertEqual(self.initialize()['status'], 'existing')
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.spawn_count, 1)
+
+    def test_restart_rejects_untrusted_data_directory_and_file_owners(self):
+        self.initialize()
+        data = self.root / factory.DATA
+        data.chmod(0o750); self.assert_error('recovery_required'); data.chmod(0o700)
+        held = data.with_name('held-app-data')
+        data.rename(held); data.symlink_to(held)
+        self.assert_error('recovery_required'); data.unlink(); held.rename(data)
+        original = factory.os.stat
+        inode = (data / 'credentials.json').stat().st_ino
+        for index in (4, 5):
+            def changed(*args, **kwargs):
+                value = original(*args, **kwargs)
+                if value.st_ino == inode:
+                    fields = list(value); fields[index] += 1
+                    return os.stat_result(fields)
+                return value
+            with self.subTest(index=index), patch.object(factory.os, 'stat', changed):
+                self.assert_error('recovery_required')
+        self.assertEqual(self.spawn_count, 1)
+
+    def test_lost_or_bad_credentials_metadata_never_regenerates(self):
+        self.initialize()
+        authority = self.root / factory.AUTHORITY
+        receipt.begin(authority, '12345678-1234-4234-8234-123456789abc', **self.owner)
+        consumed = receipt.inspect(authority, **self.owner)
+        path = self.root / factory.DATA / 'credentials.json'
+        raw = path.read_bytes()
+        for mode in (0o644, 0o400):
+            path.chmod(mode); self.assert_error('recovery_required')
+        path.chmod(0o600); path.write_bytes(b''); self.assert_error('recovery_required')
+        path.write_bytes(b'x' * 8193); self.assert_error('recovery_required')
+        path.unlink(); self.assert_error('recovery_required')
+        outside = self.root / 'held'; outside.write_bytes(raw); outside.chmod(0o600)
+        path.symlink_to(outside); self.assert_error('recovery_required'); path.unlink()
+        os.link(outside, path); self.assert_error('recovery_required'); path.unlink()
+        os.mkfifo(path, 0o600); self.assert_error('recovery_required'); path.unlink()
+        self.assertEqual(self.spawn_count, 1)
+        self.assertEqual(receipt.inspect(authority, **self.owner), consumed)
+
+    def test_credentials_changed_during_restart_refuse(self):
+        self.initialize()
+        original = factory.credentials_metadata
+        changed = False
+        def metadata(*args):
+            nonlocal changed
+            value = original(*args)
+            if not changed:
+                changed = True
+                (self.root / factory.DATA / 'credentials.json').write_bytes(b'changed-during-inspection\n')
+            return value
+        with patch.object(factory, 'credentials_metadata', metadata):
+            self.assert_error('recovery_required')
+        self.assertEqual(self.spawn_count, 1)
+
+    def test_publisher_changed_after_publication_prevents_authority(self):
+        def checkpoint(stage):
+            if stage == 'credentials_published':
+                source = self.root / factory.PUBLISHER_SOURCE
+                source.chmod(0o755); source.write_bytes(b'changed-source\n'); source.chmod(0o555)
+        self.assert_error('recovery_required', _checkpoint=checkpoint)
+        self.assertTrue((self.root / factory.DATA / 'credentials.json').exists())
+        self.assertFalse((self.root / factory.AUTHORITY).exists())
+
+    def test_system_root_fixture_injection_and_alias_refused_before_io(self):
+        for root in (Path('/'), Path('//'), Path('//synthetic'), Path('relative'), Path('/a/../b')):
+            with self.subTest(root=str(root)), patch.object(factory, 'bindings') as bindings:
+                self.assert_error('configuration_invalid', _root=root)
+                bindings.assert_not_called()
 
     def test_cli_invalid_arguments_never_initialize_and_errors_are_closed(self):
         with patch.object(factory, 'initialize') as invoke, contextlib.redirect_stdout(io.StringIO()) as output:
