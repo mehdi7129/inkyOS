@@ -160,7 +160,7 @@ def _production_environment(rootfs):
     require(rootfs != Path('/'), 'host_root_refused')
     require(sys.platform.startswith('linux') and os.geteuid() == 0
             and os.getegid() == 0, 'root_linux_builder_required')
-    require(re.fullmatch(r'/var/lib/inkyos-build/factory-studio\.[A-Za-z0-9]+/root',
+    require(re.fullmatch(r'/var/lib/inkyos-build/factory-(?:studio|image)\.[A-Za-z0-9]+/root',
                          str(rootfs)), 'private_workspace_required')
     return rootfs.parent, None
 

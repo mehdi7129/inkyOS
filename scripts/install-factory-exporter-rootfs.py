@@ -58,9 +58,11 @@ def capabilities():
 try:
  require(len(sys.argv)>=3 and os.getresuid()==(0,0,0))
  root=sys.argv[1];command=sys.argv[2:]
- prefix='/var/lib/inkyos-build/factory-exporter.';suffix='/root'
- token=root[len(prefix):-len(suffix)]
- require(root.startswith(prefix) and root.endswith(suffix) and token.isascii() and token.isalnum())
+ prefixes=('/var/lib/inkyos-build/factory-exporter.','/var/lib/inkyos-build/factory-image.')
+ matches=[prefix for prefix in prefixes if root.startswith(prefix)];suffix='/root'
+ require(len(matches)==1 and root.endswith(suffix))
+ token=root[len(matches[0]):-len(suffix)]
+ require(token.isascii() and token.isalnum())
  require(command[0]=='/usr/bin/python3.13')
  # Keep effective CHROOT/SETUID/SETGID until their numeric syscalls finish,
  # but remove all routes for capabilities to survive or return after exec.
@@ -135,7 +137,7 @@ def guard_destinations(rootfs):
 
 
 def check_workspace(rootfs):
-    require(verifier.re.fullmatch(r'/var/lib/inkyos-build/factory-exporter\.[A-Za-z0-9]+/root',
+    require(verifier.re.fullmatch(r'/var/lib/inkyos-build/factory-(?:exporter|image)\.[A-Za-z0-9]+/root',
                                  str(rootfs)), 'Dedicated disposable exporter path required')
     checked_path(rootfs)
     work = rootfs.parent

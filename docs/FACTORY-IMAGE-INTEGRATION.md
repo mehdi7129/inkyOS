@@ -24,13 +24,34 @@ Le configurateur factory doit préparer :
 Deux adaptations de recette sont nécessaires avant cet assemblage :
 
 1. Le build courant utilise `/var/tmp/inkyos-work/prototype.<token>/root`,
-   tandis que l’installer exporter exige un workspace root-owned sous
-   `/var/lib/inkyos-build/factory-exporter.<token>/root`. Le build doit adopter
-   un workspace conforme, avec une règle explicite et testée pour le profil.
+   tandis que les deux installers acceptent désormais le chemin commun exact
+   `/var/lib/inkyos-build/factory-image.<token>/root`. Le build doit encore
+   sélectionner explicitement ce workspace et le profil factory.
 2. Le support exporter actuel ferme tout `/usr/local/lib`, avec les scripts
    du profil TEST. L’ajout des modules factory et IPC exige un nouveau
    manifeste attendu propre au profil complet. Le pin TEST ne peut pas être
    réutilisé en ignorant les nouvelles entrées.
+
+Le token commun est non vide et ne contient que des lettres ASCII ou chiffres
+(`[A-Za-z0-9]+`). Le workspace `factory-image.<token>` doit déjà être root:root
+`0700`, avec des parents root:root non modifiables par groupe/autres, sans
+symlinks ni xattrs/ACL. Le marker builder fixe reste obligatoire. Les installers
+ne créent, ne déplacent et ne changent les droits d'aucun workspace préexistant.
+Les gardes propres aux inputs, au rootfs et aux reçus exclusifs restent inchangées.
+
+L'exporter conserve aussi son chemin dédié `factory-exporter.<token>/root` ; son
+`check_workspace` et son `HOST_LAUNCHER` appliquent la même sélection fermée.
+Le matérialiseur Studio conserve `factory-studio.<token>/root`. Aucun autre
+préfixe factory ou chemin `/var/tmp` n'est admis par ces installers. Ce raccord
+permet de viser le même rootfs ; il ne déplace pas les venv ni leurs chemins finaux.
+
+`build-prototype.sh` et `build-image-linux.sh` restent inchangés : ils sélectionnent
+encore seulement system/application et ne disposent d'aucun opt-in factory.
+Leur staging actuel n'est pas rendu compatible par cette extension. Le futur
+lot de recette devra créer le workspace commun sous root avec un mode `0700`
+explicite, sans dépendre de l'umask, puis raccorder ses inputs, contrôles et
+métadonnées de profil. Aucun support, package, unité ou enablement n'est modifié
+par le seul raccord de workspace.
 
 Le configurateur applicatif TEST crée actuellement un dossier `0755` et
 `photos/`. Un configurateur factory séparé doit préserver ces exigences TEST

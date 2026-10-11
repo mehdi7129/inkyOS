@@ -27,6 +27,7 @@ def module(name, path):
 
 installer = module('studio_bundle_install_test', ROOT / 'scripts/install-factory-studio-bundle-rootfs.py')
 fixtures = module('studio_bundle_install_wheel_fixtures', ROOT / 'tests/test_factory_studio_bundle_plan.py')
+PRODUCTION_ENVIRONMENT = installer._production_environment
 
 
 class FactoryStudioBundleInstallTests(unittest.TestCase):
@@ -553,6 +554,99 @@ class FactoryStudioBundleInstallTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn(b'factory_studio_install_refused:', result.stderr)
         self.assertEqual(self.snapshot(), before)
+
+    def test_common_workspace_keeps_real_parent_metadata_guards(self):
+        work = self.base / 'factory-image.A9z'
+        work.mkdir(mode=0o700)
+        work.chmod(0o700)
+        rootfs = work / 'root'
+        rootfs.mkdir(mode=0o755)
+        rootfs.chmod(0o755)
+
+        def accepted_synthetic_workspace(target):
+            # Validate the real production naming rule without creating /var
+            # paths. Actual Directory/owner/mode checks run on this private tree.
+            self.assertEqual(target, rootfs)
+            production_path = Path('/var/lib/inkyos-build') / work.name / 'root'
+            with patch.object(installer.sys, 'platform', 'linux'), \
+                    patch.object(installer.os, 'geteuid', return_value=0), \
+                    patch.object(installer.os, 'getegid', return_value=0):
+                self.assertEqual(PRODUCTION_ENVIRONMENT(production_path),
+                                 (production_path.parent, None))
+            return work, self.base
+
+        with patch.object(installer, '_production_environment', side_effect=accepted_synthetic_workspace):
+            for mode, reason in ((0o755, 'private_workspace_required'),
+                                 (0o777, 'untrusted_metadata')):
+                with self.subTest(mode=oct(mode)):
+                    work.chmod(mode)
+                    self.assertEqual(self.refused_without_write(lambda: self.install(rootfs=rootfs)), reason)
+            work.chmod(0o700)
+            with patch.object(installer, '_owner_ids', return_value=(os.geteuid() + 1, os.getegid())):
+                self.assertEqual(self.refused_without_write(lambda: self.install(rootfs=rootfs)),
+                                 'untrusted_metadata')
+
+
+class ProductionWorkspaceNameTests(unittest.TestCase):
+    def setUp(self):
+        # This pure production gate does not open any /var path. Only the host
+        # platform and effective numeric identity are explicit fixture seams.
+        for target, name, value in ((installer.sys, 'platform', 'linux'),
+                                    (installer.os, 'geteuid', lambda: 0),
+                                    (installer.os, 'getegid', lambda: 0)):
+            seam = patch.object(target, name, value)
+            seam.start()
+            self.addCleanup(seam.stop)
+
+    def test_dedicated_and_common_ascii_workspace_names_are_accepted(self):
+        for prefix in ('factory-studio', 'factory-image'):
+            for token in ('A', '0', 'aZ90'):
+                with self.subTest(prefix=prefix, token=token):
+                    rootfs = Path('/var/lib/inkyos-build') / f'{prefix}.{token}' / 'root'
+                    self.assertEqual(PRODUCTION_ENVIRONMENT(rootfs), (rootfs.parent, None))
+
+    def test_neighbor_prefixes_unicode_punctuation_and_wrong_locations_are_refused(self):
+        paths = [
+            '/var/lib/inkyos-build/factory-exporter.A/root',
+            '/var/lib/inkyos-build/factory-images.A/root',
+            '/var/lib/inkyos-build/factory-imagex.A/root',
+            '/var/lib/inkyos-build/factory-studios.A/root',
+            '/var/lib/inkyos-build/factory-studiox.A/root',
+            '/var/lib/inkyos-build/factory-image./root',
+            '/var/lib/inkyos-build/factory-image.A-1/root',
+            '/var/lib/inkyos-build/factory-image.A_1/root',
+            '/var/lib/inkyos-build/factory-image.é/root',
+            '/var/lib/inkyos-build/factory-image.١/root',
+            '/var/lib/inkyos-build/factory-studio.Ａ/root',
+            '/var/lib/inkyos-build/factory-image.A/rootfs',
+            '/var/lib/inkyos-build/factory-image.A/root/extra',
+            '/var/lib/inkyos-build-other/factory-image.A/root',
+            '/var/lib/inkyos-build/factory-image.A/root\n',
+        ]
+        for value in paths:
+            with self.subTest(path=value):
+                with self.assertRaises(installer.Refused) as caught:
+                    PRODUCTION_ENVIRONMENT(Path(value))
+                self.assertEqual(caught.exception.reason, 'private_workspace_required')
+
+    def test_relative_and_traversal_workspace_paths_are_refused(self):
+        for value in ('var/lib/inkyos-build/factory-image.A/root',
+                      '/var/lib/inkyos-build/factory-image.A/root/../root',
+                      '/var/lib/inkyos-build/../inkyos-build/factory-studio.A/root'):
+            with self.subTest(path=value):
+                with self.assertRaises(installer.Refused) as caught:
+                    PRODUCTION_ENVIRONMENT(Path(value))
+                self.assertEqual(caught.exception.reason, 'private_workspace_required')
+
+    def test_common_name_does_not_relax_linux_root_identity(self):
+        rootfs = Path('/var/lib/inkyos-build/factory-image.A/root')
+        for target, name, value in ((installer.sys, 'platform', 'darwin'),
+                                    (installer.os, 'geteuid', lambda: 1000),
+                                    (installer.os, 'getegid', lambda: 1000)):
+            with self.subTest(check=name), patch.object(target, name, value):
+                with self.assertRaises(installer.Refused) as caught:
+                    PRODUCTION_ENVIRONMENT(rootfs)
+                self.assertEqual(caught.exception.reason, 'root_linux_builder_required')
 
 
 if __name__ == '__main__':

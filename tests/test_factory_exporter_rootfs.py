@@ -776,35 +776,39 @@ class InstallerTests(ExporterFixture):
         self.assertNotIn('/usr/sbin/chroot', child)
 
     def test_host_launcher_resolves_symbols_before_chroot_and_execs_only_after_numeric_drop(self):
-        fixture = HostLauncherFixture().run()
-        self.assertEqual(len(fixture.exec_calls), 1)
-        attempted = fixture.exec_calls[0]
-        self.assertEqual(attempted['filename'], '/usr/bin/python3.13')
-        self.assertEqual(attempted['command'], fixture.COMMAND)
-        self.assertEqual(attempted['uid'], (1000, 1000, 1000))
-        self.assertEqual(attempted['gid'], (1000, 1000, 1000))
-        self.assertEqual(attempted['groups'], [])
-        self.assertEqual(attempted['caps'], [[0, 0, 0], [0, 0, 0]])
-        self.assertEqual(attempted['bounding'], set())
-        self.assertEqual(attempted['ambient'], set())
-        self.assertEqual((attempted['securebits'], attempted['nnp']), (0, 1))
-        self.assertEqual(attempted['environment'], {
-            'HOME': '/home/inky', 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC',
-            'PYTHONNOUSERSITE': '1', 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'})
-        self.assertEqual([e for e in fixture.events if e[0] == 'import'],
-                         [('import', name, False) for name in ('ctypes', 'errno', 'os', 'sys')])
-        self.assertEqual([e for e in fixture.events if e[0] == 'CDLL'],
-                         [('CDLL', None, {'use_errno': True}, False)])
-        transitions = [event[0] for event in fixture.events
-                       if event[0] in {'chroot', 'chdir', 'setgroups', 'setresgid', 'setresuid', 'execve'}]
-        self.assertEqual(transitions, ['chroot', 'chdir', 'setgroups', 'setresgid', 'setresuid', 'execve'])
-        capset = [e for e in fixture.events if e[0] == 'capset']
-        self.assertEqual(len(capset), 1)
-        self.assertFalse(capset[0][-1])
-        self.assertTrue(all(row[0] and row[1] and row[2] == 0 for row in capset[0][1]))
-        # Our fake execve returned, which must be an explicit refusal path.
-        self.assertEqual(fixture.exit_status, 127)
-        self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
+        for root in (HostLauncherFixture.ROOT, '/var/lib/inkyos-build/factory-image.A1b/root'):
+            with self.subTest(root=root):
+                fixture = HostLauncherFixture()
+                fixture.sys.argv[1] = root
+                fixture.run()
+                self.assertEqual(len(fixture.exec_calls), 1)
+                attempted = fixture.exec_calls[0]
+                self.assertEqual(attempted['filename'], '/usr/bin/python3.13')
+                self.assertEqual(attempted['command'], fixture.COMMAND)
+                self.assertEqual(attempted['uid'], (1000, 1000, 1000))
+                self.assertEqual(attempted['gid'], (1000, 1000, 1000))
+                self.assertEqual(attempted['groups'], [])
+                self.assertEqual(attempted['caps'], [[0, 0, 0], [0, 0, 0]])
+                self.assertEqual(attempted['bounding'], set())
+                self.assertEqual(attempted['ambient'], set())
+                self.assertEqual((attempted['securebits'], attempted['nnp']), (0, 1))
+                self.assertEqual(attempted['environment'], {
+                    'HOME': '/home/inky', 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC',
+                    'PYTHONNOUSERSITE': '1', 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'})
+                self.assertEqual([e for e in fixture.events if e[0] == 'import'],
+                                 [('import', name, False) for name in ('ctypes', 'errno', 'os', 'sys')])
+                self.assertEqual([e for e in fixture.events if e[0] == 'CDLL'],
+                                 [('CDLL', None, {'use_errno': True}, False)])
+                transitions = [event[0] for event in fixture.events
+                               if event[0] in {'chroot', 'chdir', 'setgroups', 'setresgid', 'setresuid', 'execve'}]
+                self.assertEqual(transitions, ['chroot', 'chdir', 'setgroups', 'setresgid', 'setresuid', 'execve'])
+                capset = [e for e in fixture.events if e[0] == 'capset']
+                self.assertEqual(len(capset), 1)
+                self.assertFalse(capset[0][-1])
+                self.assertTrue(all(row[0] and row[1] and row[2] == 0 for row in capset[0][1]))
+                # Our fake execve returned, which must be an explicit refusal path.
+                self.assertEqual(fixture.exit_status, 127)
+                self.assertEqual(fixture.output, [(2, b'factory_exporter_launcher_failed\n')])
 
     def test_host_launcher_capability_syscall_failures_never_reach_exec(self):
         failures = (('prctl', 28, 0), ('prctl', 38, 1), ('prctl', 24, 0),
@@ -947,6 +951,19 @@ class WorkspaceTests(unittest.TestCase):
         '/var/lib/inkyos-build/factory-exporter.abc/root/extra',
         '/var/lib/inkyos-build/factory-exporter.abc/root\n',
         'var/lib/inkyos-build/factory-exporter.abc/root',
+        '/var/lib/inkyos-build/factory-image./root',
+        '/var/lib/inkyos-build/factory-image.é/root',
+        '/var/lib/inkyos-build/factory-image.abc-def/root',
+        '/var/lib/inkyos-build/factory-image.abc_def/root',
+        '/var/lib/inkyos-build/factory-image.abc/nested/root',
+        '/var/lib/inkyos-build/factory-image.abc/../factory-image.other/root',
+        '/var/lib/inkyos-build/factory-image.abc/root/extra',
+        '/var/lib/inkyos-build/factory-image.abc/root\n',
+        '/var/lib/inkyos-build/factory-images.abc/root',
+        '/var/lib/inkyos-build/factory-image2.abc/root',
+        '/var/lib/inkyos-build/factory-studio.abc/root',
+        '/var/tmp/inkyos-build/factory-image.abc/root',
+        'var/lib/inkyos-build/factory-image.abc/root',
     )
 
     def directory(self, path, work):
@@ -970,16 +987,17 @@ class WorkspaceTests(unittest.TestCase):
         ordinary.assert_not_called()
 
     def test_private_workspace_accepts_ascii_alnum_tokens_and_checks_every_ancestor(self):
-        for token in ('A1b', '0', 'XYZ123'):
-            root = Path('/var/lib/inkyos-build/factory-exporter.' + token + '/root')
-            work = root.parent
-            with self.subTest(token=token), \
-                    patch.object(installer, 'checked_path', return_value=root) as checked, \
-                    patch.object(installer.verifier, 'single_record',
-                                 side_effect=lambda path: self.directory(path, work)) as record:
-                self.assertEqual(installer.check_workspace(root), work)
-            checked.assert_called_once_with(root)
-            self.assertEqual(record.call_args_list, [call(path) for path in (work, *work.parents)])
+        for profile in ('factory-exporter', 'factory-image'):
+            for token in ('A1b', '0', 'XYZ123'):
+                root = Path('/var/lib/inkyos-build/' + profile + '.' + token + '/root')
+                work = root.parent
+                with self.subTest(profile=profile, token=token), \
+                        patch.object(installer, 'checked_path', return_value=root) as checked, \
+                        patch.object(installer.verifier, 'single_record',
+                                     side_effect=lambda path: self.directory(path, work)) as record:
+                    self.assertEqual(installer.check_workspace(root), work)
+                checked.assert_called_once_with(root)
+                self.assertEqual(record.call_args_list, [call(path) for path in (work, *work.parents)])
 
     def test_workspace_rejects_old_nested_traversal_and_non_ascii_paths_before_inspection(self):
         for path in self.INVALID_ROOTS:
@@ -991,37 +1009,39 @@ class WorkspaceTests(unittest.TestCase):
                 record.assert_not_called()
 
     def test_workspace_rejects_unsafe_ownership_permissions_acl_on_each_ancestor(self):
-        root = Path(HostLauncherFixture.ROOT)
-        work = root.parent
-        mutations = ({'uid': 501}, {'gid': 1000}, {'mode': '0775'},
-                     {'xattrs': {'status': 'inspected', 'entries': {
-                         'system.posix_acl_access': {'size_bytes': 4, 'sha256': 'a' * 64}}}})
-        for ancestor in (work, *work.parents):
-            for mutation in mutations:
+        for root_path in (HostLauncherFixture.ROOT, '/var/lib/inkyos-build/factory-image.A1b/root'):
+            root = Path(root_path)
+            work = root.parent
+            mutations = ({'uid': 501}, {'gid': 1000}, {'mode': '0775'},
+                         {'xattrs': {'status': 'inspected', 'entries': {
+                             'system.posix_acl_access': {'size_bytes': 4, 'sha256': 'a' * 64}}}})
+            for ancestor in (work, *work.parents):
+                for mutation in mutations:
+                    def metadata(path):
+                        record = self.directory(path, work)
+                        if path == ancestor:
+                            record.update(mutation)
+                        return record
+                    with self.subTest(ancestor=ancestor, mutation=mutation), \
+                            patch.object(installer, 'checked_path', return_value=root), \
+                            patch.object(installer.verifier, 'single_record', side_effect=metadata), \
+                            self.assertRaises(ValueError):
+                        installer.check_workspace(root)
+
+    def test_workspace_requires_exact_private_work_mode_and_directory_type(self):
+        for root_path in (HostLauncherFixture.ROOT, '/var/lib/inkyos-build/factory-image.A1b/root'):
+            root = Path(root_path)
+            work = root.parent
+            for mutation in ({'mode': '0755'}, {'type': 'file'}):
                 def metadata(path):
                     record = self.directory(path, work)
-                    if path == ancestor:
+                    if path == work:
                         record.update(mutation)
                     return record
-                with self.subTest(ancestor=ancestor, mutation=mutation), \
-                        patch.object(installer, 'checked_path', return_value=root), \
+                with self.subTest(mutation=mutation), patch.object(installer, 'checked_path', return_value=root), \
                         patch.object(installer.verifier, 'single_record', side_effect=metadata), \
                         self.assertRaises(ValueError):
                     installer.check_workspace(root)
-
-    def test_workspace_requires_exact_private_work_mode_and_directory_type(self):
-        root = Path(HostLauncherFixture.ROOT)
-        work = root.parent
-        for mutation in ({'mode': '0755'}, {'type': 'file'}):
-            def metadata(path):
-                record = self.directory(path, work)
-                if path == work:
-                    record.update(mutation)
-                return record
-            with self.subTest(mutation=mutation), patch.object(installer, 'checked_path', return_value=root), \
-                    patch.object(installer.verifier, 'single_record', side_effect=metadata), \
-                    self.assertRaises(ValueError):
-                installer.check_workspace(root)
 
 
 if __name__ == '__main__':
