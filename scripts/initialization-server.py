@@ -262,10 +262,13 @@ def handle_connection(connection, worker, *, _peer_uid=peer_uid, _budget=DEADLIN
     """One absolute deadline, including request, receipt operation and response."""
     deadline = time.monotonic() + _budget
     request_id = None
+    peer_checked = False
     with connection:
         connection.setblocking(False)
         try:
-            if _peer_uid(connection) != APP_UID:
+            uid = _peer_uid(connection)
+            peer_checked = True
+            if uid != APP_UID:
                 # Decide refusal from kernel credentials first. Consume at most
                 # one bounded frame, without ever invoking the worker. Closing
                 # a Linux AF_UNIX stream with an unread valid request otherwise
@@ -286,6 +289,14 @@ def handle_connection(connection, worker, *, _peer_uid=peer_uid, _budget=DEADLIN
         except InvalidRequest as exc:
             response = error(exc.request_id, 'invalid_request')
         except (OSError, TimeoutError):
+            if not peer_checked:
+                # Credential lookup already refused this connection. Drain the
+                # same bounded frame for Linux EOF, but do not trust its ID or
+                # invoke a receipt operation when the peer is unknown.
+                try:
+                    read_request(connection, deadline - REPLY_RESERVE)
+                except (InvalidRequest, OSError, TimeoutError):
+                    pass
             response = error(request_id, 'unavailable')
         try:
             raw = encode(response)

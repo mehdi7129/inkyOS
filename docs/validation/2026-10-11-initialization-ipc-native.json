@@ -3,14 +3,14 @@
   "scope": "staged-initialization-ipc-native-fixture",
   "status": "PASS",
   "source_sha256": {
-    "server": "7cc014be9e0a3ca3d45798f5cb2e3a007f7047712297c87925c220ac49064573",
+    "server": "71052d82be30f25ea6c0f1414fcefeec2014bac125a3bbeb3b78428027514e53",
     "receipt": "42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6",
     "unit": "5abb940039d25f5094346d1c32a8b9caa1961b041463f64fc2b7c7d2fcd31ea1",
-    "native_probe": "6db559b3ba5cca95844f3abbaf96337875d9b50269ea465543c8d9fcb25a740d"
+    "native_probe": "defcb99434c8f000a473de2f2c326f6055dc95345a879a385824398c62fbe379"
   },
   "portable_tests": {
     "platform": "macos",
-    "run": 45,
+    "run": 46,
     "failures": 0,
     "errors": 0,
     "skipped": 1,
@@ -51,5 +51,24 @@
     "EOF refusal was verified for a valid bounded request; malformed excess input can still reset the connection.",
     "Uninterruptible kernel I/O cannot be made cancellable by the parent deadline.",
     "Restoring an entire older filesystem remains outside the receipt model protection."
-  ]
+  ],
+  "credential_lookup_failure": {
+    "response": "unavailable",
+    "request_id_null": true,
+    "receipt_not_invoked": true,
+    "original_deadline_preserved": true,
+    "valid_frame_and_eof_checked": true,
+    "silence_and_partial_frame_bounded": true,
+    "scope": "macos-and-linux-socket-fixtures"
+  },
+  "linux_socket_regression": {
+    "run": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "independent_execution": true,
+    "actual_kernel_peer_credentials_checked": true,
+    "lookup_failure_valid_response_and_eof": true,
+    "lookup_failure_partial_frame_deadline": true
+  }
 }

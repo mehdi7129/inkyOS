@@ -10,7 +10,8 @@ Le socket AF_UNIX `/run/inkyos-bootstrap/control.sock` appartient à
 `SO_PEERCRED` et admet uniquement l’UID applicatif `1000`. Le client doit vérifier
 l’UID serveur `0` avant d’envoyer. Root et les autres UID sont refusés ; une trame
 valide refusée est lue sous la même borne, sans appeler le reçu, afin de terminer
-la réponse par EOF sur Linux.
+la réponse par EOF sur Linux. Si la lecture des credentials échoue, ce même
+traitement borné renvoie `unavailable` avec `id: null`, sans opération sur le reçu.
 
 Une connexion transporte une requête JSON UTF-8 terminée par LF, puis une réponse
 et EOF. Limites, LF inclus : **1024 octets entrants, 2048 sortants, 3 secondes**
@@ -69,7 +70,9 @@ Le probe arrête uniquement son unité et conserve son état de fixture pour rev
 La [preuve du 11 octobre](validation/2026-10-11-initialization-ipc-native.json)
 consigne **8 contrôles natifs PASS**, dont les permissions, capabilities vides,
 consommation durable, même reçu après redémarrage et délai avec verrou bloqué.
-Les tests portables comptent **45 tests, zéro échec et un ignoré sur Mac** pour les
-credentials kernel Linux. Le banc ne qualifie ni les chemins/groupe de production,
+Les tests portables comptent **46 tests, zéro échec et un ignoré sur Mac** pour les
+credentials kernel Linux. Trois tests socket rejoués indépendamment sous Linux
+confirment aussi le refus après échec des credentials, son EOF et sa borne de temps.
+Le banc ne qualifie ni les chemins/groupe de production,
 ni une image, le premier boot, le cadre ou l’app iOS. Le hook de création initiale
 de l’autorité, le raccord applicatif et leur qualification restent à intégrer.

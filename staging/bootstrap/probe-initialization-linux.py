@@ -29,7 +29,7 @@ import time
 import uuid
 
 PINS = {
-    'scripts/initialization-server.py': '7cc014be9e0a3ca3d45798f5cb2e3a007f7047712297c87925c220ac49064573',
+    'scripts/initialization-server.py': '71052d82be30f25ea6c0f1414fcefeec2014bac125a3bbeb3b78428027514e53',
     'scripts/initialization-receipt.py': '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6',
     'staging/bootstrap/inkyos-initialization.service': '5abb940039d25f5094346d1c32a8b9caa1961b041463f64fc2b7c7d2fcd31ea1',
 }

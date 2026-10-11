@@ -225,14 +225,32 @@ class SocketTests(unittest.TestCase):
 
     def test_peer_lookup_failure_never_consumes(self):
         self.create()
-        client, connection = socket.socketpair()
-        with client:
-            client.sendall(wire(request(True)))
-            with patch.object(self.worker, 'run') as operation:
-                server.handle_connection(connection, self.worker,
-                                         _peer_uid=lambda _: (_ for _ in ()).throw(OSError()))
-                self.assertEqual(receive(client), server.error(None, 'unavailable'))
-                operation.assert_not_called()
+        for raw in (wire(request(True)), wire(request()), b'{broken}\n'):
+            with self.subTest(raw=raw):
+                client, connection = socket.socketpair()
+                with client:
+                    client.sendall(raw)
+                    with patch.object(self.worker, 'run') as operation:
+                        server.handle_connection(connection, self.worker,
+                                                 _peer_uid=lambda _: (_ for _ in ()).throw(OSError()))
+                        self.assertEqual(receive(client), server.error(None, 'unavailable'))
+                        operation.assert_not_called()
+        self.assertEqual(receipt.inspect(self.path, **self.owner), {'status': 'authorized'})
+
+    def test_peer_lookup_failure_waits_only_within_original_deadline(self):
+        self.create()
+        for raw in (b'', wire(request(True))[:-1]):
+            with self.subTest(raw=raw):
+                client, connection = socket.socketpair()
+                with client:
+                    client.sendall(raw)
+                    with patch.object(self.worker, 'run') as operation:
+                        started = time.monotonic()
+                        server.handle_connection(connection, self.worker, _budget=.15,
+                                                 _peer_uid=lambda _: (_ for _ in ()).throw(OSError()))
+                        self.assertLess(time.monotonic() - started, .5)
+                        self.assertEqual(receive(client), server.error(None, 'unavailable'))
+                        operation.assert_not_called()
         self.assertEqual(receipt.inspect(self.path, **self.owner), {'status': 'authorized'})
 
     def test_invalid_backend_result_after_begin_is_uncertain(self):
