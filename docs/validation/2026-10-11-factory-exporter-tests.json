@@ -1,0 +1,78 @@
+{
+  "all_inputs_match_current_source": true,
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "input_receipt_sha256": "3c49035daef9a39c8261c40a5c63be285b671d8e21aa9d17c4071d0c0b8ae0fb",
+  "limits": [
+    "Software fixtures and shell syntax only; no SD, Wi-Fi, Bluetooth, display or application startup qualification.",
+    "Native system-support inspection and IPC service probes have separate receipts.",
+    "This regression does not install or execute the standalone exporter."
+  ],
+  "linux_arm64": {
+    "architecture": "aarch64",
+    "errors": 0,
+    "failures": 0,
+    "hardware_qualified": false,
+    "log_sha256": "8d211c06a9f75d349c7ccf77d14d24ab82893d93cdd5fba36f28c14c94797425",
+    "passed": true,
+    "python": "3.13.5",
+    "python_fixtures_passed": true,
+    "schema_version": 1,
+    "scope": "software-fixtures-only",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 2,
+    "system": "Linux",
+    "tests": 1267
+  },
+  "linux_transferred_inputs": 189,
+  "macos": {
+    "architecture": "arm64",
+    "errors": 0,
+    "failures": 0,
+    "hardware_qualified": false,
+    "log_sha256": "04d011db80b277ac8735ae4849539329ba7d6a3047a8ff26052bca1fceaeff78",
+    "passed": true,
+    "python": "3.13.3",
+    "python_fixtures_passed": true,
+    "schema_version": 1,
+    "scope": "software-fixtures-only",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 8,
+    "system": "Darwin",
+    "tests": 1267
+  },
+  "preliminary_runs": [
+    {
+      "errors": 1,
+      "failures": 0,
+      "log_sha256": "acde7c1baff20a04b483aa1dd5f7f22d3b7196c3b8b8a0bc1c71019b6dde49e4",
+      "platform": "macOS",
+      "python": "3.9.6",
+      "reason": "Default shell interpreter was older than the documented Python 3.11 minimum; tomllib import failed. Rerun uses explicit installed Python 3.13.3.",
+      "status": "FAILED",
+      "tests": 1247
+    },
+    {
+      "correction_commit": "d61b6f121745344e60835c241e86546c7d7fde7f",
+      "errors": 1,
+      "failures": 0,
+      "log_sha256": "f183867addc0a5b188d11de37eeecd66987ac531f7eaaa864a0a28c34a6ca2c0",
+      "platform": "Linux ARM64",
+      "reason": "Synthetic host-interpreter fixture retained actual outer /tmp mode 1777. Correction normalizes only ancestry outside the fixture; production security checks remain unchanged.",
+      "status": "FAILED",
+      "tests": 1267
+    }
+  ],
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "factory-exporter-and-ipc-complete-offline-regression",
+  "source_commit": "d61b6f121745344e60835c241e86546c7d7fde7f",
+  "status": "PASS",
+  "worktree_clean_at_execution": true
+}
