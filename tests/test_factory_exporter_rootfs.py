@@ -726,6 +726,159 @@ class SupportTests(ExporterFixture):
         self.assertEqual(list(self.root.rglob('*')), before)
 
 
+class LockSelectionTests(ExporterFixture):
+    """Synthetic lock/config bytes only; no candidate support or target execution."""
+
+    def setUp(self):
+        super().setUp()
+        self.config_root = self.base / 'fixture-repository'
+        self.selected = dict(self.lock, schema_version=1, contract='factory-exporter-v2',
+            destination='/' + verify.DESTINATION, studio_commit='a' * 40,
+            argv=['/' + verify.DESTINATION + '/venv/bin/python', '-I', '-B', '-m',
+                  'inky_web.provisioning.factory_credentials', '--emit-v2'])
+        for filename, field, value in (
+                ('base-image.lock.json', 'base_lock_sha256', {'image': {'extracted_sha256': '1' * 64}}),
+                ('system-packages.lock.json', 'system_packages_lock_sha256', {'fixture': 'system'}),
+                ('test-access-packages.lock.json', 'test_access_packages_lock_sha256', {'fixture': 'access'})):
+            raw = json.dumps(value).encode()
+            self.write(self.config_root / 'config' / filename, raw)
+            self.selected[field] = digest(raw)
+        self.lock_path = self.base / 'selected-lock.json'
+        self.raw_lock = json.dumps(self.selected, sort_keys=True).encode()
+        self.write(self.lock_path, self.raw_lock)
+        self.output = self.base / 'selected-report.json'
+        self.args = ['--rootfs', str(self.root), '--sources-dir', str(self.sources),
+                     '--wheels-dir', str(self.wheels), '--support-manifest', str(self.base / 'support.json'),
+                     '--output', str(self.output)]
+
+    def cli_refused_before_effects(self, extra):
+        before = sorted(str(p.relative_to(self.base)) for p in self.base.rglob('*'))
+        for cli in (verify, installer):
+            library = cli if cli is verify else cli.verifier
+            with self.subTest(cli=cli.__name__), patch.object(library, 'ROOT', self.config_root), \
+                    patch.object(library, 'load_support') as support, \
+                    patch.object(library, 'verify') as target, \
+                    patch.object(installer, 'check_environment') as environment, \
+                    patch.object(installer, 'run_step') as child, \
+                    contextlib.redirect_stdout(io.StringIO()) as stdout, \
+                    contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(cli.main(self.args + extra), 1)
+                support.assert_not_called(); target.assert_not_called()
+                environment.assert_not_called(); child.assert_not_called()
+                self.assertEqual(stdout.getvalue(), '')
+            self.assertFalse(self.output.exists())
+            self.assertFalse(self.output.with_name(self.output.name + '.logs').exists())
+            self.assertEqual(sorted(str(p.relative_to(self.base)) for p in self.base.rglob('*')), before)
+
+    def test_custom_pin_hashes_and_parses_one_snapshot(self):
+        with patch.object(verify, 'ROOT', self.config_root), \
+                patch.object(verify, 'ordinary', wraps=verify.ordinary) as read:
+            self.assertEqual(verify.load_lock(self.lock_path, expected_sha256=digest(self.raw_lock)), self.selected)
+        self.assertEqual([entry for entry in read.call_args_list if entry.args[0] == self.lock_path],
+                         [call(self.lock_path)])
+
+    def test_wrong_pin_refuses_before_json_or_os_lock_reads(self):
+        with patch.object(verify, 'strict_json') as parse, \
+                patch.object(verify, 'ordinary', wraps=verify.ordinary) as read:
+            with self.assertRaisesRegex(ValueError, 'lock pin mismatch'):
+                verify.load_lock(self.lock_path, expected_sha256='0' * 64)
+        parse.assert_not_called()
+        self.assertEqual(read.call_args_list, [call(self.lock_path)])
+        self.cli_refused_before_effects(['--lock', str(self.lock_path), '--lock-sha256', '0' * 64])
+
+    def test_half_pairs_and_malformed_pins_refuse_before_any_input_read(self):
+        cases = [['--lock', str(self.lock_path)], ['--lock-sha256', digest(self.raw_lock)]]
+        cases += [['--lock', str(self.lock_path), '--lock-sha256', value]
+                  for value in ('A' * 64, 'a' * 63, 'a' * 65, 'g' * 64, ' a' * 32)]
+        for extra in cases:
+            with self.subTest(extra=extra), patch.object(verify, 'ordinary') as read, \
+                    patch.object(installer.verifier, 'ordinary') as install_read:
+                self.cli_refused_before_effects(extra)
+                read.assert_not_called(); install_read.assert_not_called()
+
+    def test_custom_null_support_retains_first_gate(self):
+        self.cli_refused_before_effects(['--lock', str(self.lock_path), '--lock-sha256', digest(self.raw_lock)])
+
+    def test_malformed_and_duplicate_json_refuse_even_with_matching_pin(self):
+        for raw in (b'{', b'{"schema_version":1,"schema_version":1}'):
+            self.write(self.lock_path, raw)
+            self.cli_refused_before_effects(['--lock', str(self.lock_path), '--lock-sha256', digest(raw)])
+
+    def test_symlink_and_hardlink_locks_refuse_before_effects(self):
+        alias = self.base / 'alias.json'
+        alias.symlink_to(self.lock_path)
+        self.cli_refused_before_effects(['--lock', str(alias), '--lock-sha256', digest(self.raw_lock)])
+        alias.unlink(); os.link(self.lock_path, alias)
+        self.cli_refused_before_effects(['--lock', str(self.lock_path), '--lock-sha256', digest(self.raw_lock)])
+
+    def test_replacement_during_snapshot_is_refused(self):
+        original_fdopen = verify.os.fdopen
+        lock_path, replacement = self.lock_path, self.base / 'replacement.json'
+        self.write(replacement, self.raw_lock)
+
+        class ReplacingRead:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def fileno(self): return self.stream.fileno()
+            def read(self, limit):
+                raw = self.stream.read(limit)
+                os.replace(replacement, lock_path)
+                return raw
+
+        with patch.object(verify.os, 'fdopen', side_effect=lambda *a, **kw: ReplacingRead(original_fdopen(*a, **kw))):
+            with self.assertRaisesRegex(ValueError, 'changed during read'):
+                verify.load_lock(self.lock_path, expected_sha256=digest(self.raw_lock))
+
+    def test_os_lock_and_contract_pins_remain_mandatory(self):
+        for mutation in ({'base_lock_sha256': '0' * 64}, {'system_packages_lock_sha256': '0' * 64},
+                         {'test_access_packages_lock_sha256': '0' * 64}, {'base_image_sha256': '0' * 64},
+                         {'argv': ['/usr/bin/python3', '-m', 'unreviewed']}):
+            raw = json.dumps(dict(self.selected, **mutation)).encode()
+            self.write(self.lock_path, raw)
+            self.cli_refused_before_effects(['--lock', str(self.lock_path), '--lock-sha256', digest(raw)])
+
+    def test_explicit_lock_inside_target_or_host_target_refuses_without_read(self):
+        for root, path in ((self.root, self.root / 'lock.json'), (Path('/'), self.lock_path)):
+            args = types.SimpleNamespace(rootfs=root, lock=path, lock_sha256=digest(self.raw_lock))
+            with patch.object(verify, 'ordinary') as read, self.assertRaises(ValueError):
+                verify.load_cli_lock(args)
+            read.assert_not_called()
+
+    def test_installer_requires_same_workspace_without_reading_outside_lock(self):
+        args = types.SimpleNamespace(rootfs=self.root, lock=self.base.parent / 'outside-lock.json',
+                                     lock_sha256=digest(self.raw_lock))
+        with patch.object(verify, 'ordinary') as read, self.assertRaisesRegex(ValueError, 'private build workspace'):
+            verify.load_cli_lock(args, workspace=self.root.parent)
+        read.assert_not_called()
+
+    def test_cli_custom_selection_reaches_existing_gates_with_selected_snapshot(self):
+        self.selected['support_manifest_sha256'] = '5' * 64
+        raw = json.dumps(self.selected).encode(); self.write(self.lock_path, raw)
+        extra = ['--lock', str(self.lock_path), '--lock-sha256', digest(raw)]
+        with patch.object(installer.verifier, 'ROOT', self.config_root), \
+                patch.object(installer.verifier, 'load_support', return_value=({}, {})) as support, \
+                patch.object(installer, 'check_environment', side_effect=ValueError('fixture stop')) as environment, \
+                patch.object(installer, 'run_step') as child, contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(installer.main(self.args + extra), 1)
+        support.assert_called_once_with(self.selected, self.base / 'support.json')
+        environment.assert_called_once(); child.assert_not_called()
+        with patch.object(verify, 'ROOT', self.config_root), patch.object(verify.sys, 'platform', 'linux'), \
+                patch.object(verify, 'verify', side_effect=ValueError('fixture stop')) as target, \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(verify.main(self.args + extra), 1)
+        self.assertEqual(target.call_args.args[1], self.selected)
+        self.assertFalse(self.output.exists())
+
+    def test_default_selection_calls_historical_load_lock_without_override(self):
+        for library in (verify, installer.verifier):
+            for args in (types.SimpleNamespace(rootfs=self.root, lock=None, lock_sha256=None),
+                         types.SimpleNamespace(rootfs=self.root)):
+                with patch.object(library, 'load_lock', return_value=self.selected) as load:
+                    self.assertIs(library.load_cli_lock(args, workspace=self.root.parent), self.selected)
+                load.assert_called_once_with()
+
+
 class InstallerTests(ExporterFixture):
     def test_run_step_waits_for_normal_supervisor_completion(self):
         process = Mock(pid=4321)

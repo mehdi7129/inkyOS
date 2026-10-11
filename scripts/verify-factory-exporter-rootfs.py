@@ -89,8 +89,13 @@ def ordinary(path, limit=LIMIT):
         return raw
 
 
-def load_lock(path=ROOT / 'config/factory-exporter.lock.json'):
-    lock = strict_json(ordinary(path))
+def load_lock(path=ROOT / 'config/factory-exporter.lock.json', *, expected_sha256=None):
+    require(expected_sha256 is None or
+            isinstance(expected_sha256, str) and HASH.fullmatch(expected_sha256),
+            'Invalid exporter lock pin')
+    raw = ordinary(path)
+    require(expected_sha256 is None or sha(raw) == expected_sha256, 'Exporter lock pin mismatch')
+    lock = strict_json(raw)
     require(lock['schema_version'] == 1 and lock['contract'] == 'factory-exporter-v2'
             and lock['destination'] == '/' + DESTINATION,
             'Unsupported exporter lock')
@@ -112,6 +117,19 @@ def load_lock(path=ROOT / 'config/factory-exporter.lock.json'):
     require(strict_json(ordinary(ROOT / 'config/base-image.lock.json'))['image']['extracted_sha256']
             == lock['base_image_sha256'], 'Base image mismatch')
     return lock
+
+
+def load_cli_lock(args, *, workspace=None):
+    path, digest = getattr(args, 'lock', None), getattr(args, 'lock_sha256', None)
+    require((path is None) == (digest is None), '--lock and --lock-sha256 must be paired')
+    if path is None:
+        return load_lock()
+    require(isinstance(digest, str) and HASH.fullmatch(digest), 'Invalid exporter lock pin')
+    require(args.rootfs.is_absolute() and args.rootfs != Path('/') and path.is_absolute()
+            and not path.is_relative_to(args.rootfs), 'Explicit lock must be outside a non-host rootfs')
+    if workspace is not None:
+        require(path.is_relative_to(workspace), 'Explicit lock must be in the private build workspace')
+    return load_lock(path, expected_sha256=digest)
 
 
 def require_support_pin(lock):
@@ -448,9 +466,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     for field in ('rootfs', 'sources-dir', 'wheels-dir', 'support-manifest', 'output'):
         parser.add_argument('--' + field, type=Path, required=True)
+    parser.add_argument('--lock', type=Path)
+    parser.add_argument('--lock-sha256')
     args = parser.parse_args(argv)
     try:
-        lock = load_lock()
+        lock = load_cli_lock(args)
         require_support_pin(lock)
         require(sys.platform.startswith('linux'), 'Linux metadata verification required')
         require(args.rootfs.is_absolute() and args.rootfs != Path('/'),

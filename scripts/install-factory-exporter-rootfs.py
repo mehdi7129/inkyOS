@@ -286,8 +286,11 @@ def finish_tree(bundle, expected, manifest_raw, version):
 
 
 def install(args):
-    lock = verifier.load_lock()
-    # This is intentionally the first gate: null/unreviewed support performs no
+    # A custom lock is read once, pinned and parsed before any target inspection.
+    # Its containing workspace is protected by check_environment, like the other
+    # external inputs; only the pinned in-memory snapshot is used afterwards.
+    lock = verifier.load_cli_lock(args, workspace=args.rootfs.parent)
+    # Null/unreviewed support still performs no
     # mkdir, snapshot, chown, subprocess, rootfs mutation or success report.
     verifier.require_support_pin(lock)
     support, records = verifier.load_support(lock, args.support_manifest)
@@ -333,6 +336,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     for field in ('rootfs', 'sources-dir', 'wheels-dir', 'support-manifest', 'output'):
         parser.add_argument('--' + field, type=Path, required=True)
+    parser.add_argument('--lock', type=Path)
+    parser.add_argument('--lock-sha256')
     args = parser.parse_args(argv)
     try:
         install(args)

@@ -104,6 +104,26 @@ sources Studio et dix wheels produisent 325 fichiers de payload attendus.
 La génération de credentials et le démarrage applicatif restent séparés de
 cette construction.
 
+Les deux CLI acceptent maintenant la paire optionnelle
+`--lock /chemin/absolu/candidat.lock.json --lock-sha256 <sha256>` pour sélectionner
+un autre lock revu. Les options doivent être fournies ensemble, avec un SHA-256
+exact de 64 caractères hexadécimaux minuscules. Sans cette paire, le défaut reste
+`config/factory-exporter.lock.json`, avec son candidat historique et son support
+TEST ; aucun nouveau lock ni manifeste de support n’est fourni par ce changement.
+
+Le lock explicite doit être extérieur au rootfs. Pour l’installer, il doit aussi
+être dans le workspace privé qui contient ce rootfs, comme les sources, wheels
+et support. Les gardes existantes imposent un workspace root-owned `0700`, des
+ancêtres protégés et les chemins de build dédiés ; la sélection ne les contourne
+pas. Le verifier conserve ses gardes de lecture statique et de sortie extérieure.
+
+La lecture bornée sans symlink produit un seul snapshot : le SHA est vérifié
+avant le parsing de ces mêmes octets et avant toute inspection du rootfs. Une
+demi-paire, un pin incorrect ou une modification pendant cette lecture refuse
+sans construction ni reçu de succès. Les pins base/paquets et le pin de support
+restent obligatoires, ainsi que les comparaisons de support et de payload attendu.
+Ce sélecteur ne qualifie aucun nouveau candidat, support, runtime ou image.
+
 ## Ordre et limites
 
 Le runtime dédié résout l’intégrité des imports ; il ne remplace pas la barrière
