@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Fixed installed factory contract. No image builder or activation entry point."""
+import contextlib
+import fcntl
 import functools
 import grp
 import hashlib
@@ -23,6 +25,7 @@ IPC = 'usr/local/lib/inkyos/initialization-server.py'
 RECEIPT = 'usr/local/lib/inkyos/initialization-receipt.py'
 ADMISSION_SHA256 = '915d2a5c0d5d8dd0367dbbb351e70f884a4e4647ef22e6422b1c54032df27884'
 MODULES = {'writer-admission.py', 'factory-runtime-contract.py', 'writer-launcher.py'}
+WRITER_ENV = {'INKYOS_WRITER_LEASE_FD', 'INKYOS_WRITER_ROLE', 'INKYOS_WRITER_CONTEXT_SHA256'}
 HOOKS = (IPC, RECEIPT, 'usr/local/lib/inkyos/factory-authority.py',
          'usr/local/lib/inkyos/factory-credentials-publisher.py')
 SUPERVISOR_FILES = {MODULE_DIR + '/factory-supervisor.py': '0555',
@@ -324,6 +327,52 @@ def import_admission(contract):
     module.__file__ = '/' + MODULE_DIR + '/writer-admission.py'
     exec(compile(raw, module.__file__, 'exec'), module.__dict__)
     return module
+
+
+@contextlib.contextmanager
+def writer_guard(role, *, _contract=None, _identity=None, _environ=None):
+    """Own a fresh SH; the caller must drain every writer before leaving it."""
+    with contextlib.ExitStack() as stack:
+        try:
+            require(type(role) is str and role in {'main', 'helper', 'ipc'})
+            if _contract is None:
+                require(_identity is None and _environ is None)
+                contract = load_contract()
+            else:
+                require(isinstance(_contract, Contract))
+                root = _contract._root
+                require(root.is_absolute() and root != Path('/') and root == root.resolve(strict=True))
+                contract = _contract
+            environment = os.environ if _environ is None else _environ
+            admission = import_admission(contract)
+            lease = stack.enter_context(admission.writer(
+                contract._root, _owner_uid=contract._uid, _owner_gid=contract._gid))
+            digest = context_sha256(contract)
+            verify_role(contract, role, _identity=_identity)
+            require(context_sha256(contract) == digest)
+            require(all(type(key) is str for key in environment))
+            present = {key for key in environment if key.startswith('INKYOS_WRITER_')}
+            require(present <= WRITER_ENV)
+            if present:
+                require(present == WRITER_ENV and environment['INKYOS_WRITER_ROLE'] == role
+                        and environment['INKYOS_WRITER_CONTEXT_SHA256'] == digest)
+                descriptor = environment['INKYOS_WRITER_LEASE_FD']
+                require(type(descriptor) is str and re.fullmatch('[1-9][0-9]{0,9}', descriptor))
+                inherited = int(descriptor)
+                require(3 <= inherited <= 2147483647 and inherited != lease.fileno()
+                        and stamp(os.fstat(inherited)) == stamp(os.fstat(lease.fileno()))
+                        and fcntl.fcntl(inherited, fcntl.F_GETFL) & os.O_ACCMODE == os.O_RDONLY)
+            lease.check()
+            require(context_sha256(contract) == digest)
+            if present:
+                require(stamp(os.fstat(inherited)) == stamp(os.fstat(lease.fileno()))
+                        and fcntl.fcntl(inherited, fcntl.F_GETFL) & os.O_ACCMODE == os.O_RDONLY)
+                os.close(inherited)  # No LOCK_UN: dup/fork may still share this OFD.
+                for key in WRITER_ENV:
+                    environment.pop(key)
+        except Exception:
+            raise Refused('writer_admission_refused') from None
+        yield lease
 
 
 SUPPORT_FIELDS = {'schema_version', 'kind', 'base_image_sha256', 'base_lock_sha256',

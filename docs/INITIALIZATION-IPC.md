@@ -5,6 +5,12 @@ et `initialization.begin`. Son [unité](../staging/bootstrap/inkyos-initializati
 n’est installée ni activée par une recette. Ce travail ne démarre aucune app,
 radio ou procédure d’appairage.
 
+Le bootstrap public root/pins du serveur charge le module
+`/usr/lib/inkyos/factory-runtime-contract.py`, puis délègue l'admission à son
+API commune `writer_guard('ipc')`. Cette extraction ne change ni le wire, ni le
+drain, ni l'unité. Les [conditions et limites du guard commun](FACTORY-WRITER-LAUNCHER.md#guard-commun-pour-les-entrées-directes)
+restent distinctes du lifecycle IPC décrit ici.
+
 L'entrée installée refuse désormais avec le code **78** avant le chargement du
 reçu, le socket, `.server.lock` ou `READY=1` si la garde writer échoue. Elle lit le
 contrat public fixe `/etc/inkyos/factory-runtime-v1.json`, contrôle les sources OS
@@ -30,6 +36,12 @@ les vérifications, elle ferme le FD initial sans `LOCK_UN`, puis retire le
 triplet. Une description ouverte dupliquée ou héritée ailleurs conserve ainsi
 sa lease. Les seams Python sont réservés aux racines synthétiques différentes
 de `/` ; ils ne sont exposés ni par CLI ni par environnement.
+
+Les fixtures de lifecycle IPC passent désormais par le guard commun, avec un
+`FakeRuntime` déclaré pour les checks contrat/contexte/rôle et la vraie primitive
+admission pour les FD et verrous. Les nouveaux tests du core utilisent le
+contrat synthétique réel et ses pins. Aucun de ces tests n'installe un candidat ;
+les preuves IPC antérieures restent celles des sources qu'elles épinglent.
 
 Le socket AF_UNIX `/run/inkyos-bootstrap/control.sock` appartient à
 `root:inky-provisioning` : répertoire `0750`, socket `0660`. Le serveur vérifie

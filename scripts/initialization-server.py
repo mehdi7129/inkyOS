@@ -31,7 +31,6 @@ RECEIPT_SHA256 = '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47d
 RUNTIME_SOURCE = Path('/usr/lib/inkyos/factory-runtime-contract.py')
 RUNTIME_MANIFEST = Path('/etc/inkyos/factory-runtime-v1.json')
 SERVER_SOURCE = Path('/usr/local/lib/inkyos/initialization-server.py')
-WRITER_ENV = {'INKYOS_WRITER_LEASE_FD', 'INKYOS_WRITER_ROLE', 'INKYOS_WRITER_CONTEXT_SHA256'}
 APP_UID = 1000
 GROUP = 'inky-provisioning'
 REQUEST_LIMIT = 1024
@@ -104,49 +103,22 @@ def load_runtime():
 
 @contextlib.contextmanager
 def writer_guard(*, _runtime=None, _contract=None, _environ=None):
-    """A fresh SH is the authority; an inherited descriptor is only retired."""
-    context = None; lease = None
-    try:
-        if _contract is None:
-            writer_require(_runtime is None and _environ is None)
-            runtime = load_runtime()
-            contract = runtime.load_contract()
-        else:
-            writer_require(_runtime is not None and Path(_contract._root).is_absolute()
-                           and Path(_contract._root).resolve(strict=True) != Path('/'))
-            runtime, contract = _runtime, _contract
-        environment = os.environ if _environ is None else _environ
-        admission = runtime.import_admission(contract)
-        context = admission.writer(contract._root, _owner_uid=contract._uid, _owner_gid=contract._gid)
-        lease = context.__enter__()
-        digest = runtime.context_sha256(contract)
-        runtime.verify_role(contract, 'ipc')
-        writer_require(runtime.context_sha256(contract) == digest)
-        present = {key for key in environment if key.startswith('INKYOS_WRITER_')}
-        writer_require(present <= WRITER_ENV)
-        if present:
-            writer_require(present == WRITER_ENV and environment['INKYOS_WRITER_ROLE'] == 'ipc'
-                           and environment['INKYOS_WRITER_CONTEXT_SHA256'] == digest)
-            descriptor = environment['INKYOS_WRITER_LEASE_FD']
-            writer_require(type(descriptor) is str and re.fullmatch('[1-9][0-9]{0,9}', descriptor))
-            inherited = int(descriptor)
-            writer_require(3 <= inherited <= 2147483647 and inherited != lease.fileno()
-                           and file_stamp(os.fstat(inherited)) == file_stamp(os.fstat(lease.fileno()))
-                           and fcntl.fcntl(inherited, fcntl.F_GETFL) & os.O_ACCMODE == os.O_RDONLY)
-        lease.check()
-        writer_require(runtime.context_sha256(contract) == digest)
-        if present:
-            os.close(inherited)  # Never LOCK_UN: another fork/dup may still share this OFD.
-            for key in WRITER_ENV:
-                environment.pop(key)
-    except Exception:
-        if lease is not None:
-            context.__exit__(*sys.exc_info())
-        raise WriterRefused('writer_admission_refused') from None
-    try:
+    """Bootstrap trusted OS code, then delegate admission to the common guard."""
+    with contextlib.ExitStack() as stack:
+        try:
+            if _contract is None:
+                writer_require(_runtime is None and _environ is None)
+                runtime = load_runtime()
+                context = runtime.writer_guard('ipc')
+            else:
+                root = Path(_contract._root)
+                writer_require(_runtime is not None and root.is_absolute()
+                               and root != Path('/') and root == root.resolve(strict=True))
+                context = _runtime.writer_guard('ipc', _contract=_contract, _environ=_environ)
+            lease = stack.enter_context(context)
+        except Exception:
+            raise WriterRefused('writer_admission_refused') from None
         yield lease
-    finally:
-        context.__exit__(None, None, None)
 
 
 class StopFlag:

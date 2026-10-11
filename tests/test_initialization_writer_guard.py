@@ -34,6 +34,7 @@ def load(name, path):
 
 server = load('initialization_writer_guard_test', 'scripts/initialization-server.py')
 admission = load('initialization_writer_admission_test', 'staging/bootstrap/writer-admission.py')
+shared = load('initialization_writer_shared_test', 'scripts/factory-runtime-contract.py')
 PROCESSES = multiprocessing.get_context('fork')
 DEADLINE = 8
 DIGEST = 'a' * 64
@@ -53,10 +54,20 @@ class FakeRuntime:
         self.events.append('context')
         return DIGEST
 
-    def verify_role(self, contract, role):
+    def verify_role(self, contract, role, *, _identity=None):
         if role != 'ipc':
             raise AssertionError('Wrong fixture role')
         self.events.append('verify-ipc-fixture')
+
+    @contextlib.contextmanager
+    def writer_guard(self, role, *, _contract=None, _environ=None):
+        # Exercise the common guard and real admission. Only contract/context/
+        # role validation stays explicitly simulated in these lifecycle tests.
+        with patch.object(shared, 'import_admission', side_effect=self.import_admission), \
+                patch.object(shared, 'context_sha256', side_effect=self.context_sha256), \
+                patch.object(shared, 'verify_role', side_effect=self.verify_role):
+            with shared.writer_guard(role, _contract=_contract, _environ=_environ) as lease:
+                yield lease
 
 
 def receive(pipe):
@@ -226,7 +237,7 @@ class GuardFixture(unittest.TestCase):
         (self.root / 'server.lock').write_bytes(b'')
         (self.root / 'server.lock').chmod(0o600)
         self.owner = {'_owner_uid': os.geteuid(), '_owner_gid': os.getegid()}
-        self.contract = types.SimpleNamespace(_root=self.root, _uid=os.geteuid(), _gid=os.getegid())
+        self.contract = shared.Contract({}, 'fixture-only', self.root, os.geteuid(), os.getegid(), None, None)
         self.runtime = FakeRuntime()
         admission.prepare(self.root, **self.owner)
         with admission.factory(self.root, **self.owner) as lease:
@@ -327,7 +338,7 @@ class WriterGuardTests(GuardFixture):
         cases = [self.environment(999999), self.environment(writable), self.environment(different)]
         cases.append(dict(self.environment(readonly), INKYOS_WRITER_UNKNOWN='refused'))
         cases.append({'INKYOS_WRITER_UNKNOWN': 'refused'})
-        for key in server.WRITER_ENV:
+        for key in shared.WRITER_ENV:
             partial = self.environment(readonly)
             del partial[key]
             cases.append(partial)

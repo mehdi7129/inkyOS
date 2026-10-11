@@ -99,6 +99,9 @@ digest = context_sha256(contract)         # aussi contract.context_sha256
 verify_candidate(contract)               # root, inventaires complets
 verify_role(contract, "main")             # main, helper ou ipc seulement
 admission = import_admission(contract)
+with writer_guard("main") as lease:        # main, helper ou ipc seulement
+    # Les effets writer et leur drain doivent rester dans ce bloc.
+    lease.check()
 ```
 
 `Contract.manifest` contient le dictionnaire validé et
@@ -128,6 +131,55 @@ inventaire admission ; la sortie du superviseur doit rester dans son répertoire
 séparé. Le caller doit encore garantir un `/run` réellement renouvelé au boot :
 supprimer/recréer un RuntimeDirectory au stop/restart ne constitue pas un reset
 valide et pourrait séparer les verrous sur plusieurs inodes.
+
+## Guard commun pour les entrées directes
+
+`factory-runtime-contract.py` expose la primitive stdlib
+`writer_guard(role, *, _contract=None, _identity=None, _environ=None)` :
+
+```python
+with runtime.writer_guard("main") as lease:
+    # Opérations protégées, puis drain de leurs writers avant la sortie.
+    lease.check()
+```
+
+Un appel de production fournit seulement le rôle `main`, `helper` ou `ipc`.
+Le caller charge d'abord ce module OS depuis sa source publique root épinglée,
+avant les imports applicatifs ou les effets qu'il veut protéger. Le guard charge
+le contrat fixe, prend une **nouvelle SH indépendante non bloquante**, puis
+vérifie Ready, le contexte courant, l'identité kernel, les pins et les sources
+du rôle. Il revérifie le contexte et la lease avant de céder `lease`, qui expose
+`fileno()` et `check()`.
+
+Le triplet `INKYOS_WRITER_LEASE_FD`, `INKYOS_WRITER_ROLE`,
+`INKYOS_WRITER_CONTEXT_SHA256` est facultatif, mais doit être complet et exact
+s'il existe. Toute autre clé commençant par `INKYOS_WRITER_` est refusée. Le FD
+doit être readonly, supérieur ou égal à 3, distinct de la nouvelle lease, et
+désigner le même verrou stable avec les mêmes métadonnées. Rôle et SHA contexte
+doivent correspondre à la validation courante. Le FD hérité n'est jamais adopté
+ni converti : il est fermé seulement après tous les contrôles, sans `LOCK_UN`,
+puis le triplet est retiré de l'environnement. Une copie dup/fork conserve sa
+propre référence à la description ouverte initiale.
+
+Tout refus de préparation devient `Refused('writer_admission_refused')`, sans
+message brut. La nouvelle SH est fermée explicitement si la préparation échoue,
+y compris sur `KeyboardInterrupt` ou `SystemExit` ; ces interruptions restent
+propagées. Un héritage refusé par les contrôles n'est pas fermé. Les exceptions du corps du bloc
+restent inchangées. Le guard ne crée ni contexte, ni Ready, ni autorité.
+
+Les overrides ne sont permis qu'avec un objet `Contract` pour une racine
+synthétique absolue, existante et canonique, différente de `/`. Ils ne sont
+exposés par aucune CLI ni variable de contournement. Sans `_contract`, les
+overrides d'identité ou d'environnement sont refusés.
+
+La SH reste détenue pendant le bloc et s'hérite normalement au fork. Son FD est
+non inheritable pour exec par défaut : un caller qui en a besoin doit transmettre
+explicitement la lease. Le caller doit terminer ses writers, enfants et threads
+avant de sortir du bloc, y compris en cas d'exception. Le guard n'effectue aucun
+drain, ne supervise aucun processus et ne prouve pas la fin physique d'une
+opération SPI/e-ink. Le serveur IPC délègue à cette primitive en conservant son
+propre drain ; le launcher, le superviseur et les entrées Studio ne sont pas
+modifiés par cette extraction. Aucun candidat installé n'est produit.
 
 ## Launcher et contrôle sous lease
 
@@ -172,8 +224,9 @@ IPC seul peut conserver `NOTIFY_SOCKET`, chemin absolu ou adresse abstract `@`,
 sans caractère de contrôle et au plus 107 octets UTF-8. Aucun autre environnement
 hérité ni argument libre n'est transmis.
 
-La garde Studio future doit prendre sa propre SH avant ses effets, vérifier
-inode/boot/candidat puis fermer le FD initial sans `LOCK_UN`. Le FD demeure
+La garde Studio future peut utiliser `writer_guard` avant ses effets pour prendre
+sa propre SH, vérifier inode/boot/candidat puis fermer le FD initial sans
+`LOCK_UN`. Le FD demeure
 hérité au fork IPC. Chaque autre ExecStart doit obtenir sa propre lease : PID1
 n'hérite pas de celle de `systemctl`. Le caller doit conserver une lease jusqu'à
 la fin réelle des enfants ; ce launcher ne supervise pas leur durée de vie.
@@ -194,6 +247,14 @@ EX pendant la vie du child. Sur Linux root, deux tests supplémentaires utilisen
 les UID/GID numériques réels ; leur NSS et leurs commandes restent des fixtures
 déclarées. macOS substitue explicitement l'API xattr Linux et ne prouve pas les
 montages, les UID Linux, systemd ou le comportement d'une image.
+
+Les nouveaux tests du guard commun utilisent le vrai `ContractFixture`, ses
+manifests et pins synthétiques, et de vrais verrous/processus inertes. Ils ne
+remplacent pas les vérifications du rôle par un faux résultat. Boot, mountinfo
+et identités portables restent des seams déclarés ; les octets app/support sont
+inertes. Les fixtures de lifecycle IPC gardent explicitement leur `FakeRuntime`
+pour ces vérifications et exercent désormais le guard commun pour l'admission.
+Les rapports historiques ci-dessus ne qualifient pas cette nouvelle extraction.
 
 Ready signifie seulement « factory terminée ». Il ne prouve pas à lui seul le
 boot, le candidat, l'IPC readiness, le pairing ou une phase produit. La primitive
