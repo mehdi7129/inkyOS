@@ -1,6 +1,14 @@
 # Image privée pour le premier accès TEST
 
-État du 11 octobre 2026. Cette variante assemble l’enrôlement, l’import privé,
+État du 11 octobre 2026. La [nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
+intègre les corrections Bluetooth, I²C et observation de l'heure ; ses 132
+contrôles offline passent. Elle attend son premier boot et un nouvel enrôlement.
+Le [boot réseau précédent](validation/2026-10-11-radio-readiness-network-observation.json)
+confirme Wi-Fi et SSH authentifié sur l'ancienne image, avec préflight bloqué
+à 17 contrôles sur 24. Les tentatives plus anciennes décrites ci-dessous
+restent des preuves historiques, sans transfert de qualification.
+
+Cette variante assemble l’enrôlement, l’import privé,
 le contrôle du pays, la connexion Wi-Fi, un accès SSH restreint et les workers
 d’[activation explicite et d’arrêt](TEST-ACCESS-LIFECYCLE.md). La
 [variante diagnostique construite et vérifiée](validation/2026-10-10-diagnostic-access-image.json)
@@ -53,8 +61,9 @@ relue, puis la SD éjectée. L’accès réseau n’est pas encore qualifié. Le
 préliminaire reste une preuve historique distincte.
 
 La [correction de disponibilité radio](validation/2026-10-11-radio-readiness-tests.json)
-est postérieure à ce candidat issu des sources `07271cf`. Elle passe 1 047 tests
-sur macOS et Linux ARM64, mais n’est intégrée à aucune nouvelle image ou SD.
+est postérieure à ce candidat issu des sources `07271cf`. Sa suite historique
+passe 1 047 tests sur macOS et Linux ARM64. Elle a ensuite été intégrée et
+testée dans le [boot réseau observé](validation/2026-10-11-radio-readiness-network-observation.json).
 
 L’ancien enrôlement reste inchangé. Le profil **v2** ajoute le hash du manifest
 des programmes d’accès ; l’état durable d’enrôlement conserve son schéma 1.

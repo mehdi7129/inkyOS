@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "image_evidence": "2026-10-11-system-prerequisites-access-image.json",
+  "limits": [
+    "The native IPC fixture uses synthetic paths and an existing fixture group, not the production image.",
+    "These tests do not qualify Pi Bluetooth, display, iPhone pairing or network stability.",
+    "The TEST image is built from the earlier clean source 5ab139d; the later staged IPC EOF correction is not part of its installed payload."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "5027e3cf8c5c34bb576aefbf6de0f3325c26c31fef308af6b3bd46c314f78dc3",
+    "python": "3.13.5",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 1,
+    "tests": 1159
+  },
+  "linux_inputs_sha256": "6ed93d527261a2dda81c56d48a8349bd04f6108664e9e677b4a029abeddb6606",
+  "macos": {
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "bcd91d5b50fcf88cc56f3bd06c3b366e01f76b0eb8598892d639cb27c753037f",
+    "python": "3.13.15",
+    "shell_syntax": {
+      "passed": true,
+      "scripts_checked": 23
+    },
+    "skipped": 5,
+    "tests": 1159
+  },
+  "native_initialization_evidence": "2026-10-11-initialization-ipc-native.json",
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "system-prerequisites-and-staged-initialization-software-tests",
+  "software_passed": true,
+  "source_commit": "6c0578a8cffca5146d505d9c5a48b23aca8ba42d"
+}

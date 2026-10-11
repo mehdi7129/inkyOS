@@ -43,6 +43,24 @@ changement de protocole est coordonné entre dépôts et testé des deux côtés
 
 ## Limites actuelles
 
+Les trois corrections système sont maintenant intégrées dans une
+[nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
+qui passe 132 contrôles offline. La suite complète compte
+[1 159 tests par plateforme](validation/2026-10-11-system-prerequisites-tests.json),
+sans échec. Cette image attend son premier boot physique.
+
+Le [service IPC-A](INITIALIZATION-IPC.md) et son client Studio sont développés
+séparément ; le banc Linux du service passe, sans installation dans l'image TEST.
+Le raccord usine exige un mode explicite de l'unité
+`INKY_STUDIO_FACTORY_REQUIRED=1`, `INKY_STUDIO_DATA_DIR=/var/lib/inky-studio`
+et le marqueur root `/etc/inky-studio/factory-v1.json` :
+`{"version":1,"app_uid":1000,"data_dir":"/var/lib/inky-studio"}`.
+Le marqueur permanent ne crée aucune autorité : l'autorisation positive
+consommable, les credentials individuels et la disponibilité réelle du socket
+restent des prérequis distincts. Le profil TEST/c31 ne reçoit pas cet opt-in.
+Un raccord qui quitte avec `factory_runtime_pending` reste une étape de
+développement, pas un parcours utilisable ni un service à relancer en boucle.
+
 Le [boot réseau observé](validation/2026-10-11-radio-readiness-network-observation.json)
 prouve l'accès SSH authentifié et une interface Wi-Fi connectée. Le préflight
 reste bloqué et l'application de cette SD reste masquée. Le couple pour ce

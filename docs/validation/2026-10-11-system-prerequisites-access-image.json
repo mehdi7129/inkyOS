@@ -1,0 +1,68 @@
+{
+  "application_activated": false,
+  "application_manifest_sha256": "c4183e7304e3ff979450977b36e4a007b30016de68bb23ef121c7ca733cd26a1",
+  "application_source_commit": "c31b13afdc957425571810c46230eaaf52fa5d14",
+  "bluetooth_preparation_integrated": true,
+  "checks": {
+    "qualification-application.json": {
+      "checks": 26,
+      "passed": true
+    },
+    "qualification-prepared.json": {
+      "checks": 17,
+      "passed": true
+    },
+    "qualification-static.json": {
+      "checks": 62,
+      "passed": true
+    },
+    "test-access-configuration.json": {
+      "checks": 18,
+      "passed": true
+    },
+    "test-access-packages.json": {
+      "checks": 9,
+      "passed": true
+    }
+  },
+  "date": "2026-10-11",
+  "existing_host_identity_reused": false,
+  "flashed_by_this_preparation": false,
+  "hardware_qualified": false,
+  "i2c_changed_entries": 40,
+  "i2c_packages_installed": 2,
+  "image_size_bytes": 3061841920,
+  "independent_export_review_passed": true,
+  "kernel_utc_observation_integrated": true,
+  "limits": [
+    "A new enrollment and signed network capsule are required before network access with this image.",
+    "Package installation was executed in the offline ARM64 rootfs; the Bluetooth and clock changes have not been tested on the Pi with this image.",
+    "The independent review checked public sources, reports and inventory deltas; it relied on the completed image integrity receipt rather than independently rehashing image bytes.",
+    "The targeted enrollment return verifier does not reread all installed package files.",
+    "No display refresh, iPhone pairing or product first-boot qualification is established."
+  ],
+  "network_credentials_embedded": false,
+  "operator_private_key_copied": false,
+  "operator_public_key_reused": true,
+  "parent_image_sha256": "2b946f688cf1689c38cdceb63ee467aad99541a311693b7443c10c3efb8bad3a",
+  "private_image_hash_published": false,
+  "private_image_sha256_verified": true,
+  "protected_boot_grow_files": 10,
+  "recipe_public_sources_match_commit": true,
+  "release_qualified": false,
+  "schema_version": 1,
+  "scope": "private-system-prerequisites-test-access-image",
+  "software_image_preparation_passed": true,
+  "source_commit": "5ab139de7cf8889ee4ea1714a20aa1104690713d",
+  "source_sha256": {
+    "config/test-access-packages.lock.json": "af97a2b51e5cd49f1d6520a39569c27fb8d90ea6cb812f285dcd5be5a36e6752",
+    "scripts/install-test-access-packages.py": "a48f9109b868b5836acc8c010a29e50cf513f209260523bc4d2b88b5118ca9e8",
+    "scripts/test-access-activation.py": "4d31caa6198543fdf30ebf8092c8c1962ea339a8a506d20d7336077ecf504919",
+    "scripts/test-access-bluetooth.py": "3057f2adfded0020e56d772dbd2d91a53710c866a1e23216b669ab50e2b2d357",
+    "scripts/test-access-boot.py": "7423b576ec53c3d94269bd6922548cce2b4016f9a4bf308bd6cb25438f4b2fed",
+    "scripts/test-lan-preflight.py": "e22ee8b73637510cee3df55509eb9f6a8ad5893834e1fd9c571b56885b216996"
+  },
+  "staged_initialization_ipc_installed": false,
+  "target_boot_tested": false,
+  "worktree_dirty": false
+}
