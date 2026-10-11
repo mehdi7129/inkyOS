@@ -266,3 +266,9 @@ exécute 144 cas synthétiques sur Linux ARM64 root sans skip, puis la suite Mac
 complète (1 603 tests, 15 skips). Elle conserve le premier échec de pin adjacent
 et sa correction relue. Elle ne qualifie ni les dépendances réelles, le loader,
 le support système, une image ni le matériel.
+
+Le [validator de dépendances offline](../vendor/build-tooling/README.md)
+vérifie séparément la closure runtime de la wheel applicative avec l’extra `pi`,
+en réutilisant ce preflight et le tooling épinglé hors bundle/rootfs. Ses
+[33 tests synthétiques](validation/2026-10-11-factory-studio-dependency-tests.json)
+passent sur Mac et Linux ARM64, sans qualifier par eux-mêmes un payload réel.

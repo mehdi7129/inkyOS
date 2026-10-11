@@ -67,8 +67,10 @@ Voir la [matrice de compatibilité](docs/DISPLAY-COMPATIBILITY.md).
 ## Développer
 
 Le chemin de build testé utilise macOS Apple Silicon, Python 3.11+, Git et
-Lima 2.0+. Les tests locaux utilisent la bibliothèque standard Python ;
-la VM de build utilise Linux ARM64 et Python 3.13.
+Lima 2.0+. Les tests locaux utilisent la bibliothèque standard Python et une copie
+épinglée de `packaging` pour vérifier les dépendances offline, incluse dans
+le dépôt sans installation ni accès réseau. La VM de build utilise Linux
+ARM64 et Python 3.13.
 
 ```sh
 make test          # tests locaux
