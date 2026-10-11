@@ -34,11 +34,13 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Préparation du système | [30 tests du layout passif](docs/validation/2026-10-11-factory-passive-layout-tests.json), sans activation des services. |
 | Admission des processus | [Primitive coopérative](docs/FACTORY-WRITER-ADMISSION.md), [lanceurs](docs/FACTORY-WRITER-LAUNCHER.md) et [superviseur](docs/FACTORY-SUPERVISOR.md) développés ; [81 tests Linux ARM64](docs/validation/2026-10-11-factory-runtime-tests.json), sans skip. Les services et guards Studio restent à installer et qualifier. |
 | Bundle applicatif | [Planner et installation offline](docs/FACTORY-STUDIO-BUNDLE.md), [102 tests Linux ARM64](docs/validation/2026-10-11-factory-image-workspace-tests.json) des deux installers avec workspace commun et inputs synthétiques ; candidat réel et support encore à qualifier. |
-| Suite locale actuelle | [1 590 tests macOS](docs/validation/2026-10-11-factory-image-workspace-tests.json), sans échec, avec 15 skips explicites. Les bancs Linux ciblés restent associés à leurs sources épinglées, pas à toute cette suite. |
+| Dépendances applicatives | [33 tests du validator offline](docs/validation/2026-10-11-factory-studio-dependency-tests.json) sur Mac et Linux ARM64 ; validation des métadonnées du candidat réel encore en cours. |
+| Données packagées NumPy | [152 tests Linux ARM64](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans skip, pour la politique commune du planner et des installers ; aucune exécution du candidat. |
+| Suite locale actuelle | [1 644 tests macOS](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans échec, avec 15 skips explicites. Les bancs Linux ciblés restent associés à leurs sources épinglées, pas à toute cette suite. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
-a un [candidat backend/iOS en draft](https://github.com/mehdi7129/inky-studio/pull/29) ;
+a un [candidat backend/iOS en draft](https://github.com/mehdi7129/inky-studio/pull/30) ;
 ses interfaces sont encore injectables, sans activation dans une image.
 
 Le [dernier boot réseau observé](docs/validation/2026-10-11-radio-readiness-network-observation.json)

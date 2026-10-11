@@ -120,7 +120,10 @@ autres chemins, ni à une autre wheel ou un autre digest. Les contrôles de type
 hooks, RECORD et collisions restent appliqués ; aucun flag CLI ou champ du
 manifest ne peut élargir cette exception. Sa validation ici utilise des
 fixtures synthétiques avec substitution explicite du pin ; elle ne qualifie
-pas le candidat réel ni le comportement de NumPy.
+pas le candidat réel ni le comportement de NumPy. Le
+[banc de cette exception](validation/2026-10-11-factory-studio-numpy-data-tests.json)
+passe 152 cas sur Linux ARM64 root sans skip, puis la suite Mac complète
+(1 644 tests, 15 skips), avec vérification des sources inchangées.
 
 Cette whitelist ne constitue pas un audit de privacy. Un fichier JS ou METADATA
 peut contenir des données privées ; sa publication requiert une revue séparée.

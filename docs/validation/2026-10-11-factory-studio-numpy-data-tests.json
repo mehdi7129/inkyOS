@@ -1,0 +1,76 @@
+{
+  "actual_candidate_metadata_verified": false,
+  "application_candidate_qualified": false,
+  "candidate_code_executed": false,
+  "date": "2026-10-11",
+  "hardware_qualified": false,
+  "image_accessed": false,
+  "limits": [
+    "The planner and installer second pass share an exact wheel filename and whole-wheel digest exception for three regular members. These files are preserved as data during static assembly; this does not establish that their code cannot run in another context.",
+    "Eight new synthetic cases substitute the reviewed wheel digest explicitly. No real NumPy or application candidate payload is imported, installed or executed.",
+    "Twelve pinned OS/test inputs exercise 46 exporter, 42 planner and 64 installer cases on Linux ARM64 root without skips. Existing launcher and workspace fixture substitutions remain in effect; actual ownership, descriptors, xattrs and writes apply where observations are not substituted.",
+    "Wrong filename or digest, missing members, unknown paths, non-regular or untyped ZIP members, source build files and an app namespace remain refused. The installer rechecks the current member policy before writes.",
+    "The full macOS suite runs under umask 077 with 15 documented platform skips and ownership/xattr/symlink fixture adapters. All input bytes are unchanged before and after each run.",
+    "No actual candidate dependency closure, loader, native ABI, complete production CLI, support graph, image, first boot or hardware qualification is established."
+  ],
+  "linux_arm64": {
+    "errors": 0,
+    "failures": 0,
+    "gid": 0,
+    "input_readback_verified": true,
+    "python": "3.13.5",
+    "skips": 0,
+    "test_log_sha256": "c5f303f555be0ceff1d7be6764273c25526ade74bb5c04babb4bce953d9b47c0",
+    "tests": 152,
+    "uid": 0
+  },
+  "macos_global": {
+    "errors": 0,
+    "failures": 0,
+    "inputs_unchanged": true,
+    "make_test_exit_code": 0,
+    "python": "3.13.3",
+    "skipped": 15,
+    "test_log_sha256": "245dc48f159072085b69491d058939dcc2ab41e89f005ef3e845742a16bd5f9a",
+    "tests_run": 1644
+  },
+  "policy": {
+    "all_members_required": true,
+    "app_namespace_exceptions": false,
+    "regular_members": [
+      "numpy/_core/tests/examples/cython/setup.py",
+      "numpy/_core/tests/examples/limited_api/setup.py",
+      "numpy/f2py/setup.cfg"
+    ],
+    "sha256": "c76d5dde9f445058f83d0c02af00557a4db91de9a9a57c0df87d1535001d654b",
+    "source_exceptions": false,
+    "wheel": "numpy-2.5.3-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"
+  },
+  "private_receipt_sha256": {
+    "linux_completion.json": "4cc26b576d402732774c319b9e43d3393fd53c36b47e74a3bb5d0df6081ec16d",
+    "linux_pins.json": "c96a3090292f2678a596607f563f50ca99b309f2318625ea303a3b6e564c97ea",
+    "macos_completion.json": "9d7c6c0ab73e8bf1ae2e8958e4d71633170db8881cd783ff97ac91e0abf19843"
+  },
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "scope": "closed-studio-numpy-packaged-data-fixtures",
+  "sd_accessed": false,
+  "services_activated": false,
+  "source_commit": "6d47776422dc5f67df222d7ed3bfa5483408c4cf",
+  "source_sha256": {
+    "scripts/factory-runtime-contract.py": "a855327fd195abc1e57c2f421bb649804ce2ffc66676d287efa217f9e1cbc40a",
+    "scripts/inspect-application-archives.py": "42317ec6ea9385e81dfafe55e5350071fb037717af28c72e5ebeff0ec3601746",
+    "scripts/install-application-rootfs.py": "f58b2cbac8dfda473f643f4a6c016270f6bfdbc22e08ebe7e4641a2fb6c92695",
+    "scripts/install-factory-exporter-rootfs.py": "147508859cfaf1d6f5058885b6a6ffb327abf871d7477032a1895125b16dba38",
+    "scripts/install-factory-studio-bundle-rootfs.py": "ac112e2bc8e082ec1c06fab16d0de674c99760da0c3af94da85a3f0693007daf",
+    "scripts/manifest-rootfs.py": "54c7a05347a20c8bcd32ba84892b8a210bed72f4e962cf5c1809fa5765ba0fd0",
+    "scripts/plan-factory-studio-bundle.py": "5f3eab202520f37c53e055bf2ed03ab166bd5f0ba25588e654356fdc8f2f28f5",
+    "scripts/verify-application.py": "57fea361a8ae2a87723805bcf678af374916d273d06f1ea7cdd93844de788d5d",
+    "scripts/verify-factory-exporter-rootfs.py": "3e77e24f682455efacd9cfdad35e651c5ee071af81e23dcc0f9ef25e7d47bcce",
+    "tests/test_factory_exporter_rootfs.py": "1916d9eaaddc20704f0c18ae5248f6ebac05caae9a948dff6ad6fc746de2290f",
+    "tests/test_factory_studio_bundle_install.py": "bf221b01b0647c1cd56f7eb499591803e73347b6b36b9c3083d3307efea33787",
+    "tests/test_factory_studio_bundle_plan.py": "1772c075d3240047a8480c84937bc5d62fab7429ed8796d28386f5f546d581d0"
+  },
+  "status": "PASS",
+  "support_qualified": false
+}
