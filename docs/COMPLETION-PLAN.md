@@ -69,7 +69,8 @@ du candidat Studio sont recensées dans
 | Politique UTC pure | [24 tests Mac PASS et deux revues source réussies](validation/2026-10-12-bootstrap-time-policy.json) | Arithmétique seule : setter, worker, journal et admission owner/latch absents ; origine BOOTTIME et heure actuelle non prouvées. |
 | Fichiers factory | [23 tests ciblés et 1 875 tests globaux macOS](validation/2026-10-12-factory-writer-file-tests.json), sans échec, pour la copie/relecture inactive de 17 fichiers | Installation native, support, comptes réservés, graph R35 et raccord de boot encore à qualifier. |
 | Installation native réelle | [Bundle `eb11790` et 17 fichiers OS/helper copiés puis relus en Linux ARM64](validation/2026-10-12-studio-eb117-native-files.json), avec les sources OS `38adb68` | Fixture vide seulement ; support, bibliothèques natives, runtime, comptes et boot restent à qualifier. |
-| Raccord source R35 | [Pin Studio et argv main corrigés ; 135 tests ciblés et 1 877 tests globaux macOS réussis](validation/2026-10-12-factory-graph-r35-source.json) | Nouvelle assembly support/exporter/runtime nécessaire ; graph installé et parcours physique non qualifiés. |
+| Raccord source R35 | [Pin Studio et argv main corrigés ; 135 tests ciblés et 1 877 tests globaux macOS réussis](validation/2026-10-12-factory-graph-r35-source.json) | Support/exporter/runtime restent à intégrer ; graph actif et parcours physique non qualifiés. |
+| Assemblage factory inactif | [Recette source et tests](validation/2026-10-12-factory-assembly-source.json), puis [assemblage privé réel à `9d8f149`](validation/2026-10-12-factory-assembly-image.json) : 2 399 entrées du bundle `eb11790`, 17 fichiers OS/helper et export vérifié | Copie/relecture seule ; support, comptes factory, graph actif, boot, runtime et parcours physique restent à qualifier. |
 
 Le [service IPC-A](INITIALIZATION-IPC.md), la
 [permission factory consommable](FACTORY-AUTHORITY.md), le
@@ -92,10 +93,17 @@ les classe à leurs sites et hashes exacts, sans modifier les sorties ni le reç
 La copie et la relecture du bundle réel ont ensuite réussi dans une fixture
 Linux ARM64 vide, avec 17 fichiers OS/helper au commit `38adb68`. Cette preuve
 ne lance pas les services et ne qualifie pas le raccord source R35 plus récent.
+
+La [recette `factory-assembly`](FACTORY-ASSEMBLY.md) compose désormais les
+installers du bundle R35 et des fichiers writer sur une base OS ARM64 épinglée.
+La construction privée à `9d8f149` a réussi et son export est cohérent. Elle
+n’installe pas le support complet, ne lance aucun service et ne crée aucune
+admission runtime. La fixture vide antérieure conserve ses preuves distinctes.
+
 Audit de confidentialité complet, ELF, support et runtime restent à qualifier ;
-aucun nouveau bundle n'est admis dans une image.
+aucun nouveau bundle n'est admis pour un runtime actif ou une redistribution.
 Les attributions de licence sont conservées et leur livraison reste à régler
-avant image ou redistribution. Les entrées de build privées restent préservées.
+avant admission de l'image à la redistribution. Les entrées de build privées restent préservées.
 Le couple TEST accompagné reste backend `c31b13a` / iOS `1.0.0 (9)` ; le bundle
 passif `a071f19` et le candidat source `5671ba4` ont leurs preuves distinctes.
 

@@ -5,9 +5,12 @@ and reads back the real Studio bundle and the closed 17-file OS/helper mapping.
 It is separate from `factory-passive` and the system/application TEST prototypes.
 It does not constitute a configured base OS, installed graph, first boot or release.
 
-The recipe source is implemented; a production build and its resulting image
-still require a separate reviewed execution. Synthetic tests, the earlier empty
-native fixture and this source change do not qualify that image.
+As of 12 October 2026, one reviewed production build on the pinned real ARM64
+OS base has [passed inactive file assembly and export integrity](validation/2026-10-12-factory-assembly-image.json):
+2,399 bundle records and the closed 17-file OS/helper mapping. The
+[source and test evidence](validation/2026-10-12-factory-assembly-source.json)
+is separate. This does not qualify the configured OS, installed graph, runtime,
+first boot, hardware or release.
 
 ## Inputs
 

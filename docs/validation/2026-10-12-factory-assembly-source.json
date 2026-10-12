@@ -1,0 +1,77 @@
+{
+  "base_commit": "dc6b6bb7f5365e8f2bc1981000e8aba101efa712",
+  "changes": [
+    "Add the private factory-assembly profile to the existing production recipe on a locked ARM64 OS base.",
+    "Validate eight pinned inputs and preflight seventeen fixed destinations before the first bundle write.",
+    "Compose the unchanged bundle and writer installation/verification APIs without target execution.",
+    "Require a distinct closed fourteen-report export and reject active qualification or profile mixing."
+  ],
+  "date": "2026-10-12",
+  "full_regression": {
+    "bash_syntax_passed": true,
+    "bash_syntax_scripts": 23,
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "be46c2cccb4c816a468be438662de6cc65a2e4d6cf047273e4c7f0acc5a9eef7",
+    "platform": "macOS arm64",
+    "python_version": "3.13.15",
+    "skips": 16,
+    "tests": 1897
+  },
+  "limits": [
+    "Source and software fixtures only; no production image result is asserted by this report.",
+    "The profile performs inactive file materialization and readback; it does not schedule service startup. Inactive is not a barrier against explicit root execution.",
+    "No target interpreter, candidate import, account mutation, active graph, support/exporter admission, authority or first-boot qualification is established.",
+    "Historical passive-image and OS38 empty-fixture evidence remains tied to its original sources and is not transferred.",
+    "Runtime, boot, physical workflows and release redistribution remain unqualified."
+  ],
+  "production_build": {
+    "report": "2026-10-12-factory-assembly-image.json",
+    "scope": "private-inactive-file-assembly-only",
+    "source_and_test_evidence_remains_separate": true,
+    "status": "PASS"
+  },
+  "qualification": {
+    "abi": false,
+    "boot": false,
+    "hardware": false,
+    "image": false,
+    "installed_graph": false,
+    "release": false,
+    "runtime": false,
+    "support": false
+  },
+  "review": {
+    "independent_source": "PASS",
+    "root_source": "PASS"
+  },
+  "schema_version": 1,
+  "scope": "factory-inactive-assembly-source-and-tests",
+  "source_commit": "9d8f1490702691082dc03e9b0048d84d3eb4f8e6",
+  "source_sha256": {
+    "docs/FACTORY-ASSEMBLY.md": "72693a4d3330beed3fc65004d0542d4ae6a28db26589e49499580800f5d846db",
+    "scripts/build-image-linux.sh": "93857974ae4c84b87a40adb69a18edf02aac6de06972f07aa38ae0eaf7f7a7d1",
+    "scripts/build-prototype.sh": "0d3f1f10dd77693cdc78e2dbd07486261ddb10838156e0c934e62f0d66fb4a9b",
+    "scripts/factory-assembly-profile.py": "f3f0589415c4007d2515158cbcdd06697f98d84626808f6e434943da3523508a",
+    "scripts/verify-artifacts.py": "1b5c1fe51ad9f3d61f5baeff24414205b9460b76421687d2234be96dc2d48d95",
+    "tests/test_factory_assembly.py": "fea4a377510dd9f2cbd16c80abd596919d5446d444fb039e5d50441a4fa68512",
+    "tests/test_verify_artifacts.py": "2c74ee2e6ec5d8760b7797e28997f0b7d46f853236b1483a9e78e50a22f6c8d8"
+  },
+  "targeted": {
+    "bash_build_scripts_syntax_passed": true,
+    "elapsed_seconds": 5.157845,
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "bbfac7b01cdc1e4734a1ecd61863a5158de71e4dde13e4a72a9781faa04c129a",
+    "platform": "macOS arm64",
+    "python_version": "3.13.3",
+    "skips": 0,
+    "source_unchanged": true,
+    "suites": [
+      "test_factory_assembly",
+      "test_verify_artifacts",
+      "test_factory_passive_recipe"
+    ],
+    "tests": 68
+  }
+}
