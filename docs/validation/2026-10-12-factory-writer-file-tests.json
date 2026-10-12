@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-12",
+  "full_regression": {
+    "elapsed_seconds": 59.721,
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "c0b150a29f59cd2afa22bb837130b0d00d4950eb9970a3e1bd0cddb96f825daf",
+    "platform": "macOS arm64",
+    "python_version": "3.13.15",
+    "skips": 16,
+    "source_files_rechecked": 182,
+    "source_unchanged": true,
+    "tests_run": 1875
+  },
+  "limits": [
+    "Fixtures contain inert payloads and substitute workspace ownership and Linux xattr observations on macOS.",
+    "The helper schema and mode0555 were compared read-only to the new expected Studio bundle manifest; no candidate installation occurred.",
+    "The receipt establishes copied file bytes and metadata only; it does not repair the older graph pins or launcher arguments for R35.",
+    "Inactive means no launch was scheduled by this lot. Explicit root service starts and textual dependencies are not qualified by these tests.",
+    "Support manifests, reserved accounts, authority, native ELF dependencies, boot integration and physical flows remain separate gates."
+  ],
+  "mapping": {
+    "closed_destinations": 17,
+    "existing_parents_preserved": true,
+    "helper_files": 1,
+    "nss_mutated": false,
+    "os_files_and_units": 16,
+    "preexisting_masks_removed": false,
+    "scheduled_launch_created": false
+  },
+  "qualification": {
+    "hardware": false,
+    "image": false,
+    "native_installation": false,
+    "runtime": false,
+    "studio_bundle": false,
+    "support": false
+  },
+  "review": {
+    "diff_check": "PASS",
+    "independent_read_only": "PASS",
+    "root": "PASS"
+  },
+  "schema_version": 1,
+  "scope": "inactive-factory-writer-file-source-tests",
+  "source_commit": "0833cb4a790305149381b40a38e13061011fe20a",
+  "source_sha256": {
+    "docs/FACTORY-WRITER-INSTALLATION.md": "4ea0598f888e6cb2f70a1c2062c9414fcf0abead5591bb3e6d6055b4fbc3e49d",
+    "scripts/install-factory-writer-rootfs.py": "17686393c09ecf310777c53056d9bc4b02100ec810b19e68f5e194778bf640cb",
+    "scripts/verify-factory-writer-rootfs.py": "d457ed963fd74165ebd68db6145cf114c52d66bd30451cde8371744e62b242c4",
+    "tests/test_factory_writer_rootfs.py": "ae03fc45f6573b148a4aed1cb48bfc1c47569b7cb573a82d84bcc9c5c284c5f4"
+  },
+  "targeted": {
+    "errors": 0,
+    "failures": 0,
+    "linux_xattrs_fixture_seam": true,
+    "platform": "macOS arm64",
+    "python_version": "3.9.6",
+    "skips": 0,
+    "test_log_sha256": "56524a749792812cff56fab3f956027a141615656e384e0980cabe731345d787",
+    "tests": 23,
+    "workspace_owner_fixture_seam": true
+  }
+}

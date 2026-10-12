@@ -93,6 +93,18 @@ Ils utilisent des payloads inertes ; ils ne prouvent pas un build Linux réel,
 le boot, l'admission helper/IPC ou le premier appairage. Le profil complet reste
 à intégrer et qualifier après le raccord runtime commun avec Studio.
 
+Le [nouveau plan statique Studio `eb11790`](validation/2026-10-12-studio-eb117-static-bundle.json)
+ferme les métadonnées des 34 dépendances et définit 2 399 entrées attendues.
+Il ne remplace pas le bundle `a071f19` de l'image passive et ne qualifie pas
+les imports natifs, le support ou la redistribution.
+Les [outils de copie et relecture des fichiers factory](FACTORY-WRITER-INSTALLATION.md)
+préparent séparément 16 modules/unités OS et le helper exact du nouveau bundle.
+Leurs [23 tests inertes](validation/2026-10-12-factory-writer-file-tests.json)
+et la suite globale de 1 875 tests macOS passent, avec 16 skips dans la suite globale.
+Ils restent hors du build-profile : aucune activation, conversion du profil passif,
+mutation NSS ou création d'autorité n'est effectuée par ce lot.
+Les pins et arguments du graph plus ancien restent à coordonner pour R35.
+
 ## Entrées et installation
 
 Le futur profil factory actif doit réunir un candidat Studio complet, l’exporter dédié,

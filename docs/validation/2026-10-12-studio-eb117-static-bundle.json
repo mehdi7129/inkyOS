@@ -1,0 +1,86 @@
+{
+  "application_version": "0.5.0rc2",
+  "application_version_override": false,
+  "build": {
+    "application_source_blobs_byte_exact": 55,
+    "application_wheel": "inky_studio_server-0.5.0rc2-py3-none-any.whl",
+    "application_wheel_members": 59,
+    "application_wheel_sha256": "a42ac8efdf2d8da8611b79a11ddd72326599d98be3bd6ab002bddad0f12d79bf",
+    "commands_passed": 5,
+    "frontend_files": 7,
+    "helper_files": 1,
+    "inputs_unchanged": true,
+    "original_completion_status": "BLOCKED",
+    "original_reason": "retained_outputs_privacy_findings",
+    "original_receipt_preserved": true,
+    "owned_command_groups_reaped_and_gone": true,
+    "platform": "macOS arm64"
+  },
+  "date": "2026-10-12",
+  "limits": [
+    "Build commands completed; the original build and privacy receipts remain BLOCKED and unchanged.",
+    "The new static completion classifies only three reviewed sites in one exact upstream-derived HEIC asset and retains all raw observations.",
+    "This targeted classification is not a full privacy audit, a decoder functional test or licence notice delivery.",
+    "Metadata closure and an expected pre-install manifest do not prove native imports, system libraries, service admission, radio, display or iPhone pairing.",
+    "No candidate, installer, VM, image, SD, service or clock operation was executed by the static completion."
+  ],
+  "os_tooling_source_commit": "49e94bf2a14b050df17751912178d0429e260ef5",
+  "privacy_classification": {
+    "artifact_or_notices_rewritten": false,
+    "artifact_sha256": "316b22507c516f6cdb4e3cc9fc60d1f0109d5f00d0683cbb68118a3375be0312",
+    "blanket_package_or_prefix_allowance": false,
+    "classified_exact_upstream_runtime_sites": 3,
+    "complete_privacy_audit": false,
+    "dependency_wheels_privacy_audited": false,
+    "other_targeted_findings_blocking": 0,
+    "raw_host_path_observations": 3,
+    "retained": true,
+    "upstream_package": "heic-to@1.5.2",
+    "upstream_sri_verified": true
+  },
+  "qualification": {
+    "application_runtime": false,
+    "factory_graph": false,
+    "hardware": false,
+    "image": false,
+    "license_notice_delivery_complete": false,
+    "native_elf_system_library_closure": false,
+    "public_delivery": false,
+    "release": false,
+    "sd": false
+  },
+  "schema_version": 1,
+  "scope": "reviewed-build-outputs-and-static-bundle-metadata",
+  "static_completion": {
+    "candidate_code_imported": false,
+    "closure_wheels": 34,
+    "errors": 0,
+    "expected_manifest_records": 2399,
+    "expected_payload_files": 2092,
+    "failures": 0,
+    "inert_classifier_tests": 10,
+    "reached_distributions": 34,
+    "rebuild_executed": false,
+    "receipts_sha256": {
+      "classifier-regression-result.json": "66d9a746733951f4171350ede3d28a54d9cd33d0138501893b59b634a43d3312",
+      "outputs/dependency-metadata-receipt.json": "1c20994f0eb408e2e7b93916043ef1663ff7122c4f18bf7b38af4f077fda8004",
+      "outputs/expected-bundle-manifest.json": "5a3b537a6332cf33b9e522078a45c4d13f739b6103c25fd92a27fe00dbf494f8",
+      "outputs/planner-receipt.json": "794c1c1dc62e1fc99aec32af35ca83c3e0ddf520e2baf69f088905bec77bb291",
+      "outputs/privacy-classification.json": "70c3a20f9ca8c996004bee6b1c9226c6053d9cc703028329bcef15ea18651112",
+      "static-completion.json": "517e42f8954413d0887bbd577b56c7f60dee6c06e1eeed95827676b8c4e541ba"
+    },
+    "root_and_independent_source_review": "PASS",
+    "root_extras": [
+      "pi"
+    ],
+    "skips": 0,
+    "source_files": 8,
+    "status": "PASS"
+  },
+  "studio_source_commit": "eb117903cb647a14e9722d7387a41058ea8807b3",
+  "target": {
+    "architecture": "arm64",
+    "debian_release": "trixie",
+    "python_version": "3.13.5"
+  }
+}
