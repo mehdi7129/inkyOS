@@ -40,7 +40,8 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Dépendances applicatives | [39 tests Linux ARM64 à `8102d08`](docs/validation/2026-10-11-factory-studio-dynamic-tests.json), sans skip, dont les métadonnées Dynamic ; fixtures uniquement. Les [33 tests précédents](docs/validation/2026-10-11-factory-studio-dependency-tests.json) restent liés à `619e4a0`. |
 | Métadonnées et plan réels | [34 wheels atteintes, 8 sources, 2 405 records attendus](docs/validation/2026-10-11-factory-studio-real-input-plan.json) pour Studio déclaré `a071f19`, outils `8102d08`. Ce rapport statique précède l’assemblage passif et ne qualifie pas le support, l’ABI ou le runtime. |
 | Données packagées NumPy | [152 tests Linux ARM64](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans skip, pour la politique commune du planner et des installers ; aucune exécution du candidat. |
-| Suite locale actuelle | [1 759 tests macOS à `800b189`](docs/validation/2026-10-12-factory-writer-parents.json), sans échec, avec 16 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
+| Composition du premier boot | [63 tests Linux ARM64](docs/validation/2026-10-12-factory-graph.json), sans skip, du graph et du wrapper avec fixtures synthétiques. Composition encore inactive ; PID1, permissions installées et parcours sans LAN restent à qualifier. |
+| Suite locale actuelle | [1 822 tests macOS à `d1aa915`](docs/validation/2026-10-12-factory-graph.json), sans échec, avec 16 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth

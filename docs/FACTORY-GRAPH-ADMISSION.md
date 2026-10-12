@@ -154,3 +154,15 @@ L'execve d'un même processus peut conserver PID, pidfd et invocation. Aucune
 lecture étrangère inaccessible ne reçoit une validation de substitution.
 Les checks ne sont pas une barrière atomique contre changement entre
 observation et effet ni contre une modification root non observée.
+
+## Validation logicielle consignée
+
+Le [rapport du lot](validation/2026-10-12-factory-graph.json) épingle les octets
+des six entrées : 63 fixtures Linux ARM64 sans skip, 63 fixtures Mac ciblées et
+1 822 tests de la suite Mac globale avec 16 skips de plateforme. La syntaxe
+des 23 scripts Bash est vérifiée. Le défaut d’ordre des handlers d’arrêt
+a été corrigé puis couvert par les tests d’entrée et de drain.
+
+Ces résultats ne ferment aucune des neuf gates d’activation : le banc Linux
+n’observe pas un graph PID1 installé et utilise des tokens PIDFD/peers
+synthétiques. Aucune image, radio, SD ou application du Pi n’est activée.
