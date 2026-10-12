@@ -337,6 +337,37 @@ la possession de l'EX avec la vraie primitive admission et un PID1 inerte.
 Ces tests ne prouvent pas l'ordre effectivement chargé par PID1, un namespace
 booté, les invocations live, le Pi, le Wi-Fi, le Bluetooth ou le parcours app.
 
+### Preuve native des parents et suite globale
+
+Le [banc des parents writers](validation/2026-10-12-factory-writer-parents.json)
+passe **110 tests** sous Debian 13 ARM64, root, Python **3.13.5**, sans failure,
+error ou skip : **31** tests parents, **42** supervisor et **37** contrat runtime.
+Le snapshot gelé non committé était basé sur `1c91a7f` ; les octets des
+**13 inputs** sont identiques au commit `800b189`. Leur relecture, le snapshot
+et le gel de revue restent inchangés après exécution.
+
+Les xattrs sous FD et les leases `flock` utilisent les APIs Linux. Un cas root
+effectue le vrai `chown` numérique des parents vers les IDs helper/provisioning
+distincts et vérifie aussi les owners du reçu. Les identités NSS, les inventaires
+candidats et `mountinfo` restent explicitement synthétiques ; aucun compte n'est
+créé. Ce banc ne teste ni un changement d'identité process ni l'héritage par fork.
+Il confirme aussi le refus des parents remplacés ou partiels, la prévalidation
+en lecture seule avant contexte, les deux vérifications sous EX avec PID1 inerte,
+et la conservation d'un persistant non vide sans lecture de ses enfants.
+
+La suite globale macOS au commit `800b189` passe **1 759 tests**, sans failure ou
+error, avec **16 skips** de plateforme explicites ; les **23 scripts Bash** passent
+le contrôle de syntaxe. Les **381 sources**, HEAD et l'état Git restent inchangés.
+Cette suite comprend les fixtures existantes du serveur IPC ; les exclusions
+d'import du banc natif ne décrivent pas la suite globale.
+
+Aucun service, Studio, helper ou serveur IPC n'est importé ou lancé par le banc
+natif. Aucune image ou SD n'y est accédée. Ces résultats ne qualifient pas le
+graphe PID1 chargé, l'admission installée, l'application, une image bootée, le Pi,
+le Wi-Fi, le Bluetooth ou le premier appairage. L'installation active et le
+provisionnement du parent persistant restent à réaliser ; la recette passive
+est inchangée.
+
 ## Guard commun pour les entrées directes
 
 `factory-runtime-contract.py` expose la primitive stdlib
