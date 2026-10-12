@@ -5,6 +5,7 @@ Their handles are logical tokens, not pidfds; these tests do not qualify Linux
 permissions, pidfd inode identity, a sandbox, an installed graph or Pi budgets.
 """
 import copy
+from contextlib import contextmanager
 import importlib.util
 import json
 import os
@@ -645,6 +646,9 @@ class TypedObservationTests(unittest.TestCase):
 
 
 class InstalledSourceRefusalTests(unittest.TestCase):
+    class AfterLaunchContract(RuntimeError):
+        """The inert fixture stops immediately after the launch AST guard."""
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory(prefix='inkyos-support-inert-')
         self.addCleanup(directory.cleanup)
@@ -685,9 +689,58 @@ class InstalledSourceRefusalTests(unittest.TestCase):
         self.assertNotIn('hash', self.actions)
 
     def test_different_studio_candidate_refuses_before_inventory_or_source_access(self):
-        self.contract.manifest['studio_commit'] = '0' * 40
-        self.refused_before_tree('studio_candidate_mismatch')
-        self.assertEqual(self.actions, [])
+        for candidate in ('0a0d4bd6456b3fcd1fcdbcaf0b5269c317e3ea91', '0' * 40):
+            with self.subTest(candidate=candidate):
+                self.contract.manifest['studio_commit'] = candidate
+                self.refused_before_tree('studio_candidate_mismatch')
+                self.assertEqual(self.actions, [])
+
+    def launcher_tree(self, raw):
+        self.runtime.MODULE_DIR = 'usr/lib/inkyos'
+        self.runtime.HELPER = 'usr/local/lib/inky-studio/network-helper.py'
+        self.runtime.IPC = 'usr/local/lib/inkyos/initialization-server.py'
+        self.runtime.RECEIPT = 'usr/local/lib/inkyos/initialization-receipt.py'
+        self.runtime.CONTEXT = 'run/inkyos-factory/context.json'
+
+        @contextmanager
+        def tree():
+            self.actions.append('tree')
+            def read(path, mode, limit):
+                self.actions.append(('read', path))
+                if path == self.runtime.MODULE_DIR + '/writer-launcher.py':
+                    self.assertEqual((mode, limit), (0o555, 1024 * 1024))
+                    return raw
+                self.assertEqual((path, mode, limit), (self.runtime.CONTEXT, 0o644, 1024))
+                raise self.AfterLaunchContract()
+            yield SimpleNamespace(read=read)
+        self.contract.tree = tree
+
+    def test_real_launcher_bytes_pass_ast_binding_to_factory_wrapper(self):
+        raw = (ROOT / 'scripts/writer-launcher.py').read_bytes()
+        self.assertEqual(graph.STUDIO_COMMIT, 'eb117903cb647a14e9722d7387a41058ea8807b3')
+        self.assertEqual(graph.APP_ARGV, (
+            '/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B',
+            '/usr/lib/inkyos/factory-main.py'))
+        self.launcher_tree(raw)
+        with Lease() as lease, \
+                patch.object(graph.subprocess, 'Popen', side_effect=AssertionError('command spawned')):
+            with self.assertRaises(self.AfterLaunchContract):
+                self.sources.prepare(lease)
+        self.assertEqual(self.actions, ['inventories', 'resolve', 'tree',
+            ('read', 'usr/lib/inkyos/writer-launcher.py'), ('read', self.runtime.CONTEXT)])
+
+    def test_legacy_module_argv_refuses_at_ast_guard_before_context_access(self):
+        raw = (b"ARGV = {'main': ('/usr/lib/inky-studio/server/.venv/bin/python', "
+               b"'-I', '-B', '-m', 'inky_web.main')}\n"
+               b"raise AssertionError('inert launcher must not execute')\n")
+        self.launcher_tree(raw)
+        with Lease() as lease, \
+                patch.object(graph.subprocess, 'Popen', side_effect=AssertionError('command spawned')):
+            with self.assertRaises(graph.Refused) as caught:
+                self.sources.prepare(lease)
+        self.assertEqual(caught.exception.reason, 'inactive_launch_contract')
+        self.assertEqual(self.actions, ['inventories', 'resolve', 'tree',
+                                      ('read', 'usr/lib/inkyos/writer-launcher.py')])
 
     def test_missing_graph_or_wrapper_support_path_refuses_before_tree(self):
         for missing in (graph.SELF[1:], graph.MAIN[1:]):

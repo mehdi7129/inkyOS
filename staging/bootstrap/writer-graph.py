@@ -1,8 +1,8 @@
 """Inactive, fixed Phase A graph proof. No service activation or writer signal.
 
 Only synthetic contracts outside / accept injected dependencies. Installation
-requires future support pins and a launcher targeting factory-main.py; neither
-is supplied by this candidate. UID 1000, namespace and Pi budgets are unqualified.
+requires future support pins and runtime assembly. The source launcher targets
+factory-main.py. UID 1000, namespace and Pi budgets are unqualified.
 """
 import ast
 import contextlib
@@ -40,7 +40,7 @@ CLEANUP_SECONDS = 2.0
 OUTPUT_LIMIT = 262144
 DATA = Path('/var/lib/inky-studio')
 APP_ARGV = ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', MAIN)
-STUDIO_COMMIT = '0a0d4bd6456b3fcd1fcdbcaf0b5269c317e3ea91'
+STUDIO_COMMIT = 'eb117903cb647a14e9722d7387a41058ea8807b3'
 UNITS = {'main': 'inky-studio.service', 'helper': 'inky-network.service',
          'ipc': 'inkyos-initialization.service'}
 UNIT_TYPES = {'Id': 's', 'Names': 'as', 'LoadState': 's', 'ActiveState': 's',

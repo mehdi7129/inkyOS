@@ -97,9 +97,11 @@ Inspect the failure privately and prepare a new dedicated workspace.
 
 ## Remaining integration gates
 
-The current graph's Studio pins and launcher arguments still reflect the older
-R33 admission. Copying the R35 helper does not repair this incompatibility. This
-operation deliberately preserves those source bytes for coordinated review.
+The current graph pins Studio R35 and the main launcher targets the OS
+`factory-main.py` wrapper. A new assembly must pin the updated graph and launcher
+bytes in its reviewed inputs and manifests. Earlier R33 and materialization
+fixtures retain their own source pins and results; they do not qualify this
+source alignment.
 The support/exporter/runtime manifests, native dependency and ELF review,
 accounts/groups, authority/lifecycle provisioning, effective systemd graph,
 explicit boot integration and hardware tests remain separate work.

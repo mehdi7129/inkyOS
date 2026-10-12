@@ -17,7 +17,7 @@ launcher = load_module('writer_launcher_test', 'scripts/writer-launcher.py')
 PROCESSES = multiprocessing.get_context('fork')
 DEADLINE = 8
 ARGV = {
-    'main': ['/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', '-m', 'inky_web.main'],
+    'main': ['/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', '/usr/lib/inkyos/factory-main.py'],
     'helper': ['/usr/bin/python3', '-I', '-B', '/usr/local/lib/inky-studio/network-helper.py'],
     'ipc': ['/usr/bin/python3', '-I', '-B', '/usr/local/lib/inkyos/initialization-server.py'],
 }

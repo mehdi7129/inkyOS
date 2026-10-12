@@ -1,17 +1,19 @@
 # Admission du graph Phase A — candidat inactif
 
-Ce lot ajoute un observer OS et une composition fixe de la Phase A. Il n'est
-ni installé, ni référencé par le launcher ou les units, ni intégré à une image.
-Il ne modifie aucun protocole, caller Studio, service, compte, radio ou SD.
+Les sources de ce candidat inactif relient un observer OS et la composition
+fixe de la Phase A au launcher, qui cible `factory-main.py`. L'installation
+inactive des fichiers a son [lot séparé](FACTORY-WRITER-INSTALLATION.md) ;
+la recette active et son intégration dans une image restent à qualifier.
+Ce raccord ne modifie aucun protocole, caller Studio, service, compte, radio ou SD.
 
-Le contrat applicatif est celui de Studio
-`0a0d4bd6456b3fcd1fcdbcaf0b5269c317e3ea91` (PR #33). Ses cinq contrôles CI
-ont été vérifiés par le coordinateur. Cela ne qualifie pas ce graph, son
-installation, le sandbox, le Pi ou les parcours iPhone. Le payload `c31b13a`,
-le bundle `a071f19` et TestFlight build 9 ne sont pas remplacés. Le driver
-`inky==2.3.0` de ce candidat reste distinct du futur lot driver, pour lequel
-la préférence discutée est la release officielle 2.5 ; aucune compatibilité
-matérielle n'est transférée par les tests de ces hooks.
+Le pin applicatif courant est Studio
+`eb117903cb647a14e9722d7387a41058ea8807b3` (PR #35). Cet alignement source
+ne qualifie pas le graph installé, le sandbox, le Pi ou les parcours iPhone.
+Les preuves historiques R33 portent sur
+`0a0d4bd6456b3fcd1fcdbcaf0b5269c317e3ea91` et restent distinctes. Le payload
+TEST `c31b13a`, le bundle historique `a071f19`, son driver `inky==2.3.0` et
+TestFlight build 9 ne sont pas remplacés par ce patch. Aucune compatibilité
+matérielle n'est transférée par l'alignement ou les tests de ces hooks.
 
 ## Composition fixe
 
@@ -97,13 +99,15 @@ octets du runtime vérifiés avant compilation. Elle prend une nouvelle SH
 avec `writer_guard('main')`, sans substituer un contrat réel `/` ni convertir
 le lease hérité en preuve propre.
 
-Les deux nouveaux modules doivent être des fichiers root:root `0555` présents
+Les modules graph et wrapper doivent être des fichiers root:root `0555` présents
 dans `support.paths` avec pins exacts. `busctl` doit aussi être épinglé avec
 ses parents, sa résolution et sa closure ELF revue. Le schéma fermé des trois
 `os_module_pins` n'est pas élargi. Le launcher épinglé doit cibler exactement
-ce wrapper ; son target actuel `inky_web.main` entraîne un refus explicite.
-Le support actuel ne fournit pas les nouveaux modules/command closure : ce
-lot est volontairement incapable d'activer le système actuel.
+ce wrapper. La source courante satisfait cet argv ; l'ancien lancement
+`-m inky_web.main` reste explicitement refusé avec `inactive_launch_contract`.
+Les nouveaux pins graph/launcher et la closure des commandes doivent encore
+être assemblés dans un support, un exporter et un manifest runtime revus.
+Ce raccord source ne donne aucune admission au système actuel.
 
 L'entrée vérifie intégralement le bundle main ; la capture fait une nouvelle
 vérification initiale entre les observations de métadonnées, afin de ne pas
@@ -157,11 +161,13 @@ observation et effet ni contre une modification root non observée.
 
 ## Validation logicielle consignée
 
-Le [rapport du lot](validation/2026-10-12-factory-graph.json) épingle les octets
+Le [rapport historique](validation/2026-10-12-factory-graph.json) épingle les octets
 des six entrées : 63 fixtures Linux ARM64 sans skip, 63 fixtures Mac ciblées et
 1 822 tests de la suite Mac globale avec 16 skips de plateforme. La syntaxe
 des 23 scripts Bash est vérifiée. Le défaut d’ordre des handlers d’arrêt
-a été corrigé puis couvert par les tests d’entrée et de drain.
+a été corrigé puis couvert par les tests d'entrée et de drain. Ce rapport
+précède le pin et l'argv R35 ; ses hashes et résultats ne sont pas réépinglés
+et ne qualifient pas ces nouvelles sources.
 
 Ces résultats ne ferment aucune des neuf gates d’activation : le banc Linux
 n’observe pas un graph PID1 installé et utilise des tokens PIDFD/peers

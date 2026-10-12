@@ -7,6 +7,11 @@ recette : sans ce contrat, le launcher refuse avec le code **78** et un motif
 fermé `writer_launch_refused:<reason>` sur stderr. Aucun contenu de credentials
 n'est lu ou affiché par ces deux modules.
 
+La source `main` cible désormais le wrapper OS `factory-main.py`, dont le graph
+épingle Studio `eb117903cb647a14e9722d7387a41058ea8807b3` (R35).
+L'[installation inactive des fichiers](FACTORY-WRITER-INSTALLATION.md) ne fournit
+pas le support/exporter/runtime complet ni une activation.
+
 ## Fichiers et formats
 
 Les trois modules publics `writer-admission.py`, `factory-runtime-contract.py`
@@ -90,6 +95,8 @@ doit notamment contenir `inky_web/main.py` dans son site-packages. L'ancienne
 installation editable TEST et son support ne satisfont pas ce contrat ; aucun
 relocating ou conversion n'est effectué ici. Un nouvel inventaire factory et sa
 revue de support restent nécessaires.
+La présence de `inky_web/main.py` dans le bundle n'impose pas de le lancer :
+l'argv principal utilise le wrapper factory OS.
 
 ## Templates writers et fermeture statique
 
@@ -179,9 +186,10 @@ Deux raccords restent nécessaires avant toute intégration active :
   décrit ci-dessous sait créer ces parents avant admission, mais son installation
   épinglée et le provisionnement du parent persistant appartiennent au futur
   assemblage actif. Le profil passive conserve ce parent absent.
-- L'entry point main actuel atteint encore `initialize_factory`, qui termine
-  à **78** après préparation. Les templates ne raccordent pas le lifecycle
-  Phase A, n'accordent pas l'autorité owner/B et ne livrent pas un first boot.
+- La cible main source compose la Phase A via `factory-main.py`. Le pin Studio
+  et l'argv du launcher sont alignés, mais leurs nouveaux hashes et le support
+  doivent encore être assemblés dans le contrat runtime. Ce raccord n'accorde
+  pas l'autorité owner/B et ne livre pas un first boot qualifié.
 
 Les masks du profil **factory-passive** restent légitimes et inchangés. Ce
 profil n'appelle pas le nouveau contrat runtime complet ; un candidat runtime
@@ -429,7 +437,7 @@ par l'environnement n'est jamais adopté ni converti, notamment s'il porte EX.
 
 | Rôle | Identité exigée | Argv après validation |
 | --- | --- | --- |
-| `main` | UID/GID réels, effectifs, sauvés `1000:1000` ; groupes spi, i2c, gpio, provisioning | `/usr/lib/inky-studio/server/.venv/bin/python -I -B -m inky_web.main` |
+| `main` | UID/GID réels, effectifs, sauvés `1000:1000` ; groupes spi, i2c, gpio, provisioning | `/usr/lib/inky-studio/server/.venv/bin/python -I -B /usr/lib/inkyos/factory-main.py` |
 | `helper` | UID manifest, GID provisioning ; aucun autre groupe supplémentaire | `/usr/bin/python3 -I -B /usr/local/lib/inky-studio/network-helper.py` |
 | `ipc` | UID `0`, GID provisioning, groupe supplémentaire `0` | `/usr/bin/python3 -I -B /usr/local/lib/inkyos/initialization-server.py` |
 
@@ -475,6 +483,8 @@ le superviseur. Il conserve aussi le premier échec des fixtures sous umask
 `077`, corrigé par des permissions explicites des nouveaux parents sans
 assouplir les gardes de production. La suite globale macOS passe 1 467 tests,
 avec 13 skips ; ce rapport ne lui attribue pas une exécution globale Linux.
+Il précède le raccord source R35 et son argv wrapper ; ses hashes et résultats
+historiques restent inchangés et ne qualifient pas ce nouvel alignement.
 
 Les tests synthétiques couvrent mutations de pins, owners, liens, inventaires,
 contexte partiel/remplacé, groupes, absence de Ready, environnement fermé et

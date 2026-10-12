@@ -14,7 +14,7 @@ RUNTIME_PATH = '/usr/lib/inkyos/factory-runtime-contract.py'
 LAUNCHER_PATH = '/usr/lib/inkyos/writer-launcher.py'
 MANIFEST_PATH = '/etc/inkyos/factory-runtime-v1.json'
 ARGV = {
-    'main': ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', '-m', 'inky_web.main'),
+    'main': ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', '/usr/lib/inkyos/factory-main.py'),
     'helper': ('/usr/bin/python3', '-I', '-B', '/usr/local/lib/inky-studio/network-helper.py'),
     'ipc': ('/usr/bin/python3', '-I', '-B', '/usr/local/lib/inkyos/initialization-server.py'),
 }
