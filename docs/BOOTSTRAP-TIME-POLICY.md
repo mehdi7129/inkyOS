@@ -1,8 +1,9 @@
 # Heure bootstrap — proposition minimale phase B
 
-Document de travail à valider avec Studio avant code ou octets de protocole.
-Aucun endpoint, service ou setter n’est installé. IPC-A, le reçu d’initialisation
-et le [hook factory](FACTORY-AUTHORITY.md) restent inchangés.
+Politique de prototype coordonnée avec Studio. Seul le lot de calculs purs
+ci-dessous est développé ; l'admission et le protocole restent à concevoir
+ensemble. Aucun endpoint, service ou setter n’est installé. IPC-A, le reçu
+d’initialisation et le [hook factory](FACTORY-AUTHORITY.md) restent inchangés.
 
 La référence historique côté Studio est
 `docs/inkyos/SYSTEM-BOOTSTRAP-PHASE-B.md` au commit
@@ -60,6 +61,20 @@ sous admission initiale encore ouverte. Ni la mauvaise date actuelle du Pi ni
 un maximum historique ne deviennent une nouvelle autorité. Cette observation
 ne prouve pas UTC indépendante, synchronisation NTP, validité TLS ou heure
 actuelle lors d’une lecture ultérieure du reçu.
+
+## Calculs purs développés
+
+Le module interne inactif [`time-policy.py`](../staging/bootstrap/time-policy.py)
+implémente uniquement la conversion UTC entière, la fraîcheur numérique du
+challenge et le calcul de l'intervalle de readback, avec inclusion entière dans
+la tolérance. Ses [24 fixtures macOS](validation/2026-10-12-bootstrap-time-policy.json)
+passent sans skip ; une seconde revue des sources a vérifié ces règles.
+
+Le module reçoit des nombres. Il ne lit ni ne règle une horloge et ne fournit
+aucune admission. Un résultat numérique vrai ne prouve ni l'origine BOOTTIME,
+ni l'usage unique du challenge, ni l'owner ou le latch, ni une UTC indépendante
+ou actuelle. Aucun journal, worker, transport, ABI installé ou service
+privilégié n'est livré par ce lot.
 
 ## Admission : préalable indépendant du payload
 

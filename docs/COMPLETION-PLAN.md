@@ -1,6 +1,6 @@
 # Finalisation commune InkyOS / Inky Studio
 
-État du 11 octobre 2026. Une release est considérée prête lorsque les parcours
+État du 12 octobre 2026. Une release est considérée prête lorsque les parcours
 ci-dessous sont vérifiés ensemble, sur une image et un couple backend/iOS
 épinglés. Une CI verte ou un modèle de protocole ne remplace pas ces essais.
 
@@ -22,114 +22,89 @@ La matrice détaillée des écrans reste dans [DISPLAY-COMPATIBILITY.md](DISPLAY
 Un modèle indisponible reste explicitement non qualifié ; aucune preuve d'un
 autre écran ne lui est transférée.
 
-Le lot écrans reste commun aux deux projets : évaluer `inky` 2.4.0, adapter
-l'observateur busy AC073 qui exige actuellement 2.3.0, puis aligner les
-catalogues OS (notamment variantes 14, 26 et 27), validateurs et manifeste
-applicatif. Un changement de dépendance seul ne suffit pas. Le catalogue de
-modèles présenté par l'app ne constitue pas une qualification matérielle.
-Le couple TEST actuel reste en 2.3.0 jusqu'à livraison d'un candidat commun.
+Le candidat driver de la [PR Studio #34](https://github.com/mehdi7129/inky-studio/pull/34)
+épingle `inky==2.5.0` au commit `5671ba4`, avec sept contrôles CI réussis ;
+la PR reste draft et non fusionnée. Il prépare les Spectra 4″, 7,3″ et 13,3″
+et les Impression sept couleurs, dont le 5,7″. La fermeture native ARM64,
+les pins du nouveau bundle et chaque panneau physique restent à qualifier.
+Le catalogue de modèles et les tests BUSY ne prouvent pas l'affichage réel.
+Le couple TEST actuel conserve son driver 2.3.0 jusqu'à livraison qualifiée
+d'un candidat commun.
 
 ## Ordre de réalisation
 
-1. Corriger ensemble les trois écarts système observés : initialisation
-   Bluetooth, dépendance I²C et observation de l'heure. Refaire le préflight
-   sur la nouvelle image avant d'activer le candidat applicatif actuel.
-2. Vérifier le parcours LAN accompagné : welcome, photo, QR, adoption BLE et
-   reconnexion HTTPS. Ce parcours permet de qualifier le matériel disponible.
-3. Raccorder le parcours usine sans LAN. Commencer par l'IPC local
-   `initialization.inspect` / `initialization.begin`, puis le raccord distinct
-   heure/pays et le lifecycle backend/iOS. Les prototypes existants ne sont
-   pas des services installés dans l'image.
+1. Qualifier la nouvelle image TEST : retrouver un accès SSH authentifié,
+   vérifier les prérequis Bluetooth/I²C/heure puis le parcours LAN accompagné
+   welcome, photo, QR, adoption BLE et reconnexion HTTPS sur le matériel disponible.
+2. Installer et qualifier la Phase A sans LAN : support et bundle épinglés,
+   graphe PID1 et permissions réelles sous UID 1000, identité individuelle,
+   QR affiché avant advertising, premier claim durable et drains au shutdown.
+   Le reboot conserve owner, clé et reçu sans rouvrir l'adoption initiale.
+3. Concevoir la Phase B en parallèle de cette qualification A. Après accord
+   commun sur les interfaces, développer ses composants injectables et fixtures :
+   admission owner/epoch/latch réservée, UTC, certificat, transition BLE normale,
+   clôture durable, reprise du ledger factory v2, helper et pays Wi-Fi.
+   L'installation et l'activation B attendent A qualifiée et les preuves propres
+   à B ; les prototypes numériques ne donnent aucune admission.
 4. Réunir les changements dans un seul candidat applicatif et une seule
    recette. Effectuer les parcours complets et les essais de récupération,
    puis épingler la release correspondant aux preuves.
 
-Les étapes 2 et 3 peuvent avancer en parallèle. Les composants provisoires ne
-sont pas assemblés implicitement à partir de branches différentes. Chaque
-changement de protocole est coordonné entre dépôts et testé des deux côtés.
+La qualification matérielle et le développement injectable peuvent avancer
+en parallèle. Chaque candidat assemblé a des sources et preuves propres ;
+chaque changement de protocole est coordonné entre dépôts et testé des deux côtés.
 Les adaptations de recette, les voies de lancement à couvrir et les limites
 du candidat Studio sont recensées dans
 [FACTORY-IMAGE-INTEGRATION.md](FACTORY-IMAGE-INTEGRATION.md).
 
-## Limites actuelles
+## État vérifié et limites actuelles
 
-Les trois corrections système sont maintenant intégrées dans une
-[nouvelle image TEST](validation/2026-10-11-system-prerequisites-access-image.json)
-qui passe 132 contrôles offline. Le dernier banc global local consigné porte sur
-[1 590 tests macOS](validation/2026-10-11-factory-image-workspace-tests.json),
-sans échec et avec 15 skips explicites. Cette image a été [flashée et relue](validation/2026-10-11-system-prerequisites-sd-flash.json) ;
-son premier démarrage a été lancé, sans retour d'enrôlement encore vérifié.
+| Composant | Preuve consignée | Travail restant |
+|---|---|---|
+| Nouvelle image TEST | [132 contrôles offline](validation/2026-10-11-system-prerequisites-access-image.json), [flash relu](validation/2026-10-11-system-prerequisites-sd-flash.json), [retour d'enrôlement : 35 + 10 contrôles PASS](validation/2026-10-11-prerequisites-enrollment-return.json) | Accès SSH du nouveau boot non confirmé, application arrêtée. Wi-Fi, Bluetooth et affichage restent à observer sur cette image. |
+| Image factory passive | [Assemblage ARM64 réel avec Studio déclaré `a071f19`](validation/2026-10-12-factory-passive-image.json) : 64 contrôles système et 4 contrôles layout réussis, bundle matérialisé et export relu | Services masqués, runtime/support non qualifiés, premier appairage non intégré. |
+| Graph et wrapper Phase A | [63 fixtures Linux ARM64 sans skip et suite globale de 1 822 tests Mac avec 16 skips ; syntaxe de 23 scripts Bash](validation/2026-10-12-factory-graph.json) | Composition inactive ; PID1, sandbox UID 1000, permissions, peers connectés, budgets Pi et parcours physique restent à qualifier. |
+| Politique UTC pure | [24 tests Mac PASS et deux revues source réussies](validation/2026-10-12-bootstrap-time-policy.json) | Arithmétique seule : setter, worker, journal et admission owner/latch absents ; origine BOOTTIME et heure actuelle non prouvées. |
 
-Le [service IPC-A](INITIALIZATION-IPC.md) et son client Studio sont développés
-séparément ; le banc Linux du service passe, sans installation dans l'image TEST.
-Le vrai client Studio passe maintenant le [banc croisé Linux](validation/2026-10-11-initialization-studio-native.json).
-L'entrée IPC prend désormais sa propre réservation avant les effets et attend
-le reaping terminal avant libération : [79 tests Linux ARM64](validation/2026-10-11-shared-writer-guard-tests.json)
-passent sans skip, dont 19 cas du guard commun, avec contrat/identités de fixture
-explicites. Le garde et le
-graphe installés restent à qualifier ; les bancs croisés historiques ne sont
-pas réexécutés par ce lot.
-La [permission factory consommable](FACTORY-AUTHORITY.md) est développée et testée,
-sans installation dans une recette. Son hook compose désormais consommation
-durable, publication des credentials puis création de l’autorité.
-Studio propose désormais un sérialiseur de credentials v2 à sortie privée ;
-le [publisher OS isolé](FACTORY-CREDENTIALS.md) passe ses fixtures macOS et
-Linux ARM64. Le raccord au hook est testé avec des producteurs inertes ;
-le [vrai sérialiseur Studio](validation/2026-10-11-factory-studio-serializer-native.json)
-passe aussi un banc isolé sous UID 1000, avec deux publications validées par
-Studio. Le [superviseur](FACTORY-SERVICE-FIXTURE.md) passe dix cas distincts.
-Le [test de composition installé](FACTORY-INSTALLED-FIXTURE.md) passe
-52 fixtures inertes et le [banc Linux avec l’exporter installé](validation/2026-10-11-factory-installed-composition-native.json) :
-quatre cas, dont reprise sans régénération, avec validation réelle des
-credentials par Studio sous UID 1000. Il ne simule pas une coupure de courant.
-Ces bancs ne qualifient pas l’intégration complète dans l’image. Le verrou
-couvre publication et autorité, et une reprise après consommation ne génère
-jamais de nouveaux credentials implicitement. Le futur profil doit encore
-exclure les processus applicatifs concurrents et installer
-l’[exporter dédié proposé](FACTORY-EXPORTER-PROPOSAL.md).
-La [primitive coopérative d’admission](FACTORY-WRITER-ADMISSION.md), le
-[contrat et les lanceurs](FACTORY-WRITER-LAUNCHER.md) et le
-[superviseur exécutable](FACTORY-SUPERVISOR.md) sont développés.
-Le [nouveau lot](validation/2026-10-11-factory-runtime-tests.json) passe
-81 tests Linux ARM64 root, sans skip, dont UID/GID 1000 et un vrai exec Python
-inerte conservant SH. Les adapters PID1/cgroup du superviseur restent simulés.
-Les guards Studio, les anciennes voies de maintenance, le nouveau support
-factory et l'installation des services restent à intégrer et qualifier.
-Le [planner du bundle app](FACTORY-STUDIO-BUNDLE.md) calcule maintenant son
-contenu attendu avant installation depuis des entrées épinglées ; ses
-[29 tests synthétiques](validation/2026-10-11-factory-studio-bundle-plan-tests.json)
-passent dans la suite locale de 1 496 tests, avec 13 skips. Le nouvel installer matérialise ce plan sans exécuter le candidat :
-[54 tests Linux ARM64 root](validation/2026-10-11-factory-studio-bundle-install-tests.json)
-passent sans skip, avec workspace de fixture explicite et syscalls réels.
-Il ne fournit pas encore de wheel app réelle, de support complet ou de closure
-qualifiée. La première suite globale sous umask `077` a exposé une fixture
-ancienne dont le dossier `0755` devenait `0700` ; le test fixe maintenant ce
-mode explicitement. Le guard de production est inchangé et la suite repasse.
-Les deux installers acceptent maintenant un workspace commun strict :
-[102 tests Linux ARM64](validation/2026-10-11-factory-image-workspace-tests.json)
-passent sans skip, sur des fixtures déclarées. Le sélecteur de build factory et
-son support renouvelé restent à développer ; aucun profil TEST n'est modifié.
-Le [candidat Studio du parcours QR/Bluetooth](https://github.com/mehdi7129/inky-studio/pull/29)
-est une PR draft avec interfaces injectables ; son démarrage installé reste
-fermé. Il ne remplace pas le couple TEST actuel.
-La [politique d'heure proposée](BOOTSTRAP-TIME-POLICY.md) fixe les bornes,
-le délai et les preuves attendues ; l'admission partagée avec Studio et le
-service privilégié restent à développer. Ce document ne règle aucune horloge.
-Le raccord usine exige un mode explicite de l'unité
-`INKY_STUDIO_FACTORY_REQUIRED=1`, `INKY_STUDIO_DATA_DIR=/var/lib/inky-studio`
-et le marqueur root `/etc/inky-studio/factory-v1.json` :
-`{"version":1,"app_uid":1000,"data_dir":"/var/lib/inky-studio"}`.
-Le marqueur permanent ne crée aucune autorité : l'autorisation positive
-consommable, les credentials individuels et la disponibilité réelle du socket
-restent des prérequis distincts. Le profil TEST/c31 ne reçoit pas cet opt-in.
-Un raccord qui quitte avec `factory_runtime_pending` reste une étape de
-développement, pas un parcours utilisable ni un service à relancer en boucle.
+Le [service IPC-A](INITIALIZATION-IPC.md), la
+[permission factory consommable](FACTORY-AUTHORITY.md), le
+[superviseur](FACTORY-SUPERVISOR.md) et les
+[installers offline](FACTORY-STUDIO-BUNDLE.md) fournissent les composants à
+composer. Les rapports historiques restent conservés dans
+[validation/](validation/) et associés à leurs commits ; leurs preuves ne sont
+pas transférées automatiquement au nouveau candidat.
 
-Le [boot réseau observé](validation/2026-10-11-radio-readiness-network-observation.json)
-prouve l'accès SSH authentifié et une interface Wi-Fi connectée. Le préflight
-reste bloqué et l'application de cette SD reste masquée. Le couple pour ce
-premier essai reste backend `c31b13a` / iOS `1.0.0 (9)` ; les nouveaux travaux
-Studio ne remplacent pas silencieusement le payload installé.
+Le nouveau bundle reste à construire depuis des sources nettoyées : l'updater
+embarque encore une référence personnelle dans son dépôt par défaut. Studio
+corrige ce point dans un lot séparé ; les attributions de licence sont conservées
+et les sorties seront contrôlées. Les entrées de build privées restent préservées.
+Le couple TEST accompagné reste backend `c31b13a` / iOS `1.0.0 (9)` ; le bundle
+passif `a071f19` et le candidat source `5671ba4` ont leurs preuves distinctes.
+
+## Raccords B à décider et développer ensemble
+
+Studio reste l'autorité owner/epoch ; l'OS doit vérifier son admission réservée
+jusqu'à la fin réelle du worker et au drain. Receipt A, UID helper, verrou writer
+et graph ne suffisent pas. La [politique UTC](BOOTSTRAP-TIME-POLICY.md) reste
+un prototype initial : aucune autorité système nouvelle ne découle des calculs.
+
+La transition doit exposer un BLE normal limité pour vérifier le nouveau
+handshake strict **avant la clôture complète**, sans ouvrir pays/Wi-Fi/photo.
+Le runtime normal complet reprend ensuite le même ledger factory v2 sous clôture
+vérifiée. iOS doit promouvoir durablement la même identité, le même owner/token
+et `claimRequestID`, sans second claim. HTTPS confirme le cadre après connexion
+Wi-Fi ; il n'est pas un préalable au handshake BLE sans LAN. Après clôture,
+une heure invalide ou un certificat expiré nécessitent une réparation
+authentifiée séparée, sans rouvrir l'adoption ni le setter initial.
+
+Le pays d'utilisation est confirmé explicitement, puis observé sur la radio
+avant scan/autoconnect ; le premier parcours vise la France. Le choix coordonné
+pour les horaires est un fuseau **IANA persistant par cadre**, côté serveur et
+scheduler ; l'OS reste en UTC, sans setter timezone privilégié. Le mode `daily`
+utilise l'heure locale : migration des anciens horaires/fuseaux, défaut explicite,
+proposition iPhone confirmée, pin et mise à jour tzdata, cas DST ambigus/inexistants,
+`last_changed` et reprise au reboot restent à définir avant API/code. Le voyage
+du téléphone ne signifie pas que le cadre a changé de pays ou de fuseau.
 
 Le parcours TEST avec accès opérateur signé est un outil de qualification.
 Il ne constitue pas le premier démarrage destiné à l'utilisateur final.

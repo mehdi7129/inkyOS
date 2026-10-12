@@ -41,6 +41,7 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Métadonnées et plan réels | [34 wheels atteintes, 8 sources, 2 405 records attendus](docs/validation/2026-10-11-factory-studio-real-input-plan.json) pour Studio déclaré `a071f19`, outils `8102d08`. Ce rapport statique précède l’assemblage passif et ne qualifie pas le support, l’ABI ou le runtime. |
 | Données packagées NumPy | [152 tests Linux ARM64](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans skip, pour la politique commune du planner et des installers ; aucune exécution du candidat. |
 | Composition du premier boot | [63 tests Linux ARM64](docs/validation/2026-10-12-factory-graph.json), sans skip, du graph et du wrapper avec fixtures synthétiques. Composition encore inactive ; PID1, permissions installées et parcours sans LAN restent à qualifier. |
+| Calculs de l'heure initiale | [24 tests macOS](docs/validation/2026-10-12-bootstrap-time-policy.json), sans skip, de la conversion UTC, de l'expiration et de la tolérance du readback. Calculs purs inactifs ; admission et service privilégié encore à développer. |
 | Suite locale actuelle | [1 822 tests macOS à `d1aa915`](docs/validation/2026-10-12-factory-graph.json), sans échec, avec 16 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les

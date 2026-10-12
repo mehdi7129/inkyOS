@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-12",
+  "scope": "inactive-bootstrap-utc-pure-integer-fixtures",
+  "status": "PASS",
+  "source_commit": "718722121d1e93a004191c6143e7aa5a0a01405b",
+  "source_sha256": {
+    "staging/bootstrap/time-policy.py": "68bde4a4ff166b4b2f945bc8dbf8664750cee4f43e3315d8b3e624075a5c7148",
+    "tests/test_bootstrap_time_policy.py": "fc1433c4d3097cd3e2a904fe4e1452c299e3343510818f47452d4ee72c44d381"
+  },
+  "macos_targeted": {
+    "python": "3.13.15",
+    "isolated_python": true,
+    "site_disabled": true,
+    "bytecode_disabled": true,
+    "executions": 1,
+    "tests": 24,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "source_unchanged_after_execution": true
+  },
+  "root_source_review_passed": true,
+  "independent_source_review_passed": true,
+  "numeric_rules_verified": [
+    "Exact integers only; bool, float and integer subclasses refused.",
+    "UTC seconds in [1767225600, 4102444800), converted without float rounding.",
+    "Challenge expired at creation plus 30 seconds; receipt delay does not extend TTL.",
+    "Supplied observations require e0 <= e1 <= r0 <= r1.",
+    "The entire readback error interval must be inside inclusive +/-2 seconds."
+  ],
+  "module_reads_clock": false,
+  "module_sets_clock": false,
+  "privileged_setter_installed": false,
+  "admission_implemented": false,
+  "wire_or_installed_abi_defined": false,
+  "boot_or_timebase_origin_proven": false,
+  "current_or_independent_utc_proven": false,
+  "hardware_qualified": false,
+  "limits": [
+    "Inputs are supplied numeric fixtures; they do not prove real observation, BOOTTIME provenance or a common timebase.",
+    "Challenge uniqueness, authenticated owner, epoch, latch and reserved coordinator admission remain separate requirements.",
+    "No worker, journal, syscall, product transport or system service is implemented or executed by this lot.",
+    "No application, image, physical SD, Pi, Bluetooth, Wi-Fi, TLS or display qualification follows from these tests.",
+    "This public projection contains source hashes only; no private artifacts, paths, keys or network identities."
+  ]
+}
