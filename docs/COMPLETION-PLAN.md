@@ -64,6 +64,8 @@ du candidat Studio sont recensées dans
 | Nouvelle image TEST | [132 contrôles offline](validation/2026-10-11-system-prerequisites-access-image.json), [flash relu](validation/2026-10-11-system-prerequisites-sd-flash.json), [retour d'enrôlement : 35 + 10 contrôles PASS](validation/2026-10-11-prerequisites-enrollment-return.json) | Accès SSH du nouveau boot non confirmé, application arrêtée. Wi-Fi, Bluetooth et affichage restent à observer sur cette image. |
 | Image factory passive | [Assemblage ARM64 réel avec Studio déclaré `a071f19`](validation/2026-10-12-factory-passive-image.json) : 64 contrôles système et 4 contrôles layout réussis, bundle matérialisé et export relu | Services masqués, runtime/support non qualifiés, premier appairage non intégré. |
 | Graph et wrapper Phase A | [63 fixtures Linux ARM64 sans skip et suite globale de 1 822 tests Mac avec 16 skips ; syntaxe de 23 scripts Bash](validation/2026-10-12-factory-graph.json) | Composition inactive ; PID1, sandbox UID 1000, permissions, peers connectés, budgets Pi et parcours physique restent à qualifier. |
+| Permissions natives du graph | [Mesure fixture Linux ARM64 sous UID 1000 sans capabilities](FACTORY-GRAPH-NATIVE-PERMISSIONS.md), PIDFD et propriétés systemd disponibles | Sandbox installé, IPC réel, graph complet et identité du sender par message non qualifiés. |
+| Diagnostic des phases TEST | [74 tests ciblés et 1 852 tests globaux macOS](validation/2026-10-12-test-boot-phase-checkpoints.json), sans échec ; 16 skips dans la suite globale | Nouvelle source hors de la SD actuelle ; ancien marqueur `bind` insuffisant pour localiser un blocage. |
 | Politique UTC pure | [24 tests Mac PASS et deux revues source réussies](validation/2026-10-12-bootstrap-time-policy.json) | Arithmétique seule : setter, worker, journal et admission owner/latch absents ; origine BOOTTIME et heure actuelle non prouvées. |
 
 Le [service IPC-A](INITIALIZATION-IPC.md), la
@@ -74,16 +76,24 @@ composer. Les rapports historiques restent conservés dans
 [validation/](validation/) et associés à leurs commits ; leurs preuves ne sont
 pas transférées automatiquement au nouveau candidat.
 
-Le nouveau bundle reste à construire depuis des sources nettoyées : l'updater
-embarque encore une référence personnelle dans son dépôt par défaut. Studio
-corrige ce point dans un lot séparé ; les attributions de licence sont conservées
-et les sorties seront contrôlées. Les entrées de build privées restent préservées.
+Le candidat source Studio `eb11790` de la
+[PR #35](https://github.com/mehdi7129/inky-studio/pull/35), draft non fusionnée,
+retire la référence personnelle du dépôt par défaut de l'updater ; ses quatre
+contrôles CI sont réussis. Le nouveau bundle reste à construire et à contrôler.
+Le premier essai privé de build a été abandonné sur un défaut du superviseur macOS
+avant la construction applicative ; aucun nouveau bundle n'est admis.
+Les attributions de licence sont conservées et leur livraison reste à régler
+avant image ou redistribution. Les entrées de build privées restent préservées.
 Le couple TEST accompagné reste backend `c31b13a` / iOS `1.0.0 (9)` ; le bundle
 passif `a071f19` et le candidat source `5671ba4` ont leurs preuves distinctes.
 
 ## Raccords B à décider et développer ensemble
 
-Studio reste l'autorité owner/epoch ; l'OS doit vérifier son admission réservée
+Studio reste l'autorité owner/epoch ; le canal UTC direct coordinateur→OS est
+l'orientation convenue, avec réservation durable et arbitrage refus/engagement.
+Révocation pending, effet et quiescence restent distincts ; la v0 conserve une
+récupération explicite sur issue incertaine, sans retry du setter. Les interfaces
+injectables sont encore à spécifier ensemble. L'OS doit vérifier l'admission réservée
 jusqu'à la fin réelle du worker et au drain. Receipt A, UID helper, verrou writer
 et graph ne suffisent pas. La [politique UTC](BOOTSTRAP-TIME-POLICY.md) reste
 un prototype initial : aucune autorité système nouvelle ne découle des calculs.
@@ -103,7 +113,7 @@ pour les horaires est un fuseau **IANA persistant par cadre**, côté serveur et
 scheduler ; l'OS reste en UTC, sans setter timezone privilégié. Le mode `daily`
 utilise l'heure locale : migration des anciens horaires/fuseaux, défaut explicite,
 proposition iPhone confirmée, pin et mise à jour tzdata, cas DST ambigus/inexistants,
-`last_changed` et reprise au reboot restent à définir avant API/code. Le voyage
+`history.current().displayed_at` et reprise au reboot restent à définir avant API/code. Le voyage
 du téléphone ne signifie pas que le cadre a changé de pays ou de fuseau.
 
 Le parcours TEST avec accès opérateur signé est un outil de qualification.

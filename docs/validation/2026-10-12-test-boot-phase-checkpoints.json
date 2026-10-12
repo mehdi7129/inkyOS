@@ -1,0 +1,54 @@
+{
+  "bash_syntax": {
+    "failures": 0,
+    "scripts": 23
+  },
+  "date": "2026-10-12",
+  "hardware_qualified": false,
+  "independent_source_review_passed": true,
+  "limits": [
+    "Tests exercise source behavior and optional diagnostic failures; they do not prove physical boot, networking, Bluetooth or display.",
+    "The new enrolled diagnostic stage requires a newly prepared compatible offline reader; old reader pins and receipts are preserved.",
+    "Incomplete phase markers record observations only; diagnostic interruption, shared wait budget or pending journal state may leave an earlier marker.",
+    "Shared diagnostic child waits are limited to two seconds in total; uninterruptible kernel I/O is not bounded by this source policy.",
+    "The current TEST SD and its backend/iOS payload were not replaced by this source lot."
+  ],
+  "macos_full_suite": {
+    "bytecode_disabled": true,
+    "elapsed_seconds": 60.368,
+    "errors": 0,
+    "executions": 1,
+    "failures": 0,
+    "isolated_python": true,
+    "python": "3.13.15",
+    "site_disabled": true,
+    "skips": 16,
+    "tests": 1852
+  },
+  "macos_targeted": {
+    "boot_tests": 46,
+    "bytecode_disabled": true,
+    "enrollment_tests": 28,
+    "errors": 0,
+    "failures": 0,
+    "isolated_python": true,
+    "python": "3.13.15",
+    "site_disabled": true,
+    "skips": 0,
+    "tests": 74
+  },
+  "new_source_built_into_sd": false,
+  "old_receipts_reinterpreted": false,
+  "root_source_review_passed": true,
+  "schema_version": 1,
+  "scope": "test-access-boot-phase-checkpoint-source-tests",
+  "source_commit": "276a0b95b0bb7f15fe37778cac72ae2eb710d2d3",
+  "source_sha256": {
+    "docs/TEST-ACCESS-IMAGE.md": "a4484d15ce1e422928ba879a57f2ef18e77cdc02db87fe21ec018e62da867d28",
+    "scripts/test-access-boot.py": "79067a269641409ed6cd23ee3fb43b881c71c83677720a877220411ae9c6b28b",
+    "scripts/test-access-enrollment.py": "fbb396441cfe807e6b9f725ec3396f650f58eb84e3e69aad496d0c12e1c40bcc",
+    "tests/test_test_access_boot.py": "10f57041d73616fe6426893e6ab83ad5a94bba03cd1eb40f9ae708cce8feb740",
+    "tests/test_test_access_enrollment.py": "826d91823c31769b35aa835afff67d3692db7e2bba4a1064a428d5f0404cc300"
+  },
+  "status": "PASS"
+}

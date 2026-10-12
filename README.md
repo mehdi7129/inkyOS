@@ -41,8 +41,10 @@ Les validations logicielles restent distinctes des essais sur le cadre :
 | Métadonnées et plan réels | [34 wheels atteintes, 8 sources, 2 405 records attendus](docs/validation/2026-10-11-factory-studio-real-input-plan.json) pour Studio déclaré `a071f19`, outils `8102d08`. Ce rapport statique précède l’assemblage passif et ne qualifie pas le support, l’ABI ou le runtime. |
 | Données packagées NumPy | [152 tests Linux ARM64](docs/validation/2026-10-11-factory-studio-numpy-data-tests.json), sans skip, pour la politique commune du planner et des installers ; aucune exécution du candidat. |
 | Composition du premier boot | [63 tests Linux ARM64](docs/validation/2026-10-12-factory-graph.json), sans skip, du graph et du wrapper avec fixtures synthétiques. Composition encore inactive ; PID1, permissions installées et parcours sans LAN restent à qualifier. |
+| Permissions natives | [Mesure Linux ARM64 sous UID 1000 sans capabilities](docs/FACTORY-GRAPH-NATIVE-PERMISSIONS.md) : PIDFD, propriétés systemd typées et peer du bus observés. Sandbox, IPC réel et graph installé restent à qualifier. |
 | Calculs de l'heure initiale | [24 tests macOS](docs/validation/2026-10-12-bootstrap-time-policy.json), sans skip, de la conversion UTC, de l'expiration et de la tolérance du readback. Calculs purs inactifs ; admission et service privilégié encore à développer. |
-| Suite locale actuelle | [1 822 tests macOS à `d1aa915`](docs/validation/2026-10-12-factory-graph.json), sans échec, avec 16 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
+| Diagnostics TEST | [74 tests ciblés](docs/validation/2026-10-12-test-boot-phase-checkpoints.json), sans skip, des checkpoints avant les phases et avant l'arrêt d'enrôlement. Correction source, hors de la SD actuelle. |
+| Suite locale actuelle | [1 852 tests macOS à `276a0b9`](docs/validation/2026-10-12-test-boot-phase-checkpoints.json), sans échec, avec 16 skips explicites ; syntaxe des 23 scripts Bash vérifiée. Les rapports précédents restent associés à leurs commits épinglés. |
 
 Le [plan d’intégration factory](docs/FACTORY-IMAGE-INTEGRATION.md) recense les
 raccords OS/Studio avant une image utilisable. Le nouveau contrat QR/Bluetooth
@@ -57,8 +59,12 @@ réussie ne prouve pas encore leur fonctionnement sur le Pi.
 La [relecture du flash SD](docs/validation/2026-10-11-system-prerequisites-sd-flash.json)
 et le [retour d’enrôlement](docs/validation/2026-10-11-prerequisites-enrollment-return.json)
 sont vérifiés. La garde WLAN a ses 10 checks vrais ; le diagnostic de boot
-reste incomplet à `bind`, sans erreur enregistrée ni observation de connexion
-ou de Bluetooth. Au nouveau boot, le nom réseau ne se résout pas et aucun
+reste incomplet à `bind`, sans erreur enregistrée. Dans cette version, ce marqueur
+est écrit avant l'enrôlement : il peut subsister après sa réussite et ne localise
+pas un blocage à cette étape. La [correction des checkpoints](docs/TEST-ACCESS-IMAGE.md)
+est développée et testée, sans remplacement de la SD actuelle. Aucun diagnostic
+de cette SD ne confirme encore la connexion ou le Bluetooth.
+Au nouveau boot, le nom réseau ne se résout pas et aucun
 échange SSH authentifié n’est confirmé. Cela ne permet pas de conclure à un
 problème de boot ou de mot de passe Wi-Fi. Wi-Fi, Bluetooth et application
 restent à tester sur cette nouvelle image.

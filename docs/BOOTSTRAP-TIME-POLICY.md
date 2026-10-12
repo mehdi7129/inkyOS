@@ -78,14 +78,27 @@ privilégié n'est livré par ce lot.
 
 ## Admission : préalable indépendant du payload
 
-Le futur service ne reconnaît que l’UID kernel du helper installé sur son canal
-local réservé ; l’app, root comme client et les autres UIDs sont refusés. Le
-helper vérifie l’UID root du serveur. Cela authentifie le processus local,
-**pas** le consentement du téléphone ni l’owner. Un ID, un hash, un challenge ou
+L'orientation convenue avec Studio utilise un canal direct entre son coordinateur
+et le futur exécuteur UTC ; le helper conserve sa mission réseau. Cela remplace
+explicitement la proposition initiale qui n'admettait que le helper comme client.
+L'exécuteur doit vérifier l'UID kernel attendu **et** le MainPID/InvocationID
+courant du coordinateur sur le socket réellement connecté ; le coordinateur
+vérifie symétriquement le serveur privilégié attendu. UID seul, root arbitraire,
+helper ou enfant de la même unité ne donnent aucune admission UTC.
+
+Cette nouvelle politique de clients n'est ni implémentée ni installée. Les guards
+IPC-A existants ne sont pas réutilisables tels quels pour UTC. PIDFD et propriétés
+d'unité ne prouvent pas seuls le code courant après execve. Le coordinateur doit
+posséder son endpoint de contrôle sans le transmettre ; les enfants ferment
+explicitement ces FDs, car CLOEXEC ne couvre pas l'héritage au fork.
+SO_PEERPIDFD identifie le peer connecté, pas l'auteur de chaque message si le FD
+est hérité ou passé. Sandboxes, endpoints et discipline des processus restent
+à qualifier. Un ID, un hash, un challenge ou
 `authorized: true` fourni par l’appelant ne constitue jamais une permission.
 
-Studio doit vérifier l’owner authentifié et non révoqué contre son ledger, son
-epoch actuel, le premier claim durable, l’intent/frame/SPKI et le latch initial
+Studio reste seul responsable de l'owner et de l'epoch. Il doit vérifier le claim
+factory gagnant durable **et** son authentification actuelle, l'absence de
+révocation, l'epoch courant, l’intent/frame/SPKI et le latch initial
 explicitement ouvert. La même barrière doit exclure clôture, révocation, rotation
 d’epoch, admission pays/Wi-Fi/photo et autre correction pendant l’effet. Le
 refresh d’accueil/QR doit avoir terminé sans interruption ni second propriétaire
@@ -94,8 +107,20 @@ SPI. Un mutex BLE seul ou l’absence d’UI ne satisfait pas cette exigence.
 L’OS doit pouvoir vérifier que cette admission a été obtenue du coordinateur
 authentifié et demeure réservée sous la barrière commune jusqu’à la fin réelle
 du worker. Il ne relit pas arbitrairement une DB de l’app et ne fait pas confiance
-à une copie de champs fournie par celle-ci. **Le transport de cette preuve, sa
-révocation et la cohérence avec le latch Studio sont encore des bloqueurs.**
+à une copie de champs fournie par celle-ci. Une réservation durable conserve
+l'exclusion, sans devenir une permission de tenter le setter. Une décision finale
+unique ordonne refus ou engagement d'une tentative : une révocation pending qui
+la précède impose le refus ; après engagement, elle ferme les nouvelles admissions
+et attend le résultat conservateur et la quiescence avant la révocation effective.
+Un engagement ne prouve ni le syscall ni sa réussite. Le worker revalide fraîcheur,
+peer et réservation après les attentes/fsync, immédiatement avant l'effet.
+
+La lease et le registre de lifecycle survivent à l'annulation de la coroutine
+cliente ; aucune transaction SQLite ne reste ouverte pendant l'attente OS.
+Décès du parent ou perte du canal ne libèrent pas un ancien exécutant non prouvé
+terminé. Le gagnant révoqué ne transfère pas son scope initial à un autre owner.
+**L'ordre précis entre engagement et journal, les interfaces et l'admission native
+restent à développer et revoir ensemble avant effet actif.**
 Le prototype pur peut injecter un vérificateur de fixture ; en production,
 aucune preuve disponible ou vérification incertaine signifie refus. Aucun
 nom de méthode supplémentaire ni format de jeton d’admission n’est figé ici.
@@ -160,6 +185,13 @@ clôture ne peut franchir la barrière. Après crash du parent, la reprise exige
 aussi la preuve que son ancien groupe d’exécution ne contient plus d’exécutant ;
 sinon récupération explicite. Une opération incertaine doit être résolue avant
 toute nouvelle correction ; un nouvel ID n’efface pas ce blocage.
+
+Le choix v0 coordonné conserve une récupération explicite sur `uncertain`, sans
+retry du setter. Une bonne heure observée plus tard ne vérifie pas l'ancien effet
+et ne débloque pas un certificat ou la clôture. Une éventuelle continuation sans
+setter exigerait une preuve actuelle et un adapter certificat distincts ; elle
+n'est pas livrée par cette politique. La réparation owner-only après clôture reste
+également un contrat séparé.
 
 Le composant ne demande aucune mutation NTP et ne prétend donc pas avoir
 « restauré NTP ». Le service NTP peut rester actif et corriger l’heure lui-même.
