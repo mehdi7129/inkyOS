@@ -22,7 +22,7 @@ BASE = "/usr/local/lib/inkyos/"
 LEGACY = BASE + "test-enrollment-firstboot.py"
 LEGACY_SHA256 = "081bac2c04d4e72a6e74a365664b72941fa4d1e84d1ccc32cf0dc25d9e8a337a"
 ENROLLMENT = BASE + "test-access-enrollment.py"
-ENROLLMENT_SHA256 = "72e7b5e69d7cdcf6d452716135b70773325caa65fb4df6d8939c58a63dea4387"
+ENROLLMENT_SHA256 = "fbb396441cfe807e6b9f725ec3396f650f58eb84e3e69aad496d0c12e1c40bcc"
 MANIFEST = "/usr/local/share/inkyos/test-access-manifest.json"
 PROFILE = "/etc/inkyos-test-enrollment/profile.json"
 STATE = "/var/lib/inkyos-test-enrollment/state.json"
@@ -31,7 +31,7 @@ RUNTIME = "/run/inkyos-test-access"
 READY = RUNTIME + "/ssh-ready.json"
 DIAGNOSTICS = "/var/lib/inkyos-test-diagnostics"
 DIAGNOSTIC_LIMIT = 8192
-DIAGNOSTIC_TIMEOUT = 2.0
+DIAGNOSTIC_TIMEOUT = 2.0  # Shared wait allowance for all boot checkpoints.
 # Only limit the optional Bluetooth phase. Other boot paths retain the unit's
 # existing 180-second timeout; this is not a global Python boot deadline.
 # Leave 30 seconds for the connection probe (20), two ready observations (4),
@@ -75,7 +75,7 @@ BLUETOOTH_ERRORS = {"target_unverified", "controller_unavailable", "controller_c
     "runtime_timeout", "observation_unavailable", "invalid_arguments"}
 BLUETOOTH_CHECKS = ("target_verified", "controller_verified", "not_hard_blocked", "bluez_available",
     "unblock_acknowledged", "unblocked", "power_acknowledged", "powered", "controller_unchanged")
-STAGES = {"bind", "enroll", "import", "connect", "bluetooth", "operator_config", "publish_ready", "verify_ready", "start_ssh", "cleanup", "complete"}
+STAGES = {"bind", "enroll", "enrolled", "import", "connect", "bluetooth", "operator_config", "publish_ready", "verify_ready", "start_ssh", "cleanup", "complete"}
 
 
 def closed_observation(value, booleans, errors, *, checks=(), enums=None):
@@ -237,7 +237,7 @@ def _persist_diagnostic(name, payload):
                 pass
 
 
-def persist_diagnostic(name, payload):
+def persist_diagnostic(name, payload, *, timeout=None):
     """Bound the parent's wait for optional storage, including a stuck fsync.
 
     SIGKILL cannot immediately stop kernel I/O in uninterruptible sleep. Such
@@ -246,9 +246,12 @@ def persist_diagnostic(name, payload):
     """
     if not (sys.platform.startswith("linux") and platform.machine() == "aarch64" and os.getuid() == os.geteuid() == 0):
         return False
+    timeout = DIAGNOSTIC_TIMEOUT if timeout is None else timeout
+    if type(timeout) not in {int, float} or not 0 < timeout <= DIAGNOSTIC_TIMEOUT:
+        return False
     child = None
     try:
-        deadline = time.monotonic() + DIAGNOSTIC_TIMEOUT
+        deadline = time.monotonic() + timeout
         child = os.fork()
         if child == 0:
             code = 1
@@ -346,9 +349,18 @@ class NativeAdapter:
         self.files = self.connection = None
         self.snapshots = {}
         self.started = time.monotonic()
+        self.diagnostic_remaining = DIAGNOSTIC_TIMEOUT
 
     def save_diagnostic(self, result, **observations):
-        return persist_diagnostic("last-boot.json", boot_diagnostic(result, **observations))
+        started = time.monotonic()
+        try:
+            return persist_diagnostic("last-boot.json", boot_diagnostic(result, **observations),
+                                      timeout=self.diagnostic_remaining)
+        finally:
+            # Charge actual parent wait, not the elapsed boot time: late
+            # checkpoints can still use the same unspent two-second allowance.
+            elapsed = max(0.0, time.monotonic() - started)
+            self.diagnostic_remaining = max(0.0, self.diagnostic_remaining - elapsed)
 
     def bind(self):
         require(sys.platform.startswith("linux") and platform.machine() == "aarch64"
@@ -403,8 +415,9 @@ class NativeAdapter:
         return all(self.files.read(path, mode=mode, private=private, limit=65536) == raw
                    for path, (raw, mode, private) in self.snapshots.items())
 
-    def enroll(self):
-        return self.enrollment["enroll"](self.enrollment["NativeAdapter"](), live=True)
+    def enroll(self, *, on_enrolled=None):
+        return self.enrollment["enroll"](self.enrollment["NativeAdapter"](), live=True,
+                                         on_enrolled=on_enrolled)
 
     def import_cache(self):
         module = self.module("import")
@@ -571,7 +584,15 @@ def boot(adapter, *, verify_ssh=False):
         except Exception:
             pass
 
-    save_diagnostic(False)
+    def checkpoint(next_stage):
+        nonlocal stage
+        stage = next_stage
+        save_diagnostic(False)
+
+    def enrolled_checkpoint():
+        checkpoint("enrolled")
+
+    checkpoint("bind")
     try:
         phase = adapter.bind()
         require(phase in {"fresh", "enrolled"}, "enrollment_invalid")
@@ -580,28 +601,28 @@ def boot(adapter, *, verify_ssh=False):
             require(phase == "enrolled" and adapter.verify_ready() is True, "ssh_not_ready")
             result.update(passed=True, phase="ssh-condition-passed")
         elif phase == "fresh":
-            stage = "enroll"
-            enrolled = adapter.enroll()
+            checkpoint("enroll")
+            enrolled = adapter.enroll(on_enrolled=enrolled_checkpoint)
             result["poweroff_requested"] = enrolled.get("poweroff_requested") is True
             require(enrolled.get("passed") is True, "enrollment_failed")
             result.update(passed=True, phase="enrolled-stop-requested")
         else:
-            stage = "import"
+            checkpoint("import")
             imported = adapter.import_cache()
             require(imported.get("passed") is True, "import_failed")
             connecting = True
-            stage = "connect"
+            checkpoint("connect")
             connected = adapter.connect()
             require(connected.get("passed") is True, "connection_failed")
-            stage = "bluetooth"
+            checkpoint("bluetooth")
             bluetooth = adapter.prepare_bluetooth()
-            stage = "operator_config"
+            checkpoint("operator_config")
             require(adapter.operator_config() is True, "operator_config_invalid")
-            stage = "publish_ready"
+            checkpoint("publish_ready")
             require(adapter.publish_ready() is True, "ssh_not_ready")
-            stage = "verify_ready"
+            checkpoint("verify_ready")
             require(adapter.verify_ready() is True, "ssh_not_ready")
-            stage = "start_ssh"
+            checkpoint("start_ssh")
             require(adapter.start_ssh() is True, "ssh_start_failed")
             result.update(passed=True, phase="ssh-start-requested", ssh_start_requested=True)
         result["live_evidence"] = type(adapter) is NativeAdapter

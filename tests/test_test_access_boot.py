@@ -45,8 +45,11 @@ class Fixture:
     def bind(self):
         return self.call("bind", self.phase)
 
-    def enroll(self):
-        return self.call("enroll", {"passed": True, "poweroff_requested": True})
+    def enroll(self, *, on_enrolled=None):
+        result = self.call("enroll", {"passed": True, "poweroff_requested": True})
+        if on_enrolled is not None:
+            on_enrolled()
+        return result
 
     def import_cache(self):
         return self.call("import", {"passed": True})
@@ -198,9 +201,10 @@ class BootDiagnosticSequenceTests(unittest.TestCase):
         fixture = DiagnosticFixture()
         result = boot.boot(fixture)
         self.assertTrue(result["passed"])
-        self.assertEqual(fixture.calls, ["diagnostic", "bind", "import", "connect", "bluetooth", "config", "publish",
-                                         "verify", "ssh", "close", "diagnostic"])
-        started, final = fixture.records
+        self.assertEqual(fixture.calls, ["diagnostic", "bind", "diagnostic", "import", "diagnostic", "connect",
+                                        "diagnostic", "bluetooth", "diagnostic", "config", "diagnostic", "publish",
+                                        "diagnostic", "verify", "diagnostic", "ssh", "close", "diagnostic"])
+        started, final = fixture.records[0], fixture.records[-1]
         self.assertFalse(started["complete"])
         self.assertEqual(started["stage"], "bind")
         self.assertIsNone(started["imported"])
@@ -211,6 +215,25 @@ class BootDiagnosticSequenceTests(unittest.TestCase):
         self.assertEqual(final["result"], result)
         self.assertEqual(final["imported"], fixture.import_result)
         self.assertEqual(final["connected"], fixture.connect_result)
+        self.assertEqual([item["stage"] for item in fixture.records],
+                         ["bind", "import", "connect", "bluetooth", "operator_config", "publish_ready",
+                          "verify_ready", "start_ssh", "complete"])
+        self.assertTrue(all(item["complete"] is False for item in fixture.records[:-1]))
+
+    def test_phase_checkpoint_survives_interruption_before_worker_returns(self):
+        for method, stage in (("bind", "bind"), ("connect", "connect"), ("operator_config", "operator_config")):
+            fixture = DiagnosticFixture()
+            reached = []
+            def interrupted():
+                reached.append(copy.deepcopy(fixture.records[-1]))
+                raise KeyboardInterrupt
+            setattr(fixture, method, interrupted)
+            with self.assertRaises(KeyboardInterrupt):
+                boot.boot(fixture)
+            self.assertEqual(len(reached), 1)
+            self.assertEqual(reached[0]["stage"], stage)
+            self.assertFalse(reached[0]["complete"])
+            self.assertFalse(reached[0]["result"]["passed"])
 
     def test_failure_stage_retained_after_cleanup_and_before_final_report(self):
         sequence = [("bind", "bind"), ("import", "import"), ("connect", "connect"),
@@ -238,12 +261,19 @@ class BootDiagnosticSequenceTests(unittest.TestCase):
         for fail in (None, "enroll"):
             fixture = DiagnosticFixture("fresh", fail=fail)
             result = boot.boot(fixture)
-            self.assertEqual(fixture.calls, ["diagnostic", "bind", "enroll", "close", "diagnostic"])
+            self.assertEqual(fixture.calls, ["diagnostic", "bind", "diagnostic", "enroll"] +
+                             ([] if fail else ["diagnostic"]) + ["close", "diagnostic"])
             final = fixture.records[-1]
             self.assertEqual(final["stage"], "complete" if fail is None else "enroll")
             self.assertEqual(final["result"], result)
             self.assertIsNone(final["imported"])
             self.assertIsNone(final["connected"])
+            if fail is None:
+                committed = fixture.records[-2]
+                self.assertEqual(committed["stage"], "enrolled")
+                self.assertFalse(committed["complete"])
+                self.assertFalse(committed["result"]["passed"])
+                self.assertFalse(committed["result"]["poweroff_requested"])
 
     def test_failed_import_and_connection_receipts_preserved_for_projection(self):
         for failed in ("import", "connect"):
@@ -288,7 +318,7 @@ class BootDiagnosticSequenceTests(unittest.TestCase):
             expected = boot.boot(Fixture(phase, fail=failure))
             fixture = DiagnosticFixture(phase, fail=failure, writer_failure=True)
             self.assertEqual(boot.boot(fixture), expected)
-            self.assertEqual(len(fixture.records), 2)
+            self.assertGreaterEqual(len(fixture.records), 3)
             self.assertEqual(fixture.calls[-1], "diagnostic")
         fixture = Fixture()
         fixture.save_diagnostic = "PRIVATE_NOT_CALLABLE"
@@ -683,8 +713,6 @@ class DiagnosticPersistenceTests(unittest.TestCase):
             self.assertFalse(pending, "fixture children were not reaped after SIGKILL")
         self.addCleanup(reap_fixture_children)
         fixture = Fixture()
-        fixture.save_diagnostic = lambda result, **observations: boot.persist_diagnostic(
-            "last-boot.json", boot.boot_diagnostic(result, **observations))
         bind_times = []
         original_bind = fixture.bind
         def bind():
@@ -695,6 +723,8 @@ class DiagnosticPersistenceTests(unittest.TestCase):
                 patch.object(boot.os, "getuid", return_value=0), patch.object(boot.os, "geteuid", return_value=0), \
                 patch.object(boot, "DIAGNOSTIC_TIMEOUT", 0.08), patch.object(boot.os, "fork", side_effect=fork), \
                 patch.object(boot, "_persist_diagnostic", side_effect=slow_writer):
+            native = boot.NativeAdapter()
+            fixture.save_diagnostic = native.save_diagnostic
             started = time.monotonic()
             result = boot.boot(fixture)
             elapsed = time.monotonic() - started
@@ -702,10 +732,27 @@ class DiagnosticPersistenceTests(unittest.TestCase):
         self.assertEqual(fixture.calls, ["bind", "import", "connect", "bluetooth", "config", "publish", "verify", "ssh", "close"])
         self.assertLess(bind_times[0] - started, 0.75)
         self.assertLess(elapsed, 0.75)
-        self.assertEqual(len(children), 2)
+        self.assertEqual(len(children), 1)
         self.assertEqual(partial.read_bytes(), b"PRIVATE_PARTIAL_FIXTURE")
         self.assertFalse(late.exists())
         self.assertFalse((self.directory / "last-boot.json").exists())
+
+    def test_native_checkpoints_share_wait_allowance_even_after_late_phases(self):
+        native = boot.NativeAdapter()
+        with patch.object(boot, "persist_diagnostic", return_value=False) as persist, \
+                patch.object(boot.time, "monotonic", side_effect=[10.0, 10.5, 110.0, 111.5, 112.0, 112.0]):
+            for stage in ("bind", "connect", "complete"):
+                native.save_diagnostic(self.payload["boot"], complete=False, stage=stage)
+        self.assertEqual([call.kwargs["timeout"] for call in persist.call_args_list], [2.0, 1.5, 0.0])
+        self.assertEqual(native.diagnostic_remaining, 0.0)
+
+    def test_exhausted_or_invalid_wait_allowance_never_forks(self):
+        with patch.object(boot.sys, "platform", "linux"), patch.object(boot.platform, "machine", return_value="aarch64"), \
+                patch.object(boot.os, "getuid", return_value=0), patch.object(boot.os, "geteuid", return_value=0), \
+                patch.object(boot.os, "fork") as fork:
+            for timeout in (0, -1, True, float("nan"), float("inf"), boot.DIAGNOSTIC_TIMEOUT + 1):
+                self.assertFalse(boot.persist_diagnostic("last-boot.json", self.payload, timeout=timeout))
+        fork.assert_not_called()
 
     def test_timeout_kills_child_and_uses_only_nonblocking_wait(self):
         with patch.object(boot.sys, "platform", "linux"), patch.object(boot.platform, "machine", return_value="aarch64"), \

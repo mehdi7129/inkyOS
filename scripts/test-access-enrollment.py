@@ -273,7 +273,7 @@ class NativeAdapter:
         return self.legacy.NativeAdapter.close(self)
 
 
-def enroll(adapter=None, *, live=False):
+def enroll(adapter=None, *, live=False, on_enrolled=None):
     summary = {"schema_version": 2, "kind": "test-enrollment-runtime", "live_selected": live is True,
                "live_evidence": False, "state": "blocked", "report_written": False,
                "poweroff_requested": False, "passed": False, "error": None,
@@ -318,6 +318,13 @@ def enroll(adapter=None, *, live=False):
         summary["report_written"] = True
         adapter.write_state("enrolled", profile_hash)
         summary.update(state="enrolled", passed=True, live_evidence=native)
+        # Optional internal observation after both durable artifacts, before
+        # the shutdown request. It neither grants access nor changes enrollment.
+        if callable(on_enrolled):
+            try:
+                on_enrolled()
+            except Exception:
+                pass
     except Exception as error:
         summary["error"] = str(error) if type(error) is EnrollmentError and str(error) in ERRORS else "enrollment_failed"
         if own_state or getattr(adapter, "state_stamp", None) is not None:

@@ -209,6 +209,24 @@ reste au marqueur initial incomplet `bind`, sans erreur enregistrée. Il ne
 localise donc aucune panne et ne contredit pas l’enrôlement vérifié ; un arrêt
 pendant le premier boot peut interrompre l’écriture finale du diagnostic.
 
+Le correctif source du 12 octobre écrit un checkpoint incomplet avant chaque
+phase, en partageant une seule réserve de deux secondes d’attente pour tous
+les diagnostics du boot. Après la publication durable du rapport et de l’état
+`enrolled`, un callback interne facultatif peut enregistrer `stage=enrolled`
+avant la demande d’arrêt. Ce checkpoint conserve `complete=false`, le boot
+encore bloqué et `poweroff_requested=false` ; il ne prouve ni fin du boot ni
+arrêt physique. Une erreur d’écriture reste sans effet sur les décisions
+d’enrôlement, radio, authentification et pays, ainsi que sur leurs budgets
+configurés. Les attentes diagnostiques restent coopératives : un enfant bloqué
+en I/O noyau peut survivre à SIGKILL et relève du nettoyage de l’unité.
+Les anciens reçus gardent leur sens et un checkpoint, même accompagné de son
+`boot_id` privé, ne prouve pas qu’il provient du dernier démarrage. Ce correctif
+source n’a pas encore été construit ni qualifié sur la SD actuelle. Le nouveau
+stage fermé `enrolled` nécessite un lecteur préparé avec la policy de cette
+source ; les anciennes policies épinglées continuent à lire les anciens reçus
+et rejettent cet enum plutôt que de l’interpréter approximativement. L’acquisition
+compacte ne valide pas elle-même le contenu de ces deux diagnostics.
+
 Le [nouveau retour du 11 octobre](validation/2026-10-11-nm-diagnostic-enrollment-return.json)
 utilise une acquisition différente : la SD est ouverte en lecture seule et le
 dérivé `e2image` est transmis directement à la VM. Aucune copie intégrale de

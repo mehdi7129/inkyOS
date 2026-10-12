@@ -491,7 +491,7 @@ class LegacyPrimitivesTests(RootfsCase):
         self.assertIn(runtime.HOST_KEY_PATH + ".pub", adapter.files.reads)
         self.assertTrue(any(path.endswith("ssh_host_ed25519_key.pub") for path in opened))
 
-    def test_native_shutdown_acknowledgement_does_not_claim_physical_shutdown(self):
+    def native_shutdown_fixture(self):
         fixture = self.adapter()
         native = runtime.NativeAdapter.__new__(runtime.NativeAdapter)
         native.__dict__ = fixture.__dict__
@@ -501,6 +501,10 @@ class LegacyPrimitivesTests(RootfsCase):
         # fixture callbacks, and observers return the same closed blocked data.
         native.observations = lambda: {kind: {"status": "blocked", "live_evidence": False, "data": None}
                                        for kind in ("panel", "radio")}
+        return native
+
+    def test_native_shutdown_acknowledgement_does_not_claim_physical_shutdown(self):
+        native = self.native_shutdown_fixture()
         calls = []
         native.sync = lambda: calls.append("sync")
         native.poweroff = lambda: calls.append("poweroff") or True
@@ -510,6 +514,41 @@ class LegacyPrimitivesTests(RootfsCase):
         self.assertEqual(calls, ["sync", "poweroff"])
         self.assertNotIn("poweroff_completed", result)
         self.assertFalse(result["hardware_qualified"])
+
+    def check_enrolled_callback_order(self, *, fail):
+        native = self.native_shutdown_fixture()
+        native.sync = lambda: native.calls.append("sync")
+        native.poweroff = lambda: native.calls.append("poweroff") or True
+        def checkpoint():
+            state = json.loads((self.root / runtime.STATE_PATH[1:]).read_bytes())
+            report = json.loads((self.root / runtime.PUBLIC_REPORT_PATH[1:]).read_bytes())
+            self.assertEqual(state["state"], "enrolled")
+            self.assertEqual(report["state"], "enrolled")
+            native.calls.append("enrolled-checkpoint")
+            if fail:
+                raise OSError("PRIVATE_DIAGNOSTIC_FAILURE")
+        result = runtime.enroll(native, live=True, on_enrolled=checkpoint)
+        self.assertTrue(result["passed"], result)
+        self.assertTrue(result["poweroff_requested"])
+        self.assertEqual(native.calls[-5:], ["report", "state:enrolled", "enrolled-checkpoint", "sync", "poweroff"])
+        self.assertEqual(result["state"], "enrolled")
+        self.assertNotIn("poweroff_completed", result)
+        self.assertNotIn("PRIVATE_DIAGNOSTIC_FAILURE", json.dumps(result))
+
+    def test_enrolled_callback_follows_durable_artifacts_before_shutdown(self):
+        self.check_enrolled_callback_order(fail=False)
+
+    def test_enrolled_callback_failure_does_not_change_shutdown_or_result(self):
+        self.check_enrolled_callback_order(fail=True)
+
+    def test_enrolled_callback_not_called_when_report_was_not_written(self):
+        adapter = self.adapter()
+        adapter.failure = "report"
+        callback = mock.Mock()
+        result = runtime.enroll(adapter, live=True, on_enrolled=callback)
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["state"], "review-required")
+        callback.assert_not_called()
 
 
 class BootstrapMutationTests(RootfsCase):
