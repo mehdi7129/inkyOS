@@ -49,9 +49,9 @@ class WriterFilesTests(unittest.TestCase):
         self.bundle = {'schema_version': 1, 'kind': 'factory-studio-bundle-manifest',
                        'studio_commit': verification.STUDIO_COMMIT,
                        'records': {verification.HELPER_SOURCE:
-                                   guards.planner.exporter.file_record(self.helper)}}
+                                   guards.planner.exporter.file_record(self.helper, '0555')}}
         self.write_bundle()
-        self.write(self.rootfs / verification.BUNDLE / verification.HELPER_SOURCE, self.helper)
+        self.write(self.rootfs / verification.BUNDLE / verification.HELPER_SOURCE, self.helper, 0o555)
         self.inputs = {'schema_version': 1, 'kind': 'factory-writer-file-inputs',
                        'os_commit': 'a' * 40, 'studio_commit': verification.STUDIO_COMMIT,
                        'os_source_sha256': {name: verification.sha(raw) for name, raw in self.payload.items()},
@@ -222,8 +222,9 @@ class WriterFilesTests(unittest.TestCase):
 
     def test_helper_bytes_record_bundle_copy_and_external_pin_refuse(self):
         path = self.rootfs / verification.BUNDLE / verification.HELPER_SOURCE
-        path.write_bytes(b'changed')
-        self.refused_without_write(self.install); path.write_bytes(self.helper)
+        path.chmod(0o644); path.write_bytes(b'changed'); path.chmod(0o555)
+        self.refused_without_write(self.install)
+        path.chmod(0o644); path.write_bytes(self.helper); path.chmod(0o555)
         self.bundle['records'][verification.HELPER_SOURCE]['sha256'] = '0' * 64
         self.write_bundle()
         self.inputs['studio_bundle_manifest_sha256'] = verification.sha(verification.canonical(self.bundle))
@@ -412,8 +413,8 @@ class WriterFilesTests(unittest.TestCase):
 
     def test_helper_source_mode_and_boolean_record_metadata_refuse(self):
         path = self.rootfs / verification.BUNDLE / verification.HELPER_SOURCE
-        path.chmod(0o555)
-        self.refused_without_write(self.install); path.chmod(0o644)
+        path.chmod(0o644)
+        self.refused_without_write(self.install); path.chmod(0o555)
         self.bundle['records'][verification.HELPER_SOURCE]['uid'] = False
         self.write_bundle()
         self.inputs['studio_bundle_manifest_sha256'] = verification.sha(verification.canonical(self.bundle))

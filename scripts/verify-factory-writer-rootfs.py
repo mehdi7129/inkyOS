@@ -266,12 +266,12 @@ def _load_payload(environment, input_sha256):
             and 0 < len(bundle['records']) <= 100000, 'invalid_bundle_manifest')
     require(environment.read(BUNDLE + '/manifest.json', guards.MAX_MANIFEST, mode='0644') == manifest,
             'installed_bundle_manifest_mismatch')
-    helper = environment.read(BUNDLE + '/' + HELPER_SOURCE, mode='0644')
+    helper = environment.read(BUNDLE + '/' + HELPER_SOURCE, mode='0555')
     helper_record = bundle['records'].get(HELPER_SOURCE)
     require(sha(helper) == value['helper_source_sha256']
             and type(helper_record) is dict
             and all(type(helper_record.get(field)) is int for field in ('uid', 'gid', 'size_bytes'))
-            and helper_record == guards.planner.exporter.file_record(helper, '0644'),
+            and helper_record == guards.planner.exporter.file_record(helper, '0555'),
             'helper_provenance_mismatch')
     source_payload = _exact_sources(environment, pins)
     payload = {SOURCE_MAP[name][0]: (source_payload[name], SOURCE_MAP[name][1]) for name in SOURCE_MAP}

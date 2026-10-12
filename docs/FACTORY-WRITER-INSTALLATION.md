@@ -46,7 +46,7 @@ The source hashes and reviewed manifest hash are the byte authority.
 `os_commit` is a caller declaration, not independent Git verification. The bundle
 manifest uses the existing planner schema: `schema_version`, `kind`,
 `studio_commit`, `records`. Its installed `manifest.json` must be byte-identical
-to the external plan. The helper's bytes, single-link root ownership, mode `0644`,
+to the external plan. The helper's bytes, single-link root ownership, mode `0555`,
 empty xattrs and exact source record must agree. Inspecting this record does not
 qualify the complete Studio bundle or its dependency closure.
 
