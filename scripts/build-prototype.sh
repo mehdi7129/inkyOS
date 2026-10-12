@@ -16,6 +16,10 @@ factory_manifest=
 factory_sha256=
 factory_sources=
 factory_wheels=
+factory_bundle=
+writer_manifest=
+writer_sha256=
+writer_sources=
 if (( $# )); then
   while (( $# )); do
     [[ $# -ge 2 && -n $2 ]] || { echo 'Every prototype option requires a nonempty value.' >&2; exit 2; }
@@ -25,6 +29,10 @@ if (( $# )); then
       --studio-input-sha256) [[ -z $factory_sha256 ]] || exit 2; factory_sha256=$2 ;;
       --studio-sources-dir) [[ -z $factory_sources ]] || exit 2; factory_sources=$2 ;;
       --studio-wheels-dir) [[ -z $factory_wheels ]] || exit 2; factory_wheels=$2 ;;
+      --studio-bundle-manifest) [[ -z $factory_bundle ]] || exit 2; factory_bundle=$2 ;;
+      --writer-input-manifest) [[ -z $writer_manifest ]] || exit 2; writer_manifest=$2 ;;
+      --writer-input-sha256) [[ -z $writer_sha256 ]] || exit 2; writer_sha256=$2 ;;
+      --writer-sources-dir) [[ -z $writer_sources ]] || exit 2; writer_sources=$2 ;;
       --application-manifest) [[ -z $application_manifest ]] || exit 2; application_manifest=$2 ;;
       --application-sha256) [[ -z $application_sha256 ]] || exit 2; application_sha256=$2 ;;
       --assets-dir) [[ -z $application_assets ]] || exit 2; application_assets=$2 ;;
@@ -33,13 +41,31 @@ if (( $# )); then
     shift 2
   done
 fi
-[[ $profile == system || $profile == factory-passive ]] || { echo 'Unknown build profile.' >&2; exit 2; }
+[[ $profile == system || $profile == factory-passive || $profile == factory-assembly ]] || { echo 'Unknown build profile.' >&2; exit 2; }
+if [[ $profile != factory-assembly ]]; then
+  [[ -z $factory_bundle && -z $writer_manifest && -z $writer_sha256 && -z $writer_sources ]] || {
+    echo 'Writer inputs require the explicit factory-assembly profile.' >&2; exit 2;
+  }
+fi
 if [[ $profile == factory-passive ]]; then
   [[ -n $factory_manifest && -n $factory_sha256 && -n $factory_sources && -n $factory_wheels &&
      -z $application_manifest && -z $application_sha256 && -z $application_assets ]] || {
     echo 'Factory-passive requires four pinned Studio inputs and forbids legacy application options.' >&2; exit 2;
   }
   [[ $factory_sha256 =~ ^[0-9a-f]{64}$ ]] || { echo 'Factory-passive requires a lowercase SHA-256 pin.' >&2; exit 2; }
+elif [[ $profile == factory-assembly ]]; then
+  [[ -n $factory_manifest && -n $factory_sha256 && -n $factory_sources && -n $factory_wheels &&
+     -n $factory_bundle && -n $writer_manifest && -n $writer_sha256 && -n $writer_sources &&
+     -z $application_manifest && -z $application_sha256 && -z $application_assets &&
+     $factory_sha256 =~ ^[0-9a-f]{64}$ && $writer_sha256 =~ ^[0-9a-f]{64}$ ]] || {
+    echo 'Factory-assembly requires eight pinned inputs and forbids legacy application options.' >&2; exit 2;
+  }
+  # Refuse pins and incompatible input sets before VM, fetches or output creation.
+  "$PYTHON" -I -B -S scripts/factory-assembly-profile.py check-inputs \
+    --studio-input-manifest "$factory_manifest" --studio-input-sha256 "$factory_sha256" \
+    --studio-sources-dir "$factory_sources" --studio-wheels-dir "$factory_wheels" \
+    --studio-bundle-manifest "$factory_bundle" --writer-input-manifest "$writer_manifest" \
+    --writer-input-sha256 "$writer_sha256" --writer-sources-dir "$writer_sources"
 else
   [[ -z $factory_manifest && -z $factory_sha256 && -z $factory_sources && -z $factory_wheels ]] || {
     echo 'Studio inputs require the explicit factory-passive profile.' >&2; exit 2;
@@ -54,16 +80,19 @@ fi
 vm=inkyos-build
 [[ $(limactl shell --workdir=/tmp "$vm" cat /var/lib/inkyos-build/owner) == inkyos-builder-v1 ]] || exit 1
 "$PYTHON" scripts/fetch-base.py --extract build/base.img > /dev/null
-"$PYTHON" scripts/fetch-packages.py --cache-dir cache/packages > /dev/null
+if [[ $profile != factory-assembly ]]; then
+  "$PYTHON" scripts/fetch-packages.py --cache-dir cache/packages > /dev/null
+fi
 mkdir -p build
 run_dir=$(mktemp -d build/prototype.XXXXXXXX)
 guest_dir="/var/tmp/inkyos-work/$(basename "$run_dir")"
-if [[ $profile == factory-passive ]]; then
+if [[ $profile == factory-passive || $profile == factory-assembly ]]; then
   guest_dir="/var/lib/inkyos-build/factory-image.${run_dir##*.}"
 fi
 # Whitelist source inputs, never recursively archive the working tree/home.
 "$PYTHON" -I -B -S - "$run_dir" "$application_manifest" "$application_sha256" "$application_assets" \
-  "$profile" "$factory_manifest" "$factory_sha256" "$factory_sources" "$factory_wheels" <<'PY'
+  "$profile" "$factory_manifest" "$factory_sha256" "$factory_sources" "$factory_wheels" \
+  "$factory_bundle" "$writer_manifest" "$writer_sha256" "$writer_sources" <<'PY'
 import hashlib,importlib.util,io,json,os,pathlib,shutil,stat,subprocess,sys,tarfile
 files = ['config/base-image.lock.json','config/system-packages.lock.json',
          'scripts/build-prototype.sh','scripts/fetch-base.py','scripts/fetch-packages.py',
@@ -86,6 +115,12 @@ if sys.argv[5]=='factory-passive':
     files += list(factory_tool.TOOL_FILES)
     factory_inputs=out/'factory-inputs'
     factory=factory_tool.stage(*sys.argv[6:10],factory_inputs)
+elif sys.argv[5]=='factory-assembly':
+    spec=importlib.util.spec_from_file_location('assembly_profile','scripts/factory-assembly-profile.py')
+    factory_tool=importlib.util.module_from_spec(spec);spec.loader.exec_module(factory_tool)
+    files += list(factory_tool.TOOL_FILES)
+    factory_inputs=out/'factory-inputs'
+    factory=factory_tool.stage(*sys.argv[6:14],factory_inputs)
 if sys.argv[2]:
     files += ['scripts/verify-application.py','scripts/inspect-application-archives.py',
               'scripts/install-application-rootfs.py','scripts/configure-application-rootfs.py',
@@ -112,10 +147,13 @@ if sys.argv[2]:
     (out/'application-archives.json').write_text(json.dumps(inspection,indent=2,sort_keys=True)+'\n')
 blobs={name:pathlib.Path(name).read_bytes() for name in sorted(set(files))}
 if factory:
-    blobs['factory-passive.json']=(factory_inputs/'factory-passive.json').read_bytes()
-    (out/'factory-passive.json').write_bytes(blobs['factory-passive.json'])
-    for name in ('inputs.json','factory-dependencies.json','factory-studio-plan.json','factory-bundle-manifest.json'):
+    profile_name='factory-assembly.json' if sys.argv[5]=='factory-assembly' else 'factory-passive.json'
+    blobs[profile_name]=(factory_inputs/profile_name).read_bytes()
+    (out/profile_name).write_bytes(blobs[profile_name])
+    report_names=('inputs.json','factory-bundle-manifest.json','writer-inputs.json') if sys.argv[5]=='factory-assembly' else ('inputs.json','factory-dependencies.json','factory-studio-plan.json','factory-bundle-manifest.json')
+    for name in report_names:
         destination='factory-studio-inputs.json' if name=='inputs.json' else name
+        if name=='writer-inputs.json': destination='factory-writer-inputs.json'
         (out/destination).write_bytes((factory_inputs/name).read_bytes())
 if application:
     blobs['application-manifest.json']=(snapshot/'application-manifest.json').read_bytes()
@@ -134,17 +172,18 @@ with tarfile.open(out/'recipe.tar','w',format=tarfile.USTAR_FORMAT) as archive:
         archive.addfile(info,io.BytesIO(data))
     if factory:
         value=json.loads((factory_inputs/'inputs.json').read_bytes())
-        snapshot_names=['inputs.json','factory-passive.json','factory-dependencies.json',
-                        'factory-studio-plan.json','factory-bundle-manifest.json']
+        snapshot_names=list(factory_tool.SNAPSHOT_NAMES) if sys.argv[5]=='factory-assembly' else ['inputs.json','factory-passive.json','factory-dependencies.json', 'factory-studio-plan.json','factory-bundle-manifest.json']
         snapshot_names += ['sources/'+name for name in value['source_sha256']]
         snapshot_names += ['wheels/'+name for name in value['wheel_sha256']]
+        if sys.argv[5]=='factory-assembly':
+            snapshot_names += ['writer-sources/'+name for name in factory_tool.SOURCE_FILES]
         for name in sorted(snapshot_names):
             data=(factory_inputs/name).read_bytes()
             info=tarfile.TarInfo('factory-inputs/'+name)
             info.size=len(data);info.mode=0o600;info.mtime=1789430400
             archive.addfile(info,io.BytesIO(data))
 PY
-if [[ $profile == factory-passive ]]; then
+if [[ $profile == factory-passive || $profile == factory-assembly ]]; then
   # Exclusive root-owned workspace; no user-writable guest upload directory.
   limactl shell --workdir=/tmp "$vm" sudo python3 -I -B -S -c \
     'import os,pathlib,stat,sys; p=pathlib.Path(sys.argv[1]); parents=list(reversed(p.parents)); assert all(stat.S_ISDIR((s:=q.lstat()).st_mode) and (s.st_uid,s.st_gid)==(0,0) and not stat.S_IMODE(s.st_mode)&0o7022 for q in parents); os.mkdir(p,0o700); os.mkdir(p/"packages",0o700)' "$guest_dir"
@@ -160,6 +199,7 @@ if (( application_mode )); then
     limactl copy "$input" "$vm:$guest_dir/application-inputs/$(basename "$input")"
   done
 fi
+if [[ $profile != factory-assembly ]]; then
 while IFS= read -r package; do
   if [[ $profile == factory-passive ]]; then
     limactl shell --workdir=/tmp "$vm" sudo python3 -I -B -S -c \
@@ -169,28 +209,40 @@ while IFS= read -r package; do
     limactl copy "cache/packages/$package" "$vm:$guest_dir/packages/$package"
   fi
 done < <("$PYTHON" -c 'import json; print("\n".join(p["filename"] for p in json.load(open("config/system-packages.lock.json"))["packages"]))')
+fi
 build_options=()
-if [[ $profile == factory-passive ]]; then
+if [[ $profile == factory-passive || $profile == factory-assembly ]]; then
   limactl shell --workdir=/tmp "$vm" sudo python3 -I -B -S -c \
     'import os,shutil,sys; fd=os.open(sys.argv[1],os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600); f=os.fdopen(fd,"wb"); shutil.copyfileobj(sys.stdin.buffer,f); f.close()' \
     "$guest_dir/prototype.img" < build/base.img
-  build_options=(--profile factory-passive)
+  build_options=(--profile "$profile")
 else
   limactl copy build/base.img "$vm:$guest_dir/prototype.img"
 fi
 limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/check-builder.sh" > "$run_dir/builder.json"
-limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/smoke-firstboot-linux.sh" > "$run_dir/firstboot-smoke.json"
+if [[ $profile != factory-assembly ]]; then
+  limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/smoke-firstboot-linux.sh" > "$run_dir/firstboot-smoke.json"
+fi
 limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/build-image-linux.sh" "$guest_dir" "${build_options[@]}" \
   2>&1 | tee "$run_dir/build.log"
 limactl shell --workdir=/tmp "$vm" sudo bash "$guest_dir/recipe/scripts/inspect-image.sh" \
   "$guest_dir/prototype.img" "$guest_dir/image-inspection.json"
-for report in qualification-static.json filesystem-manifest.json image-inspection.json systemd-verify.txt boot-preserved.sha256 fsck-ext4.txt fsck-fat.txt; do
+reports=(filesystem-manifest.json image-inspection.json boot-preserved.sha256 fsck-ext4.txt fsck-fat.txt)
+if [[ $profile != factory-assembly ]]; then
+  reports+=(qualification-static.json systemd-verify.txt)
+fi
+for report in "${reports[@]}"; do
   limactl shell --workdir=/tmp "$vm" sudo cat "$guest_dir/$report" > "$run_dir/$report"
 done
 image_name=inkyos-system-prototype.img
 if [[ $profile == factory-passive ]]; then
   image_name=inkyos-factory-passive.img
   for report in factory-studio-installation.json factory-studio-verification.json qualification-factory.json; do
+    limactl shell --workdir=/tmp "$vm" sudo cat "$guest_dir/$report" > "$run_dir/$report"
+  done
+elif [[ $profile == factory-assembly ]]; then
+  image_name=inkyos-factory-assembly.img
+  for report in factory-studio-installation.json factory-studio-verification.json factory-writer-installation.json factory-writer-verification.json; do
     limactl shell --workdir=/tmp "$vm" sudo cat "$guest_dir/$report" > "$run_dir/$report"
   done
 fi
@@ -205,7 +257,7 @@ if (( application_mode )); then
       </dev/null > "$run_dir/application-install-$step.txt"
   done
 fi
-if [[ $profile == factory-passive ]]; then
+if [[ $profile == factory-passive || $profile == factory-assembly ]]; then
   limactl shell --workdir=/tmp "$vm" sudo cat "$guest_dir/prototype.img" > "$run_dir/$image_name"
 else
   limactl copy "$vm:$guest_dir/prototype.img" "$run_dir/$image_name"
@@ -218,9 +270,11 @@ with image.open('rb') as f:
     for block in iter(lambda:f.read(1024*1024),b''): h.update(block)
 report=json.loads((out/'image-inspection.json').read_text())
 assert h.hexdigest()==report['image']['sha256'], 'Export hash mismatch'
-names=['builder.json','firstboot-smoke.json','qualification-static.json',
-       'filesystem-manifest.json','image-inspection.json','systemd-verify.txt',
+assembly=(out/'factory-assembly.json').exists()
+names=['builder.json','filesystem-manifest.json','image-inspection.json',
        'boot-preserved.sha256','fsck-ext4.txt','fsck-fat.txt']
+if not assembly:
+    names += ['firstboot-smoke.json','qualification-static.json','systemd-verify.txt']
 application=None
 if (out/'application-manifest.json').exists():
     raw=(out/'application-manifest.json').read_bytes();data=json.loads(raw)
@@ -242,12 +296,21 @@ if (out/'factory-passive.json').exists():
               'factory-studio-installation.json','factory-studio-verification.json','qualification-factory.json']
     manifest.update(kind='factory-passive',factory=factory,runtime_qualified=False,
                     reports={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in names})
+if assembly:
+    assert application is None and not (out/'factory-passive.json').exists()
+    profile=json.loads((out/'factory-assembly.json').read_bytes())
+    names += ['factory-assembly.json','factory-studio-inputs.json','factory-bundle-manifest.json',
+              'factory-writer-inputs.json','factory-studio-installation.json',
+              'factory-studio-verification.json','factory-writer-installation.json',
+              'factory-writer-verification.json']
+    manifest.update(kind='factory-assembly',assembly=profile,runtime_qualified=False,
+                    reports={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in names})
 (out/'manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
 (out/'SHA256SUMS').write_text(h.hexdigest()+'  '+image.name+'\n')
 PY
 "$PYTHON" scripts/verify-artifacts.py "$run_dir" --output "$run_dir.integrity.json"
 # Successful export only: preserve failed working copies for diagnosis.
-if [[ $profile == factory-passive ]]; then
+if [[ $profile == factory-passive || $profile == factory-assembly ]]; then
   limactl shell --workdir=/tmp "$vm" sudo rm -- "$guest_dir/prototype.img"
 else
   limactl shell --workdir=/tmp "$vm" rm -- "$guest_dir/prototype.img"

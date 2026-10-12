@@ -52,6 +52,27 @@ FACTORY_REPORTS = frozenset({'factory-passive.json', 'factory-studio-inputs.json
                            'factory-studio-verification.json', 'qualification-factory.json'})
 FACTORY_CHECKS = frozenset({'BOOT_NO_COUNTRY', 'FACTORY_PASSIVE_LAYOUT', 'FACTORY_RUNTIME_ABSENT',
                           'EMPTY_VAR_LIB_INKYOS', 'EMPTY_VAR_LIB_INKY-STUDIO', 'EMPTY_VAR_LIB_INKY-NETWORK'})
+ASSEMBLY_REPORTS = frozenset({'builder.json', 'filesystem-manifest.json', 'image-inspection.json',
+    'boot-preserved.sha256', 'fsck-ext4.txt', 'fsck-fat.txt', 'factory-assembly.json',
+    'factory-studio-inputs.json', 'factory-bundle-manifest.json', 'factory-writer-inputs.json',
+    'factory-studio-installation.json', 'factory-studio-verification.json',
+    'factory-writer-installation.json', 'factory-writer-verification.json'})
+ASSEMBLY_ONLY_REPORTS = ASSEMBLY_REPORTS - REQUIRED_REPORTS - FACTORY_REPORTS
+ASSEMBLY_BUNDLE_FIELDS = frozenset({'schema_version','scope','operation','input_manifest_sha256',
+    'bundle_manifest_sha256','studio_commit','source_files','wheel_files','payload_files','bundle_entries',
+    'record_metadata','bundle_verified','support_verified','image_code_executed',
+    'application_code_executed','runtime_qualified','hardware_qualified'})
+ASSEMBLY_WRITER_FIELDS = frozenset({'schema_version','scope','operation','input_manifest_sha256',
+    'os_commit','os_commit_evidence','studio_commit','studio_bundle_manifest_sha256','records',
+    'files_verified','studio_bundle_qualified','services_enabled','service_actions_issued',
+    'image_code_executed','application_code_executed','support_verified','authority_provisioned',
+    'runtime_qualified','image_qualified','hardware_qualified'})
+
+
+def assembly_tool():
+    spec = importlib.util.spec_from_file_location('_artifact_assembly', Path(__file__).with_name('factory-assembly-profile.py'))
+    value = importlib.util.module_from_spec(spec); spec.loader.exec_module(value)
+    return value
 
 
 def factory_profile(value):
@@ -181,16 +202,30 @@ def validate_recipe(recipe):
 
 def validate_build(value):
     if (not isinstance(value, dict) or type(value.get("schema_version")) is not int
-            or value["schema_version"] != 1 or value.get("kind") not in {"system-prototype", "application-prototype", 'factory-passive'}
+            or value["schema_version"] != 1 or value.get("kind") not in {"system-prototype", "application-prototype", 'factory-passive', 'factory-assembly'}
             or value.get("hardware_qualified") is not False
             or "application" not in value):
         raise ArtifactError("Expected schema 1 prototype with explicit application and hardware_qualified=false")
     validate_recipe(value.get("recipe"))
     application = value['application']
     required_reports = REQUIRED_REPORTS
+    if value['kind'] != 'factory-assembly' and ('assembly' in value or 'factory-assembly.json' in value['recipe']['files']):
+        raise ArtifactError('Assembly must not be relabelled as another profile')
     if value['kind'] != 'factory-passive' and ('factory' in value or 'factory-passive.json' in value['recipe']['files']):
         raise ArtifactError('Factory profile must not be relabelled as a legacy prototype')
-    if value['kind'] == 'factory-passive':
+    if value['kind'] == 'factory-assembly':
+        try:
+            pin = assembly_tool().validate_metadata(value.get('assembly'))
+        except ValueError as error:
+            raise ArtifactError(str(error)) from None
+        if (set(value) != {'schema_version','kind','hardware_qualified','runtime_qualified','application',
+                          'image','recipe','reports','assembly'}
+                or application is not None or value.get('runtime_qualified') is not False
+                or value['recipe']['files'].get('factory-assembly.json') != hashlib.sha256((canonical(pin)+'\n').encode('ascii')).hexdigest()
+                or 'application-manifest.json' in value['recipe']['files']):
+            raise ArtifactError('Factory assembly must be explicitly inactive and separate')
+        required_reports = ASSEMBLY_REPORTS
+    elif value['kind'] == 'factory-passive':
         pin = factory_profile(value.get('factory'))
         if (application is not None or value.get('runtime_qualified') is not False
                 or value['recipe']['files'].get('factory-passive.json') != hashlib.sha256((canonical(pin) + '\n').encode('ascii')).hexdigest()
@@ -223,8 +258,13 @@ def validate_build(value):
             or any(not basename(name) or not valid_hash(digest) for name, digest in reports.items())
             or {"manifest.json", image["filename"]} & set(reports)):
         raise ArtifactError("Invalid report names/hashes or required build reports are missing")
+    if value['kind'] == 'factory-assembly':
+        if set(reports) != ASSEMBLY_REPORTS:
+            raise ArtifactError('Factory assembly requires only its own file-integrity reports')
+    elif ASSEMBLY_ONLY_REPORTS & set(reports):
+        raise ArtifactError('Assembly evidence must not be mixed with other profiles')
     if (value['kind'] == 'factory-passive' and APPLICATION_REPORTS & set(reports)
-            or value['kind'] != 'factory-passive' and FACTORY_REPORTS & set(reports)):
+            or value['kind'] not in {'factory-passive', 'factory-assembly'} and FACTORY_REPORTS & set(reports)):
         raise ArtifactError('Factory and legacy application evidence must not be mixed')
     return value
 
@@ -293,6 +333,14 @@ def validate_filesystem(value):
 
 
 def validate_gates(reports, manifest):
+    if manifest['kind'] == 'factory-assembly':
+        inspection = parse_json(reports['image-inspection.json'])
+        image = inspection.get('image') if type(inspection) is dict else None
+        if (not isinstance(image, dict) or image.get('sha256') != manifest['image']['sha256']
+                or type(image.get('size_bytes')) is not int or image['size_bytes'] != manifest['image']['size_bytes']):
+            raise ArtifactError('Image-inspection metadata differs from export manifest')
+        validate_assembly_gates(reports, manifest)
+        return
     gate = parse_json(reports["qualification-static.json"])
     if (not isinstance(gate, dict) or type(gate.get("schema_version")) is not int or gate["schema_version"] != 1
             or gate.get("scope") != ('offline-factory-passive-contract' if manifest['kind'] == 'factory-passive' else "offline-system-prototype-contract") or gate.get("passed") is not True
@@ -415,6 +463,91 @@ def validate_factory_inventory(reports, filesystem):
         raise ArtifactError('Final filesystem inventory differs from the entire pinned Studio bundle')
 
 
+def validate_assembly_gates(reports, manifest):
+    tool = assembly_tool()
+    profile = manifest['assembly']
+    if (reports['factory-assembly.json'] != (canonical(profile)+'\n').encode('ascii')
+            or hashlib.sha256(reports['factory-assembly.json']).hexdigest() != manifest['recipe']['files']['factory-assembly.json']):
+        raise ArtifactError('Assembly metadata differs from recipe pin')
+    raw_inputs = reports['factory-studio-inputs.json']
+    inputs = parse_json(raw_inputs)
+    if (type(inputs) is not dict or set(inputs) != tool.planner.INPUT_FIELDS
+            or type(inputs['schema_version']) is not int or inputs['schema_version'] != 1
+            or inputs['kind'] != 'factory-studio-bundle-inputs' or inputs['studio_commit'] != profile['studio_commit']
+            or inputs['python_version'] != '3.13.5'
+            or hashlib.sha256(raw_inputs).hexdigest() != profile['input_manifest_sha256']
+            or any(type(inputs[field]) is not dict or not inputs[field]
+                   or any(not relative_path(name) or not valid_hash(pin) for name,pin in inputs[field].items())
+                   for field in ('source_sha256','wheel_sha256'))
+            or inputs['app_wheel'] not in inputs['wheel_sha256']):
+        raise ArtifactError('Assembly Studio inputs differ from pins')
+    raw_bundle = reports['factory-bundle-manifest.json']
+    bundle = parse_json(raw_bundle)
+    if (type(bundle) is not dict or set(bundle) != {'schema_version','kind','studio_commit','records'}
+            or type(bundle['schema_version']) is not int or bundle['schema_version'] != 1
+            or bundle['kind'] != 'factory-studio-bundle-manifest' or bundle['studio_commit'] != profile['studio_commit']
+            or type(bundle['records']) is not dict or not bundle['records']
+            or any(type(record) is not dict for record in bundle['records'].values())
+            or bundle['records'].get(tool.planner.VENV+'/pyvenv.cfg',{}).get('type') != 'file'
+            or raw_bundle != (canonical(bundle)+'\n').encode('ascii')
+            or hashlib.sha256(raw_bundle).hexdigest() != profile['bundle_manifest_sha256']):
+        raise ArtifactError('Assembly expected bundle differs from pin')
+    raw_writer = reports['factory-writer-inputs.json']
+    try:
+        writer_inputs = tool.validate_writer_inputs(raw_writer, profile['writer_input_manifest_sha256'],
+            raw_bundle, recipe_pins=manifest['recipe']['files'])
+    except ValueError as error:
+        raise ArtifactError(str(error)) from None
+    if writer_inputs['os_commit'] != profile['os_commit']:
+        raise ArtifactError('Assembly OS correlation differs from writer inputs')
+    for name, operation in (('factory-studio-installation.json','install'), ('factory-studio-verification.json','verify')):
+        value = parse_json(reports[name])
+        if (type(value) is not dict or set(value) != ASSEMBLY_BUNDLE_FIELDS or type(value.get('schema_version')) is not int or value['schema_version'] != 1
+                or value.get('scope') != 'offline-factory-studio-bundle-install' or value.get('operation') != operation
+                or any(value.get(key) != profile[key] for key in ('studio_commit','input_manifest_sha256','bundle_manifest_sha256'))
+                or value.get('bundle_entries') != len(bundle['records'])
+                or value.get('payload_files') != sum(record.get('type')=='file' for record in bundle['records'].values())-1
+                or value.get('source_files') != len(inputs['source_sha256']) or value.get('wheel_files') != len(inputs['wheel_sha256'])
+                or any(type(value.get(key)) is not int or value[key] <= 0 for key in ('bundle_entries','payload_files','source_files','wheel_files'))
+                or value.get('record_metadata') != 'inspected-root-owned-no-xattrs' or value.get('bundle_verified') is not True
+                or any(value.get(key) is not False for key in ('support_verified','image_code_executed',
+                    'application_code_executed','runtime_qualified','hardware_qualified'))):
+            raise ArtifactError('Assembly bundle receipt is inconsistent or overqualified')
+    expected_names = {path for path,mode in tool.writer.SOURCE_MAP.values()} | {tool.writer.HELPER}
+    expected_records = None
+    for name, operation in (('factory-writer-installation.json','install'), ('factory-writer-verification.json','verify')):
+        value = parse_json(reports[name])
+        if (type(value) is not dict or set(value) != ASSEMBLY_WRITER_FIELDS or type(value.get('schema_version')) is not int or value['schema_version'] != 1
+                or value.get('scope') != 'offline-factory-writer-files' or value.get('operation') != operation
+                or value.get('input_manifest_sha256') != profile['writer_input_manifest_sha256']
+                or value.get('studio_bundle_manifest_sha256') != profile['bundle_manifest_sha256']
+                or value.get('os_commit') != profile['os_commit'] or value.get('studio_commit') != profile['studio_commit']
+                or value.get('os_commit_evidence') != 'caller-declared-correlation-only'
+                or value.get('files_verified') is not True or type(value.get('records')) is not dict or set(value['records']) != expected_names
+                or any(value.get(key) is not False for key in ('studio_bundle_qualified','services_enabled',
+                    'service_actions_issued','image_code_executed','application_code_executed','support_verified',
+                    'authority_provisioned','runtime_qualified','image_qualified','hardware_qualified'))):
+            raise ArtifactError('Assembly writer receipt is inconsistent or overqualified')
+        for source,(destination,mode) in tool.writer.SOURCE_MAP.items():
+            record = value['records'][destination]
+            if (type(record) is not dict or record.get('type') != 'file' or record.get('sha256') != writer_inputs['os_source_sha256'][source]
+                    or record.get('mode') != mode or record.get('uid') != 0 or record.get('gid') != 0
+                    or record.get('xattrs') != {'status':'inspected','entries':{}}):
+                raise ArtifactError('Assembly OS file record differs from reviewed source pin')
+        if value['records'][tool.writer.HELPER] != bundle['records'][tool.writer.HELPER_SOURCE]:
+            raise ArtifactError('Assembly helper differs from installed bundle provenance')
+        if expected_records is not None and value['records'] != expected_records:
+            raise ArtifactError('Assembly writer install/readback records differ')
+        expected_records = value['records']
+
+
+def validate_assembly_inventory(reports, filesystem):
+    validate_factory_inventory(reports, filesystem)
+    records = parse_json(reports['factory-writer-verification.json'])['records']
+    if any(filesystem['rootfs'].get(name) != record for name,record in records.items()):
+        raise ArtifactError('Final filesystem metadata differs from the 17 writer files')
+
+
 def validate_application_gates(reports, manifest):
     application = manifest['application']
     pin = {key: application[key] for key in ('manifest_sha256', 'source_commit', 'application_version')}
@@ -485,6 +618,8 @@ def load_export(directory, *, verify_images=True):
         filesystem = validate_filesystem(parse_json(reports["filesystem-manifest.json"]))
         if manifest['kind'] == 'factory-passive':
             validate_factory_inventory(reports, filesystem)
+        elif manifest['kind'] == 'factory-assembly':
+            validate_assembly_inventory(reports, filesystem)
         export.image(manifest["image"], verify_hash=verify_images)
     finally:
         export.close()
@@ -500,6 +635,11 @@ def load_export(directory, *, verify_images=True):
                          "No boot or hardware qualification is established."]}
     if manifest['kind'] == 'factory-passive':
         result.update(kind='factory-passive', runtime_qualified=False, startup='masked')
+    elif manifest['kind'] == 'factory-assembly':
+        result.update(kind='factory-assembly', runtime_qualified=False, startup='inactive',
+                      qualification=manifest['assembly']['qualification'], assembly_files_consistent_pass=True,
+                      static_gate_consistent_pass=False, firstboot_smoke_consistent_pass=False)
+        result['limits'].append('Private inactive file assembly only; no base-OS configuration, installed graph, runtime or release qualification.')
     if not verify_images:
         result["limits"].append("Image bytes were not hashed; only file type and size were checked.")
     if filesystem["schema_version"] == 1:

@@ -3,8 +3,8 @@
 set -Eeuo pipefail
 umask 077
 profile=system
-if [[ $# == 3 && $2 == --profile && $3 == factory-passive ]]; then
-  profile=factory-passive
+if [[ $# == 3 && $2 == --profile && ( $3 == factory-passive || $3 == factory-assembly ) ]]; then
+  profile=$3
 elif [[ $# != 1 ]]; then
   echo 'Unknown or incomplete build profile.' >&2; exit 2
 fi
@@ -13,7 +13,7 @@ fi
 }
 [[ $(cat /var/lib/inkyos-build/owner) == inkyos-builder-v1 ]] || exit 2
 work=$(readlink -e -- "$1")
-if [[ $profile == factory-passive ]]; then
+if [[ $profile == factory-passive || $profile == factory-assembly ]]; then
   [[ $work =~ ^/var/lib/inkyos-build/factory-image\.[a-zA-Z0-9]+$ && $work == "$1" && ! -L $1 ]] || exit 2
   python3 -I -B -S -c 'import os,stat,sys; p=sys.argv[1]; s=os.lstat(p); assert stat.S_ISDIR(s.st_mode) and (s.st_uid,s.st_gid,stat.S_IMODE(s.st_mode))==(0,0,0o700)' "$work"
 elif [[ ! $work =~ ^/var/tmp/inkyos-work/prototype\.[a-zA-Z0-9]+$ || -L $1 ]]; then
@@ -26,8 +26,8 @@ if [[ ${INKYOS_PRIVATE_NAMESPACE:-} != 1 ]]; then
 fi
 cd "$work"
 [[ -f prototype.img && ! -L prototype.img && ! -e root && ! -e boot ]] || exit 2
-python3 - <<'PY'
-import hashlib,json,os,pathlib,stat
+python3 - "$profile" <<'PY'
+import hashlib,json,os,pathlib,stat,sys
 recipe=json.load(open('recipe/recipe-inputs.json'))
 for name,digest in recipe['files'].items():
     relative=pathlib.PurePosixPath(name)
@@ -47,7 +47,7 @@ with open('prototype.img','rb') as f:
     assert hashlib.file_digest(f,'sha256').hexdigest()==base['extracted_sha256'], 'Base hash mismatch'
 lock=json.load(open('recipe/config/system-packages.lock.json'))
 assert lock['base_image_sha256']==base['extracted_sha256']
-for p in lock['packages']:
+for p in ([] if sys.argv[1]=='factory-assembly' else lock['packages']):
     name=p['filename']
     assert '/' not in name and name.endswith('.deb')
     path='packages/'+name
@@ -57,12 +57,20 @@ for p in lock['packages']:
         assert hashlib.file_digest(f,'sha256').hexdigest()==p['sha256'], 'Package hash mismatch'
 PY
 if [[ $profile == factory-passive ]]; then
-  [[ ! -e recipe/application-manifest.json && ! -L recipe/application-manifest.json ]] || exit 2
+  [[ ! -e recipe/application-manifest.json && ! -L recipe/application-manifest.json &&
+     ! -e recipe/factory-assembly.json && ! -L recipe/factory-assembly.json ]] || exit 2
   # All candidate metadata, closure and input hashes are reread before mount/write.
   python3 -I -B -S recipe/scripts/factory-passive-profile.py verify-inputs --work "$work"
   cmp -- recipe/factory-passive.json factory-inputs/factory-passive.json
+elif [[ $profile == factory-assembly ]]; then
+  [[ ! -e recipe/application-manifest.json && ! -L recipe/application-manifest.json &&
+     ! -e recipe/factory-passive.json && ! -L recipe/factory-passive.json ]] || exit 2
+  python3 -I -B -S recipe/scripts/factory-assembly-profile.py verify-inputs --work "$work"
+  cmp -- recipe/factory-assembly.json factory-inputs/factory-assembly.json
 else
-  [[ ! -e recipe/factory-passive.json && ! -e factory-inputs ]] || exit 2
+  [[ ! -e recipe/factory-passive.json && ! -L recipe/factory-passive.json &&
+     ! -e recipe/factory-assembly.json && ! -L recipe/factory-assembly.json &&
+     ! -e factory-inputs && ! -L factory-inputs ]] || exit 2
 fi
 loop=
 root_mounted=0
@@ -101,6 +109,10 @@ sha256sum boot/cmdline.txt boot/initramfs8 boot/initramfs_2712 boot/kernel8.img 
   root/usr/lib/systemd/system/systemd-growfs-root.service \
   root/usr/share/initramfs-tools/scripts/local-premount/resize_early \
   root/usr/share/initramfs-tools/scripts/local-bottom/set_partuuid > boot-preserved.sha256
+if [[ $profile == factory-assembly ]]; then
+  # File-only assembly branches before /dev, dpkg, NSS and every target command.
+  python3 -I -B -S recipe/scripts/factory-assembly-profile.py prepare-rootfs --work "$work"
+else
 # Temporary /dev is fabricated; no builder disks/devices are exposed to chroot.
 mount -t tmpfs -o mode=0755,nosuid tmpfs root/dev
 dev_mounted=1
@@ -175,9 +187,10 @@ fi
 rm -- root/usr/sbin/policy-rc.d
 python3 recipe/scripts/verify-prototype.py --rootfs "$work/root" --bootfs "$work/boot" \
   --output "$work/qualification-static.json" "${application_options[@]}"
-sha256sum --check --strict boot-preserved.sha256
 umount root/dev
 dev_mounted=0
+fi
+sha256sum --check --strict boot-preserved.sha256
 sync -f root
 sync -f boot
 # Freeze the prepared filesystems before the complete metadata inventory.

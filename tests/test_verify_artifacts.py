@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/verify-artifacts.py"
@@ -107,6 +108,115 @@ def save_application_export(directory):
                         ('qualification-application.json', static), ('sudoers-verify.txt', b'fixture syntax pass')):
         rehash_report(directory, name, value)
     return json.loads((directory/'manifest.json').read_text())
+
+
+def save_assembly_export(directory, test):
+    """Use inert archive fixtures and recipe bytes; the image remains fictional."""
+    spec=importlib.util.spec_from_file_location('_artifact_assembly_fixtures',SCRIPT.parents[1]/'tests/test_factory_assembly.py')
+    fixture_module=importlib.util.module_from_spec(spec); spec.loader.exec_module(fixture_module)
+    fixture=fixture_module.Fixture(); test.addCleanup(fixture.close)
+    tool=fixture_module.profile
+    profile=fixture.stage()
+    build=default_build(); build.update(kind='factory-assembly',assembly=profile,runtime_qualified=False)
+    build['recipe']['files']={name:hashlib.sha256((SCRIPT.parents[1]/name).read_bytes()).hexdigest() for name in tool.TOOL_FILES}
+    build['recipe']['files']['factory-assembly.json']=hashlib.sha256(tool.canonical(profile)).hexdigest()
+    filesystem=default_filesystem(2)
+    bundle=json.loads(fixture.bundle_raw)
+    records=bundle['records'].copy()
+    records['manifest.json']=tool.planner.exporter.file_record(fixture.bundle_raw)
+    filesystem['rootfs'].update({'usr/lib/inky-studio'+('' if path=='.' else '/'+path):record for path,record in records.items()})
+    payload={tool.writer.SOURCE_MAP[name][0]:(raw,tool.writer.SOURCE_MAP[name][1]) for name,raw in fixture.source_bytes.items()}
+    payload[tool.writer.HELPER]=(fixture.f.sources.joinpath(tool.writer.HELPER_SOURCE).read_bytes(),'0555')
+    writer_receipt=tool.writer._receipt(fixture.writer_value,fixture.writer_pin,payload,'verify')
+    filesystem['rootfs'].update(writer_receipt['records'])
+    save_export(directory,build=build,filesystem=filesystem)
+    for name in artifacts.REQUIRED_REPORTS-artifacts.ASSEMBLY_REPORTS:
+        (directory/name).unlink()
+    for name,raw in (('factory-assembly.json',tool.canonical(profile)),
+                     ('factory-studio-inputs.json',fixture.f.input_file.read_bytes()),
+                     ('factory-bundle-manifest.json',fixture.bundle_raw),
+                     ('factory-writer-inputs.json',fixture.writer_path.read_bytes())):
+        rehash_report(directory,name,raw)
+    for name,operation in (('factory-studio-installation.json','install'),('factory-studio-verification.json','verify')):
+        rehash_report(directory,name,tool.writer.guards._receipt(fixture.plan,operation=operation))
+    for name,operation in (('factory-writer-installation.json','install'),('factory-writer-verification.json','verify')):
+        rehash_report(directory,name,{**writer_receipt,'operation':operation})
+    build=json.loads((directory/'manifest.json').read_bytes())
+    build['reports']={name:pin for name,pin in build['reports'].items() if name in artifacts.ASSEMBLY_REPORTS}
+    (directory/'manifest.json').write_text(json.dumps(build))
+    return fixture,tool
+
+
+class AssemblyArtifactTests(unittest.TestCase):
+    def setUp(self):
+        temporary=tempfile.TemporaryDirectory(); self.addCleanup(temporary.cleanup)
+        self.export=Path(temporary.name)/'export'
+        self.fixture,self.tool=save_assembly_export(self.export,self)
+
+    def rewrite_build(self,value):
+        (self.export/'manifest.json').write_text(json.dumps(value))
+        (self.export/'recipe-inputs.json').write_text(json.dumps(value['recipe']))
+
+    def test_assembly_integrity_has_its_own_evidence_and_no_active_qualification(self):
+        report=artifacts.load_export(self.export)['report']
+        self.assertEqual(report['kind'],'factory-assembly')
+        self.assertEqual(set(report['declared_reports_verified']),artifacts.ASSEMBLY_REPORTS)
+        self.assertTrue(report['image_sha256_verified'])
+        self.assertFalse(report['static_gate_consistent_pass'])
+        self.assertFalse(report['firstboot_smoke_consistent_pass'])
+        self.assertTrue(all(value is False for value in report['qualification'].values()))
+
+    def test_relabel_and_mixed_profiles_refuse_before_image_access(self):
+        original=json.loads((self.export/'manifest.json').read_bytes())
+        for kind in ('system-prototype','application-prototype','factory-passive'):
+            with self.subTest(kind=kind),patch.object(artifacts.ExportDirectory,'image',side_effect=AssertionError('image read')):
+                self.rewrite_build({**original,'kind':kind})
+                with self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+        self.rewrite_build(original)
+        rehash_report(self.export,'qualification-static.json',b'no borrowed PASS')
+        with self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+
+    def test_rehashed_metadata_cannot_promote_any_qualification(self):
+        original=json.loads((self.export/'manifest.json').read_bytes())
+        for name in self.tool.QUALIFICATIONS:
+            changed=copy.deepcopy(original); changed['assembly']['qualification'][name]=True
+            raw=self.tool.canonical(changed['assembly'])
+            (self.export/'factory-assembly.json').write_bytes(raw)
+            changed['recipe']['files']['factory-assembly.json']=hashlib.sha256(raw).hexdigest()
+            changed['reports']['factory-assembly.json']=hashlib.sha256(raw).hexdigest()
+            self.rewrite_build(changed)
+            with self.subTest(name=name),self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+
+    def test_rehashed_writer_flags_or_source_records_cannot_pass(self):
+        path=self.export/'factory-writer-verification.json'
+        original=json.loads(path.read_bytes())
+        for flag in ('service_actions_issued','services_enabled','authority_provisioned','runtime_qualified','image_qualified','studio_bundle_qualified'):
+            rehash_report(self.export,path.name,{**original,flag:True})
+            with self.subTest(flag=flag),self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+        changed=copy.deepcopy(original)
+        changed['records']['usr/lib/inkyos/writer-launcher.py']['sha256']='0'*64
+        rehash_report(self.export,path.name,changed)
+        rehash_report(self.export,'factory-writer-installation.json',{**changed,'operation':'install'})
+        with self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+
+    def test_rehashed_bundle_counts_and_extra_qualification_are_refused(self):
+        name='factory-studio-verification.json'; original=json.loads((self.export/name).read_bytes())
+        for changes in ({'payload_files':1},{'source_files':1},{'release_qualified':True}):
+            rehash_report(self.export,name,{**original,**changes})
+            with self.subTest(changes=changes),self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+
+    def test_rehashed_filesystem_cannot_omit_writer_or_add_bundle_payload(self):
+        path=self.export/'filesystem-manifest.json'; original=json.loads(path.read_bytes())
+        for mutation in ('missing_writer','extra_bundle'):
+            changed=copy.deepcopy(original)
+            if mutation=='missing_writer': changed['rootfs'].pop('usr/lib/inkyos/writer-graph.py')
+            else: changed['rootfs']['usr/lib/inky-studio/extra']=self.tool.planner.exporter.file_record(b'unpinned')
+            rehash_report(self.export,path.name,changed)
+            with self.subTest(mutation=mutation),self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
+
+    def test_image_hash_and_size_checks_are_still_called(self):
+        (self.export/'prototype.img').write_bytes(b'changed image fixture')
+        with self.assertRaises(artifacts.ArtifactError): artifacts.load_export(self.export)
 
 
 class VerifyArtifactsTests(unittest.TestCase):
