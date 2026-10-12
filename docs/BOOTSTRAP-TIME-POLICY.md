@@ -4,8 +4,12 @@ Document de travail à valider avec Studio avant code ou octets de protocole.
 Aucun endpoint, service ou setter n’est installé. IPC-A, le reçu d’initialisation
 et le [hook factory](FACTORY-AUTHORITY.md) restent inchangés.
 
-La référence commune est `SYSTEM-BOOTSTRAP-PHASE-B.md` côté Studio. L’accord
-prototype plus récent retient un worker dédié utilisant `clock_settime_ns`,
+La référence historique côté Studio est
+`docs/inkyos/SYSTEM-BOOTSTRAP-PHASE-B.md` au commit
+`3fd786f0ad6e1334d9bfe2c0a7ddd03bcafe8e49`. Ce document est absent du
+candidat Studio `5671ba4ab35bdec5e63c892d35b9108a025e6d82` ; il ne constitue
+pas une référence commune actuelle ni un ABI figé. La politique de prototype
+consignée ici retient un worker dédié utilisant `clock_settime_ns`,
 des **secondes UTC entières**, sans `timedated`, `SetNTP`, timezone ni mode relatif.
 Il remplace pour ce prototype l’ancienne piste microsecondes/restauration NTP de
 ce brouillon. Le latch initial ouvert/fermé et l’admission owner/epoch restent
