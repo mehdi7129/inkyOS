@@ -1,0 +1,75 @@
+{
+  "base_commit": "38adb68e7253711bd67914460cd141423ba7e2be",
+  "changes": [
+    "Graph requires the reviewed Studio R35 commit.",
+    "Main argv uses the OS factory-main.py wrapper with Python -I -B."
+  ],
+  "date": "2026-10-12",
+  "full_regression": {
+    "bash_syntax_passed": true,
+    "elapsed_seconds": 61.662,
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "4367f2f9c8cdbb0080722e008bc500063ae9539d542d805f5cc3ec4067ca76f2",
+    "platform": "macOS arm64",
+    "python_version": "3.13.15",
+    "skips": 16,
+    "source_files_rechecked": 208,
+    "source_unchanged": true,
+    "tests": 1877
+  },
+  "limits": [
+    "Source alignment only. Unit templates, wrapper, runtime schema and the three os_module_pins names are unchanged.",
+    "A new support/exporter/runtime assembly must bind the changed graph and launcher bytes.",
+    "The separate native materialization fixture remains pinned to OS 38adb68; its original R33 graph and legacy launcher are not replaced.",
+    "UID ownership, connected peers, installed PID1 graph, boot, BLE/Wi-Fi, display and iPhone flows are not qualified by these source tests."
+  ],
+  "qualification": {
+    "hardware": false,
+    "image": false,
+    "installed_graph": false,
+    "runtime": false,
+    "support": false
+  },
+  "review": {
+    "independent_read_only": "PASS",
+    "independent_receipt_sha256": "691e7d30d7981e27cc407c9abd38cc6c88f5fe0ea52ca6708707602968104135",
+    "root": "PASS"
+  },
+  "schema_version": 1,
+  "scope": "factory-graph-launcher-r35-source-alignment",
+  "source_commit": "031fe43fdddae7f4f05a8ef7a81ae65d8ea2de4d",
+  "source_sha256": {
+    "docs/FACTORY-GRAPH-ADMISSION.md": "7155ce1517c1361ba2e58e2d7fa76e31e98b0ed2bba52dad65593ad47992160b",
+    "docs/FACTORY-WRITER-INSTALLATION.md": "cf52f637291611de6ff8c06417f123c11cf41ba5af04c67e6cc2b0288f33eb54",
+    "docs/FACTORY-WRITER-LAUNCHER.md": "bd1214e78af5c00245843cf25d3a5bd82850e839867e1c208e90917e77c3bc69",
+    "scripts/writer-launcher.py": "5006bdfef145c03a94028c9f2bdd06f10471daaa77d2cf914d6184ddae9f9093",
+    "staging/bootstrap/writer-graph.py": "bd15b188f404fd41c38f08fd3eb399689ecff11656a99a0458f026bc1e0a03df",
+    "tests/test_writer_graph.py": "ea07e3a7c1002c9efe9315d09b725e4e7b2664f5cf87ab27ba630b0825de5afa",
+    "tests/test_writer_launcher.py": "f438327a5d5db5301e4fb8a4400e2d8518980408ae2ffb260bf5fdc1aaa7d28b"
+  },
+  "studio_commit": "eb117903cb647a14e9722d7387a41058ea8807b3",
+  "targeted": {
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "ff74a59dbd44d52245683439e6b91801e2d51d55dc611ac4d259cb0ba795ccde",
+    "platform": "macOS arm64",
+    "python_version": "3.13.3",
+    "regressions": [
+      "R33 is rejected before inventory or source access.",
+      "Actual launcher bytes pass the AST binding to the factory wrapper.",
+      "Legacy module argv is rejected before context access."
+    ],
+    "skips": 2,
+    "tests": 135
+  },
+  "unchanged_source_sha256": {
+    "scripts/factory-runtime-contract.py": "97122732a861e830842e81f4a4bc3d5a0e18ce66c075cfedc3a7a07b2f768931",
+    "staging/bootstrap/factory-main.py": "86a0b7fe4448af50125e185354e387c0f175ae36c98cc34eba470cbd9d35c122",
+    "staging/bootstrap/inky-network.service": "b14c14c8b43e3fec48255dd60ebf539282d9464ab4ddc37e0c7bfb6497f33019",
+    "staging/bootstrap/inky-studio.service": "48f4a5245794ad19fef8e9155a27db814f200eaa99779aefb13be6e6f39350ac",
+    "staging/bootstrap/inkyos-admission-prepare.service": "8bda5a8691453353345c44bb90e6be1ffd687d888dc823af6746239316baf90e",
+    "staging/bootstrap/inkyos-factory-supervisor.service": "26b7cb8a1daf3858ce2f90afc0bb245d1ec6e8efd810c5772c2b13ee36b5c837",
+    "staging/bootstrap/inkyos-initialization.service": "049661642ac18b8efd8c81ef82fefa4cfba2b450b2a4dee8ba1bf573b7bd47c7"
+  }
+}

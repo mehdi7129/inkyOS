@@ -97,6 +97,12 @@ Inspect the failure privately and prepare a new dedicated workspace.
 
 ## Remaining integration gates
 
+The [real Linux ARM64 file materialization](validation/2026-10-12-studio-eb117-native-files.json)
+copied and read back the Studio R35 bundle and all 17 files with production APIs
+and actual root ownership/xattr checks. That fixture uses OS `38adb68` and keeps
+its earlier graph/launcher bytes. It is an initially empty tree, not a base OS,
+installed graph or image; no services or candidate code were executed.
+
 The current graph pins Studio R35 and the main launcher targets the OS
 `factory-main.py` wrapper. A new assembly must pin the updated graph and launcher
 bytes in its reviewed inputs and manifests. Earlier R33 and materialization

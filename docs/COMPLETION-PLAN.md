@@ -68,6 +68,8 @@ du candidat Studio sont recensées dans
 | Diagnostic des phases TEST | [74 tests ciblés et 1 852 tests globaux macOS](validation/2026-10-12-test-boot-phase-checkpoints.json), sans échec ; 16 skips dans la suite globale | Nouvelle source hors de la SD actuelle ; ancien marqueur `bind` insuffisant pour localiser un blocage. |
 | Politique UTC pure | [24 tests Mac PASS et deux revues source réussies](validation/2026-10-12-bootstrap-time-policy.json) | Arithmétique seule : setter, worker, journal et admission owner/latch absents ; origine BOOTTIME et heure actuelle non prouvées. |
 | Fichiers factory | [23 tests ciblés et 1 875 tests globaux macOS](validation/2026-10-12-factory-writer-file-tests.json), sans échec, pour la copie/relecture inactive de 17 fichiers | Installation native, support, comptes réservés, graph R35 et raccord de boot encore à qualifier. |
+| Installation native réelle | [Bundle `eb11790` et 17 fichiers OS/helper copiés puis relus en Linux ARM64](validation/2026-10-12-studio-eb117-native-files.json), avec les sources OS `38adb68` | Fixture vide seulement ; support, bibliothèques natives, runtime, comptes et boot restent à qualifier. |
+| Raccord source R35 | [Pin Studio et argv main corrigés ; 135 tests ciblés et 1 877 tests globaux macOS réussis](validation/2026-10-12-factory-graph-r35-source.json) | Nouvelle assembly support/exporter/runtime nécessaire ; graph installé et parcours physique non qualifiés. |
 
 Le [service IPC-A](INITIALIZATION-IPC.md), la
 [permission factory consommable](FACTORY-AUTHORITY.md), le
@@ -87,7 +89,10 @@ Le premier essai privé de build a été abandonné sur un défaut du superviseu
 avant la construction applicative. Le build suivant conserve son reçu bloqué
 par trois observations de chemins virtuels HEIC ; une complétion statique distincte
 les classe à leurs sites et hashes exacts, sans modifier les sorties ni le reçu initial.
-Audit de confidentialité complet, ELF, installation et runtime restent à qualifier ;
+La copie et la relecture du bundle réel ont ensuite réussi dans une fixture
+Linux ARM64 vide, avec 17 fichiers OS/helper au commit `38adb68`. Cette preuve
+ne lance pas les services et ne qualifie pas le raccord source R35 plus récent.
+Audit de confidentialité complet, ELF, support et runtime restent à qualifier ;
 aucun nouveau bundle n'est admis dans une image.
 Les attributions de licence sont conservées et leur livraison reste à régler
 avant image ou redistribution. Les entrées de build privées restent préservées.

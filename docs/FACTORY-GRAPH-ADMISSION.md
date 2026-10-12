@@ -161,6 +161,12 @@ observation et effet ni contre une modification root non observée.
 
 ## Validation logicielle consignée
 
+Le [raccord source R35](validation/2026-10-12-factory-graph-r35-source.json)
+dispose de 135 tests ciblés macOS (2 skips) et de 1 877 tests globaux macOS
+(16 skips), sans échec. Les régressions vérifient le refus R33 avant inventaire,
+le binding AST du launcher réel au wrapper et le refus de l'ancien argv module.
+Ces tests n'observent aucun graph installé ni exécution du backend.
+
 Le [rapport historique](validation/2026-10-12-factory-graph.json) épingle les octets
 des six entrées : 63 fixtures Linux ARM64 sans skip, 63 fixtures Mac ciblées et
 1 822 tests de la suite Mac globale avec 16 skips de plateforme. La syntaxe

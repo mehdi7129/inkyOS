@@ -103,7 +103,16 @@ Leurs [23 tests inertes](validation/2026-10-12-factory-writer-file-tests.json)
 et la suite globale de 1 875 tests macOS passent, avec 16 skips dans la suite globale.
 Ils restent hors du build-profile : aucune activation, conversion du profil passif,
 mutation NSS ou création d'autorité n'est effectuée par ce lot.
-Les pins et arguments du graph plus ancien restent à coordonner pour R35.
+Le [raccord source R35](validation/2026-10-12-factory-graph-r35-source.json)
+épingle maintenant Studio `eb11790` et cible `factory-main.py` depuis le launcher.
+Les nouveaux hashes doivent encore être assemblés dans les manifests revus.
+
+Une [fixture Linux ARM64 distincte](validation/2026-10-12-studio-eb117-native-files.json)
+a copié puis relu le bundle réel et les 17 fichiers OS/helper avec les APIs
+de production et les owners/xattrs Linux réels. Elle utilise les sources OS
+`38adb68`, dont le graph et le launcher précèdent ce raccord R35. Son arbre
+initialement vide ne fournit ni base OS, ni support, ni comptes, ni services
+actifs. Aucun résultat de cette fixture n'est transféré au nouvel assemblage.
 
 ## Entrées et installation
 

@@ -1,0 +1,82 @@
+{
+  "bundle": {
+    "install_and_readback_passed": true,
+    "manifest_sha256": "5a3b537a6332cf33b9e522078a45c4d13f739b6103c25fd92a27fe00dbf494f8",
+    "payload_files": 2092,
+    "records": 2399,
+    "source_files": 8,
+    "wheel_files": 34
+  },
+  "date": "2026-10-12",
+  "limits": [
+    "The root was an initially empty private fixture, not a complete base OS or an image.",
+    "Source OS 38adb68 retains its earlier R33 graph and legacy launcher. This result verifies file materialization, not their execution or the later R35 source alignment.",
+    "No payload imports, backend/driver execution, accounts, service starts, radio, clock, image, SD or Pi operation occurred.",
+    "Native library resolution, ABI, support/exporter/runtime assembly, boot integration, license delivery and physical flows remain separate work."
+  ],
+  "observations": {
+    "candidate_code_imported": false,
+    "cleanup_attempted": false,
+    "fixture_preserved": true,
+    "host_and_guest_exact_children_reaped_and_owned_groups_gone": true,
+    "image_or_sd_used": false,
+    "nss_or_accounts_used": false,
+    "real_linux_numeric_owners_and_xattrs": true,
+    "services_used": false,
+    "source_and_inputs_unchanged": true
+  },
+  "operations": [
+    "install_bundle",
+    "verify_bundle",
+    "install_writer",
+    "verify_writer"
+  ],
+  "os_source_commit": "38adb68e7253711bd67914460cd141423ba7e2be",
+  "platform": {
+    "architecture": "arm64",
+    "distribution": "Debian 13",
+    "gid": 0,
+    "python_version": "3.13.5",
+    "system": "Linux",
+    "uid": 0
+  },
+  "production_apis_unmodified": true,
+  "qualification": {
+    "abi": false,
+    "boot": false,
+    "file_materialization": true,
+    "hardware": false,
+    "image": false,
+    "installed_graph": false,
+    "license_notice_delivery_complete": false,
+    "native_elf_system_library_closure": false,
+    "release": false,
+    "runtime": false,
+    "support": false
+  },
+  "receipts_sha256": {
+    "bundle-install-receipt.json": "5a182b1a97749c579c1f04ae6337c95f35bb1ce765c56fb7f7e560a4d0612d9e",
+    "bundle-verify-receipt.json": "3808f223c5b1b377d4cb141a08bccc070085831c52d519e6b757aa7b3b878e01",
+    "host-result.json": "e5c377929c45cbd96b84852fe90e6183e36071501f8ac47ae6ab774c2bdf82cc",
+    "native-result.json": "0eec4f4a15bb404da6a485de15b9a2bba5825467ae737d447f6c080cf128c24f",
+    "writer-install-receipt.json": "dbf5811430d1bf9382f1b3adfab7d42af6c3d284b6409ea3fc00bf93aaa79db3",
+    "writer-verify-receipt.json": "83b7c9b516354e08e62f48880520a71dd228a985d68772ee0139cbed2a215d9a"
+  },
+  "review": {
+    "independent_source": "PASS",
+    "root_returned_artifacts": "PASS",
+    "root_source": "PASS"
+  },
+  "schema_version": 1,
+  "scope": "inactive-real-bundle-writer-linux-arm64-materialization",
+  "status": "PASS",
+  "studio_source_commit": "eb117903cb647a14e9722d7387a41058ea8807b3",
+  "writer": {
+    "existing_parents_preserved": true,
+    "files": 17,
+    "helper_files": 1,
+    "helper_mode": "0555",
+    "install_and_readback_passed": true,
+    "os_sources_and_units": 16
+  }
+}
