@@ -766,7 +766,10 @@ class InstalledSources:
         require(len(rows) == 1 and rows[0][3] == '/'
                 and len(rows[0]) == rows[0].index('-') + 4
                 and rows[0][rows[0].index('-') + 1] == 'tmpfs'
-                and set(rows[0][5].split(',')) & {'ro', 'rw'} == {'rw'}
+                # The main writer reads admission under ProtectSystem=strict;
+                # only prepare-boot requires a writable /run. Keep the full
+                # mount row bound below so a later RO/RW change still refuses.
+                and len(set(rows[0][5].split(',')) & {'ro', 'rw'}) == 1
                 and rows[0][2] == '%d:%d' % (os.major(info.st_dev), os.minor(info.st_dev)),
                 'run_mount_changed')
         return tuple(rows[0])
