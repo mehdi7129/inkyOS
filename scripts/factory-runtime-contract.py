@@ -35,13 +35,20 @@ SUPERVISOR_FILES = {MODULE_DIR + '/factory-supervisor.py': '0555', WRITER_PARENT
 # Exact staging template bytes, independent of a caller's repinned support file.
 # The two existing supervisor units participate in the same closed file graph.
 UNIT_TEMPLATES = {
-    'inky-studio.service': '48f4a5245794ad19fef8e9155a27db814f200eaa99779aefb13be6e6f39350ac',
-    'inky-network.service': 'b14c14c8b43e3fec48255dd60ebf539282d9464ab4ddc37e0c7bfb6497f33019',
+    'inkyos-wlan-close.service': '6f77433c904738d0aec29177130fb4d6b46a4f1eef335d01d850599ea59ffff0',
+    'inkyos-system-setup.service': 'a931337d6ef281cbe691b7b3a3b7adb621e2f89c702b242a5d17b77f507cd53c',
+    'inky-studio.service': '422be607cac20a649117a8e64a74ede159799f94c70b9e5f55ccb00db2484779',
+    'inky-network.service': 'e242b4b28f40aab4b52572e93677b5aadde09b525b991ff69178ed3ecddfe517',
     'inkyos-initialization.service': '049661642ac18b8efd8c81ef82fefa4cfba2b450b2a4dee8ba1bf573b7bd47c7',
     'inkyos-admission-prepare.service': '8bda5a8691453353345c44bb90e6be1ffd687d888dc823af6746239316baf90e',
     'inkyos-factory-supervisor.service': '26b7cb8a1daf3858ce2f90afc0bb245d1ec6e8efd810c5772c2b13ee36b5c837',
 }
 UNIT_VENDOR_DIR = 'usr/lib/systemd/system'
+SETUP_FILES = {MODULE_DIR + '/' + name: '0555' for name in (
+    'factory-main.py','writer-graph.py','time-policy.py','system-setup.py',
+    'system-setup-native.py','system-setup-gate.py')}
+SETUP_FILES[MODULE_DIR + '/system-setup-contract.json'] = '0444'
+NATIVE_COMMANDS = {'usr/bin/busctl', 'usr/sbin/iw', 'usr/bin/nmcli', 'usr/bin/systemctl'}
 WRITER_FILES = {UNIT_VENDOR_DIR + '/' + unit: '0644' for unit in UNIT_TEMPLATES}
 # systemd v257.13 path-lookup.c: normal system-manager lookup roots. This is a
 # file policy, not an observation of PID1's compiled paths or UNIT_PATH override.
@@ -384,7 +391,7 @@ def writer_guard(role, *, _contract=None, _identity=None, _environ=None):
     """Own a fresh SH; the caller must drain every writer before leaving it."""
     with contextlib.ExitStack() as stack:
         try:
-            require(type(role) is str and role in {'main', 'helper', 'ipc'})
+            require(type(role) is str and role in {'main', 'helper', 'ipc', 'setup'})
             if _contract is None:
                 require(_identity is None and _environ is None)
                 contract = load_contract()
@@ -613,12 +620,12 @@ def inventories(contract):
     records_schema(records)
     for path in records: resolve(path, records)
     for path in ('usr/bin/python3', 'usr/bin/python3.13', 'etc/ld.so.cache', 'etc/ld.so.conf',
-                 HELPER, *HOOKS, *SUPERVISOR_FILES, *WRITER_FILES):
+                 HELPER, *HOOKS, *SUPERVISOR_FILES, *WRITER_FILES, *SETUP_FILES, *NATIVE_COMMANDS):
         require(path in records, 'invalid_candidate')
     require(resolve('usr/bin/python3', records) == 'usr/bin/python3.13'
             and records['usr/bin/python3.13']['type'] == 'file', 'invalid_candidate')
     for path in (HELPER, *HOOKS): require(records[path]['type'] == 'file' and records[path]['mode'] == '0555')
-    for path, mode in (SUPERVISOR_FILES | WRITER_FILES).items():
+    for path, mode in (SUPERVISOR_FILES | WRITER_FILES | SETUP_FILES).items():
         require(path in support['paths'] and records[path]['type'] == 'file' and records[path]['mode'] == mode)
     for filename, digest in contract.manifest['os_module_pins'].items():
         path = MODULE_DIR + '/' + filename
@@ -635,6 +642,8 @@ def inventories(contract):
         path for path, record in records.items()
         if path.startswith(native_prefixes) and path.endswith('.so') and record['type'] == 'file'}
     require(native_roots <= set(review['roots']), 'invalid_candidate')
+    require(all(path in support['paths'] and resolve(path, records) in review['roots']
+                for path in NATIVE_COMMANDS), 'invalid_candidate')
     return app, exporter, support, records
 
 
@@ -736,7 +745,7 @@ def identity_snapshot():
 
 
 def check_identity(contract, role, identity):
-    require(role in {'main', 'helper', 'ipc'}, 'unsupported_role')
+    require(role in {'main', 'helper', 'ipc', 'setup'}, 'unsupported_role')
     value = identity_snapshot() if identity is None else identity
     require(identity is None or contract._root != Path('/'), 'wrong_identity')
     require(type(value) is dict and set(value) == {'uids', 'gids', 'groups', 'named_groups'}, 'wrong_identity')
@@ -745,13 +754,13 @@ def check_identity(contract, role, identity):
             and all(type(gid) is int and 1 <= gid <= 999 for gid in named.values())
             and len(set(named.values())) == 4 and named['inky-provisioning'] == provisioning, 'wrong_identity')
     uid, gid = ((1000, 1000) if role == 'main' else
-                (contract.manifest['helper_uid'], provisioning) if role == 'helper' else (0, provisioning))
+                (contract.manifest['helper_uid'], provisioning) if role == 'helper' else (0, 0) if role == 'setup' else (0, provisioning))
     for key, expected in (('uids', uid), ('gids', gid)):
         require(type(value[key]) is list and 2 <= len(value[key]) <= 3
                 and all(type(item) is int and item == expected for item in value[key]), 'wrong_identity')
     require(type(value['groups']) is list and all(type(item) is int and item >= 0 for item in value['groups']), 'wrong_identity')
     actual = set(value['groups']) - {gid}
-    expected = set(named.values()) if role == 'main' else set() if role == 'helper' else {0}
+    expected = set(named.values()) if role == 'main' else set() if role == 'helper' else {provisioning} if role == 'setup' else {0}
     require(actual == expected, 'wrong_identity')
 
 
@@ -765,7 +774,7 @@ def verify_role(contract, role, *, _identity=None):
             check_tree(tree, APP, app['records'], {'manifest.json'})
             check_venv(tree, APP + '/server/.venv', support['python_version'])
         else:
-            check_path(tree, HELPER if role == 'helper' else IPC, records)
+            check_path(tree, HELPER if role == 'helper' else MODULE_DIR + '/system-setup.py' if role == 'setup' else IPC, records)
             if role == 'helper': check_path(tree, APP + '/' + HELPER_SOURCE, records)
-            else: check_path(tree, RECEIPT, records)
+            elif role == 'ipc': check_path(tree, RECEIPT, records)
     unchanged(contract)

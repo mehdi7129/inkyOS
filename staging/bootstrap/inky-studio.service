@@ -1,8 +1,8 @@
 # Inactive factory template: no image recipe, enable target or runtime provisioning.
 [Unit]
 Description=Inky Studio admitted factory runtime
-Wants=inkyos-initialization.service inky-network.service bluetooth.service
-After=local-fs.target inkyos-initialization.service inky-network.service bluetooth.service
+Wants=inkyos-initialization.service inky-network.service bluetooth.service inkyos-system-setup.service
+After=local-fs.target inkyos-initialization.service inky-network.service bluetooth.service inkyos-system-setup.service
 
 [Service]
 Type=exec

@@ -139,7 +139,7 @@ class WriterFilesTests(unittest.TestCase):
         expected = {verification.SOURCE_MAP[name][0]: (raw, verification.SOURCE_MAP[name][1])
                     for name, raw in self.payload.items()}
         expected[verification.HELPER] = self.helper, '0555'
-        self.assertEqual(len(expected), 17)
+        self.assertEqual(len(expected), 24)
         self.assertEqual(set(result['records']), set(expected))
         for name, (raw, mode) in expected.items():
             path = self.rootfs / name
@@ -166,7 +166,7 @@ class WriterFilesTests(unittest.TestCase):
         self.assertEqual(verification.UNIT_ABSENT, runtime.UNIT_ABSENT)
         self.assertEqual(verification.TEST_ABSENT, runtime.TEST_ABSENT)
         self.assertEqual(verification.UNITS, set(runtime.UNIT_TEMPLATES))
-        self.assertEqual(len(verification.SOURCE_MAP), 16)
+        self.assertEqual(len(verification.SOURCE_MAP), 23)
 
     def test_existing_trusted_parent_permissions_are_preserved(self):
         directory = self.rootfs / 'usr/local/lib'

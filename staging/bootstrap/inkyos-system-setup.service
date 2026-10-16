@@ -1,0 +1,40 @@
+# Inactive template; active-profile dependencies are installed separately offline.
+[Unit]
+Description=InkyOS admitted clock and WLAN setup
+Wants=inkyos-initialization.service NetworkManager.service
+After=local-fs.target inkyos-initialization.service NetworkManager.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+TimeoutStartSec=90s
+User=root
+Group=root
+SupplementaryGroups=inky-provisioning
+ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py setup
+UMask=0077
+Restart=no
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=infinity
+SendSIGKILL=no
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=no
+PrivateDevices=no
+ProtectClock=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET
+CapabilityBoundingSet=CAP_SYS_TIME CAP_NET_ADMIN
+AmbientCapabilities=CAP_SYS_TIME CAP_NET_ADMIN
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+DevicePolicy=closed
+DeviceAllow=/dev/rfkill rw
+ReadWritePaths=/run/inkyos-system-setup /var/lib/inkyos/system-setup

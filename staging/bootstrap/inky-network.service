@@ -5,7 +5,9 @@ Wants=inkyos-initialization.service NetworkManager.service
 After=local-fs.target inkyos-initialization.service NetworkManager.service
 
 [Service]
-Type=exec
+Type=notify
+NotifyAccess=main
+TimeoutStartSec=90s
 User=inky-network
 Group=inky-provisioning
 ExecStart=/usr/bin/python3.13 -I -B -S /usr/lib/inkyos/writer-launcher.py helper

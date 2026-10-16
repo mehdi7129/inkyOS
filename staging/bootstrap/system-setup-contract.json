@@ -1,0 +1,1782 @@
+{
+  "schema_version": 1,
+  "kind": "factory-system-setup-ipc-contract",
+  "review_status": "DRAFT_ROOT_REVIEW_REQUIRED",
+  "implementation_authorized": false,
+  "source_bases": {
+    "os": "e674e96",
+    "backend": "d67db9e"
+  },
+  "transport": {
+    "socket": "/run/inkyos-system-setup/control.sock",
+    "family": "AF_UNIX",
+    "type": "SOCK_STREAM",
+    "persistent": "one connection per admitted local TLS peer; startup readonly inspection/resume uses an explicitly separate admitted-main connection",
+    "request_limit_including_lf": 8192,
+    "response_limit_including_lf": 16384,
+    "max_outstanding_per_connection": 1,
+    "framing": "strict UTF-8 JSON object followed by exactly one LF; reject duplicate fields, NaN, floats, bools-as-integers and nonminimal integer lexemes; no unframed second request",
+    "authorization": "socket UID/GID are necessary only; SO_PEERPIDFD + PID1 mapping + MainPID/InvocationID/unit policy/candidate/context/current shared admission are mandatory"
+  },
+  "constants": {
+    "challenge_ttl_ns": 30000000000,
+    "operation_admission_budget_ns": 45000000000,
+    "clock_readback_budget_ns": 2000000000,
+    "country_observation_budget_ns": 25000000000,
+    "radio_observation_budget_ns": 5000000000,
+    "max_journal_operations_per_workflow": 64,
+    "max_workflows_per_initialization": 1,
+    "max_challenges_per_session": 1,
+    "native_child_timeout_seconds": 5,
+    "drain_timeout": "none: never relinquish the writer lease while an admitted child/effect remains unknown",
+    "time_policy_sha256": "68bde4a4ff166b4b2f945bc8dbf8664750cee4f43e3315d8b3e624075a5c7148"
+  },
+  "storage": {
+    "parent": "/var/lib/inkyos/system-setup",
+    "owner": "root:root",
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "journal": "root-owned locked journal with fsynced pending records before effects and atomic fsynced publication; never app/helper-writable",
+    "journal_full": "refuse without eviction/reexecution/factory reset; resume and readonly inspect remain available"
+  },
+  "boot_gate": {
+    "unit": "inkyos-wlan-close.service",
+    "nm_dependency": "NetworkManager.service Requires/After=inkyos-wlan-close.service",
+    "rfkill_restore": "systemd-rfkill.service and systemd-rfkill.socket masked in the new profile; gate verifies both inactive/masked/noMainPID, so neither boot nor late ADD can restore WLAN behind the gate",
+    "effect": "WLAN-only soft block + durable NM WirelessEnabled=false, observed before NM starts every boot; never rfkill ALL; no profile or Bluetooth deletion/block",
+    "runtime_receipt": "/run/inkyos-wlan-gate/closed.json bound to current boot and candidate",
+    "failure": "prevent NM startup and keep WLAN closed; no bootstrap/new initialization implied"
+  },
+  "authority_invariants": [
+    "OS verifies initialization_intent and initialization_receipt_digest against the real consumed OS initialization receipt; no file absence or boolean authorizes factory.",
+    "Owner, claim and current credential epoch are delegated only to the pinned admitted main after PreparedFactoryIdentity/owners.status(owner_id,owner_token,request_id=claim_request_id). No owner_token, QR secret or Wi-Fi secret crosses into OS IPC.",
+    "OS derives boot_id/candidate/context/mainInvocationID itself; the public owner binding does not substitute these observations.",
+    "Revalidate the connection/session/current graph before admitting EACH clock/country/radio effect. RESET/disconnect/expire/drain closes the local socket and revokes further admission; already admitted effects remain owned and drained.",
+    "GET firmware only; no vendor SET. Country comes explicitly from the app. No FR default or flash-time country. Refuse if the pinned native policy cannot establish requested firmware/kernel/channel/mapping evidence.",
+    "Each challenge nonce is real OS randomness and created/checked with CLOCK_BOOTTIME; retry never extends its 30s TTL.",
+    "Effect order: observed boot WLAN gate; fsynced PENDING; clock_settime_ns(CLOCK_REALTIME) and policy readback; iw reg set country and readbacks; NM WLAN enable plus readbacks. No scan/profile/connection secrets in setter.",
+    "Initial certificate publication consumes only a validated same-boot/current-session apply receipt, never a historical status or a fabricated ClockResult. A durable already-generated certificate candidate may only be finalized data-only with its identical intent/bytes under explicit recovery.",
+    "Same operation_id and exact canonical request hash returns durable state; differing arguments conflict. A recovered PENDING is UNCERTAIN, never auto-reexecuted.",
+    "Explicit recovery requires new operation_id + supersedes_operation_id + fresh challenge + authenticated owner; drain old effects and positively close/observe WLAN before a new effect cycle. Preserve old tombstones/receipts.",
+    "setup.inspect and setup.status are readonly and require current admitted-main proof but no old phone session. not_started/absence authorizes no mutation. inspect rediscovers operation/completion after lost replies.",
+    "Publication initial fingerprint is historical audit, not a permanent DER pin. Legitimate future certificates with the same UUID/key/SPKI remain accepted; no renewal from an unverified reboot clock.",
+    "setup.resume uses durable completion and fresh boot graph/WLAN gate, not an active owner/phone/old session. It does not replay old UTC or claim a new clock proof. Reapply/read back country before reopening WLAN; reconnect only the root-approved persistent profile.",
+    "Failure after WLAN activation triggers owned close-only cleanup: NM WirelessEnabled=false + WLAN soft block with real readbacks; no profile deletion. If closure is unconfirmed, expose uncertainty and retain SH/drains; never report readiness.",
+    "status.live.https_origin is null until actual Avahi name/state and current interface evidence match the persisted root-owned firstboot hostname. Do not infer origin from socket.gethostname, Host, SAN or IP. URL is explicit https://inky-<persisted32hex>.local:8443.",
+    "setup.complete binds current setup operation_id separately from publication.initial_setup_operation_id/publication_operation_id. After reboot/recovery the IDs may differ: require same UUID/SPKI and the actual historical initial publication, and an explicitly drained/superseded old effect workflow; never recreate the normal certificate.",
+    "setup.complete obtains the exact committed transaction from the attested helper plus independent current NM active UUID/profile/interface/IPv4 checks, then root alone writes initial immutable completion and network-head revision1.",
+    "A normal owner-authorized Wi-Fi change may create a later committed helper transaction. On resume OS asks setup-only inspect_latest_committed, verifies no pending/uncertain journal state and the exact latest durable committed profile against NM, and atomically updates a separate root network-head. Initial profile/tx stay historical audit, not forever pins.",
+    "An absent/pending/uncertain helper journal keeps NORMAL_RECOVERY with WLAN closed, never a fallback to an arbitrary or original profile. It neither deletes root completion nor reopens factory. A subsequent explicit authenticated normal-profile recovery may make a new genuine committed transaction."
+  ],
+  "request_schemas": {
+    "setup.open": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.open"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "binding"
+          ],
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/OwnerBinding"
+            }
+          }
+        }
+      }
+    },
+    "setup.inspect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.inspect"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workflow"
+          ],
+          "properties": {
+            "workflow": {
+              "$ref": "#/$defs/Workflow"
+            }
+          }
+        }
+      }
+    },
+    "setup.challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.challenge"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id",
+            "supersedes_operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "supersedes_operation_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "setup.apply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.apply"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id",
+            "supersedes_operation_id",
+            "challenge_id",
+            "nonce",
+            "utc_seconds",
+            "country"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "supersedes_operation_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "challenge_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "nonce": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "utc_seconds": {
+              "type": "integer",
+              "minimum": 1767225600,
+              "exclusiveMaximum": 4102444800
+            },
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            }
+          }
+        }
+      }
+    },
+    "setup.status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.status"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        }
+      }
+    },
+    "setup.complete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.complete"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id",
+            "publication",
+            "network_transaction_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "publication": {
+              "$ref": "#/$defs/Publication"
+            },
+            "network_transaction_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        }
+      }
+    },
+    "setup.resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "op",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "op": {
+          "const": "setup.resume"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "completion_id"
+          ],
+          "properties": {
+            "completion_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        }
+      }
+    }
+  },
+  "success_response_schemas": {
+    "setup.open": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "binding"
+          ],
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/ObservedBinding"
+            }
+          }
+        }
+      }
+    },
+    "setup.inspect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      }
+    },
+    "setup.challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/Challenge"
+        }
+      }
+    },
+    "setup.apply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/Operation"
+        }
+      }
+    },
+    "setup.status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "completion",
+            "live",
+            "network_head"
+          ],
+          "properties": {
+            "operation": {
+              "$ref": "#/$defs/Operation"
+            },
+            "completion": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Completion"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "live": {
+              "$ref": "#/$defs/Live"
+            },
+            "network_head": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/NetworkHead"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "setup.complete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/Completion"
+        }
+      }
+    },
+    "setup.resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "completion",
+            "live",
+            "network_head"
+          ],
+          "properties": {
+            "completion": {
+              "$ref": "#/$defs/Completion"
+            },
+            "live": {
+              "$ref": "#/$defs/Live"
+            },
+            "network_head": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/NetworkHead"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "error_response_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "v",
+      "id",
+      "ok",
+      "error"
+    ],
+    "properties": {
+      "v": {
+        "const": 1
+      },
+      "id": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ok": {
+        "const": false
+      },
+      "error": {
+        "enum": [
+          "invalid_request",
+          "forbidden",
+          "unavailable",
+          "not_found",
+          "conflict",
+          "challenge_expired",
+          "session_closed",
+          "ledger_full",
+          "effect_uncertain",
+          "country_unconfirmed",
+          "cleanup_unconfirmed",
+          "network_unconfirmed",
+          "publication_conflict",
+          "origin_unavailable"
+        ]
+      }
+    }
+  },
+  "helper_inspect_committed": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "id",
+        "owner_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "inspect_committed"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      }
+    },
+    "response": {
+      "$ref": "#/$defs/NetworkObservation"
+    },
+    "authorized_peer": "only pinned setup-service root peer, confirmed via SO_PEERPIDFD + PID1 MainPID/InvocationID/candidate. Never forwarded from owner/media wire namespace.",
+    "success_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/NetworkObservation"
+        }
+      }
+    },
+    "error_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "error"
+      ],
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "enum": [
+            "not_found",
+            "busy",
+            "not_ready",
+            "permission_denied",
+            "invalid_request"
+          ]
+        }
+      }
+    },
+    "error_meanings": {
+      "not_found": "No retained committed transaction (or exact id/owner absent). No profile may be inferred.",
+      "busy": "A nonfinal/pending network transaction exists; no committed selection is authorized.",
+      "not_ready": "Journal invalid/partial/uncertain, NM unavailable/inconsistent, or required live/persistent metadata unavailable.",
+      "permission_denied": "Peer is not the admitted exact setup service.",
+      "invalid_request": "Closed request grammar failed."
+    },
+    "boot_id_meaning": "boot_id and nm_unique_owner are sampled for THIS observation from actual kernel/current NM bus owner. commit_boot_id/commit_nm_unique_owner derive only from the historical committed journal instance; never reuse them as current observations.",
+    "hash_meaning": "observation_sha256 = SHA256(canonical JSON of exactly all returned NetworkObservation fields excluding observation_sha256; sorted keys, ASCII, compact separators, trailing LF). The OS recomputes it over this attested peer response. It is an observation binding, not a signature, HMAC, hash of secret intent.key, nor a journal-file authenticity claim."
+  },
+  "$defs": {
+    "Workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialization_intent",
+        "initialization_receipt_digest",
+        "frame_id",
+        "spki_sha256"
+      ],
+      "properties": {
+        "initialization_intent": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "initialization_receipt_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frame_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "spki_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "OwnerBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialization_intent",
+        "initialization_receipt_digest",
+        "frame_id",
+        "spki_sha256",
+        "credential_epoch",
+        "owner_id",
+        "claim_request_id",
+        "session_id"
+      ],
+      "properties": {
+        "initialization_intent": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "initialization_receipt_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frame_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "spki_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "credential_epoch": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "claim_request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      }
+    },
+    "ObservedBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialization_intent",
+        "initialization_receipt_digest",
+        "frame_id",
+        "spki_sha256",
+        "credential_epoch",
+        "owner_id",
+        "claim_request_id",
+        "session_id",
+        "boot_id",
+        "candidate_sha256",
+        "context_sha256",
+        "main_invocation_id"
+      ],
+      "properties": {
+        "initialization_intent": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "initialization_receipt_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frame_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "spki_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "credential_epoch": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "claim_request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "context_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "main_invocation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        }
+      }
+    },
+    "Gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boot_id",
+        "candidate_sha256",
+        "record_sha256",
+        "closed_boottime_ns",
+        "nm_wireless_enabled",
+        "wlan_soft_blocked",
+        "restore_policy"
+      ],
+      "properties": {
+        "boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "record_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "closed_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "nm_wireless_enabled": {
+          "const": false
+        },
+        "wlan_soft_blocked": {
+          "const": true
+        },
+        "restore_policy": {
+          "const": "systemd-rfkill-masked"
+        }
+      }
+    },
+    "Challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "supersedes_operation_id",
+        "challenge_id",
+        "nonce",
+        "issued_boottime_ns",
+        "expires_boottime_ns",
+        "binding"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "supersedes_operation_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "issued_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "expires_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "binding": {
+          "$ref": "#/$defs/ObservedBinding"
+        }
+      }
+    },
+    "Clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "utc_seconds",
+        "effect_start_boottime_ns",
+        "effect_end_boottime_ns",
+        "read_start_boottime_ns",
+        "read_end_boottime_ns",
+        "realtime_ns",
+        "error_lower_ns",
+        "error_upper_ns",
+        "time_policy_sha256"
+      ],
+      "properties": {
+        "utc_seconds": {
+          "type": "integer",
+          "minimum": 1767225600,
+          "exclusiveMaximum": 4102444800
+        },
+        "effect_start_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "effect_end_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "read_start_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "read_end_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "realtime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "error_lower_ns": {
+          "type": "integer",
+          "minimum": -2000000000,
+          "maximum": 2000000000
+        },
+        "error_upper_ns": {
+          "type": "integer",
+          "minimum": -2000000000,
+          "maximum": 2000000000
+        },
+        "time_policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "Country": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_country",
+        "firmware_country",
+        "firmware_ccode",
+        "firmware_revision",
+        "global_country",
+        "phy_label",
+        "wiphy_index",
+        "interface",
+        "channel_evidence_sha256",
+        "observed_boottime_ns"
+      ],
+      "properties": {
+        "requested_country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "firmware_country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "firmware_ccode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "firmware_revision": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "global_country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "phy_label": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{2}$"
+        },
+        "wiphy_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "interface": {
+          "const": "wlan0"
+        },
+        "channel_evidence_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "observed_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      }
+    },
+    "Radio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wireless_enabled",
+        "wlan_soft_blocked",
+        "wlan_hard_blocked",
+        "wiphy_index",
+        "interface",
+        "nm_unique_owner",
+        "observed_boottime_ns"
+      ],
+      "properties": {
+        "wireless_enabled": {
+          "const": true
+        },
+        "wlan_soft_blocked": {
+          "const": false
+        },
+        "wlan_hard_blocked": {
+          "const": false
+        },
+        "wiphy_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "interface": {
+          "const": "wlan0"
+        },
+        "nm_unique_owner": {
+          "type": "string",
+          "pattern": "^:[0-9]+\\.[0-9]+$"
+        },
+        "observed_boottime_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      }
+    },
+    "EffectReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation_id",
+        "request_sha256",
+        "binding",
+        "gate",
+        "clock",
+        "country",
+        "radio",
+        "record_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "binding": {
+          "$ref": "#/$defs/ObservedBinding"
+        },
+        "gate": {
+          "$ref": "#/$defs/Gate"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock"
+        },
+        "country": {
+          "$ref": "#/$defs/Country"
+        },
+        "radio": {
+          "$ref": "#/$defs/Radio"
+        },
+        "record_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "Publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_operation_id",
+        "initial_certificate_sha256",
+        "frame_id",
+        "spki_sha256",
+        "initial_setup_operation_id"
+      ],
+      "properties": {
+        "publication_operation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "initial_certificate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frame_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "spki_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "initial_setup_operation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      }
+    },
+    "NetworkObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "owner_id",
+        "state",
+        "profile_uuid",
+        "device",
+        "nm_unique_owner",
+        "boot_id",
+        "ipv4",
+        "active_profile_uuid",
+        "profile_persistent",
+        "observation_sha256",
+        "commit_boot_id",
+        "commit_nm_unique_owner"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "state": {
+          "const": "committed"
+        },
+        "profile_uuid": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "device": {
+          "const": "wlan0"
+        },
+        "nm_unique_owner": {
+          "type": "string",
+          "pattern": "^:[0-9]+\\.[0-9]+$"
+        },
+        "boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "ipv4": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "ipv4"
+          }
+        },
+        "active_profile_uuid": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile_persistent": {
+          "const": true
+        },
+        "observation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "commit_boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "commit_nm_unique_owner": {
+          "type": "string",
+          "pattern": "^:[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "Completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completion_id",
+        "workflow",
+        "owner_id",
+        "claim_request_id",
+        "credential_epoch",
+        "operation_id",
+        "effect_receipt_sha256",
+        "publication",
+        "initial_profile_uuid",
+        "initial_network_transaction_id",
+        "country",
+        "created_boot_id",
+        "record_sha256"
+      ],
+      "properties": {
+        "completion_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "workflow": {
+          "$ref": "#/$defs/Workflow"
+        },
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "claim_request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "credential_epoch": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "operation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "effect_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "publication": {
+          "$ref": "#/$defs/Publication"
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "created_boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "record_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "initial_profile_uuid": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "initial_network_transaction_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      }
+    },
+    "Live": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boot_id",
+        "candidate_sha256",
+        "context_sha256",
+        "readiness",
+        "clock_status",
+        "country_receipt_sha256",
+        "radio_receipt_sha256",
+        "https_origin",
+        "origin_status",
+        "network"
+      ],
+      "properties": {
+        "boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "context_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "readiness": {
+          "enum": [
+            "unavailable",
+            "wlan_closed",
+            "country_radio_ready",
+            "network_ready"
+          ]
+        },
+        "clock_status": {
+          "enum": [
+            "not_attested_current_boot",
+            "owner_asserted_current_boot"
+          ]
+        },
+        "country_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "radio_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "https_origin": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^https://inky-[0-9a-f]{32}\\.local:8443$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin_status": {
+          "enum": [
+            "unavailable",
+            "avahi_current"
+          ]
+        },
+        "network": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NetworkObservation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "state",
+        "request_sha256",
+        "binding",
+        "supersedes_operation_id",
+        "receipt"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "uncertain",
+            "effects_completed",
+            "superseded"
+          ]
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "binding": {
+          "$ref": "#/$defs/ObservedBinding"
+        },
+        "supersedes_operation_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EffectReceipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow",
+        "state",
+        "latest_operation_id",
+        "operation",
+        "completion",
+        "live",
+        "network_head"
+      ],
+      "properties": {
+        "workflow": {
+          "$ref": "#/$defs/Workflow"
+        },
+        "state": {
+          "enum": [
+            "not_started",
+            "challenged",
+            "pending",
+            "uncertain",
+            "effects_completed",
+            "completed"
+          ]
+        },
+        "latest_operation_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Operation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completion": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Completion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "live": {
+          "$ref": "#/$defs/Live"
+        },
+        "network_head": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NetworkHead"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "NetworkHead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completion_id",
+        "revision",
+        "profile_uuid",
+        "network_transaction_id",
+        "owner_id",
+        "country",
+        "source_observation_sha256",
+        "updated_boot_id",
+        "record_sha256"
+      ],
+      "properties": {
+        "completion_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "profile_uuid": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "network_transaction_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "updated_boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "record_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_observation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "idempotency_material": [
+    "workflow",
+    "owner_id",
+    "claim_request_id",
+    "credential_epoch",
+    "operation_id",
+    "supersedes_operation_id",
+    "challenge_id",
+    "nonce",
+    "utc_seconds",
+    "country"
+  ],
+  "idempotency_exclusions": [
+    "rpc id",
+    "new connection session_id",
+    "current observer invocation/boot, retained separately in original receipt"
+  ],
+  "initial_publication_attestation": "Pinned admitted main validates the real PreparedFactoryIdentity initial publication journal and current same-UUID/key/SPKI identity; supplies public publication_operation_id, initial_setup_operation_id, historical initial_certificate_sha256. These initial IDs may differ from the latest setup effect operation_id after explicit drained/superseded recovery. OS imports no Studio code and reads no private key. Same immutable initial publication can survive legitimate leaf renewal and later setup operations.",
+  "resume_when_helper_or_network_missing": "Completion remains root authority for NORMAL mode; original owner need not still be active. Query latest committed only via actually attested helper. If journal absent/pending/uncertain or profile absent/conflicting, keep NORMAL_RECOVERY and WLAN closed; do not fall back to the first/original profile and do not reopen QR/factory. Disconnected latest committed metadata can have ipv4=[]; independent native profile verification precedes country/radio/activation, and readiness requires fresh actual IP afterwards.",
+  "unit_policy": {
+    "unit": "inkyos-system-setup.service",
+    "user": "root",
+    "group": "inky-provisioning",
+    "supplementary_groups": [
+      "root"
+    ],
+    "capability_bounding_set": [
+      "CAP_SYS_TIME",
+      "CAP_NET_ADMIN"
+    ],
+    "ambient_capabilities": [
+      "CAP_SYS_TIME",
+      "CAP_NET_ADMIN"
+    ],
+    "forbidden_additional_capabilities": [
+      "CAP_SYS_PTRACE",
+      "CAP_SYS_ADMIN",
+      "CAP_NET_RAW"
+    ],
+    "protect_clock": false,
+    "private_network": false,
+    "restrict_address_families": [
+      "AF_UNIX",
+      "AF_NETLINK",
+      "AF_INET"
+    ],
+    "read_write_paths": [
+      "/run/inkyos-system-setup",
+      "/var/lib/inkyos/system-setup"
+    ],
+    "device_allow": [
+      "/dev/rfkill rw"
+    ],
+    "restart": "no",
+    "timeout_stop": "infinity",
+    "kill_mode": "mixed",
+    "send_sigkill": false,
+    "scope": "separate new role; initialization IPC retains empty capabilities; no Studio import/execution in setter",
+    "private_devices": false,
+    "device_policy": "closed",
+    "protect_kernel_tunables": true,
+    "restrict_namespaces": true
+  },
+  "helper_inspect_latest_committed": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "const": "inspect_latest_committed"
+        }
+      }
+    },
+    "response": {
+      "$ref": "#/$defs/NetworkObservation"
+    },
+    "authorized_peer": "same setup-only pidfd/InvocationID/candidate guard as inspect_committed; no owner/media/app forwarding",
+    "selection": "last phase=committed/state=committed record in existing retained journal update order; journal must be present/validated, no pending/uncertain active transaction; verify real NM persistent profile id/UUID/interface before returning",
+    "network_down": "ipv4 may be [] and active_profile_uuid null, never pretend network ready; profile metadata remains subject to independent OS NM recross-check",
+    "failure": "absent/pending/uncertain/invalid/ambiguous -> fixed unavailable/not_ready, NORMAL_RECOVERY with WLAN closed; no arbitrary or first-profile fallback",
+    "success_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "result"
+      ],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/NetworkObservation"
+        }
+      }
+    },
+    "error_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "error"
+      ],
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "enum": [
+            "not_found",
+            "busy",
+            "not_ready",
+            "permission_denied",
+            "invalid_request"
+          ]
+        }
+      }
+    },
+    "error_meanings": {
+      "not_found": "No retained committed transaction (or exact id/owner absent). No profile may be inferred.",
+      "busy": "A nonfinal/pending network transaction exists; no committed selection is authorized.",
+      "not_ready": "Journal invalid/partial/uncertain, NM unavailable/inconsistent, or required live/persistent metadata unavailable.",
+      "permission_denied": "Peer is not the admitted exact setup service.",
+      "invalid_request": "Closed request grammar failed."
+    },
+    "boot_id_meaning": "boot_id and nm_unique_owner are sampled for THIS observation from actual kernel/current NM bus owner. commit_boot_id/commit_nm_unique_owner derive only from the historical committed journal instance; never reuse them as current observations.",
+    "hash_meaning": "observation_sha256 = SHA256(canonical JSON of exactly all returned NetworkObservation fields excluding observation_sha256; sorted keys, ASCII, compact separators, trailing LF). The OS recomputes it over this attested peer response. It is an observation binding, not a signature, HMAC, hash of secret intent.key, nor a journal-file authenticity claim."
+  },
+  "canonicalization": {
+    "json": "UTF-8/ASCII canonical sorted keys, separators comma/colon without spaces, one trailing LF",
+    "record_sha256": "SHA256 canonical record excluding its own record_sha256 field; integrity binding, not a signature or authorization",
+    "request_sha256": "SHA256 canonical object of exactly idempotency_material; workflow and owner fields from admitted setup.open, operation fields from setup.apply; excludes RPC id and transient observer/session fields",
+    "source_observation_sha256": "NetworkHead stores the independently recomputed NetworkObservation.observation_sha256 exactly as defined in helper contract."
+  },
+  "normal_data_only_continue": "Backend wire system_setup.continue is an explicit current-owner/claim/session-authorized app mutation. It may use readonly setup.inspect/status as historical evidence only to finalize identical already-durable initial certificate intent/bytes; no new clock grant and no reexecution of OS apply. If no candidate bytes survive or identity/lineage conflict, fresh operation/challenge is required; no auto-recertification of an existing normal identity."
+}
