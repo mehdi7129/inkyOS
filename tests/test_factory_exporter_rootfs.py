@@ -694,7 +694,8 @@ class SupportTests(ExporterFixture):
         path = self.root / 'usr/bin/python3.13._pth'
         self.write(path.parent / 'keep', b'inert')
         support = {'trees': {}, 'paths': {}, 'absent': ['usr/bin/python3.13._pth']}
-        records = {'usr/bin': verify.single_record(path.parent)}
+        records = {name: verify.single_record(self.root if name == '.' else self.root / name)
+                   for name in ('.', 'usr', 'usr/bin')}
         verify.verify_support(self.root, support, records)
         path.write_bytes(b'/unreviewed/imports\n')
         with self.assertRaisesRegex(ValueError, 'Forbidden'):
@@ -708,6 +709,43 @@ class SupportTests(ExporterFixture):
         path.parent.symlink_to(self.sources, target_is_directory=True)
         with self.assertRaisesRegex(ValueError, 'Symlink'):
             verify.verify_support(self.root, support, records)
+
+    def test_deep_unit_lookup_absence_is_proven_at_first_missing_component(self):
+        self.write(self.root / 'etc/systemd/keep', b'inert')
+        records = verify.inventory_module.inventory(self.root)
+        verify.verify_absent(self.root, 'etc/systemd/system.control/inkyos-factory-start.service', records)
+        verify.verify_absent(self.root, 'run/systemd/generator.early/inkyos-factory-start.service', records)
+
+    def test_present_unpinned_absence_parent_refuses(self):
+        self.write(self.root / 'etc/systemd/system.control/keep', b'inert')
+        records = verify.inventory_module.inventory(self.root)
+        del records['etc/systemd/system.control']
+        with self.assertRaisesRegex(ValueError, 'Unpinned'):
+            verify.verify_absent(self.root, 'etc/systemd/system.control/missing.service', records)
+
+    def test_pinned_absolute_and_relative_symlinks_stay_inside_sysroot(self):
+        self.write(self.root / 'usr/lib/keep', b'inert')
+        (self.root / 'lib').symlink_to('/usr/lib')
+        (self.root / 'usr/alias').symlink_to('../usr/lib')
+        records = verify.inventory_module.inventory(self.root)
+        verify.verify_absent(self.root, 'lib/missing-directory/service', records)
+        verify.verify_absent(self.root, 'usr/alias/missing-directory/service', records)
+        (self.root / 'lib').unlink(); (self.root / 'lib').symlink_to('../../outside')
+        records = verify.inventory_module.inventory(self.root)
+        with self.assertRaisesRegex(ValueError, 'escapes'):
+            verify.verify_absent(self.root, 'lib/missing/service', records)
+
+    def test_missing_component_under_replaced_parent_detects_drift(self):
+        self.write(self.root / 'etc/keep', b'inert')
+        records = verify.inventory_module.inventory(self.root)
+        original = os.stat
+        def drift(name, *args, **kwargs):
+            if name == 'missing' and kwargs.get('follow_symlinks') is False:
+                (self.root / 'etc').chmod(0o700)
+            return original(name, *args, **kwargs)
+        with patch.object(verify.os, 'stat', side_effect=drift), self.assertRaisesRegex(
+                (ValueError, verify.inventory_module.ManifestError), 'changed'):
+            verify.verify_absent(self.root, 'etc/missing/service', records)
 
     def test_verifier_cli_with_null_pin_refuses_before_inspection_or_report_creation(self):
         output = self.base / 'report.json'

@@ -410,6 +410,102 @@ def load_support(lock, path):
     return support, records
 
 
+def verify_absent(rootfs, path, records):
+    """Prove a descendant absent beneath pinned, stable no-follow parents.
+
+    Missing lookup directories are valid absence witnesses. No nonexistent
+    parent is fabricated or required in the inventory. Target symlinks are
+    interpreted only in the pinned map, including absolute sysroot links.
+    """
+    name(path)
+    held, bindings = [], []
+
+    def directory(fd, expected):
+        before = os.fstat(fd)
+        actual = {'type': 'directory', 'uid': before.st_uid, 'gid': before.st_gid,
+                  'mode': format(stat.S_IMODE(before.st_mode), '04o'),
+                  'xattrs': inventory_module._xattrs(fd)}
+        require(stat.S_ISDIR(before.st_mode) and actual == expected,
+                'Absence parent differs from pinned support')
+        inventory_module._check_stable(before, os.fstat(fd))
+        held.append((fd, before))
+        return fd
+
+    def stable():
+        for fd, before in held:
+            inventory_module._check_stable(before, os.fstat(fd))
+        for parent, leaf, before in bindings:
+            inventory_module._check_stable(before, os.stat(leaf, dir_fd=parent, follow_symlinks=False))
+        inventory_module._check_stable(held[0][1], rootfs.lstat())
+
+    try:
+        root_fd = inventory_module._open_root(rootfs)
+        try:
+            directory(root_fd, records.get('.'))
+        except BaseException:
+            os.close(root_fd); raise
+        current, pending, resolved, links = root_fd, path.split('/'), [], 0
+        while pending:
+            part = pending.pop(0)
+            if part in ('', '.'):
+                continue
+            if part == '..':
+                require(resolved, 'Symlink escapes root')
+                resolved.pop()
+                current = root_fd
+                # Reopen the canonical pinned directory chain, never host links.
+                for index, component in enumerate(resolved):
+                    key = '/'.join(resolved[:index + 1])
+                    before = os.stat(component, dir_fd=current, follow_symlinks=False)
+                    child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+                    try:
+                        directory(child, records.get(key))
+                    except BaseException:
+                        os.close(child); raise
+                    bindings.append((current, component, before)); current = child
+                continue
+            key = '/'.join(resolved + [part])
+            try:
+                before = os.stat(part, dir_fd=current, follow_symlinks=False)
+            except FileNotFoundError:
+                require(key not in records, 'Pinned absence parent disappeared')
+                stable()
+                return
+            require(pending, 'Forbidden Python/loader path is present')
+            expected = records.get(key)
+            require(expected is not None, 'Unpinned absence parent')
+            if stat.S_ISLNK(before.st_mode):
+                require(expected.get('type') == 'symlink' and before.st_nlink == 1,
+                        'Symlink absence parent is not pinned')
+                target = os.readlink(part, dir_fd=current)
+                require(target and not any(ord(char) < 32 or ord(char) == 127 for char in target),
+                        'Invalid symlink absence parent')
+                actual = {'type': 'symlink', 'uid': before.st_uid, 'gid': before.st_gid,
+                          'mode': format(stat.S_IMODE(before.st_mode), '04o'), 'target': target,
+                          'xattrs': inventory_module._path_xattrs(current, part)}
+                require(actual == expected, 'Symlink absence parent differs from pinned support')
+                bindings.append((current, part, before))
+                links += 1; require(links <= 40, 'Symlink loop')
+                if target.startswith('/'):
+                    resolved, current = [], root_fd
+                pending = target.split('/') + pending
+            else:
+                require(stat.S_ISDIR(before.st_mode) and expected.get('type') == 'directory',
+                        'Symlink or non-directory absence parent refused')
+                child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+                try:
+                    inventory_module._check_stable(before, os.fstat(child))
+                    directory(child, expected)
+                except BaseException:
+                    os.close(child); raise
+                bindings.append((current, part, before)); current = child
+                resolved.append(part)
+        raise ValueError('Forbidden Python/loader path is present')
+    finally:
+        for fd, _before in reversed(held):
+            os.close(fd)
+
+
 def verify_support(rootfs, support, records):
     checked_path(rootfs)
     for prefix, expected in support['trees'].items():
@@ -419,13 +515,7 @@ def verify_support(rootfs, support, records):
         actual = single_record(rootfs if path == '.' else rootfs / path)
         require(actual == expected, 'System-support metadata or bytes differ')
     for path in support['absent']:
-        # Verify every existing parent before checking absence; never follow an
-        # unreviewed symlink into a host path, including on offline rootfs mounts.
-        parent = PurePosixPath(path).parent
-        require(str(parent) in records and records[str(parent)]['type'] == 'directory',
-                'Absence guard parent is not pinned')
-        checked_path(rootfs / str(parent))
-        require(not os.path.lexists(rootfs / path), 'Forbidden Python/loader path is present')
+        verify_absent(rootfs, path, records)
 
 
 def verify_bundle(rootfs, expected, *, owner=(0, 0), fixture=False):

@@ -175,35 +175,11 @@ def collect(root, policy, owner):
 
 
 def check_absent(root, path, records):
-    """Walk no-follow directory fds, interpreting links exclusively in pinned map."""
-    pending, resolved, links = path.split('/'), [], 0
-    while pending:
-        part = pending.pop(0)
-        if part in ('', '.'):
-            continue
-        if part == '..':
-            require(resolved, 'symlink_escape'); resolved.pop(); continue
-        current = '/'.join(resolved + [part])
-        fd = inventory._open_root(root / '/'.join(resolved))
-        try:
-            try:
-                actual = os.stat(part, dir_fd=fd, follow_symlinks=False)
-            except FileNotFoundError:
-                return
-        finally:
-            os.close(fd)
-        require(pending, 'forbidden_path_present:' + path)
-        if stat.S_ISLNK(actual.st_mode):
-            require(records.get(current, {}).get('type') == 'symlink', 'unreviewed_absence_parent')
-            target = records[current]['target']; links += 1
-            require(links <= 40, 'symlink_loop')
-            if target.startswith('/'):
-                resolved = []
-            pending = target.split('/') + pending
-        else:
-            require(stat.S_ISDIR(actual.st_mode)
-                    and records.get(current, {}).get('type') == 'directory', 'unreviewed_absence_parent')
-            resolved.append(part)
+    """Share the verifier's stable fd-based sysroot walk, without circular import."""
+    try:
+        exporter.verify_absent(root, path, records)
+    except (ValueError, inventory.ManifestError) as error:
+        raise Refused(str(error)) from error
 
 
 def parse_cache(raw):
