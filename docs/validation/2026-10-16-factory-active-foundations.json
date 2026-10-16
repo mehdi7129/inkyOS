@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-16",
+  "limits": [
+    "Native PID1 fixtures substitute service names and Ready path and run inert payloads; no product factory graph was started.",
+    "The runtime manifest planner verifies actual installed files under an in-memory proposed manifest; it does not install a manifest or create admission.",
+    "The official base was prepared with generic OS account tools in a private working copy; it is not a complete factory image.",
+    "Exporter/support ELF closure, full active image recipe, system_setup continuation and adopted normal startup remain to integrate."
+  ],
+  "observations": {
+    "application_code_executed_in_base": false,
+    "factory_permission_created": false,
+    "new_image_exported": false,
+    "pi_used": false,
+    "sd_used": false
+  },
+  "official_base": {
+    "example_id_collision_refused": {
+      "gid992": "render",
+      "uid991": "systemd-timesync"
+    },
+    "helper_uid": 980,
+    "loop_detached": true,
+    "machine_id_pristine": true,
+    "official_pwd_lock_preserved": true,
+    "prerequisites_report_sha256": "178aa60c0c4699cde2737edf3eb7b24ac888aeb126b9d7d29a5138773d82acd1",
+    "prerequisites_source_commit": "bfabf55b586129f64635bbbeff716ed2e25b08f4",
+    "provisioning_gid": 980,
+    "real_target_nss_verified": true,
+    "repeat_configuration_refused": true,
+    "source_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+    "work_root_unmounted": true,
+    "writer_parent_policy_verified": true
+  },
+  "os_source_commit": "99b71aef2276fc1f97f264a6fc8f2f161fcff271",
+  "pid1": {
+    "cases": 6,
+    "passed": true,
+    "probe_sha256": "86773b2fc1c7e9aa1177b2a58c16835d335af5ffc67de40a3ce1fdf1590b9aed",
+    "real_product_unit_names_used": false,
+    "report_sha256": "8ff93e015921b0d99f4a35e51c22b487fd8b6d1da09f6a698ebed83f1dcc058a",
+    "template_sha256": "4c920afd1c81c3983624cb9cc5826a184eb6d15c5775346e450518fdde674381"
+  },
+  "qualification": {
+    "active_factory_image": false,
+    "factory_runtime": false,
+    "first_boot_qr": false,
+    "hardware": false,
+    "inert_pid1_trigger_order": true,
+    "installed_file_manifest_planner": true,
+    "normal_reboot": false,
+    "offline_accounts_and_persistent_parents": true,
+    "wifi_setup": false
+  },
+  "schema_version": 1,
+  "scope": "offline-factory-active-foundations",
+  "software_tests": {
+    "count_note": "The baseline has126 cases; the targeted pass contains one new GID case and one overlapping manifest roundtrip. Counts are not summed.",
+    "distinct_native_cases": 127,
+    "final_targeted_regressions": {
+      "errors": 0,
+      "failures": 0,
+      "files": {
+        "scripts/configure-factory-active-prerequisites.py": "4c4e73fe1ddc35f19e55a4d6328e29536804f295c46bd672eb6b52f952719fa1",
+        "scripts/plan-factory-runtime-manifest.py": "a5c38ad6f3bd722460e2f34a044dd58fdde279491106294599d85ed996d8004e",
+        "tests/test_factory_active_prerequisites.py": "d99513a3941104a8568b22bf007b002fbbd671028f52984ff75e81f49a12e521",
+        "tests/test_factory_runtime_manifest_plan.py": "d8dc812b939dd1d51f027f7866bd6a403e04f06a87795d1732775109c38a7fee"
+      },
+      "hardware_qualified": false,
+      "log_sha256": "b46d3b1b140c8f10f2051736687e9c36ac351b76b9be15ce7127c0bf0c5e8008",
+      "passed": true,
+      "root": true,
+      "skipped": 0,
+      "system": "Linux",
+      "test_names": [
+        "test_factory_active_prerequisites.FactoryActivePrerequisitesTests.test_hardware_groups_require_nonroot_system_gids_before_any_write",
+        "test_factory_runtime_manifest_plan.RuntimeManifestPlanTests.test_round_trip_is_consumed_by_real_installed_contract"
+      ],
+      "tests": 2
+    },
+    "linux_arm64_root_baseline": {
+      "arch": "arm64",
+      "errors": 0,
+      "failures": 0,
+      "hardware_qualified": false,
+      "log_sha256": "2500220d3a20d5eb1f37fcac35cc23a0146acd39225a8c6ecafa350b6072aec8",
+      "passed": true,
+      "root": true,
+      "skipped": 0,
+      "system": "Linux",
+      "tests": 126
+    }
+  },
+  "status": "PASS"
+}
