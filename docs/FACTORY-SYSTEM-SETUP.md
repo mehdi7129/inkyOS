@@ -31,8 +31,10 @@ parent and adopts no pre-existing socket.
 
 Runtime support must pin the new sources, units, contract and the ELF closure
 for busctl, iw, nmcli and systemctl. These are mandatory inputs to the runtime
-candidate verifier. The final Studio commit must be the matching clean backend
-commit, pinned by both writer graph and writer-file verifier before packaging.
+candidate verifier. The matching clean Studio backend is pinned to
+`87c0820808a9824885c6009bf6b68354fb0dbbe9` by both writer graph and
+writer-file verifier. A different backend requires a reviewed source update
+before packaging.
 
 ## Authority and effects
 

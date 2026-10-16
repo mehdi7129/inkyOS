@@ -745,7 +745,7 @@ class InstalledSourceRefusalTests(unittest.TestCase):
 
     def test_real_launcher_bytes_pass_ast_binding_to_factory_wrapper(self):
         raw = (ROOT / 'scripts/writer-launcher.py').read_bytes()
-        self.assertEqual(graph.STUDIO_COMMIT, 'eb117903cb647a14e9722d7387a41058ea8807b3')
+        self.assertEqual(graph.STUDIO_COMMIT, '87c0820808a9824885c6009bf6b68354fb0dbbe9')
         self.assertEqual(graph.APP_ARGV, (
             '/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B',
             '/usr/lib/inkyos/factory-main.py'))
