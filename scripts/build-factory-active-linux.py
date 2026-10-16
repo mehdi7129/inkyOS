@@ -105,10 +105,73 @@ def workspace(path):
     require(exporter.ordinary(marker, 256) == b'inkyos-builder-v1\n', 'builder_marker_required')
 
 
+def private_propagation(mountinfo):
+    """Every mount must have private/unbindable propagation, including submounts."""
+    rows = mountinfo.splitlines()
+    if not rows:
+        return False
+    seen, root = set(), False
+    for row in rows:
+        fields = row.split()
+        try:
+            separator = fields.index('-')
+            if (separator < 6 or len(fields) != separator + 4
+                    or not fields[0].isdigit() or fields[0] in seen
+                    or not fields[3].startswith('/') or not fields[4].startswith('/')
+                    or any(field != 'unbindable' for field in fields[6:separator])):
+                return False
+        except (ValueError, IndexError):
+            return False
+        seen.add(fields[0])
+        root |= fields[4] == '/'
+    return root
+
+
 def private_namespaces():
     return (all(os.readlink('/proc/self/ns/' + name) != os.readlink('/proc/1/ns/' + name)
                 for name in ('mnt', 'net', 'uts'))
-            and {name for _, name in socket.if_nameindex()} == {'lo'})
+            and {name for _, name in socket.if_nameindex()} == {'lo'}
+            and private_propagation(Path('/proc/self/mountinfo').read_text()))
+
+
+def current_mounts():
+    """Fresh kernel mount observation; decode mountinfo's escaped path fields."""
+    raw = Path('/proc/self/mountinfo').read_text()
+    require(len(raw) <= 16 * 1024 * 1024, 'mountinfo_limit')
+    result = []
+    def unescape(value):
+        return re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), value)
+    for row in raw.splitlines():
+        fields = row.split(); separator = fields.index('-')
+        require(separator >= 6 and len(fields) == separator + 4, 'invalid_mountinfo')
+        require(re.fullmatch(r'[0-9]+:[0-9]+', fields[2]), 'invalid_mount_device')
+        result.append({'point': unescape(fields[4]), 'source': unescape(fields[separator + 2]),
+                       'device': fields[2], 'type': fields[separator + 1]})
+    require(result, 'empty_mountinfo')
+    return result
+
+
+def loop_device_ids(loop):
+    result = set()
+    for suffix in ('', 'p1', 'p2'):
+        try:
+            info = os.stat(loop + suffix, follow_symlinks=False)
+        except FileNotFoundError:
+            require(suffix, 'loop_device_disappeared')
+            continue
+        require(stat.S_ISBLK(info.st_mode), 'unexpected_loop_device_node')
+        result.add(str(os.major(info.st_rdev)) + ':' + str(os.minor(info.st_rdev)))
+    return result
+
+
+@contextmanager
+def configuration_umask():
+    """Allow declared 0755 rootfs directories; restore caller privacy on failure."""
+    previous = os.umask(0o022)
+    try:
+        yield
+    finally:
+        os.umask(previous)
 
 
 def verify_snapshot(work, pin, *, _owner=(0, 0)):
@@ -232,9 +295,10 @@ class Commands:
 
 class MountedImage:
     """Regular private image only. Cleanup never detaches a still-mounted loop."""
-    def __init__(self, work, operation, commands):
+    def __init__(self, work, operation, commands, *, _mounts=None):
         self.work, self.operation, self.run = work, operation, commands
         self.loop, self.mounted = None, []
+        self.observe = _mounts or current_mounts
 
     def __enter__(self):
         image = self.work / 'candidate.img'
@@ -277,25 +341,74 @@ class MountedImage:
         for name, minor in (('null', 3), ('zero', 5), ('random', 8), ('urandom', 9)):
             self.run(['mknod', '-m', '666', str(self.work / 'root/dev' / name), 'c', '1', str(minor)])
 
+    def associations(self):
+        image = self.work / 'candidate.img'
+        trust(image)
+        raw = self.run(['losetup', '--json', '--list', '--associated', str(image),
+                        '--output', 'NAME,BACK-FILE,RO'], capture=True)
+        require(len(raw) <= 1024 * 1024, 'loop_association_limit')
+        rows = json.loads(raw)['loopdevices']
+        require(type(rows) is list and len(rows) <= 1, 'ambiguous_private_image_association')
+        for row in rows:
+            require(re.fullmatch(r'/dev/loop[0-9]+', row['name'])
+                    and row['back-file'] == str(image), 'loop_backing_file_mismatch')
+        return rows
+
+    def relevant_mounts(self, observed):
+        root, boot = str(self.work / 'root'), str(self.work / 'boot')
+        scoped = [row for row in observed if any(row['point'] == parent or row['point'].startswith(parent + '/')
+                                                for parent in (root, boot))]
+        allowed = {root: ('ext4', self.loop + 'p2' if self.loop else None),
+                   boot: ('vfat', self.loop + 'p1' if self.loop else None),
+                   root + '/dev': ('tmpfs', 'tmpfs')}
+        for row in scoped:
+            require(row['point'] in allowed and (row['type'], row['source']) == allowed[row['point']],
+                    'unexpected_workspace_mount_preserve_evidence')
+        if self.loop:
+            devices = loop_device_ids(self.loop)
+            for row in observed:
+                require(not (re.fullmatch(re.escape(self.loop) + r'(?:p[0-9]+)?', row['source'])
+                             or row.get('device') in devices)
+                        or row in scoped, 'private_image_mounted_outside_workspace')
+        return scoped
+
     def close(self):
-        failures = []
-        for name in list(reversed(self.mounted)):
-            try:
-                self.run(['umount', str(self.work / name)])
-                self.mounted.remove(name)
-            except BaseException as error:
-                failures.append(error)
-                break
-        if not self.mounted and self.loop:
-            try:
-                self.run(['losetup', '--detach', self.loop]); self.loop = None
-            except BaseException as error:
-                failures.append(error)
-        if not self.mounted and self.loop is None:
+        # Both mount and losetup can apply their effect before output/status is
+        # lost. Observe the kernel rather than trusting append-after-command.
+        try:
+            rows = self.associations()
+            self.loop = rows[0]['name'] if rows else None
+            scoped = self.relevant_mounts(self.observe())
+            names = set(self.mounted) | {str(Path(row['point']).relative_to(self.work)) for row in scoped}
+            for name in sorted(names, key=lambda item: (item.count('/'), item), reverse=True):
+                try:
+                    self.run(['umount', str(self.work / name)])
+                except BaseException:
+                    # A lost successful umount is recoverable only from a fresh
+                    # kernel observation; a still-mounted point blocks detach.
+                    remaining = self.relevant_mounts(self.observe())
+                    require(not any(row['point'] == str(self.work / name) for row in remaining),
+                            'cleanup_unmount_failed')
+                if name in self.mounted:
+                    self.mounted.remove(name)
+            require(not self.relevant_mounts(self.observe()), 'cleanup_mounts_remain')
+            rows = self.associations()
+            self.loop = rows[0]['name'] if rows else None
+            # Recheck every namespace mount, including unexpected locations,
+            # immediately before detaching the one exclusive backing file.
+            require(not self.relevant_mounts(self.observe()), 'cleanup_mounts_remain')
+            if self.loop:
+                try:
+                    self.run(['losetup', '--detach', self.loop])
+                except BaseException:
+                    require(not self.associations(), 'cleanup_detach_failed')
+                require(not self.associations(), 'cleanup_loop_remains')
+                self.loop = None
             for name in ('root', 'boot'):
                 if (self.work / name).exists():
                     (self.work / name).rmdir()
-        require(not failures, 'cleanup_incomplete_preserve_private_workspace')
+        except BaseException as error:
+            raise support_tool.Refused('cleanup_incomplete_preserve_private_workspace') from error
 
     def __exit__(self, *_):
         self.close()
@@ -351,25 +464,26 @@ def mutate_system(work, inputs, profile, packages, mounted, run):
         ['/usr/sbin/groupmod', '--new-name', 'inky', 'pi'],
         ['/usr/sbin/usermod', '--groups', 'spi,i2c,gpio', '--shell', '/usr/sbin/nologin', '--lock', 'inky'])):
         target(run, work, command, 'account-' + str(index) + '.log')
-    passive = load('factory-passive-profile.py')
-    metadata = passive.metadata(profile['input_manifest_sha256'], profile)
-    load('configure-rootfs.py').configure(root, work / 'boot', work / 'recipe', factory=metadata)
-    load('factory-assembly-profile.py').prepare_rootfs(work)
-    prerequisites = load('configure-factory-active-prerequisites.py')
-    write_new(work / 'factory-account-prerequisites.json', prerequisites.configure(root, 980, 980))
-    write_new(work / 'factory-active-static.json', load('configure-factory-active-profile.py').stage(
-        root, trigger_sha256=inputs['trigger_sha256']))
-    # The generic configurator's factory argument only controls safe WLAN state.
-    # Publish an honest active identity before the support inventory is proposed.
-    release_path = root / 'etc/inkyos-release.json'
-    release = json_file(release_path)
-    require(release['kind'] == 'factory-passive' and release['factory'] == metadata,
-            'unexpected_intermediate_release')
-    release.update(kind='factory-active', factory={'schema_version': 1, 'kind': 'factory-active-profile',
-                   'studio_commit': profile['studio_commit'], 'startup': 'factory-start-trigger',
-                   'input_manifest_sha256': exporter.sha(exporter.ordinary(work / 'factory-active-inputs.json'))},
-                   runtime_qualified=False, hardware_qualified=False)
-    load('configure-rootfs.py').Tree(root).write('etc/inkyos-release.json', canonical(release).decode())
+    with configuration_umask():
+        passive = load('factory-passive-profile.py')
+        metadata = passive.metadata(profile['input_manifest_sha256'], profile)
+        load('configure-rootfs.py').configure(root, work / 'boot', work / 'recipe', factory=metadata)
+        load('factory-assembly-profile.py').prepare_rootfs(work)
+        prerequisites = load('configure-factory-active-prerequisites.py')
+        write_new(work / 'factory-account-prerequisites.json', prerequisites.configure(root, 980, 980))
+        write_new(work / 'factory-active-static.json', load('configure-factory-active-profile.py').stage(
+            root, trigger_sha256=inputs['trigger_sha256']))
+        # The generic configurator's factory argument only controls safe WLAN state.
+        # Publish an honest active identity before the support inventory is proposed.
+        release_path = root / 'etc/inkyos-release.json'
+        release = json_file(release_path)
+        require(release['kind'] == 'factory-passive' and release['factory'] == metadata,
+                'unexpected_intermediate_release')
+        release.update(kind='factory-active', factory={'schema_version': 1, 'kind': 'factory-active-profile',
+                       'studio_commit': profile['studio_commit'], 'startup': 'factory-start-trigger',
+                       'input_manifest_sha256': exporter.sha(exporter.ordinary(work / 'factory-active-inputs.json'))},
+                       runtime_qualified=False, hardware_qualified=False)
+        load('configure-rootfs.py').Tree(root).write('etc/inkyos-release.json', canonical(release).decode())
     require(policy.read_bytes() == b'#!/bin/sh\nexit 101\n', 'policy_rc_changed')
     policy.unlink()
     run(['umount', str(root / 'dev')]); mounted.mounted.remove('root/dev')

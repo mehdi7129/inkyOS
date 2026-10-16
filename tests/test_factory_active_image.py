@@ -107,27 +107,86 @@ class SnapshotTests(Files):
         with self.assertRaises(ValueError): self.verify()
 
 
+class NamespaceTests(Files):
+    PRIVATE = '21 1 0:20 / / rw - ext4 /dev/vda1 rw\n22 21 0:21 / /proc rw - proc proc rw\n'
+
+    def test_private_mounts_require_root_and_no_shared_slave_or_unknown_tag(self):
+        self.assertTrue(builder.private_propagation(self.PRIVATE))
+        self.assertTrue(builder.private_propagation(self.PRIVATE.replace('rw - proc', 'rw unbindable - proc')))
+        for tag in ('shared:12', 'master:12', 'propagate_from:12', 'future:12'):
+            with self.subTest(tag=tag):
+                self.assertFalse(builder.private_propagation(self.PRIVATE.replace('rw - proc', 'rw ' + tag + ' - proc')))
+        for invalid in ('', 'broken\n', self.PRIVATE.splitlines()[1], self.PRIVATE + self.PRIVATE):
+            with self.subTest(invalid=invalid):
+                self.assertFalse(builder.private_propagation(invalid))
+
+    def test_different_namespaces_and_loopback_do_not_bypass_shared_submount(self):
+        def namespace(path):
+            return 'self' if '/self/' in path else 'pid1'
+        with patch.object(builder.os, 'readlink', side_effect=namespace), \
+             patch.object(builder.socket, 'if_nameindex', return_value=[(1, 'lo')]), \
+             patch.object(builder.Path, 'read_text', return_value=self.PRIVATE.replace('rw - proc', 'rw shared:12 - proc')):
+            self.assertFalse(builder.private_namespaces())
+        with patch.object(builder.os, 'readlink', side_effect=namespace), \
+             patch.object(builder.socket, 'if_nameindex', return_value=[(1, 'lo')]), \
+             patch.object(builder.Path, 'read_text', return_value=self.PRIVATE):
+            self.assertTrue(builder.private_namespaces())
+
+    def test_configuration_umask_restores_caller_after_failure_and_keeps_private_modes(self):
+        previous = os.umask(0o077)
+        try:
+            with self.assertRaisesRegex(ValueError, 'injected failure'):
+                with builder.configuration_umask():
+                    (self.work / 'public-parent').mkdir(mode=0o755)
+                    (self.work / 'private-parent').mkdir(mode=0o700)
+                    builder.write_new(self.work / 'receipt.json', {'fixture': True})
+                    raise ValueError('injected failure')
+            self.assertEqual(os.umask(0o077), 0o077)
+            self.assertEqual(stat.S_IMODE((self.work / 'public-parent').stat().st_mode), 0o755)
+            self.assertEqual(stat.S_IMODE((self.work / 'private-parent').stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE((self.work / 'receipt.json').stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(self.work.stat().st_mode), 0o700)
+        finally:
+            os.umask(previous)
+
+
 class FakeCommands:
     def __init__(self, work, readonly=False):
         self.work, self.readonly, self.calls = work, readonly, []
         self.fail_umount = False
+        self.allocated, self.applied_mounts = False, []
+        self.lose_mount_result, self.lose_loop_result = False, False
 
     def __call__(self, command, *, capture=False, log=None):
         self.calls.append(command)
         if command[:2] == ['losetup', '--find']:
+            self.allocated = True
+            if self.lose_loop_result:
+                raise ValueError('lost losetup result')
             return '/dev/loop17'
         if command[:2] == ['losetup', '--json']:
             return json.dumps({'loopdevices': [{'name': '/dev/loop17', 'back-file': str(self.work / 'candidate.img'),
-                                               'ro': self.readonly}]})
+                                               'ro': self.readonly}] if self.allocated else []})
+        if command[:2] == ['losetup', '--detach']:
+            self.allocated = False
         if command[0] == 'lsblk':
             return json.dumps({'blockdevices': [{'name': '/dev/loop17', 'type': 'loop', 'children': [
                 {'name': '/dev/loop17p1', 'type': 'part'}, {'name': '/dev/loop17p2', 'type': 'part'}]}]})
         if command[0] == 'blkid':
             return 'vfat' if command[-1].endswith('p1') else 'ext4'
-        if command[0] == 'umount' and self.fail_umount:
-            raise ValueError('simulated busy mount')
+        if command[0] == 'mount' and command[1] == '-t':
+            self.applied_mounts.append({'point': command[-1], 'source': command[-2], 'type': command[2]})
+            if self.lose_mount_result:
+                raise ValueError('lost mount result')
+        if command[0] == 'umount':
+            if self.fail_umount:
+                raise ValueError('simulated busy mount')
+            self.applied_mounts[:] = [row for row in self.applied_mounts if row['point'] != command[-1]]
         if log:
             log.write_bytes(b'clean\n')
+
+    def mounts(self):
+        return copy.deepcopy(self.applied_mounts)
 
 
 class MountTests(Files):
@@ -137,22 +196,24 @@ class MountTests(Files):
         original = builder.trust
         seam = patch.object(builder, 'trust', side_effect=lambda path, **kwargs: original(path, **{**kwargs, 'owner': owner}))
         seam.start(); self.addCleanup(seam.stop)
+        devices = patch.object(builder, 'loop_device_ids', return_value={'7:17', '259:1', '259:2'})
+        devices.start(); self.addCleanup(devices.stop)
 
     def test_proposal_loop_and_mounts_are_readonly_without_journal_replay(self):
         run = FakeCommands(self.work, readonly=True)
-        with builder.MountedImage(self.work, 'proposal', run):
+        with builder.MountedImage(self.work, 'proposal', run, _mounts=run.mounts):
             pass
         self.assertIn('--read-only', run.calls[0])
         mounts = [call for call in run.calls if call[0] == 'mount']
         self.assertEqual(len(mounts), 2)
         self.assertIn('ro,noload,nosuid,nodev,noexec', mounts[0])
         self.assertFalse(any(call[0] == 'chroot' for call in run.calls))
-        self.assertEqual(run.calls[-1], ['losetup', '--detach', '/dev/loop17'])
+        self.assertIn(['losetup', '--detach', '/dev/loop17'], run.calls)
         self.assertFalse((self.work / 'root').exists())
 
     def test_failed_unmount_never_forces_detach(self):
         run = FakeCommands(self.work)
-        mounted = builder.MountedImage(self.work, 'prepare', run).__enter__()
+        mounted = builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts).__enter__()
         run.fail_umount = True
         with self.assertRaisesRegex(ValueError, 'cleanup_incomplete'):
             mounted.close()
@@ -161,17 +222,17 @@ class MountTests(Files):
 
     def test_readonly_inventory_precedes_fsck_and_detach(self):
         run = FakeCommands(self.work)
-        with builder.MountedImage(self.work, 'prepare', run) as mounted:
+        with builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts) as mounted:
             mounted.freeze_inventory('fixture')
         root_remount = next(i for i, call in enumerate(run.calls) if call[:2] == ['mount', '-o'])
         fsck = next(i for i, call in enumerate(run.calls) if call[0] == 'e2fsck')
         self.assertLess(root_remount, fsck)
-        self.assertEqual(run.calls[-1], ['losetup', '--detach', '/dev/loop17'])
+        self.assertIn(['losetup', '--detach', '/dev/loop17'], run.calls)
         self.assertTrue((self.work / 'fixture-filesystem.json').exists())
 
     def test_private_dev_exposes_exactly_four_synthetic_devices(self):
         run = FakeCommands(self.work)
-        with builder.MountedImage(self.work, 'prepare', run) as mounted:
+        with builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts) as mounted:
             mounted.device_tree()
         calls = [call for call in run.calls if call[0] == 'mknod']
         self.assertEqual([(Path(call[3]).name, call[-2:]) for call in calls], [
@@ -179,10 +240,51 @@ class MountTests(Files):
         self.assertFalse(any('bind' in part for call in run.calls for part in call))
 
     def test_invalid_losetup_result_is_not_detached_as_a_device(self):
-        run = Mock(return_value='/dev/sda')
+        run = Mock(side_effect=lambda command, **_: json.dumps({'loopdevices': []})
+                   if command[:2] == ['losetup', '--json'] else '/dev/sda')
         with self.assertRaisesRegex(ValueError, 'invalid_loop'):
-            builder.MountedImage(self.work, 'prepare', run).__enter__()
+            builder.MountedImage(self.work, 'prepare', run, _mounts=lambda: []).__enter__()
         self.assertFalse(any(call.args[0][:2] == ['losetup', '--detach'] for call in run.call_args_list))
+
+    def test_mount_applied_before_command_result_loss_is_observed_and_unmounted(self):
+        run = FakeCommands(self.work); run.lose_mount_result = True
+        with self.assertRaisesRegex(ValueError, 'lost mount result'):
+            builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts).__enter__()
+        unmount = next(i for i, call in enumerate(run.calls) if call == ['umount', str(self.work / 'root')])
+        detach = run.calls.index(['losetup', '--detach', '/dev/loop17'])
+        self.assertLess(unmount, detach)
+        self.assertEqual(run.applied_mounts, [])
+        self.assertFalse(run.allocated)
+
+    def test_losetup_applied_before_result_loss_is_recovered_by_exclusive_backing_file(self):
+        run = FakeCommands(self.work); run.lose_loop_result = True
+        with self.assertRaisesRegex(ValueError, 'lost losetup result'):
+            builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts).__enter__()
+        self.assertTrue(any('--associated' in call and str(self.work / 'candidate.img') in call for call in run.calls))
+        self.assertIn(['losetup', '--detach', '/dev/loop17'], run.calls)
+        self.assertFalse(run.allocated)
+
+    def test_candidate_mount_outside_workspace_blocks_detach(self):
+        run = FakeCommands(self.work)
+        mounted = builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts).__enter__()
+        run.applied_mounts.append({'point': '/unexpected', 'source': '/dev/alias-device', 'type': 'ext4', 'device': '259:2'})
+        with self.assertRaisesRegex(ValueError, 'cleanup_incomplete'):
+            mounted.close()
+        self.assertNotIn(['losetup', '--detach', '/dev/loop17'], run.calls)
+
+    def test_ambiguous_backing_file_association_blocks_detach(self):
+        run = FakeCommands(self.work)
+        mounted = builder.MountedImage(self.work, 'prepare', run, _mounts=run.mounts).__enter__()
+        original = run.__class__.__call__
+        def ambiguous(command, **kwargs):
+            value = original(run, command, **kwargs)
+            if '--associated' in command:
+                rows = json.loads(value)['loopdevices']; return json.dumps({'loopdevices': rows + rows})
+            return value
+        mounted.run = ambiguous
+        with self.assertRaisesRegex(ValueError, 'cleanup_incomplete'):
+            mounted.close()
+        self.assertNotIn(['losetup', '--detach', '/dev/loop17'], run.calls)
 
 
 class CheckpointTests(Files):
@@ -282,6 +384,7 @@ class CheckpointTests(Files):
         tree = builder.load('configure-rootfs.py').Tree
         def configure(root, boot, recipe, *, factory):
             calls.append('configure')
+            tree(root).write('usr/local/lib/inkyos/firstboot.py', '# inert\n')
             self.json('root/etc/inkyos-release.json', {'kind': 'factory-passive', 'factory': factory})
         modules = {
             'install-test-access-packages.py': SimpleNamespace(install=lambda *args: calls.append('i2c')),
@@ -298,9 +401,14 @@ class CheckpointTests(Files):
         mounted = SimpleNamespace(device_tree=lambda: calls.append('private-dev'), mounted=['root/dev'])
         run = Mock()
         with patch.object(builder, 'load', side_effect=modules.__getitem__), patch.object(builder, 'target', side_effect=target):
-            builder.mutate_system(self.work, {'trigger_sha256': 'a' * 64},
-                {'input_manifest_sha256': 'b' * 64, 'studio_commit': 'c' * 40},
-                {'packages': [{'filename': 'fixture.deb', 'name': 'fixture'}]}, mounted, run)
+            previous = os.umask(0o077)
+            try:
+                builder.mutate_system(self.work, {'trigger_sha256': 'a' * 64},
+                    {'input_manifest_sha256': 'b' * 64, 'studio_commit': 'c' * 40},
+                    {'packages': [{'filename': 'fixture.deb', 'name': 'fixture'}]}, mounted, run)
+                self.assertEqual(os.umask(0o077), 0o077)
+            finally:
+                os.umask(previous)
         self.assertLess(calls.index('i2c'), calls.index('configure'))
         self.assertLess(calls.index('configure'), calls.index('assembly'))
         self.assertLess(calls.index('assembly'), calls.index('parents'))
@@ -309,6 +417,9 @@ class CheckpointTests(Files):
         self.assertEqual(release['kind'], 'factory-active')
         self.assertEqual(release['factory']['kind'], 'factory-active-profile')
         self.assertFalse((self.work / 'root/usr/sbin/policy-rc.d').exists())
+        for name in ('root/usr/local', 'root/usr/local/lib', 'root/usr/local/lib/inkyos'):
+            self.assertEqual(stat.S_IMODE((self.work / name).stat().st_mode), 0o755)
+        self.assertEqual(stat.S_IMODE((self.work / 'factory-active-static.json').stat().st_mode), 0o600)
         self.assertFalse(any('app' in call or 'systemctl' in call for call in calls))
 
 

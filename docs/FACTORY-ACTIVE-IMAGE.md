@@ -21,7 +21,11 @@ neuf root:root `0700` nommé
 Tous ses parents sont root-owned non writable par groupe/autres, sans symlink.
 Les namespaces mount/net/UTS sont isolés par `unshare --propagation private` ;
 seule l'interface `lo` est admise. Une variable d'environnement ne peut pas
-simuler cette garde. La recette s'exécute depuis le snapshot piné du workspace.
+simuler cette garde. Chaque mount de `mountinfo`, y compris les submounts, doit
+être privé ou unbindable : aucun tag shared/master/propagate_from ni tag inconnu.
+Des namespaces déjà distincts mais des mounts encore partagés provoquent une
+nouvelle isolation `unshare`, ou un refus de l'API directe. La recette s'exécute
+depuis le snapshot piné du workspace.
 
 **Ne pas figer les sources pendant que les lots OS/backend évoluent.** Les pins
 sont des entrées explicites, pas un commit Studio historique ni un support TEST
@@ -170,6 +174,10 @@ Le profil release intermédiaire `factory-passive` n'est jamais livré : il est
 remplacé avant inventaire par `factory-active`, avec startup factory-start-trigger
 et flags runtime/hardware false. La recette conserve et rehash boot cmdline,
 kernels/initramfs, fstab, units grow/resize et scripts resize/partuuid.
+La composition des fichiers rootfs utilise un umask `022` borné, restauré même
+sur exception : les parents déclarés `0755` restent lisibles/traversables par
+UID1000 si l'appelant utilisait `077`. Workspace, parents privés et rapports
+conservent leurs modes explicites `0700`/`0600`.
 
 Après vérifications statiques, les deux filesystems sont remontés RO,
 inventoriés, démontés puis vérifiés avec e2fsck/fsck.fat sans écriture. Seulement
@@ -251,17 +259,25 @@ Les sorties ne sont jamais écrasées/réparées. Un échec conserve image/rappo
 privés et ne produit aucun reçu exportable. Une finalisation commencée n'est
 jamais rejouée automatiquement. Le cleanup démonte dans l'ordre inverse et ne
 détache jamais un loop encore monté ; un cleanup incomplet exige inspection,
-sans forced detach. Les commandes enfants ont un process group séparé ; une
+sans forced detach. Le cleanup reconsulte `mountinfo` et l'association exclusive
+du backing file régulier, au lieu de supposer qu'un résultat de commande a été
+reçu après son effet. Un mount ou un losetup appliqué avant signal/timeout/perte
+de résultat est ainsi récupéré par observation bornée. Plusieurs associations,
+un mount inattendu ou une référence au device ailleurs dans le namespace
+(y compris sous un alias de device avec les mêmes major/minor) interdisent
+tout detach. Les commandes enfants ont un process group séparé ; une
 interruption/timeout tue et attend ce groupe avant la sortie de son contexte.
 
 ```sh
 python3.13 -m unittest discover -s tests -p test_factory_active_image.py -v
 ```
 
-19 tests source passent : hashes réels des snapshots/checkpoints/revue,
+26 tests source passent : hashes réels des snapshots/checkpoints/revue,
 extra/missing/symlink/hardlink/escape, ordre bundle→parents→static, release active,
 mounts proposal RO/noload, devices privés, freeze avant fsck, cleanup incomplet,
-absence de reçu sur échec et refus de reprise partielle. Mounts, dpkg/NSS,
+absence de reçu sur échec, refus de reprise partielle, propagation privée,
+umask appelant `077` et pertes de résultats après effets mount/losetup.
+Mounts, dpkg/NSS,
 installers et commandes OS sont simulés dans ces tests. Ce lot n'exécute pas de
 VM, ne construit pas d'image et ne prétend pas valider un premier boot ; la
 qualification native de la recette finale reste un travail séparé.
