@@ -57,11 +57,32 @@ creating any file or directory:
 - The two final persistent parents `var/lib/inky-studio` and
   `var/lib/inky-network` must be absent, including dangling links. Existing empty
   directories are refused, never adopted, chmodded, chowned or repaired.
-- Account locks, known backup files and this command's reserved staging files
-  must be absent. No pi/app/helper subordinate-ID grants may remain.
+- Per-database account locks, known backup files and this command's reserved
+  staging files must be absent. The official base's existing `.pwd.lock` has the
+  narrowly checked exception below. No pi/app/helper subordinate-ID grants may
+  remain.
 
 The four complete output databases are validated in memory as well, then the
 entire input preflight is repeated immediately before staging.
+
+### Existing official password lock
+
+The official image already contains `etc/.pwd.lock`. It is accepted only as an
+empty root:root0600 regular file, with one link and no xattrs or ACL. Its inode,
+metadata and directory binding are pinned without following links. Before the
+account preflight, the command takes a real nonblocking POSIX exclusive record
+lock (`fcntl.lockf(LOCK_EX | LOCK_NB)`) covering the entire existing file, and
+holds that same descriptor through complete account/parent readback. A competing
+process's lock causes refusal before staging or any other write.
+
+The file itself is never written, truncated, chmodded, chowned, replaced or
+deleted. No second descriptor for it is opened/closed while the POSIX lock is
+held: closing any descriptor for that inode would release the process's record
+locks. The held descriptor and unchanged directory entry are rechecked during
+the operation. If the file is absent, it stays absent, including in
+`--check-only`; the exclusive private-workspace precondition still applies.
+Other `passwd.lock`, `group.lock`, `shadow.lock`, `gshadow.lock`, backup and
+staging files continue to be refused without adoption or repair.
 
 ## Exact preparation and readback
 
@@ -118,11 +139,16 @@ continuation and the native packaging/boot graph described in
 ## Focused validation
 
 `python3.13 -m unittest discover -s tests -p test_factory_active_prerequisites.py`
-executes 19 focused cases: exact preparation, read-only checking, refused IDs and
+executes 24 focused cases: exact preparation, read-only checking, refused IDs and
 collisions, malformed/inconsistent accounts, privileges and credentials, external
 NSS, existing state, link/hardlink/mode guards, host refusal, interrupted staging
-and non-disclosing CLI output. On macOS, 17 pass and two native Linux cases skip.
+and non-disclosing CLI output. The existing `.pwd.lock` cases additionally cover
+unchanged successful preparation, absent/existing read-only checks, invalid
+size/modes/kinds/hardlinks/xattrs, contention held by a separate process, a probe
+showing the lock remains held before and after readback, and release on return.
+On macOS, 22 pass and two native Linux cases skip.
 The Linux-root cases additionally inspect actual xattrs and actual final numeric
-owners including Debian root:shadow0640 database preservation. Synthetic fixture
+owners including refusal of a non-root-group password lock and Debian
+root:shadow0640 database preservation. Synthetic fixture
 owner/platform seams never apply to `/` and are not exposed by the CLI. A native
 builder run is still required before claiming those two cases pass there.

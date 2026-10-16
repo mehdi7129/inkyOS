@@ -24,6 +24,18 @@ spec = importlib.util.spec_from_file_location(
 prepare = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prepare)
 PRODUCTION_ENVIRONMENT = prepare._production_environment
+LOCK_PROBE = '''import errno,fcntl,os,sys
+fd=os.open(sys.argv[1],os.O_RDWR)
+try:
+    fcntl.lockf(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+except OSError as error:
+    if error.errno not in (errno.EACCES,errno.EAGAIN): raise
+    print('blocked')
+else:
+    print('acquired')
+finally:
+    os.close(fd)
+'''
 
 
 class FactoryActivePrerequisitesTests(unittest.TestCase):
@@ -242,6 +254,92 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
             self.refused_without_mutation()
             path.unlink()
 
+    def test_benign_password_lock_is_unchanged_and_held_through_readback(self):
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        path = self.root / 'etc' / prepare.PASSWORD_LOCK
+        before = prepare._signature(path.stat())
+        original = prepare._verify
+        observations = []
+
+        def verify_locked(*args):
+            probe = subprocess.run([sys.executable, '-I', '-c', LOCK_PROBE, str(path)],
+                                   text=True, capture_output=True, check=True, timeout=5)
+            observations.append(probe.stdout.strip())
+            result = original(*args)
+            probe = subprocess.run([sys.executable, '-I', '-c', LOCK_PROBE, str(path)],
+                                   text=True, capture_output=True, check=True, timeout=5)
+            observations.append(probe.stdout.strip())
+            return result
+
+        with patch.object(prepare, '_verify', verify_locked):
+            self.run_prepare()
+        self.assertEqual(observations, ['blocked', 'blocked'])
+        self.assertEqual(prepare._signature(path.stat()), before)
+        self.assertEqual(path.read_bytes(), b'')
+        probe = subprocess.run([sys.executable, '-I', '-c', LOCK_PROBE, str(path)],
+                               text=True, capture_output=True, check=True, timeout=5)
+        self.assertEqual(probe.stdout.strip(), 'acquired')
+
+    def test_check_only_never_creates_or_changes_password_lock(self):
+        self.assertFalse((self.root / 'etc' / prepare.PASSWORD_LOCK).exists())
+        self.run_prepare(check_only=True)
+        self.assertFalse((self.root / 'etc' / prepare.PASSWORD_LOCK).exists())
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        before = self.snapshot()
+        self.run_prepare(check_only=True)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_password_lock_bad_size_mode_hardlink_or_kind_is_refused(self):
+        path = self.root / 'etc' / prepare.PASSWORD_LOCK
+        for content, mode in (('corrupt', 0o600), ('', 0o644), ('', 0o400), ('', 0o1600)):
+            with self.subTest(content=content, mode=mode):
+                self.write(prepare.PASSWORD_LOCK, content, mode)
+                self.refused_without_mutation()
+                path.unlink()
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        link = self.base / 'lock-hardlink'
+        os.link(path, link)
+        self.refused_without_mutation()
+        link.unlink(); path.unlink()
+        path.mkdir(mode=0o700)
+        self.refused_without_mutation()
+        path.rmdir()
+        os.mkfifo(path, 0o600)
+        self.refused_without_mutation()
+        path.unlink()
+
+    def test_password_lock_xattr_corruption_is_refused(self):
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        lock_inode = (self.root / 'etc' / prepare.PASSWORD_LOCK).stat().st_ino
+        original = prepare._xattrs
+
+        def corrupted(rootfs, target):
+            if isinstance(target, int) and os.fstat(target).st_ino == lock_inode:
+                return {'status': 'inspected', 'entries': {'user.corrupt': 'inert'}}
+            return original(rootfs, target)
+
+        with patch.object(prepare, '_xattrs', corrupted):
+            self.refused_without_mutation()
+
+    def test_password_lock_contended_by_separate_process_refuses_before_write(self):
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        path = self.root / 'etc' / prepare.PASSWORD_LOCK
+        code = ('import fcntl,os,sys\n'
+                'fd=os.open(sys.argv[1],os.O_RDWR)\n'
+                'fcntl.lockf(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)\n'
+                'print("held",flush=True)\n'
+                'sys.stdin.read(1)\n')
+        child = subprocess.Popen([sys.executable, '-I', '-c', code, str(path)],
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(child.stdout.readline().strip(), 'held')
+            self.refused_without_mutation()
+            self.refused_without_mutation(check_only=True)
+        finally:
+            child.communicate('x', timeout=5)
+        self.assertEqual(child.returncode, 0)
+
     def test_account_links_hardlinks_modes_and_parent_modes_are_refused(self):
         passwd = self.root / 'etc/passwd'
         saved = self.base / 'saved-passwd'
@@ -320,7 +418,9 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux xattrs required')
     def test_native_account_and_parent_xattrs_are_refused(self):
-        for path in (self.root / 'etc/passwd', self.root / 'var/lib'):
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        for path in (self.root / 'etc/passwd', self.root / 'var/lib',
+                     self.root / 'etc' / prepare.PASSWORD_LOCK):
             os.setxattr(path, 'user.fixture', b'inert')
             try:
                 self.refused_without_mutation()
@@ -330,6 +430,11 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform.startswith('linux') and os.geteuid() == 0,
                          'Linux root ownership required')
     def test_native_exact_ids_and_debian_shadow_metadata(self):
+        self.write(prepare.PASSWORD_LOCK, '', 0o600)
+        lock = self.root / 'etc' / prepare.PASSWORD_LOCK
+        os.chown(lock, 0, 42)
+        self.refused_without_mutation()
+        os.chown(lock, 0, 0)
         for name in ('shadow', 'gshadow'):
             path = self.root / 'etc' / name
             os.chown(path, 0, 42)

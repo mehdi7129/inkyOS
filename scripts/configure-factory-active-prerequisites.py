@@ -7,6 +7,7 @@ The caller owns an exclusive builder workspace: there is no concurrent-writer
 support, rollback, repair, adoption or retry after partial publication.
 """
 import argparse
+import fcntl
 import importlib.util
 import json
 import os
@@ -28,7 +29,8 @@ RESERVED = {'inky-network', 'inky-provisioning'}
 NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_.-]{0,31}\$?')
 NUMBER = re.compile(r'0|[1-9][0-9]{0,9}')
 TEMPORARY = {name: '.inkyos-active-' + name + '.new' for name in DATABASES}
-LOCKS = ('.pwd.lock', 'passwd.lock', 'group.lock', 'shadow.lock', 'gshadow.lock')
+PASSWORD_LOCK = '.pwd.lock'
+LOCKS = ('passwd.lock', 'group.lock', 'shadow.lock', 'gshadow.lock')
 BACKUPS = tuple(name + '-' for name in (*DATABASES, 'subuid', 'subgid'))
 
 
@@ -176,6 +178,8 @@ def _accounts(raw, helper_uid, provisioning_gid, *, configured=False):
 class Environment:
     def __init__(self, rootfs):
         self.directories = []
+        self.password_lock = None
+        self.password_lock_info = None
         self.rootfs = safety._canonical_path(rootfs)
         require(self.rootfs != Path('/'), 'host_root_refused')
         work, trust_from = _production_environment(self.rootfs)
@@ -196,15 +200,52 @@ class Environment:
                 self.directories.append(marker)
                 require(safety._read_file(self.rootfs, marker.fd, 'owner', 256)
                         == b'inkyos-builder-v1\n', 'builder_marker_required')
+            self._acquire_password_lock()
         except BaseException:
             self.close()
             raise
 
+    def _acquire_password_lock(self):
+        try:
+            info = os.stat(PASSWORD_LOCK, dir_fd=self.etc.fd, follow_symlinks=False)
+        except FileNotFoundError:
+            # The caller still guarantees an exclusive workspace. Never create
+            # or normalize a lock, including during a read-only check.
+            return
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size == 0
+                and stat.S_IMODE(info.st_mode) == 0o600
+                and (info.st_uid, info.st_gid) == _owner_ids(self.rootfs),
+                'unsafe_password_lock')
+        self.password_lock = os.open(PASSWORD_LOCK, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK,
+                                     dir_fd=self.etc.fd)
+        self.password_lock_info = info
+        self._check_password_lock()
+        # lckpwdf-compatible POSIX record lock on the entire existing inode.
+        # No other descriptor for this inode is opened/closed while it is held:
+        # POSIX closes release a process's locks even on a different descriptor.
+        fcntl.lockf(self.password_lock, fcntl.LOCK_EX | fcntl.LOCK_NB, 0, 0, os.SEEK_SET)
+        self._check_password_lock()
+
+    def _check_password_lock(self):
+        if self.password_lock is None:
+            require(safety._missing(self.etc.fd, PASSWORD_LOCK), 'password_lock_changed')
+            return
+        require(_signature(os.fstat(self.password_lock)) == _signature(self.password_lock_info)
+                == _signature(os.stat(PASSWORD_LOCK, dir_fd=self.etc.fd, follow_symlinks=False))
+                and _xattrs(self.rootfs, self.password_lock) == safety.EMPTY_XATTRS,
+                'password_lock_changed')
+
     def check(self):
         for directory in self.directories:
             directory.check()
+        self._check_password_lock()
 
     def close(self):
+        if self.password_lock is not None:
+            # Closing this last descriptor releases the POSIX lock only after
+            # the readback (or refusal). The lock file itself stays untouched.
+            os.close(self.password_lock)
+            self.password_lock = None
         for directory in reversed(self.directories):
             directory.close()
         self.directories = []
