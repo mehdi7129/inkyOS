@@ -527,7 +527,7 @@ def prepared_receipt(work, pin, receipt_pin):
     return value
 
 
-def review_inputs(work, pin, prepared_pin):
+def review_inputs(work, pin, prepared_pin, *, app_manifest_sha256):
     trust(work / 'review', directory=True, private=True)
     for name in ('review.json', 'support.json', 'exporter.lock.json', 'evidence.json'):
         trust(work / 'review' / name)
@@ -549,7 +549,9 @@ def review_inputs(work, pin, prepared_pin):
     require(lock == {**initial, 'support_manifest_sha256': review['support_manifest_sha256']},
             'review_exporter_inputs_changed')
     exporter.load_lock(work / 'review/exporter.lock.json', expected_sha256=review['exporter_lock_sha256'])
-    exporter.load_support(lock, work / 'review/support.json')
+    exporter.load_support(lock, work / 'review/support.json',
+        app_manifest=work / 'factory-inputs/factory-bundle-manifest.json',
+        app_manifest_sha256=app_manifest_sha256)
     return review, lock
 
 
@@ -603,7 +605,8 @@ def compose(work, operation, *, inputs_sha256, prepared_sha256=None, review_sha2
         write_new(work / 'support-proposal.json', proposal)
         return proposal
     require(review_sha256 is not None, 'independent_review_required')
-    review, lock = review_inputs(work, review_sha256, prepared_sha256)
+    review, lock = review_inputs(work, review_sha256, prepared_sha256,
+                               app_manifest_sha256=profile['bundle_manifest_sha256'])
     # Persist an explicit no-retry fence before the first writable remount.
     write_new(work / 'finalize-started.json', {'review_sha256': review_sha256, 'prepared_sha256': prepared_sha256})
     with MountedImage(work, operation, run) as mounted:
@@ -619,10 +622,14 @@ def compose(work, operation, *, inputs_sha256, prepared_sha256=None, review_sha2
         arguments = SimpleNamespace(rootfs=root, sources_dir=work / 'exporter-inputs/sources',
             wheels_dir=work / 'exporter-inputs/wheels', support_manifest=work / 'review/support.json',
             output=work / 'factory-exporter-installation.json', lock=work / 'review/exporter.lock.json',
-            lock_sha256=review['exporter_lock_sha256'])
+            lock_sha256=review['exporter_lock_sha256'],
+            app_manifest=work / 'factory-inputs/factory-bundle-manifest.json',
+            app_manifest_sha256=profile['bundle_manifest_sha256'])
         load('install-factory-exporter-rootfs.py').install(arguments)
         run(['umount', str(root / 'dev')]); mounted.mounted.remove('root/dev')
-        exporter_report = exporter.verify(root, lock, arguments.sources_dir, arguments.wheels_dir, arguments.support_manifest)
+        exporter_report = exporter.verify(root, lock, arguments.sources_dir, arguments.wheels_dir,
+            arguments.support_manifest, app_manifest=arguments.app_manifest,
+            app_manifest_sha256=arguments.app_manifest_sha256)
         write_new(work / 'factory-exporter-verification.json', exporter_report)
         planner = load('plan-factory-runtime-manifest.py')
         raw, report = planner.plan(root, bundle_sha256=profile['bundle_manifest_sha256'],
@@ -639,7 +646,8 @@ def compose(work, operation, *, inputs_sha256, prepared_sha256=None, review_sha2
         write_new(work / 'finalize-system-verification.json', generic_static(work, packages))
         mounted.freeze_inventory('finalize')
     verified_inputs(work, inputs_sha256)
-    review_inputs(work, review_sha256, prepared_sha256)
+    review_inputs(work, review_sha256, prepared_sha256,
+                  app_manifest_sha256=profile['bundle_manifest_sha256'])
     receipt = {'schema_version': 1, 'kind': 'factory-active-image-candidate', 'image': digest_file(work / 'candidate.img'),
                'input_manifest_sha256': inputs_sha256, 'prepared_receipt_sha256': prepared_sha256,
                'independent_review_sha256': review_sha256,

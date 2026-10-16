@@ -1,0 +1,73 @@
+{
+  "changes": [
+    "Optional paired app_manifest/app_manifest_sha256; no context retains strict historical support authority.",
+    "Closed app manifest schema, root-owned safe records, exact paths, support collision refusal and pinned symlink resolution.",
+    "Studio commit and all four shared source hashes agree with exporter lock.",
+    "App native roots remain mandatory; app records are never returned as support records.",
+    "Real app tree and manifest bytes verified before installer mutations and again after waited build children.",
+    "Builder propagates previously verified assembly bundle pin to both review checkpoints, install and verify."
+  ],
+  "git_diff_check": "passed",
+  "historical_stage_modified": false,
+  "limitations": [
+    "Host Mac fixtures normalize only UID/GID/xattr platform differences; actual bytes, modes, paths and entry sets remain checked.",
+    "Linux native readelf test skipped on Mac; root owns native validation.",
+    "This source/API correction provides no image, boot, ABI or hardware qualification."
+  ],
+  "mount_umask_cleanup_guards_modified": false,
+  "network_used": false,
+  "python_version": "3.13.15",
+  "real_staged_app_context": {
+    "app_manifest_sha256": "9b6f76b3b8d5035497b5f9918db92b7c4f0dcd5e4a799f22ae34f16a3be7cb29",
+    "app_or_target_imported": false,
+    "passed": true,
+    "records": 2406,
+    "shared_source_hashes": 4,
+    "studio_commit": "87c0820808a9824885c6009bf6b68354fb0dbbe9"
+  },
+  "ruff": {
+    "baseline_diagnostics": 36,
+    "changed_line_diagnostics": 0,
+    "command": "ruff check --output-format json <3 changed scripts and 2 changed test files>",
+    "current_diagnostics": 36,
+    "scope": "diff only; inherited diagnostics left unchanged"
+  },
+  "runtime_contract_modified": false,
+  "schema_version": 1,
+  "scope": "factory-exporter-explicit-pinned-app-context",
+  "source_files_sha256": {
+    "scripts/build-factory-active-linux.py": "e00c69c3196763fbccc3c8097270ffb485d6a1f169dd273e9191423765f5a7cd",
+    "scripts/install-factory-exporter-rootfs.py": "e9193ca62d80953ce4b2618399cbca2bb392d4cbe51932f457c47235e8cd9f65",
+    "scripts/verify-factory-exporter-rootfs.py": "616ecc3a78c6f858ec796f31cf7b9fa6aa0b8fd70775a373e57d94850a08848b"
+  },
+  "source_parent_commit": "f0e9bf5b318d78fe6bea1f7f19eddfbcebb91fd1",
+  "target_code_executed": false,
+  "tests": [
+    {
+      "command": "python -B -m unittest discover -s tests -p test_factory_exporter_rootfs.py",
+      "passed": true,
+      "skipped": 0,
+      "tests_run": 73
+    },
+    {
+      "command": "python -B -m unittest discover -s tests -p test_factory_active_image.py",
+      "passed": true,
+      "skipped": 0,
+      "tests_run": 27
+    },
+    {
+      "command": "python -B -m unittest discover -s tests -p test_factory_system_support_plan.py",
+      "passed": true,
+      "skip_reason": "native Linux readelf only",
+      "skipped": 1,
+      "tests_run": 26
+    },
+    {
+      "command": "python -B -m unittest discover -s tests -p test_factory_runtime_manifest_plan.py",
+      "passed": true,
+      "skipped": 0,
+      "tests_run": 16
+    }
+  ],
+  "vm_pi_sd_contacted": false
+}

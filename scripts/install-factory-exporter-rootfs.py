@@ -293,7 +293,8 @@ def install(args):
     # Null/unreviewed support still performs no
     # mkdir, snapshot, chown, subprocess, rootfs mutation or success report.
     verifier.require_support_pin(lock)
-    support, records = verifier.load_support(lock, args.support_manifest)
+    context = verifier.cli_app_context(args, workspace=args.rootfs.parent)
+    support, records = verifier.load_support(lock, args.support_manifest, **context)
     check_environment(args.rootfs, args.sources_dir, args.wheels_dir, args.support_manifest, args.output)
     payload = verifier.expected_payload(lock, args.sources_dir, args.wheels_dir)
     expected = verifier.expected_bundle(payload, support['python_version'], lock['support_manifest_sha256'])
@@ -302,6 +303,7 @@ def install(args):
               for path, raw in payload.items() if raw.startswith(b'\x7fELF')}
     require(native <= set(support['elf_closure_review']['roots']), 'Native wheel ELF review missing')
     verifier.verify_support(args.rootfs, support, records)
+    verifier.verify_app(args.rootfs, lock, **context)
     os.umask(0o022)
     logs = args.output.with_name(args.output.name + '.logs'); logs.mkdir(mode=0o700)
     scratch = args.rootfs / SCRATCH.relative_to('/'); scratch.mkdir(mode=0o755)
@@ -318,7 +320,8 @@ def install(args):
     finish_tree(bundle, expected, manifest_raw, support['python_version'])
     # Verify support again after all unprivileged build steps, before admitting
     # any successful staging report. The sources and wheels remain external.
-    report = verifier.verify(args.rootfs, lock, inputs / 'sources', inputs / 'wheels', args.support_manifest)
+    report = verifier.verify(args.rootfs, lock, inputs / 'sources', inputs / 'wheels', args.support_manifest,
+                             **context)
     require(shutil.rmtree.avoids_symlink_attacks, 'Safe scratch removal unavailable')
     shutil.rmtree(scratch)
     report.update(scope='staging-factory-exporter-install', build_uid=1000, build_gid=1000,
@@ -338,6 +341,8 @@ def main(argv=None):
         parser.add_argument('--' + field, type=Path, required=True)
     parser.add_argument('--lock', type=Path)
     parser.add_argument('--lock-sha256')
+    parser.add_argument('--app-manifest', type=Path)
+    parser.add_argument('--app-manifest-sha256')
     args = parser.parse_args(argv)
     try:
         install(args)

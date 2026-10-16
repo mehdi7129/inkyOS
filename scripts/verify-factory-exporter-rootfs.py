@@ -23,7 +23,9 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = 'usr/lib/inkyos/factory-exporter'
+APP_DESTINATION = 'usr/lib/inky-studio'
 SITE = 'venv/lib/python3.13/site-packages'
+APP_SITE = 'server/.venv/lib/python3.13/site-packages'
 LIMIT = 64 * 1024**2
 HASH = re.compile(r'[0-9a-f]{64}')
 EMPTY_XATTRS = {'status': 'inspected', 'entries': {}}
@@ -137,6 +139,63 @@ def require_support_pin(lock):
     require(isinstance(digest, str) and HASH.fullmatch(digest),
             'System-support manifest is not pinned; staging installation and PASS are disabled')
     return digest
+
+
+def app_context(app_manifest=None, app_manifest_sha256=None):
+    require((app_manifest is None) == (app_manifest_sha256 is None),
+            'App manifest and SHA-256 must be paired')
+    if app_manifest is None:
+        return {}
+    require(type(app_manifest_sha256) is str and HASH.fullmatch(app_manifest_sha256),
+            'Invalid app manifest pin')
+    return {'app_manifest': Path(app_manifest), 'app_manifest_sha256': app_manifest_sha256}
+
+
+def cli_app_context(args, *, workspace=None):
+    context = app_context(getattr(args, 'app_manifest', None),
+                          getattr(args, 'app_manifest_sha256', None))
+    if context:
+        path = context['app_manifest']
+        require(args.rootfs.is_absolute() and args.rootfs != Path('/') and path.is_absolute()
+                and not path.is_relative_to(args.rootfs),
+                'App manifest must be outside a non-host rootfs')
+        if workspace is not None:
+            require(path.is_relative_to(workspace),
+                    'App manifest must be in the private build workspace')
+    return context
+
+
+def load_app_manifest(lock, app_manifest=None, app_manifest_sha256=None):
+    context = app_context(app_manifest, app_manifest_sha256)
+    if not context:
+        return None
+    raw = ordinary(context['app_manifest'], 32 * 1024**2)
+    require(sha(raw) == app_manifest_sha256, 'App manifest pin mismatch')
+    app = strict_json(raw)
+    require(type(app) is dict and set(app) == {'schema_version', 'kind', 'studio_commit', 'records'}
+            and type(app['schema_version']) is int and app['schema_version'] == 1
+            and app['kind'] == 'factory-studio-bundle-manifest'
+            and type(app['studio_commit']) is str and re.fullmatch('[0-9a-f]{40}', app['studio_commit'])
+            and app['studio_commit'] == lock['studio_commit'], 'Invalid pinned app manifest')
+    # Reuse the installed runtime's closed metadata/parent schema. This is
+    # trusted builder source, never a module imported from the target image.
+    schema = module('_exporter_app_schema', Path(__file__).resolve().with_name('factory-runtime-contract.py'))
+    schema.records_schema(app['records'])
+    require('manifest.json' not in app['records'], 'App manifest cannot contain itself')
+    for path, digest in lock['source_sha256'].items():
+        record = app['records'].get(APP_SITE + '/' + path, {})
+        require(record.get('type') == 'file' and record.get('sha256') == digest,
+                'App and exporter source pins differ')
+    return app['records'], raw
+
+
+def verify_app(rootfs, lock, **context):
+    app = load_app_manifest(lock, **context)
+    if app is not None:
+        expected, raw = app
+        actual = inventory_module.inventory(rootfs / APP_DESTINATION)
+        require(actual == dict(expected, **{'manifest.json': file_record(raw)}),
+                'App tree differs from pinned manifest')
 
 
 def import_name(path):
@@ -364,7 +423,7 @@ def resolve_record(path, records):
     return '/'.join(resolved) or '.'
 
 
-def load_support(lock, path):
+def load_support(lock, path, *, app_manifest=None, app_manifest_sha256=None):
     expected = require_support_pin(lock)
     raw = ordinary(path)
     require(sha(raw) == expected, 'System-support pin mismatch')
@@ -391,6 +450,17 @@ def load_support(lock, path):
         name(path); require(path not in records, 'Present and absent support path')
     for path in records:
         resolve_record(path, records)
+    app = load_app_manifest(lock, app_manifest, app_manifest_sha256)
+    app_records = {} if app is None else {
+        APP_DESTINATION + ('' if path == '.' else '/' + path): record
+        for path, record in app[0].items()}
+    require(not set(app_records) & set(records), 'App and support inventories overlap')
+    if app_records:
+        # Resolution may use pinned support parents/targets, but app metadata
+        # never becomes part of the returned system-support authority.
+        closure_records = dict(records, **app_records)
+        for path in app_records:
+            resolve_record(path, closure_records)
     review = support['elf_closure_review']
     require(isinstance(review['method'], str) and review['method'] and
             HASH.fullmatch(review['evidence_sha256']), 'Independent ELF review missing')
@@ -400,13 +470,17 @@ def load_support(lock, path):
         for path in review[key]:
             name(path)
             if key != 'roots' or not path.startswith(DESTINATION + '/'):
-                require(path in records or key == 'search_paths' and path in absent,
+                require(path in records or path in app_records
+                        or key == 'search_paths' and path in absent,
                         'ELF review names unpinned support')
     native_roots = {'usr/bin/python3.13'} | {
         path for path, record in records.items()
         if path.startswith('usr/lib/python3.13/') and path.endswith('.so')
         and record['type'] == 'file'}
     require(native_roots <= set(review['roots']), 'Interpreter or stdlib ELF review missing')
+    app_native = {path for path, record in app_records.items()
+                  if path.endswith('.so') and record['type'] == 'file'}
+    require(app_native <= set(review['roots']), 'App native ELF review missing')
     return support, records
 
 
@@ -532,14 +606,16 @@ def verify_bundle(rootfs, expected, *, owner=(0, 0), fixture=False):
     return actual
 
 
-def verify(rootfs, lock, sources, wheels, support_path):
-    support, records = load_support(lock, support_path)
+def verify(rootfs, lock, sources, wheels, support_path, *, app_manifest=None, app_manifest_sha256=None):
+    context = app_context(app_manifest, app_manifest_sha256)
+    support, records = load_support(lock, support_path, **context)
     payload = expected_payload(lock, sources, wheels)
     expected = expected_bundle(payload, support['python_version'], lock['support_manifest_sha256'])
     native = {DESTINATION + '/' + SITE + '/' + path for path, raw in payload.items()
               if raw.startswith(b'\x7fELF')}
     require(native <= set(support['elf_closure_review']['roots']), 'Native wheel ELF review missing')
     verify_support(rootfs, support, records)
+    verify_app(rootfs, lock, **context)
     actual = verify_bundle(rootfs, expected)
     return {'schema_version': 1, 'scope': 'staging-factory-exporter-static-closure',
             'passed': True, 'support_manifest_sha256': lock['support_manifest_sha256'],
@@ -559,17 +635,20 @@ def main(argv=None):
         parser.add_argument('--' + field, type=Path, required=True)
     parser.add_argument('--lock', type=Path)
     parser.add_argument('--lock-sha256')
+    parser.add_argument('--app-manifest', type=Path)
+    parser.add_argument('--app-manifest-sha256')
     args = parser.parse_args(argv)
     try:
         lock = load_cli_lock(args)
         require_support_pin(lock)
+        context = cli_app_context(args)
         require(sys.platform.startswith('linux'), 'Linux metadata verification required')
         require(args.rootfs.is_absolute() and args.rootfs != Path('/'),
                 'Host root is never a verification target')
         checked_path(args.output, missing=True)
         require(not os.path.lexists(args.output) and
                 not args.output.is_relative_to(args.rootfs), 'New report outside rootfs required')
-        report = verify(args.rootfs, lock, args.sources_dir, args.wheels_dir, args.support_manifest)
+        report = verify(args.rootfs, lock, args.sources_dir, args.wheels_dir, args.support_manifest, **context)
         with args.output.open('x', encoding='utf-8') as stream:
             json.dump(report, stream, indent=2, sort_keys=True); stream.write('\n')
         print('Staging exporter static closure: PASS; no runtime or image qualification.')

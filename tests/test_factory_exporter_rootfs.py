@@ -764,6 +764,196 @@ class SupportTests(ExporterFixture):
         self.assertEqual(list(self.root.rglob('*')), before)
 
 
+class AppContextTests(ExporterFixture):
+    """Pinned inert app bytes; real tree drift checks, no target execution."""
+
+    def setUp(self):
+        super().setUp()
+        self.lock['studio_commit'] = 'a' * 40
+        self.app_site = 'server/.venv/lib/python3.13/site-packages'
+        self.native = self.app_site + '/fixture/native.so'
+        self.app_files = {self.app_site + '/' + path: raw for path, raw in self.source_files.items()}
+        self.app_files[self.native] = b'\x7fELF_INERT_APP_NEVER_EXECUTED'
+        directory = {'type': 'directory', 'uid': 0, 'gid': 0, 'mode': '0755',
+                     'xattrs': copy.deepcopy(verify.EMPTY_XATTRS)}
+        records = {'.': directory.copy(), **{p: verify.file_record(raw) for p, raw in self.app_files.items()}}
+        records['server/.venv/bin/python'] = {
+            'type': 'symlink', 'uid': 0, 'gid': 0, 'mode': '0777',
+            'target': '/usr/bin/python3.13', 'xattrs': copy.deepcopy(verify.EMPTY_XATTRS)}
+        for path in list(records):
+            for parent in Path(path).parents:
+                records.setdefault(str(parent), directory.copy())
+        self.app = {'schema_version': 1, 'kind': 'factory-studio-bundle-manifest',
+                    'studio_commit': self.lock['studio_commit'], 'records': records}
+        self.app_path = self.base / 'app-manifest.json'
+        self.context = self.save_app()
+        self.support = self.support_fixture()
+        native = verify.APP_DESTINATION + '/' + self.native
+        self.support['elf_closure_review']['roots'].append(native)
+        self.support['elf_closure_review']['files'].append(native)
+        self.support['elf_closure_review']['search_paths'].append(verify.APP_DESTINATION + '/' + self.app_site)
+        self.support_path = self.base / 'support.json'
+        self.save_support()
+
+    def save_app(self):
+        raw = json.dumps(self.app, sort_keys=True).encode()
+        self.write(self.app_path, raw)
+        return {'app_manifest': self.app_path, 'app_manifest_sha256': digest(raw)}
+
+    def save_support(self):
+        raw = json.dumps(self.support, sort_keys=True).encode()
+        self.lock['support_manifest_sha256'] = digest(raw)
+        self.write(self.support_path, raw)
+
+    def load(self, **context):
+        return verify.load_support(self.lock, self.support_path, **context)
+
+    def materialize_app(self):
+        root = self.root / verify.APP_DESTINATION
+        for path, record in sorted(self.app['records'].items(), key=lambda item: item[0].count('/')):
+            target = root if path == '.' else root / path
+            if record['type'] == 'directory':
+                target.mkdir(parents=True, exist_ok=True); target.chmod(0o755)
+            elif record['type'] == 'file':
+                self.write(target, self.app_files[path])
+            else:
+                target.symlink_to(record['target'])
+                if sys.platform == 'darwin': target.lchmod(0o777)
+        self.write(root / 'manifest.json', self.app_path.read_bytes())
+        return root
+
+    @contextlib.contextmanager
+    def app_host_metadata(self, library=verify):
+        original = library.inventory_module.inventory
+        def normalized(path):
+            records = original(path)
+            for record in records.values():
+                record.update(uid=0, gid=0, xattrs=copy.deepcopy(verify.EMPTY_XATTRS))
+            return records
+        with patch.object(library.inventory_module, 'inventory', side_effect=normalized):
+            yield
+
+    def test_pinned_app_review_accepts_exact_paths_without_extending_support_authority(self):
+        loaded, records = self.load(**self.context)
+        self.assertEqual(loaded, self.support)
+        self.assertEqual(records, verify.support_records(self.support))
+        self.assertNotIn(verify.APP_DESTINATION, records)
+        with self.assertRaisesRegex(ValueError, 'unpinned support'):
+            self.load()
+
+    def test_app_context_half_pairs_wrong_pins_and_changed_bytes_are_refused(self):
+        for context in ({'app_manifest': self.app_path}, {'app_manifest_sha256': self.context['app_manifest_sha256']},
+                        dict(self.context, app_manifest_sha256='0' * 64),
+                        dict(self.context, app_manifest_sha256=True)):
+            with self.subTest(context=context), self.assertRaises(ValueError):
+                self.load(**context)
+        self.app_path.write_bytes(self.app_path.read_bytes() + b' ')
+        with self.assertRaisesRegex(ValueError, 'App manifest pin mismatch'):
+            self.load(**self.context)
+
+    def test_app_schema_commit_source_pins_and_safe_metadata_are_required(self):
+        original = copy.deepcopy(self.app)
+        cases = []
+        app = copy.deepcopy(original); app['studio_commit'] = 'b' * 40; cases.append(app)
+        app = copy.deepcopy(original); app['kind'] = 'unreviewed-app'; cases.append(app)
+        app = copy.deepcopy(original); app['records'][self.native]['uid'] = 1000; cases.append(app)
+        app = copy.deepcopy(original); app['records'][self.native]['mode'] = '0666'; cases.append(app)
+        app = copy.deepcopy(original); app['records'][self.native]['xattrs']['status'] = 'unsupported'; cases.append(app)
+        app = copy.deepcopy(original); app['records'][self.native]['hardlinks'] = 2; cases.append(app)
+        app = copy.deepcopy(original); del app['records'][self.app_site]; cases.append(app)
+        app = copy.deepcopy(original); app['records']['../foreign.so'] = verify.file_record(b'inert'); cases.append(app)
+        app = copy.deepcopy(original); app['records'][self.app_site + '/inky_web/auth.py']['sha256'] = 'b' * 64; cases.append(app)
+        for index, app in enumerate(cases):
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                self.app = app; self.load(**self.save_app())
+
+    def test_unpinned_app_siblings_and_support_collisions_are_refused(self):
+        original = copy.deepcopy(self.support)
+        for field in ('roots', 'files', 'search_paths'):
+            self.support = copy.deepcopy(original)
+            self.support['elf_closure_review'][field].append(verify.APP_DESTINATION + '/foreign.so')
+            self.save_support()
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'unpinned support'):
+                self.load(**self.context)
+        self.support = original
+        self.support['paths'][verify.APP_DESTINATION] = copy.deepcopy(self.app['records']['.'])
+        self.save_support()
+        with self.assertRaisesRegex(ValueError, 'inventories overlap'):
+            self.load(**self.context)
+
+    def test_app_symlink_targets_and_native_roots_stay_closed(self):
+        self.app['records']['server/.venv/bin/python']['target'] = '/unreviewed/python'
+        with self.assertRaisesRegex(ValueError, 'outside pinned support'):
+            self.load(**self.save_app())
+        self.app['records']['server/.venv/bin/python']['target'] = '/usr/bin/python3.13'
+        self.context = self.save_app()
+        self.support['elf_closure_review']['roots'].remove(verify.APP_DESTINATION + '/' + self.native)
+        self.save_support()
+        with self.assertRaisesRegex(ValueError, 'App native ELF review missing'):
+            self.load(**self.context)
+
+    def test_real_app_tree_hash_manifest_entry_set_and_modes_are_checked(self):
+        root = self.materialize_app()
+        with self.app_host_metadata():
+            verify.verify_app(self.root, self.lock, **self.context)
+            for path in (root / self.native, root / 'manifest.json'):
+                raw = path.read_bytes(); path.write_bytes(raw + b'changed')
+                with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'App tree differs'):
+                    verify.verify_app(self.root, self.lock, **self.context)
+                path.write_bytes(raw)
+            extra = self.write(root / 'extra.so', b'INERT')
+            with self.assertRaisesRegex(ValueError, 'App tree differs'):
+                verify.verify_app(self.root, self.lock, **self.context)
+            extra.unlink(); (root / self.native).chmod(0o600)
+            with self.assertRaisesRegex(ValueError, 'App tree differs'):
+                verify.verify_app(self.root, self.lock, **self.context)
+
+    def test_public_verify_checks_real_app_before_accepting_exporter_bundle(self):
+        root = self.materialize_app()
+        with self.app_host_metadata(), patch.object(verify, 'verify_support'), \
+                patch.object(verify, 'verify_bundle', return_value={}) as bundle:
+            self.assertTrue(verify.verify(self.root, self.lock, self.sources, self.wheels,
+                                         self.support_path, **self.context)['passed'])
+            bundle.assert_called_once(); bundle.reset_mock()
+            (root / self.native).write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'App tree differs'):
+                verify.verify(self.root, self.lock, self.sources, self.wheels, self.support_path, **self.context)
+            bundle.assert_not_called()
+
+    def test_installer_app_drift_refuses_before_any_target_write_or_child(self):
+        root = self.materialize_app(); (root / self.native).write_bytes(b'changed')
+        output = self.base / 'install-report.json'
+        args = types.SimpleNamespace(rootfs=self.root, sources_dir=self.sources, wheels_dir=self.wheels,
+            support_manifest=self.support_path, output=output, **self.context)
+        before = sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*'))
+        with self.app_host_metadata(installer.verifier), \
+                patch.object(installer.verifier, 'load_cli_lock', return_value=self.lock), \
+                patch.object(installer, 'check_environment'), patch.object(installer.verifier, 'verify_support'), \
+                patch.object(installer, 'run_step') as child, \
+                self.assertRaisesRegex(ValueError, 'App tree differs'):
+            installer.install(args)
+        child.assert_not_called(); self.assertFalse(output.exists())
+        self.assertFalse(output.with_name(output.name + '.logs').exists())
+        self.assertEqual(sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*')), before)
+
+    def test_installer_passes_same_pinned_context_to_post_child_verification(self):
+        self.materialize_app(); (self.root / 'var/tmp').mkdir(parents=True)
+        output = self.base / 'install-report.json'
+        args = types.SimpleNamespace(rootfs=self.root, sources_dir=self.sources, wheels_dir=self.wheels,
+            support_manifest=self.support_path, output=output, **self.context)
+        with self.app_host_metadata(installer.verifier), \
+                patch.object(installer.verifier, 'load_cli_lock', return_value=self.lock), \
+                patch.object(installer, 'check_environment'), patch.object(installer.verifier, 'verify_support'), \
+                patch.object(installer.os, 'umask'), patch.object(installer.os, 'chown'), \
+                patch.object(installer, 'run_step') as child, patch.object(installer, 'finish_tree'), \
+                patch.object(installer.verifier, 'verify', side_effect=ValueError('inert post-child stop')) as final, \
+                self.assertRaisesRegex(ValueError, 'inert post-child stop'):
+            installer.install(args)
+        self.assertEqual(child.call_count, 2)
+        self.assertEqual(final.call_args.kwargs, self.context)
+        self.assertFalse(output.exists())
+
+
 class LockSelectionTests(ExporterFixture):
     """Synthetic lock/config bytes only; no candidate support or target execution."""
 
@@ -915,6 +1105,39 @@ class LockSelectionTests(ExporterFixture):
                 with patch.object(library, 'load_lock', return_value=self.selected) as load:
                     self.assertIs(library.load_cli_lock(args, workspace=self.root.parent), self.selected)
                 load.assert_called_once_with()
+
+    def test_cli_app_context_options_reach_verifier_and_installer(self):
+        self.selected['support_manifest_sha256'] = '5' * 64
+        raw = json.dumps(self.selected).encode(); self.write(self.lock_path, raw)
+        app = self.base / 'app.json'; self.write(app, b'INERT_PINNED_INPUT')
+        context = {'app_manifest': app, 'app_manifest_sha256': digest(app.read_bytes())}
+        extra = ['--lock', str(self.lock_path), '--lock-sha256', digest(raw),
+                 '--app-manifest', str(app), '--app-manifest-sha256', context['app_manifest_sha256']]
+        with patch.object(verify, 'ROOT', self.config_root), patch.object(verify.sys, 'platform', 'linux'), \
+                patch.object(verify, 'verify', side_effect=ValueError('inert stop')) as target, \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(verify.main(self.args + extra), 1)
+        self.assertEqual(target.call_args.kwargs, context)
+        with patch.object(installer.verifier, 'ROOT', self.config_root), \
+                patch.object(installer.verifier, 'load_support', return_value=({}, {})) as support, \
+                patch.object(installer, 'check_environment', side_effect=ValueError('inert stop')), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(installer.main(self.args + extra), 1)
+        support.assert_called_once_with(self.selected, self.base / 'support.json', **context)
+
+    def test_cli_app_half_pairs_or_target_manifest_refuse_before_support_or_effects(self):
+        self.selected['support_manifest_sha256'] = '5' * 64
+        raw = json.dumps(self.selected).encode(); self.write(self.lock_path, raw)
+        lock = ['--lock', str(self.lock_path), '--lock-sha256', digest(raw)]
+        cases = [ ['--app-manifest', str(self.base / 'app.json')],
+                  ['--app-manifest-sha256', 'a' * 64],
+                  ['--app-manifest', str(self.root / 'app.json'), '--app-manifest-sha256', 'a' * 64] ]
+        for extra in cases:
+            self.cli_refused_before_effects(lock + extra)
+        with self.assertRaisesRegex(ValueError, 'private build workspace'):
+            verify.cli_app_context(types.SimpleNamespace(rootfs=self.root,
+                app_manifest=self.base.parent / 'outside.json', app_manifest_sha256='a' * 64),
+                workspace=self.base)
 
 
 class InstallerTests(ExporterFixture):

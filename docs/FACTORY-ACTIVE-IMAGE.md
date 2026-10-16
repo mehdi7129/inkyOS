@@ -209,6 +209,22 @@ exactement le lock initial avec son seul `support_manifest_sha256` renouvelé.
 Les sources/wheels/exporter ne changent pas. Les APIs support/lock existantes
 vérifient ces contrats avant le premier mount writable de finalisation.
 
+Les APIs exporter `load_support` et `verify` acceptent le contexte optionnel
+`app_manifest` + `app_manifest_sha256`; leurs CLI et l'installer exposent
+`--app-manifest` + `--app-manifest-sha256`. Les deux champs sont indissociables.
+Sans contexte, le refus historique des chemins app dans la revue reste strict.
+Avec contexte, seuls les records exacts du manifeste
+`factory-studio-bundle-manifest` piné sont admis, avec le même `studio_commit`
+que le lock exporter et les mêmes hashes des quatre sources communes. Métadonnées,
+parents et symlinks restent fermés; une collision avec le support est refusée.
+Ces records app ne deviennent pas une autorité support supplémentaire.
+Les roots app natifs exigés par le runtime restent obligatoires.
+L'installer vérifie le bundle app réel avant toute écriture puis le revérifie
+après ses enfants attendus. Le verifier compare aussi les octets du manifeste,
+les fichiers, modes et entrées exactes du bundle app. La recette transmet aux
+checks review/install/verify le pin app déjà validé par le snapshot et l'assembly.
+Ce contexte ne constitue aucune qualification native ou hardware.
+
 `review.json` accepte exactement :
 
 ```json

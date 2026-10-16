@@ -329,13 +329,20 @@ class CheckpointTests(Files):
                       'evidence_sha256': evidence_pin}
             self.json('review/review.json', review); (self.work / 'review').chmod(0o700)
             review_pin = self.pin('review/review.json')
-            actual, _ = builder.review_inputs(self.work, review_pin, 'e' * 64)
+            app_pin = 'f' * 64
+            actual, _ = builder.review_inputs(self.work, review_pin, 'e' * 64,
+                                            app_manifest_sha256=app_pin)
             self.assertEqual(actual, review)
-            load_lock.assert_called_once(); load_support.assert_called_once()
+            load_lock.assert_called_once()
+            load_support.assert_called_once_with(
+                {'source_sha256': {'fixture.py': 'a' * 64}, 'support_manifest_sha256': support_pin},
+                self.work / 'review/support.json',
+                app_manifest=self.work / 'factory-inputs/factory-bundle-manifest.json',
+                app_manifest_sha256=app_pin)
             self.write('review/evidence.json', b'changed')
             (self.work / 'review').chmod(0o700)
             with self.assertRaisesRegex(ValueError, 'review_evidence_pin_mismatch'):
-                builder.review_inputs(self.work, review_pin, 'e' * 64)
+                builder.review_inputs(self.work, review_pin, 'e' * 64, app_manifest_sha256=app_pin)
             self.assertFalse((self.work / 'candidate-receipt.json').exists())
 
     def test_compose_checks_hash_before_remount_and_preserves_failed_candidate(self):
@@ -346,6 +353,31 @@ class CheckpointTests(Files):
                 builder.compose(self.work, 'proposal', inputs_sha256='a' * 64, prepared_sha256=pin)
             mounting.assert_not_called()
             self.assertFalse((self.work / 'support-proposal.json').exists())
+
+    def test_finalize_propagates_previously_pinned_app_to_review_install_and_verify(self):
+        pin = self.prepared(); app_pin = 'f' * 64
+        self.write('root/etc/keep'); self.write('review/support.json', b'INERT_SUPPORT')
+        review = {'support_manifest_sha256': 'b' * 64, 'exporter_lock_sha256': 'c' * 64}
+        captured = []
+        mounted = SimpleNamespace(device_tree=lambda: None, mounted=['root/dev'])
+        with patch.object(builder, 'workspace'), patch.object(builder, 'private_namespaces', return_value=True), \
+                patch.object(builder, 'verified_inputs', return_value=({}, {'bundle_manifest_sha256': app_pin}, {})), \
+                patch.object(builder, 'review_inputs', return_value=(review, {})) as reviewed, \
+                patch.object(builder, 'MountedImage') as mounting, \
+                patch.object(builder.inventory, 'build_manifest', return_value={'rootfs': {}, 'bootfs': {}}), \
+                patch.object(builder, 'load', return_value=SimpleNamespace(install=captured.append)), \
+                patch.object(builder.exporter, 'verify', side_effect=ValueError('inert verification stop')) as verified:
+            mounting.return_value.__enter__.return_value = mounted
+            with self.assertRaisesRegex(ValueError, 'inert verification stop'):
+                builder.compose(self.work, 'finalize', inputs_sha256='a' * 64, prepared_sha256=pin,
+                                review_sha256='d' * 64, _commands=Mock())
+        context = {'app_manifest': self.work / 'factory-inputs/factory-bundle-manifest.json',
+                   'app_manifest_sha256': app_pin}
+        reviewed.assert_called_once_with(self.work, 'd' * 64, pin, app_manifest_sha256=app_pin)
+        self.assertEqual(len(captured), 1)
+        self.assertEqual({key: getattr(captured[0], key) for key in context}, context)
+        self.assertEqual(verified.call_args.kwargs, context)
+        self.assertFalse((self.work / 'candidate-receipt.json').exists())
 
     def test_prepare_failure_leaves_no_export_or_prepared_receipt(self):
         self.write('base.img', b'base')
