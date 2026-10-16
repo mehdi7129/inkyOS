@@ -75,6 +75,9 @@ un lien sortant refuse l'observation. Les chemins TEST présents sont refusés.
 inclure (par exemple `env`, `setpriv`, plugins OpenSSL nécessaires au profil).
 Le planner ajoute l'interpréteur Python, le loader ARM64 et toutes les `.so`
 ou `.so.*` des trees Python système, de Studio et de l'exporter attendu.
+Les `SETUP_FILES` du contrat final doivent être pinés avec leurs modes exacts ;
+ses `NATIVE_COMMANDS` (busctl, iw, nmcli, systemctl) deviennent aussi des racines
+ELF obligatoires, indépendamment d'un oubli dans la policy externe.
 Les chargements `dlopen` calculés ne sont pas inférés : leur revue séparée doit
 compléter ces racines avant de considérer un profil applicatif couvert.
 
@@ -151,9 +154,9 @@ Validation locale ciblée :
 python3 -m unittest discover -s tests -p test_factory_system_support_plan.py -v
 ```
 
-25 tests : parsing readelf/cache, closure transitive/RPATH/RUNPATH, ambiguïtés,
+26 tests : parsing readelf/cache, closure transitive/RPATH/RUNPATH, ambiguïtés,
 symlinks/escapes, absence, pins, collisions, dérive et non-mutation. Sur macOS,
-24 exécutés et un test readelf réel Linux ignoré ; xattrs/identité de fixture
+25 exécutés et un test readelf réel Linux ignoré ; xattrs/identité de fixture
 explicitement normalisés. Le test Linux utilise un véritable ELF ARM64 inerte,
 sans section/exécutable payload, construit en stdlib et analysé par readelf.
 Le run natif sur le candidat réel, puis une revue indépendante hashée, restent
