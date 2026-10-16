@@ -126,7 +126,7 @@ class RuntimeWriterGuardTests(ContractFixture):
 
     def test_every_role_takes_real_readonly_shared_lease_without_inherited_environment(self):
         before = self.snapshot()
-        for role in ('main', 'helper', 'ipc'):
+        for role in ('main', 'helper', 'ipc','setup'):
             with self.subTest(role=role):
                 environment = {'PATH': '/untrusted', 'OTHER': 'untouched'}
                 with self.guard(role, environment=environment) as lease:
@@ -175,7 +175,7 @@ class RuntimeWriterGuardTests(ContractFixture):
         self.assertGreaterEqual(events.count('context'), 2)
 
     def test_every_role_retires_inherited_fd_after_its_own_independent_sh(self):
-        for role in ('main', 'helper', 'ipc'):
+        for role in ('main', 'helper', 'ipc','setup'):
             with self.subTest(role=role):
                 with self.admission.writer(self.root, **self.owner) as original:
                     inherited = os.dup(original.fileno())

@@ -23,6 +23,8 @@ RECEIPT = RECEIPT_DIR + '/parents.json'
 RUNTIME_IPC = 'run/inkyos-bootstrap'
 RUNTIME_HELPER = 'run/inky-network'
 PERSISTENT = 'var/lib/inky-network'
+RUNTIME_SETUP = 'run/inkyos-system-setup'
+PERSISTENT_SETUP = 'var/lib/inkyos/system-setup'
 
 
 class Refused(ValueError):
@@ -85,6 +87,8 @@ def context(contract):
 def policies(contract, helper, provisioning):
     return {RUNTIME_IPC: (contract._uid, provisioning, 0o750),
             RUNTIME_HELPER: (helper, provisioning, 0o750),
+            RUNTIME_SETUP: (contract._uid, provisioning, 0o750),
+            PERSISTENT_SETUP: (contract._uid, contract._gid, 0o700),
             PERSISTENT: (helper, provisioning, 0o700)}
 
 
@@ -152,8 +156,9 @@ def _preflight(contract, helper, provisioning):
                 == contract.candidate_sha256)
         tree.directory('run', 0o755)
         require(tree.absent(ADMISSION) and tree.absent(RECEIPT_DIR)
-                and tree.absent(RUNTIME_IPC) and tree.absent(RUNTIME_HELPER))
-        return record(tree, PERSISTENT, policies(contract, helper, provisioning)[PERSISTENT])
+                and tree.absent(RUNTIME_IPC) and tree.absent(RUNTIME_HELPER) and tree.absent(RUNTIME_SETUP))
+        policy = policies(contract, helper, provisioning)
+        return {path: record(tree, path, policy[path]) for path in (PERSISTENT, PERSISTENT_SETUP)}
 
 
 def preflight(contract):
@@ -187,11 +192,11 @@ def prepare(contract):
             require(context(contract) == expected_context)
             # A partial directory/receipt is deliberately never resumed.
             create_directory(tree, RECEIPT_DIR, contract._uid, contract._gid, 0o755)
-            for path in (RUNTIME_IPC, RUNTIME_HELPER):
+            for path in (RUNTIME_IPC, RUNTIME_HELPER, RUNTIME_SETUP):
                 require(tree.absent(ADMISSION))
                 create_directory(tree, path, *policy[path])
             records = {path: record(tree, path, item) for path, item in policy.items()}
-            require(records[PERSISTENT] == persistent and tree.absent(ADMISSION)
+            require(all(records[path] == persistent[path] for path in persistent) and tree.absent(ADMISSION)
                     and context(contract) == expected_context)
             tree.create(RECEIPT, canonical({**expected_context, 'parents': records}), 0o644)
         _verify(contract, helper, provisioning)

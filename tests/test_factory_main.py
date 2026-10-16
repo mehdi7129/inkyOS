@@ -79,6 +79,10 @@ class SyntheticProof:
         finally:
             self.events.append('peer_exit')
 
+    def setup_guard(self, connection): return self.initialization_guard(connection)
+
+    def network_guard(self, connection): return self.initialization_guard(connection)
+
     def invalidate(self, reason):
         self.invalid = True
         self.events.append(('invalid', reason))
@@ -135,7 +139,9 @@ class FactoryMainFixture(unittest.IsolatedAsyncioTestCase):
                 self.mode = mode
                 owner.display_instances.append(self)
         class Bootstrap:
-            def __init__(self, result, verify_epoch, controller, directory):
+            def __init__(self, result, verify_epoch, controller, directory, *, system_setup, network):
+                owner.assertTrue(callable(system_setup.peer_guard))
+                owner.assertTrue(callable(network.peer_guard))
                 owner.assertTrue(owner.proof.held)
                 self.arguments = (result, verify_epoch, controller, directory)
                 owner.bootstrap_instances.append(self)
@@ -146,7 +152,9 @@ class FactoryMainFixture(unittest.IsolatedAsyncioTestCase):
             if self.serve_body is not None:
                 return await self.serve_body(directory, kwargs)
             raise PhaseAPending('INERT_PHASE_A_PENDING')
-        return serve, Display, Bootstrap
+        class Client:
+            def __init__(self, *, peer_guard): self.peer_guard = peer_guard
+        return serve, Display, Bootstrap, Client, Client
 
     async def run_candidate(self, **overrides):
         values = {'_root': self.root, '_proof': self.proof,
@@ -166,7 +174,7 @@ class FactoryMainTests(FactoryMainFixture):
             controller = kwargs['display_factory']()
             self.assertEqual(controller.mode, 'hardware')
             runtime = kwargs['runtime_factory'](result, controller, verify_epoch)
-            self.assertEqual(runtime.arguments, (result, verify_epoch, controller, directory))
+            self.assertEqual(runtime.arguments, (result, verify_epoch, controller, directory / "provisioning"))
             with kwargs['initialization_peer_guard'](object()) as value:
                 self.assertIsNone(value)
             self.assertFalse(kwargs['stop_requested'].is_set())

@@ -29,9 +29,9 @@ spec.loader.exec_module(graph)
 
 def observations(role, pid, invocation):
     name = graph.UNITS[role]
-    wants = ({'inkyos-initialization.service', 'inky-network.service', 'bluetooth.service'}
+    wants = ({'inkyos-initialization.service', 'inky-network.service', 'bluetooth.service', 'inkyos-system-setup.service'}
              if role == 'main' else {'inkyos-initialization.service', 'NetworkManager.service'}
-             if role == 'helper' else {'inkyos-admission-prepare.service',
+             if role in {'helper','setup'} else {'inkyos-admission-prepare.service',
                                       'inkyos-factory-supervisor.service'})
     unit = {
         'Id': name, 'Names': [name], 'LoadState': 'loaded', 'ActiveState': 'active',
@@ -44,16 +44,19 @@ def observations(role, pid, invocation):
     argv = ['/usr/bin/python3.13', '-I', '-B', '-S',
             '/usr/lib/inkyos/writer-launcher.py', role]
     service = {
-        'MainPID': pid, 'ControlPID': 0, 'Type': 'notify' if role == 'ipc' else 'exec',
-        'User': {'main': 'inky', 'helper': 'inky-network', 'ipc': 'root'}[role],
-        'Group': 'inky' if role == 'main' else 'inky-provisioning',
+        'MainPID': pid, 'ControlPID': 0, 'Type': 'notify' if role in {'ipc','setup','helper'} else 'exec',
+        'User': {'main': 'inky', 'helper': 'inky-network', 'ipc': 'root', 'setup':'root'}[role],
+        'Group': 'inky' if role == 'main' else 'root' if role == 'setup' else 'inky-provisioning',
         'SupplementaryGroups': (['spi', 'i2c', 'gpio', 'inky-provisioning']
-                                if role == 'main' else ['root'] if role == 'ipc' else []),
+                                if role == 'main' else ['root'] if role == 'ipc' else ['inky-provisioning'] if role == 'setup' else []),
         'ExecStart': [['/usr/bin/python3.13', argv, False, 0, 0, 0, 0, 0, 0, 0]],
         'Restart': 'no', 'KillMode': 'mixed', 'KillSignal': signal.SIGTERM,
         'SendSIGKILL': False, 'TimeoutStopUSec': 2**64 - 1,
         'NoNewPrivileges': True, 'PrivateNetwork': role == 'ipc',
+        'NotifyAccess':'main' if role in {'ipc','setup','helper'} else 'none',
     }
+    if role == 'setup':
+        service.update(CapabilityBoundingSet=(1<<25)|(1<<12),AmbientCapabilities=(1<<25)|(1<<12),ProtectClock=False)
     return [unit, service]
 
 
@@ -129,7 +132,7 @@ class Backend:
     """Snapshots and handle identity are entirely synthetic, including pidfd liveness."""
     def __init__(self):
         self.pids = {'main': os.getpid(), 'helper': os.getpid() + 10000,
-                     'ipc': os.getpid() + 20000}
+                     'ipc': os.getpid() + 20000, 'setup': os.getpid() + 30000}
         self.invocations = {role: bytes([index]) * 16
                             for index, role in enumerate(graph.UNITS, 1)}
         self.rows = {role: observations(role, self.pids[role], self.invocations[role])
@@ -194,7 +197,7 @@ class Backend:
     def peer(self, connection):
         connection.fileno()
         self.calls.append(('peer', connection.pid))
-        return self._new(connection.pid, 'ipc')
+        return self._new(connection.pid, next((role for role,pid in self.pids.items() if pid == connection.pid),'ipc'))
 
     def quiescent(self):
         return self.is_quiescent
@@ -238,13 +241,38 @@ class WriterGraphTests(GraphFixture):
         self.active()
         self.assertEqual(self.proof.state, 'ACTIVE')
         self.assertEqual(self.sources.prepares, 1)
-        self.assertEqual(set(self.proof._anchors), {'manager', 'main', 'helper', 'ipc'})
+        self.assertEqual(set(self.proof._anchors), {'manager', 'main', 'helper', 'ipc', 'setup'})
         self.assertTrue(self.lease.held)
         self.assertIsNone(self.proof.check())
         self.proof.close()
         self.assertEqual((self.proof.state, self.lease.exits), ('CLOSED', 1))
         self.assertFalse(self.lease.held)
         self.assertEqual(set(self.backend.handles), set(self.backend.closed))
+
+    def test_setup_peer_guard_pins_actual_setup_mainpid_not_another_root_unit(self):
+        self.active()
+        with self.proof.setup_guard(Connection(self.backend.pids['setup'])) as result:
+            self.assertIsNone(result)
+        with self.assertRaises(graph.Refused):
+            with self.proof.setup_guard(Connection(self.backend.pids['ipc'])):
+                self.fail('Initialization root peer is not the clock setter')
+
+    def test_setup_observer_anchors_its_own_role_and_authenticates_main(self):
+        self.backend.pids['main'] = os.getpid() + 40000
+        self.backend.pids['setup'] = os.getpid()
+        self.backend.rows = {role: observations(role,self.backend.pids[role],self.backend.invocations[role]) for role in graph.UNITS}
+        self.proof = graph.Graph(self.lease,self.sources,self.backend,own_role='setup',_root=self.root)
+        self.active()
+        with self.proof.main_guard(Connection(self.backend.pids['main'])):
+            self.assertTrue(self.lease.held)
+
+    def test_setup_privilege_profile_rejects_extra_capability_or_protect_clock(self):
+        for key,value in [('CapabilityBoundingSet', (1<<25)|(1<<12)|(1<<19)),
+                          ('AmbientCapabilities', (1<<25)|(1<<12)|(1<<21)),('ProtectClock',True)]:
+            rows = observations('setup',12345,b'1'*16)
+            rows[1][key]=value
+            with self.subTest(key=key),self.assertRaisesRegex(graph.Refused,'setup_privileges'):
+                graph.binding('setup',rows)
 
     def test_type_exec_start_job_stabilizes_readonly_before_admission(self):
         unit = self.backend.rows['main'][0]

@@ -12,7 +12,7 @@ from test_factory_runtime_contract import ContractFixture, ROOT, digest, runtime
 
 
 WRITERS = {'inky-studio.service': 'main', 'inky-network.service': 'helper',
-           'inkyos-initialization.service': 'ipc'}
+           'inkyos-initialization.service': 'ipc', 'inkyos-system-setup.service':'setup'}
 
 
 def config(unit):
@@ -25,7 +25,7 @@ def config(unit):
 class TemplatePolicyTests(unittest.TestCase):
     def test_all_five_staging_templates_match_closed_policy(self):
         self.assertEqual(set(runtime.UNIT_TEMPLATES), set(WRITERS) | {
-            'inkyos-admission-prepare.service', 'inkyos-factory-supervisor.service'})
+            'inkyos-admission-prepare.service', 'inkyos-factory-supervisor.service', 'inkyos-wlan-close.service'})
         for unit, wanted in runtime.UNIT_TEMPLATES.items():
             with self.subTest(unit=unit):
                 self.assertEqual(digest((ROOT / 'staging/bootstrap' / unit).read_bytes()), wanted)
@@ -44,6 +44,7 @@ class TemplatePolicyTests(unittest.TestCase):
             'inky-studio.service': ('inky', 'inky', 'spi i2c gpio inky-provisioning'),
             'inky-network.service': ('inky-network', 'inky-provisioning', None),
             'inkyos-initialization.service': ('root', 'inky-provisioning', 'root'),
+            'inkyos-system-setup.service':('root','root','inky-provisioning'),
         }.items():
             with self.subTest(unit=unit):
                 service = config(unit)['Service']
@@ -52,10 +53,10 @@ class TemplatePolicyTests(unittest.TestCase):
     def test_only_ipc_has_notify_readiness(self):
         for unit in WRITERS:
             service = config(unit)['Service']
-            if unit == 'inkyos-initialization.service':
+            if unit in {'inkyos-initialization.service','inky-network.service','inkyos-system-setup.service'}:
                 self.assertEqual(service['Type'], 'notify')
                 self.assertEqual(service['NotifyAccess'], 'main')
-                self.assertEqual(service['TimeoutStartSec'], '10s')
+                self.assertEqual(service['TimeoutStartSec'], '10s' if unit=='inkyos-initialization.service' else '90s')
             else:
                 self.assertEqual(service['Type'], 'exec')
                 self.assertNotIn('NotifyAccess', service)
@@ -96,8 +97,8 @@ class TemplatePolicyTests(unittest.TestCase):
         self.assertEqual(len(runtime.UNIT_LOOKUP_DIRS), 12)
         self.assertEqual(runtime.UNIT_EXTENSION_NAMES, {
             *runtime.UNIT_TEMPLATES, 'service', 'inky-.service', 'inkyos-.service',
-            'inkyos-admission-.service', 'inkyos-factory-.service'})
-        self.assertEqual(len(runtime.UNIT_ABSENT), 535)
+            'inkyos-admission-.service', 'inkyos-factory-.service', 'inkyos-system-.service', 'inkyos-wlan-.service'})
+        self.assertEqual(len(runtime.UNIT_ABSENT), 749)
 
 
 class InstalledUnitPolicyTests(ContractFixture):

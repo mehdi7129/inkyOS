@@ -23,7 +23,9 @@ HELPER = 'usr/local/lib/inky-studio/network-helper.py'
 # select a destination, permission, service, interpreter or executable argument.
 SOURCE_MAP = {
     **{'staging/bootstrap/' + name: ('usr/lib/inkyos/' + name, '0555') for name in
-       ('factory-main.py', 'writer-graph.py', 'writer-admission.py', 'writer-parents.py')},
+       ('factory-main.py', 'writer-graph.py', 'writer-admission.py', 'writer-parents.py', 'time-policy.py',
+        'system-setup.py', 'system-setup-native.py', 'system-setup-gate.py')},
+    'staging/bootstrap/system-setup-contract.json': ('usr/lib/inkyos/system-setup-contract.json','0444'),
     **{'scripts/' + name: ('usr/lib/inkyos/' + name, '0555') for name in
        ('factory-runtime-contract.py', 'factory-supervisor.py', 'writer-launcher.py')},
     **{'scripts/' + name: ('usr/local/lib/inkyos/' + name, '0555') for name in
@@ -31,7 +33,8 @@ SOURCE_MAP = {
         'initialization-receipt.py', 'initialization-server.py')},
     **{'staging/bootstrap/' + name: ('usr/lib/systemd/system/' + name, '0644') for name in
        ('inky-studio.service', 'inky-network.service', 'inkyos-initialization.service',
-        'inkyos-admission-prepare.service', 'inkyos-factory-supervisor.service')},
+        'inkyos-admission-prepare.service', 'inkyos-factory-supervisor.service',
+        'inkyos-system-setup.service', 'inkyos-wlan-close.service')},
 }
 INPUT_FIELDS = {'schema_version', 'kind', 'os_commit', 'studio_commit',
                 'os_source_sha256', 'studio_bundle_manifest_sha256', 'helper_source_sha256'}
@@ -83,7 +86,8 @@ STATE_ABSENT = {
     'var/lib/inkyos/factory-permission', 'var/lib/inkyos/initialization',
     'var/lib/inky-studio', 'var/lib/inky-network',
     'run/inkyos-admission', 'run/inkyos-factory', 'run/inkyos-bootstrap',
-    'run/inkyos-factory-output', 'run/inky-network',
+    'run/inkyos-factory-output', 'run/inky-network', 'run/inkyos-system-setup',
+    'run/inkyos-wlan-gate', 'var/lib/inkyos/system-setup',
 }
 
 

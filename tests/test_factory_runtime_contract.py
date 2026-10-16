@@ -150,11 +150,13 @@ class ContractFixture(unittest.TestCase):
         self.write(runtime.APP + '/' + runtime.HELPER_SOURCE, helper, 0o555)
         for path in runtime.HOOKS:
             self.write(path, b'raise AssertionError("fixture factory hook must not execute")\n', 0o555)
-        for path, mode in runtime.SUPERVISOR_FILES.items():
+        for path, mode in (runtime.SUPERVISOR_FILES | runtime.SETUP_FILES).items():
             self.write(path, b'# inert supervisor\n', int(mode, 8))
         for unit in runtime.UNIT_TEMPLATES:
             self.write(runtime.UNIT_VENDOR_DIR + '/' + unit,
                        (ROOT / 'staging/bootstrap' / unit).read_bytes())
+        for command in runtime.NATIVE_COMMANDS:
+            self.write(command,b'INERT_NATIVE_NOT_EXECUTED',0o755)
         self.write('usr/bin/python3.13', b'INERT_INTERPRETER_NOT_EXECUTED', 0o755)
         self.symlink('usr/bin/python3', 'python3.13')
         self.write('etc/ld.so.conf', b'include /etc/ld.so.conf.d/*.conf\n')
@@ -178,12 +180,14 @@ class ContractFixture(unittest.TestCase):
         trees = {prefix: self.inventory(prefix) for prefix in
                  ('usr/lib/python3.13', 'usr/lib/aarch64-linux-gnu', 'usr/local/lib',
                   'etc/ld.so.conf.d', 'usr/lib/python3/dist-packages')}
-        paths = {'.', 'usr', 'usr/bin', 'usr/lib', 'usr/local', 'etc', 'etc/inkyos',
+        paths = {'.', 'usr', 'usr/bin', 'usr/sbin', 'usr/lib', 'usr/local', 'etc', 'etc/inkyos',
                  'usr/bin/python3', 'usr/bin/python3.13', 'usr/lib/python3',
                  'etc/ld.so.conf', 'etc/ld.so.cache', 'etc/private-runtime-support',
                  runtime.MODULE_DIR, 'usr/lib/systemd', 'usr/lib/systemd/system'}
         paths.update(runtime.MODULE_DIR + '/' + item for item in runtime.MODULES)
         paths.update(runtime.SUPERVISOR_FILES)
+        paths.update(runtime.SETUP_FILES)
+        paths.update(runtime.NATIVE_COMMANDS)
         paths.update(runtime.WRITER_FILES)
         self.support = {
             'schema_version': 1, 'kind': 'factory-exporter-system-support',
@@ -191,7 +195,8 @@ class ContractFixture(unittest.TestCase):
             'trees': trees, 'absent': sorted(runtime.ABSENCE_GUARDS | runtime.TEST_ABSENT | runtime.UNIT_ABSENT),
             'elf_closure_review': {
                 'method': 'INERT_FIXTURE_NOT_A_NATIVE_REVIEW', 'evidence_sha256': '4' * 64,
-                'roots': ['usr/bin/python3.13'], 'files': ['usr/bin/python3.13'],
+                'roots': sorted({'usr/bin/python3.13'} | runtime.NATIVE_COMMANDS),
+                'files': sorted({'usr/bin/python3.13'} | runtime.NATIVE_COMMANDS),
                 'search_paths': ['usr/lib/aarch64-linux-gnu'],
             },
             **{field: '1' * 64 for field in ('base_image_sha256', 'base_lock_sha256',
@@ -224,6 +229,7 @@ class ContractFixture(unittest.TestCase):
             'main': (1000, 1000, [101, 102, 103, provisioning]),
             'helper': (self.manifest['helper_uid'], provisioning, [provisioning]),
             'ipc': (0, provisioning, [0, provisioning]),
+            'setup':(0,0,[0,provisioning]),
         }[role]
         return {'uids': [uid] * 3, 'gids': [gid] * 3, 'groups': groups,
                 'named_groups': {'spi': 101, 'i2c': 102, 'gpio': 103,

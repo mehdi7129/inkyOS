@@ -32,6 +32,7 @@ class WriterParentsFixture(ContractFixture):
         self.value = self.contract()
         runtime.prepare_boot_context(self.value)
         self.persistent = self.mkdir(parents.PERSISTENT, 0o700)
+        self.mkdir(parents.PERSISTENT_SETUP,0o700)
         self.real_identities = parents.identities
         seam = patch.object(parents, 'identities', return_value=(os.geteuid(), os.getegid()))
         seam.start()
@@ -147,7 +148,7 @@ class WriterParentsTests(WriterParentsFixture):
         self.assertEqual((receipt['version'], receipt['boot_id'], receipt['candidate_sha256']),
                          (1, BOOT_ID, self.value.candidate_sha256))
         self.assertEqual(set(receipt['parents']),
-                         {parents.RUNTIME_IPC, parents.RUNTIME_HELPER, parents.PERSISTENT})
+                         {parents.RUNTIME_IPC, parents.RUNTIME_HELPER, parents.PERSISTENT, parents.RUNTIME_SETUP, parents.PERSISTENT_SETUP})
         for relative, record in receipt['parents'].items():
             observed = (self.root / relative).lstat()
             self.assertEqual(record, {'dev': observed.st_dev, 'ino': observed.st_ino,

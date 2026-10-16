@@ -19,6 +19,7 @@ DEADLINE = 8
 ARGV = {
     'main': ['/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', '/usr/lib/inkyos/factory-main.py'],
     'helper': ['/usr/bin/python3', '-I', '-B', '/usr/local/lib/inky-studio/network-helper.py'],
+    'setup':['/usr/bin/python3.13','-I','-B','-S','/usr/lib/inkyos/system-setup.py'],
     'ipc': ['/usr/bin/python3', '-I', '-B', '/usr/local/lib/inkyos/initialization-server.py'],
 }
 
@@ -167,7 +168,7 @@ class LauncherTests(ContractFixture):
                    'INKYOS_WRITER_LEASE_FD': '99999', 'INKYOS_WRITER_ROLE': 'ipc',
                    'INKYOS_WRITER_CONTEXT_SHA256': '0' * 64,
                    'NOTIFY_SOCKET': '/run/inert-notify'}
-        for role in ('main', 'helper', 'ipc'):
+        for role in ('main', 'helper', 'ipc','setup'):
             with self.subTest(role=role):
                 with self.assertRaises(CapturedExec):
                     self.invoke(role, _environ=hostile)
@@ -182,7 +183,7 @@ class LauncherTests(ContractFixture):
                                     INKY_STUDIO_DATA_DIR='/var/lib/inky-studio')
                 if role == 'main':
                     expected.update(INKY_STUDIO_DISPLAY_MODE='hardware', INKY_STUDIO_BLUETOOTH='1')
-                if role == 'ipc':
+                if role in {'ipc','helper','setup'}:
                     expected['NOTIFY_SOCKET'] = '/run/inert-notify'
                 self.assertEqual(environ, expected)
                 with self.assertRaises(OSError) as caught:

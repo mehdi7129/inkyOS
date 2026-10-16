@@ -16,6 +16,7 @@ MANIFEST_PATH = '/etc/inkyos/factory-runtime-v1.json'
 ARGV = {
     'main': ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', '/usr/lib/inkyos/factory-main.py'),
     'helper': ('/usr/bin/python3', '-I', '-B', '/usr/local/lib/inky-studio/network-helper.py'),
+    'setup': ('/usr/bin/python3.13', '-I', '-B', '-S', '/usr/lib/inkyos/system-setup.py'),
     'ipc': ('/usr/bin/python3', '-I', '-B', '/usr/local/lib/inkyos/initialization-server.py'),
 }
 runtime = None  # Tests inject a trusted host module only with a synthetic Contract.
@@ -91,7 +92,7 @@ def environment(role, fd, context_digest, inherited):
         value.update(INKY_STUDIO_FACTORY_REQUIRED='1', INKY_STUDIO_DATA_DIR='/var/lib/inky-studio')
     if role == 'main':
         value.update(INKY_STUDIO_DISPLAY_MODE='hardware', INKY_STUDIO_BLUETOOTH='1')
-    if role == 'ipc' and 'NOTIFY_SOCKET' in inherited:
+    if role in {'ipc','setup','helper'} and 'NOTIFY_SOCKET' in inherited:
         notify = inherited['NOTIFY_SOCKET']
         require(type(notify) is str and len(notify) > 1 and notify[0] in {'/', '@'}
                 and len(notify.encode('utf-8')) <= 107

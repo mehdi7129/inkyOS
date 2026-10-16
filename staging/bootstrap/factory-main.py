@@ -1,7 +1,7 @@
-"""Inactive fixed app-interpreter composition of the separately pinned Phase A.
+"""Fixed admitted factory/normal composition of the pinned Studio continuation.
 
-No CLI options, ASGI app import, helper injection or normal-mode fallback. Its
-future launcher/support installation is a separate, unqualified image change.
+This module starts no unit and imports no application code before graph binding.
+Its closed offline installation is separate from image/runtime qualification.
 """
 import asyncio
 import hashlib
@@ -100,9 +100,11 @@ def installed_proof():
 def load_components():
     # Only reached after graph binding; no inky_web.main/global ASGI construction.
     from inky_web.provisioning.factory_phase_a import serve_factory_phase_a
-    from inky_web.provisioning.bootstrap_runtime import BootstrapRuntime
+    from inky_web.provisioning.factory_continuation import FactoryContinuationRuntime
+    from inky_web.provisioning.system_setup_ipc import SystemSetupClient
+    from inky_web.provisioning.network import NetworkClient
     from inky_web.inky.display import DisplayController
-    return serve_factory_phase_a, DisplayController, BootstrapRuntime
+    return serve_factory_phase_a, DisplayController, FactoryContinuationRuntime, SystemSetupClient, NetworkClient
 
 
 def install_signals(loop, shutdown):
@@ -147,14 +149,16 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
         proof.__enter__()
         if stop_requested.is_set(): raise Refused('shutdown_requested')
         proof.start_monitor(loop, stop_requested)
-        serve, display, bootstrap = components()
+        serve, display, bootstrap, setup_client, network_client = components()
         require(callable(serve) and callable(display) and callable(bootstrap))
         require(proof.check() is None)
         # Studio owns its additional fresh SH and every submitted operation/drain.
         await serve(DATA, stop_requested=stop_requested,
                     display_factory=lambda: display(mode='hardware'),
                     runtime_factory=lambda result, controller, verify_epoch:
-                        bootstrap(result, verify_epoch, controller, DATA),
+                        bootstrap(result, verify_epoch, controller, DATA / "provisioning",
+                                  system_setup=setup_client(peer_guard=proof.setup_guard),
+                                  network=network_client(peer_guard=proof.network_guard)),
                     admission_check=proof.check,
                     initialization_peer_guard=proof.initialization_guard)
         raise Refused('phase_a_returned')

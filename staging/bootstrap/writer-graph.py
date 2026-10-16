@@ -1,8 +1,7 @@
-"""Inactive, fixed Phase A graph proof. No service activation or writer signal.
+"""Fixed admitted main/helper/initialization/setup graph and reciprocal peers.
 
-Only synthetic contracts outside / accept injected dependencies. Installation
-requires future support pins and runtime assembly. The source launcher targets
-factory-main.py. UID 1000, namespace and Pi budgets are unqualified.
+Only canonical synthetic non-/ contracts accept injected dependencies. Native
+permissions, installed unit observations and Pi budgets require separate probes.
 """
 import ast
 import contextlib
@@ -11,7 +10,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import select
 import selectors
 import signal
@@ -42,7 +40,7 @@ DATA = Path('/var/lib/inky-studio')
 APP_ARGV = ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', MAIN)
 STUDIO_COMMIT = 'eb117903cb647a14e9722d7387a41058ea8807b3'
 UNITS = {'main': 'inky-studio.service', 'helper': 'inky-network.service',
-         'ipc': 'inkyos-initialization.service'}
+         'ipc': 'inkyos-initialization.service', 'setup': 'inkyos-system-setup.service'}
 UNIT_TYPES = {'Id': 's', 'Names': 'as', 'LoadState': 's', 'ActiveState': 's',
               'SubState': 's', 'FragmentPath': 's', 'DropInPaths': 'as',
               'Transient': 'b', 'NeedDaemonReload': 'b', 'InvocationID': 'ay',
@@ -52,7 +50,10 @@ SERVICE_TYPES = {'MainPID': 'u', 'ControlPID': 'u', 'Type': 's', 'User': 's',
                  'Group': 's', 'SupplementaryGroups': 'as',
                  'ExecStart': 'a(sasbttttuii)', 'Restart': 's', 'KillMode': 's',
                  'KillSignal': 'i', 'SendSIGKILL': 'b', 'TimeoutStopUSec': 't',
-                 'NoNewPrivileges': 'b', 'PrivateNetwork': 'b'}
+                 'NoNewPrivileges': 'b', 'PrivateNetwork': 'b', 'NotifyAccess': 's'}
+
+
+SETUP_SERVICE_TYPES = {'CapabilityBoundingSet': 't', 'AmbientCapabilities': 't', 'ProtectClock': 'b'}
 
 
 class Refused(ValueError):
@@ -271,7 +272,7 @@ class KernelBackend:
         require(role in UNITS, 'unsupported_role')
         path = unit_path(UNITS[role])
         values = []
-        for suffix, expected in (('Unit', UNIT_TYPES), ('Service', SERVICE_TYPES)):
+        for suffix, expected in (('Unit', UNIT_TYPES), ('Service', SERVICE_TYPES | (SETUP_SERVICE_TYPES if role == 'setup' else {}))):
             raw = self.commands.call(path, 'org.freedesktop.DBus.Properties', 'GetAll', 's',
                                      (DESTINATION + '.' + suffix,), deadline)
             values.append(properties(raw, expected))
@@ -290,7 +291,7 @@ class KernelBackend:
             require(type(credentials) is bytes and len(credentials) == struct.calcsize('3i'),
                     'peer_credentials_shape')
             pid, uid, gid = struct.unpack('3i', credentials)
-            require(pid > 0 and uid == 0 and gid >= 0, 'peer_wrong_identity')
+            require(pid > 0 and uid >= 0 and gid >= 0, 'peer_wrong_identity')
             return fd
         except BaseException:
             os.close(fd)
@@ -314,12 +315,13 @@ def binding(role, values):
     require(type(values) in {list, tuple} and len(values) == 2, 'property_shape')
     unit, service = values
     require(type(unit) is dict and set(unit) == set(UNIT_TYPES)
-            and type(service) is dict and set(service) == set(SERVICE_TYPES), 'property_shape')
+            and type(service) is dict and set(service) == set(SERVICE_TYPES | (SETUP_SERVICE_TYPES if role == 'setup' else {})), 'property_shape')
     # Validate synthetic observations through the same typed decoder as real ones.
     unit = properties(json.dumps({'type': 'a{sv}', 'data': [{key: {'type': UNIT_TYPES[key], 'data': value}
                                                            for key, value in unit.items()}]}).encode(), UNIT_TYPES)
-    service = properties(json.dumps({'type': 'a{sv}', 'data': [{key: {'type': SERVICE_TYPES[key], 'data': value}
-                                                              for key, value in service.items()}]}).encode(), SERVICE_TYPES)
+    service_types = SERVICE_TYPES | (SETUP_SERVICE_TYPES if role == 'setup' else {})
+    service = properties(json.dumps({'type': 'a{sv}', 'data': [{key: {'type': service_types[key], 'data': value}
+                                                              for key, value in service.items()}]}).encode(), service_types)
     name = UNITS[role]
     require(unit['Id'] == name and unit['Names'] == [name] and unit['LoadState'] == 'loaded'
             and unit['FragmentPath'] == '/usr/lib/systemd/system/' + name
@@ -327,24 +329,29 @@ def binding(role, values):
             and not unit['NeedDaemonReload'], 'unit_configuration')
     for key in ('PartOf', 'BindsTo', 'PropagatesStopTo', 'StopPropagatedFrom'):
         require(unit[key] == [], 'stop_propagation')
-    expected_wants = ({'inkyos-initialization.service', 'inky-network.service', 'bluetooth.service'}
+    expected_wants = ({'inkyos-initialization.service', 'inky-network.service', 'bluetooth.service', 'inkyos-system-setup.service'}
                       if role == 'main' else {'inkyos-initialization.service', 'NetworkManager.service'}
-                      if role == 'helper' else {'inkyos-admission-prepare.service',
+                      if role == 'helper' else {'inkyos-initialization.service', 'NetworkManager.service'}
+                      if role == 'setup' else {'inkyos-admission-prepare.service',
                                               'inkyos-factory-supervisor.service'})
     require(set(unit['Wants']) == expected_wants and expected_wants <= set(unit['After']),
             'unit_dependencies')
     argv = ['/usr/bin/python3.13', '-I', '-B', '-S', '/usr/lib/inkyos/writer-launcher.py', role]
     row = service['ExecStart'][0]
     require(row[:3] == ['/usr/bin/python3.13', argv, False], 'unit_execstart')
-    require(service['User'] == {'main': 'inky', 'helper': 'inky-network', 'ipc': 'root'}[role]
-            and service['Group'] == ('inky' if role == 'main' else 'inky-provisioning')
+    require(service['User'] == {'main': 'inky', 'helper': 'inky-network', 'ipc': 'root', 'setup': 'root'}[role]
+            and service['Group'] == ('inky' if role == 'main' else 'root' if role == 'setup' else 'inky-provisioning')
             and set(service['SupplementaryGroups']) == ({'spi', 'i2c', 'gpio', 'inky-provisioning'}
-                if role == 'main' else {'root'} if role == 'ipc' else set())
-            and service['Type'] == ('notify' if role == 'ipc' else 'exec')
+                if role == 'main' else {'root'} if role == 'ipc' else {'inky-provisioning'} if role == 'setup' else set())
+            and service['Type'] == ('notify' if role in {'ipc','setup','helper'} else 'exec')
+            and service['NotifyAccess'] == ('main' if role in {'ipc','setup','helper'} else 'none')
             and service['Restart'] == 'no' and service['KillMode'] == 'mixed'
             and service['KillSignal'] == signal.SIGTERM and not service['SendSIGKILL']
             and service['TimeoutStopUSec'] == 2**64 - 1 and service['NoNewPrivileges']
             and service['PrivateNetwork'] == (role == 'ipc'), 'unit_policy')
+    if role == 'setup':
+        require(service['CapabilityBoundingSet'] == service['AmbientCapabilities'] == ((1 << 25) | (1 << 12))
+                and not service['ProtectClock'], 'setup_privileges')
     job, path = unit['Job']
     require((job == 0 and path == '/') or (job > 0 and path.startswith(MANAGER + '/job/')),
             'unit_job_shape')
@@ -359,7 +366,7 @@ def binding(role, values):
     configuration = {'unit': {key: sorted(value) if UNIT_TYPES[key] == 'as' else value
                              for key, value in unit.items()
                              if key not in {'ActiveState', 'SubState', 'InvocationID', 'Job'}},
-                     'service': {key: sorted(value) if SERVICE_TYPES[key] == 'as' else value
+                     'service': {key: sorted(value) if service_types[key] == 'as' else value
                                  for key, value in service.items()
                                  if key not in {'MainPID', 'ControlPID', 'ExecStart'}}}
     # ExecStart accounting fields change after exec; only immutable launch fields bind.
@@ -370,7 +377,9 @@ def binding(role, values):
 
 class Graph:
     """Owns a fresh SH, fixed anchors and monitor until all callers have drained."""
-    def __init__(self, lease_context, sources, backend, *, _root=None):
+    def __init__(self, lease_context, sources, backend, *, own_role='main', _root=None):
+        require(own_role in UNITS, 'unsupported_role')
+        self.own_role = own_role
         if _root is None:
             require(type(sources) is InstalledSources and type(backend) is KernelBackend
                     and sources.contract._root == Path('/') and Path(__file__) == Path(SELF),
@@ -431,7 +440,7 @@ class Graph:
         while True:
             self._owned_check(deadline)
             current = {role: binding(role, self._backend.snapshot(role, deadline)) for role in UNITS}
-            require(current['main'][0].pid == os.getpid(), 'not_mainpid')
+            require(current[self.own_role][0].pid == os.getpid(), 'not_mainpid')
             if any(pending for _, pending in current.values()):
                 time.sleep(min(0.05, remaining(deadline)))
                 continue
@@ -443,7 +452,7 @@ class Graph:
                         'writer_mapping_changed')
             own = self._backend.open_pid(os.getpid())
             try:
-                require(self._backend.same_pid(own, self._anchors['main']), 'not_mainpid')
+                require(self._backend.same_pid(own, self._anchors[self.own_role]), 'not_mainpid')
             finally: self._backend.close_pid(own)
             self._verify(deadline)
             with self._lock:
@@ -485,7 +494,8 @@ class Graph:
         return self._check(time.monotonic() + CHECK_SECONDS)
 
     @contextlib.contextmanager
-    def initialization_guard(self, connection):
+    def peer_guard(self, role, connection):
+        require(role in UNITS, 'unsupported_role')
         fd = None
         entered = False
         try:
@@ -496,8 +506,8 @@ class Graph:
             try:
                 require(self.state == 'ACTIVE', 'graph_invalid')
                 fd = self._backend.peer(connection)
-                expected = self._bindings['ipc']
-                require(self._backend.same_pid(fd, self._anchors['ipc']), 'peer_not_mainpid')
+                expected = self._bindings[role]
+                require(self._backend.same_pid(fd, self._anchors[role]), 'peer_not_mainpid')
                 require(self._backend.resolve(fd, deadline)
                         == (expected.path, expected.name, expected.invocation), 'peer_mapping_changed')
                 self._owned_check(deadline)
@@ -517,6 +527,19 @@ class Graph:
             if fd is not None: self._backend.close_pid(fd)
             if entered:
                 with self._lock: self._peer_count -= 1
+
+    def initialization_guard(self, connection): return self.peer_guard('ipc', connection)
+
+    def setup_guard(self, connection): return self.peer_guard('setup', connection)
+
+    def network_guard(self, connection): return self.peer_guard('helper', connection)
+
+    def main_guard(self, connection): return self.peer_guard('main', connection)
+
+    def observed_context(self):
+        self.check()
+        return {**self._sources._boot, 'context_sha256': self._sources.contract.context_sha256,
+                'main_invocation_id': self._bindings['main'].invocation.hex()}
 
     def start_monitor(self, loop, stop_requested):
         with self._lock:
@@ -614,7 +637,8 @@ def installed_runtime():
 
 
 class InstalledSources:
-    def __init__(self, runtime, contract):
+    def __init__(self, runtime, contract, role='main'):
+        self.role = role
         self.runtime, self.contract = runtime, contract
         self._context, self._identity, self._metadata = None, None, {}
         self._lease = None
@@ -664,7 +688,7 @@ class InstalledSources:
                 remaining(deadline)
                 runtime.check_path(tree, path, records)
         remaining(deadline)
-        runtime.verify_role(contract, 'main')
+        runtime.verify_role(contract, self.role)
         self.check(deadline)
         return None
 
@@ -777,13 +801,13 @@ class InstalledSources:
     def close(self): pass  # No source FD or repair/write is owned by this observer.
 
 
-def open_main(*, _contract=None, _runtime=None, _backend=None, _sources=None):
+def _open(role, *, _contract=None, _runtime=None, _backend=None, _sources=None):
     if _contract is None:
         require(_runtime is None and _backend is None and _sources is None, 'invalid_override')
         runtime = installed_runtime()
         contract = runtime.load_contract()
-        sources = InstalledSources(runtime, contract)
-        lease = runtime.writer_guard('main')  # Fresh SH, never adopt the inherited lease.
+        sources = InstalledSources(runtime, contract, role)
+        lease = runtime.writer_guard(role)  # Fresh SH, never adopt the inherited lease.
         backend = KernelBackend()
     else:
         require(_runtime is not None and isinstance(_contract, _runtime.Contract)
@@ -791,5 +815,23 @@ def open_main(*, _contract=None, _runtime=None, _backend=None, _sources=None):
                 and _contract._root == _contract._root.resolve(strict=True), 'invalid_override')
         require(_backend is not None and _sources is not None, 'invalid_override')
         runtime, contract, backend, sources = _runtime, _contract, _backend, _sources
-        lease = runtime.writer_guard('main', _contract=contract)
-    return Graph(lease, sources, backend, _root=None if _contract is None else contract._root)
+        lease = runtime.writer_guard(role, _contract=contract)
+    return Graph(lease, sources, backend, own_role=role, _root=None if _contract is None else contract._root)
+
+
+def open_main(**kwargs): return _open('main', **kwargs)
+
+def open_setup(**kwargs): return _open('setup', **kwargs)
+
+@contextlib.contextmanager
+def setup_peer_guard(connection):
+    # Called by the admitted, pinned helper only. This is not an UID allowlist.
+    proof = _open('helper')
+    try:
+        with proof:
+            with proof.setup_guard(connection):
+                yield None
+    finally:
+        while proof.state != 'CLOSED':
+            try: proof.close()
+            except ObservationUnknown: time.sleep(0.05)
