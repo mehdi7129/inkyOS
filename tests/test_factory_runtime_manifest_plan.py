@@ -3,6 +3,8 @@ import copy
 import json
 import os
 from pathlib import Path
+import sys
+from unittest.mock import patch
 
 from test_factory_runtime_contract import ContractFixture, encoded, load_module, runtime
 
@@ -19,13 +21,31 @@ class RuntimeManifestPlanTests(ContractFixture):
         self.write('etc/passwd', (
             'root:x:0:0:root:/root:/bin/sh\n'
             'inky:x:1000:1000:Inky:/home/inky:/usr/sbin/nologin\n'
-            'inky-network:x:991:992:Network:/nonexistent:/usr/sbin/nologin\n').encode())
+            'inky-network:x:991:992::/nonexistent:/usr/sbin/nologin\n').encode())
         self.write('etc/group', (
             'root:x:0:\ninky:x:1000:\nspi:x:101:inky\ni2c:x:102:inky\n'
             'gpio:x:103:inky\ninky-provisioning:x:992:inky\n').encode())
         self.write('etc/shadow', (
             'root:!:0:0:99999:7:::\ninky:!:0:0:99999:7:::\n'
             'inky-network:!:0:0:99999:7:::\n').encode(), 0o600)
+        self.write('etc/gshadow', b'root:!::\ninky:!::\nspi:!::inky\ni2c:!::inky\n'
+                   b'gpio:!::inky\ninky-provisioning:!::inky\n', 0o600)
+        self.write('etc/nsswitch.conf', b'passwd: files\ngroup: files\nshadow: files\ngshadow: files\n')
+        self.write('etc/machine-id', b'uninitialized\n')
+        for path in ('etc/passwd', 'etc/group', 'etc/nsswitch.conf'):
+            self.support['paths'][path] = self.record(self.root / path)
+        self.publish_candidate()
+        (self.root / runtime.MANIFEST).unlink()
+        owner = patch.object(planner.prerequisites.safety, '_owner_ids',
+                             return_value=(os.geteuid(), os.getegid()))
+        owner.start()
+        self.addCleanup(owner.stop)
+        if sys.platform != 'linux':
+            metadata = patch.object(planner.prerequisites, '_xattrs',
+                                    return_value=planner.prerequisites.safety.EMPTY_XATTRS)
+            metadata.start()
+            self.addCleanup(metadata.stop)
+        self.expected = copy.deepcopy(self.manifest)
         self.arguments = {'bundle_sha256': self.manifest['bundle_manifest_sha256'],
                           'exporter_sha256': self.manifest['exporter_manifest_sha256'],
                           'support_sha256': self.manifest['support_manifest_sha256'],
@@ -92,7 +112,30 @@ class RuntimeManifestPlanTests(ContractFixture):
         self.refused()
 
     def test_running_boot_cannot_be_planned_as_unbooted(self):
-        self.mkdir('run/inkyos-admission', 0o700)
+        for name in ('inkyos-admission', 'inkyos-writer-parents'):
+            path = self.mkdir('run/' + name, 0o700)
+            self.refused()
+            path.rmdir()
+
+    def test_previously_initialized_machine_id_is_refused(self):
+        self.write('etc/machine-id', b'123456789abcdef0123456789abcdef0\n')
+        self.refused()
+
+    def test_external_nss_and_writable_account_database_are_refused(self):
+        self.write('etc/nsswitch.conf', b'passwd: ldap files\ngroup: files\n'
+                   b'shadow: files\ngshadow: files\n')
+        self.refused()
+        self.write('etc/nsswitch.conf', b'passwd: files\ngroup: files\nshadow: files\ngshadow: files\n')
+        (self.root / 'etc/group').chmod(0o666)
+        self.refused()
+
+    def test_accounts_must_be_pinned_by_the_installed_support(self):
+        self.support['paths'].pop('etc/nsswitch.conf')
+        self.publish_candidate()
+        self.arguments.update(bundle_sha256=self.manifest['bundle_manifest_sha256'],
+                              exporter_sha256=self.manifest['exporter_manifest_sha256'],
+                              support_sha256=self.manifest['support_manifest_sha256'])
+        (self.root / runtime.MANIFEST).unlink()
         self.refused()
 
     def test_preexisting_test_payload_is_refused(self):

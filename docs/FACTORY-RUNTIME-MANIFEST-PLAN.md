@@ -6,7 +6,10 @@ three explicit reviewed hashes for the Studio bundle, exporter and system
 support, plus the reserved helper UID and provisioning GID. It derives module
 hashes from their installed bytes and the Studio commit from its pinned bundle.
 
-The planner checks the offline account databases, checks the IDs against them,
+The planner reuses the preparer's complete read-only validation of the four
+offline account databases and their metadata, local NSS sources, exact IDs and
+memberships, subordinate IDs and pristine machine-id. The installed support
+must also pin `passwd`, `group` and `nsswitch.conf`. It checks the IDs against them,
 and runs the real `factory-runtime-contract.verify_candidate()` over the image.
 The candidate manifest is supplied through a read-only in-memory view for these
 checks. Every other read uses the actual installed files and metadata, including
@@ -15,8 +18,8 @@ paths. There is no temporary manifest in the image and no target-code execution.
 
 The CLI requires Linux root and a private builder workspace matching
 `/var/lib/inkyos-build/factory-image.<ASCII token>/root`. The rootfs must have no
-runtime manifest or active `/run` state. Its optional output is actually required
-by the CLI, is created exclusively outside the rootfs, and contains the proposed
+runtime manifest or active `/run` state, including the writer-parents receipt.
+Its required output is created exclusively outside the rootfs and contains the proposed
 manifest only. Existing output files are never replaced. The Python fixture
 owner option is unavailable through the CLI and cannot select the host root.
 

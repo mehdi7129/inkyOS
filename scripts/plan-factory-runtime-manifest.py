@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import sys
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +29,7 @@ def load(name):
 
 
 runtime = load('factory-runtime-contract.py')
-application = load('configure-application-rootfs.py')
+prerequisites = load('configure-factory-active-prerequisites.py')
 Refused = runtime.Refused
 
 
@@ -92,7 +93,8 @@ def plan(rootfs, *, bundle_sha256, exporter_sha256, support_sha256,
         runtime.require(tree.absent(runtime.MANIFEST), 'runtime_manifest_exists')
         runtime.require(all(tree.absent(path) for path in (
             'run/inkyos-factory', 'run/inkyos-admission', 'run/inkyos-bootstrap',
-            'run/inkyos-factory-output', 'run/inky-network')), 'runtime_state_exists')
+            'run/inkyos-factory-output', 'run/inkyos-writer-parents',
+            'run/inky-network')), 'runtime_state_exists')
         app_raw = tree.read(runtime.APP + '/manifest.json', 0o644)
         exporter_raw = tree.read(runtime.EXPORTER + '/manifest.json', 0o644)
         support_raw = tree.read(runtime.SUPPORT, 0o644)
@@ -104,6 +106,19 @@ def plan(rootfs, *, bundle_sha256, exporter_sha256, support_sha256,
                         and re.fullmatch('[0-9a-f]{40}', app['studio_commit']), 'invalid_candidate')
         pins = {name: runtime.sha(tree.read(runtime.MODULE_DIR + '/' + name, 0o555,
                                            1024 * 1024)) for name in runtime.MODULES}
+        support = runtime.decode(support_raw)
+        runtime.require(type(support) is dict and type(support.get('paths')) is dict
+                        and {'etc/passwd', 'etc/group', 'etc/nsswitch.conf'}
+                        <= set(support['paths']), 'account_support_missing')
+        # Reuse the full readonly NSS/metadata policy of the account preparer.
+        # Its already-configured validation never creates or replaces accounts.
+        parent, _ = tree.parent('etc/passwd')
+        try:
+            environment = SimpleNamespace(rootfs=rootfs, etc=SimpleNamespace(fd=parent))
+            accounts, _ = prerequisites._load(environment)
+            prerequisites._accounts(accounts, helper_uid, provisioning_gid, configured=True)
+        finally:
+            os.close(parent)
     value = {'version': 1, 'studio_commit': app['studio_commit'],
              'bundle_manifest_sha256': bundle_sha256,
              'exporter_manifest_sha256': exporter_sha256,
@@ -111,18 +126,6 @@ def plan(rootfs, *, bundle_sha256, exporter_sha256, support_sha256,
              'helper_uid': helper_uid, 'provisioning_gid': provisioning_gid,
              'os_module_pins': pins}
     runtime.require(pins['writer-admission.py'] == runtime.ADMISSION_SHA256, 'pin_mismatch')
-    # NSS is inspected as files in the image, never through host pwd/grp calls.
-    source = application.inspection.SafeTree(rootfs)
-    try:
-        application.accounts(source)
-        users = [line.split(':') for line in source.read('etc/passwd').splitlines()]
-        groups = [line.split(':') for line in source.read('etc/group').splitlines()]
-        runtime.require(next(row[2] for row in users if row[0] == 'inky-network')
-                        == str(helper_uid), 'identity_mismatch')
-        runtime.require(next(row[2] for row in groups if row[0] == 'inky-provisioning')
-                        == str(provisioning_gid), 'identity_mismatch')
-    finally:
-        source.close()
     raw = runtime.canonical(value)
     contract = _PlannedContract(value, runtime.sha(raw), rootfs, uid, gid, None, None)
     contract._planned_raw = raw
