@@ -1,0 +1,43 @@
+# Inactive boot trigger: install only with the complete pinned factory profile.
+# Enable this distinct unit, never an alias/enable link to the five closed units.
+[Unit]
+Description=Start the admitted InkyOS factory graph after system initialization
+Requires=inkyos-firstboot.service
+After=local-fs.target inkyos-firstboot.service
+
+[Service]
+Type=oneshot
+# Veto a second entry even if the supervisor is still active (exited). These
+# checks grant no admission; the supervisor and each writer retain their proof.
+ExecStartPre=/usr/bin/test ! -e /run/inkyos-admission/Ready
+ExecStartPre=/usr/bin/test ! -L /run/inkyos-admission/Ready
+# Blocking start waits for the supervisor's oneshot result. Do not use --wait:
+# RemainAfterExit=yes would make it wait indefinitely for the successful unit.
+ExecStart=/usr/bin/systemctl --no-ask-password start inkyos-factory-supervisor.service
+ExecStart=/usr/bin/systemctl --no-ask-password start inky-studio.service
+RemainAfterExit=yes
+Restart=no
+UMask=0077
+TimeoutStartSec=infinity
+TimeoutStopSec=infinity
+KillMode=mixed
+SendSIGKILL=no
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+
+[Install]
+WantedBy=multi-user.target
