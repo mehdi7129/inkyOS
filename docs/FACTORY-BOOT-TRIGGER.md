@@ -37,6 +37,54 @@ vrai refus superviseur `already_ready`, avec admission temporaire. Leur adapter
 inerte représente seulement les dépendances et la propagation des codes des
 commandes séquentielles, et les gardes `test` s'exécutent sur des fichiers
 temporaires (`/bin/test` sur Mac ; le profil Linux doit inventorier son vrai
-`/usr/bin/test`). Aucun PID1/service/graphe natif, reboot, Bluetooth, Wi-Fi ou écran
-n'est qualifié. La syntaxe et l'ordonnancement restent à vérifier par
-`systemd-analyze verify` et un banc Linux isolé avant toute installation réelle.
+`/usr/bin/test`). Ces seuls tests synthétiques ne qualifient aucun
+PID1/service/graphe natif, reboot, Bluetooth, Wi-Fi ou écran. Le banc complémentaire
+ci-dessous vérifie la syntaxe et l'ordonnancement sur des services inertes.
+
+## Banc PID1 inerte du 16 octobre 2026
+
+Le probe explicite `staging/bootstrap/probe-factory-boot-trigger-linux.py` refuse
+toute cible autre qu'un builder Linux ARM64 root avec le marqueur
+`/var/lib/inkyos-build/owner = inkyos-builder-v1` et un vrai PID1 systemd. Son
+appel est `sudo python3 -I -B PROBE --run TEMPLATE REPORT TEMPLATE_SHA256`.
+Il n'exécute jamais de code produit : seuls les noms des unités et le chemin
+`Ready` du trigger sont remplacés, vers des noms aléatoires
+`inkyos-trigger-probe-<UUID>-...` et un répertoire privé sous `/run`. Le reste des
+octets du trigger est conservé ; les trois services dépendants sont des Python
+inertes qui consignent leur rôle et sortent avec le code demandé.
+
+Dans la VM dédiée `inkyos-build` (Debian ARM64, systemd 257.13, noyau
+6.12.111+deb13-cloud-arm64), les six cas ont passé leur `systemd-analyze verify`
+avant le premier démarrage et leur démarrage réel via PID1 :
+
+| Cas | Événements réellement observés | Résultat du trigger |
+| --- | --- | --- |
+| Succès | firstboot, supervisor, main | Succès |
+| Superviseur sortant 78 | firstboot, supervisor | Échec, main non lancé |
+| Firstboot sortant 1 | firstboot | Échec, superviseur/main non lancés |
+| Ready fichier existant | firstboot | Échec, superviseur/main non lancés |
+| Ready lien pendant | firstboot | Échec, superviseur/main non lancés |
+| Main sortant 79 | firstboot, supervisor, main | Échec remonté |
+
+Chaque cas a arrêté uniquement ses propres noms, réinitialisé seulement les
+états `failed` observés, retiré ses fichiers sous `/run/systemd/system`, puis
+vérifié les quatre `LoadState=not-found` après rechargement PID1. Aucun nom réel
+InkyOS n'a été lancé, arrêté ou modifié. La VM reste disponible pour les autres
+travaux. Le premier essai avait signalé un défaut de cleanup du probe :
+`reset-failed` sur des unités déjà garbage-collected échoue. Les fichiers avaient
+été retirés ; le probe corrigé a passé les six nettoyages avec de nouveaux noms.
+Ce premier rapport d'échec est conservé et ne compte pas comme validation.
+
+Les preuves locales sont dans `build/native-factory-trigger.raqxsahj/` :
+`inputs.json`, les deux sources exactes transférées, `execution.json`, stdout,
+stderr et `report.json`. SHA-256 :
+
+- Template : `4c920afd1c81c3983624cb9cc5826a184eb6d15c5775346e450518fdde674381`.
+- Probe : `86773b2fc1c7e9aa1177b2a58c16835d335af5ffc67de40a3ce1fdf1590b9aed`.
+- Rapport : `8ff93e015921b0d99f4a35e51c22b487fd8b6d1da09f6a698ebed83f1dcc058a`.
+
+Le rapport conserve également les hashes des exécutables natifs et de chaque
+unité fixture, les états systemd et les événements. Ce banc qualifie le
+déclenchement et ses refus dans cette VM. Il ne qualifie pas le vrai superviseur,
+le support/manifeste factory installé, l'autorité, le graphe des writers,
+l'appairage, un reboot, les radios ou l'écran physique.
