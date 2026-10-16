@@ -14,12 +14,14 @@ root with root GID, against an exclusive private, unbooted rootfs:
 ```sh
 python3 -I -B -S scripts/configure-factory-active-prerequisites.py \
   --rootfs /var/lib/inkyos-build/factory-image.EXAMPLE/root \
-  --helper-uid 991 --provisioning-gid 992 --check-only
+  --helper-uid 980 --provisioning-gid 980 --check-only
 ```
 
 Replace `EXAMPLE` with the actual new builder workspace suffix. The two system
 IDs are **explicit reservations by the caller**, not defaults or an allocation
-algorithm. Each must be an unused integer in 1..999. A successful `--check-only`
+algorithm. Each must be an unused integer in 1..999. In the currently pinned
+official base, 980 is free in both namespaces; UID991 and GID992 already belong
+to vendor identities and are correctly refused. A successful `--check-only`
 does not authorize a later write by itself: omit that option to run the complete
 preflight again immediately before preparation. The executable accepts no host,
 ownership or platform override.
@@ -51,7 +53,9 @@ creating any file or directory:
   are refused; there is no execution of NSS or target libc.
 - Existing `inky` is UID/GID1000, home `/home/inky`, locked, shell
   `/usr/sbin/nologin`. Its groups are exactly `inky`, `spi`, `i2c`, `gpio`, with
-  no group-administrator privilege. The reserved names `inky-network` and
+  no group-administrator privilege. Each of `spi`, `i2c` and `gpio` must have a
+  distinct non-root system GID in 1..999, matching runtime `check_identity()`.
+  The reserved names `inky-network` and
   `inky-provisioning` must be absent from all four databases; the two requested
   numeric IDs must be unused in their respective namespaces.
 - The two final persistent parents `var/lib/inky-studio` and
@@ -139,14 +143,16 @@ continuation and the native packaging/boot graph described in
 ## Focused validation
 
 `python3.13 -m unittest discover -s tests -p test_factory_active_prerequisites.py`
-executes 24 focused cases: exact preparation, read-only checking, refused IDs and
+contains 25 focused cases: exact preparation, read-only checking, refused IDs and
 collisions, malformed/inconsistent accounts, privileges and credentials, external
 NSS, existing state, link/hardlink/mode guards, host refusal, interrupted staging
 and non-disclosing CLI output. The existing `.pwd.lock` cases additionally cover
 unchanged successful preparation, absent/existing read-only checks, invalid
 size/modes/kinds/hardlinks/xattrs, contention held by a separate process, a probe
 showing the lock remains held before and after readback, and release on return.
-On macOS, 22 pass and two native Linux cases skip.
+The last full macOS run covered 24 cases (22 pass, two native Linux skips).
+The added hardware-group range regression is run independently: each named
+hardware group assigned GID65530 must refuse before any account/parent write.
 The Linux-root cases additionally inspect actual xattrs and actual final numeric
 owners including refusal of a non-root-group password lock and Debian
 root:shadow0640 database preservation. Synthetic fixture

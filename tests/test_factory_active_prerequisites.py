@@ -215,6 +215,14 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         self.change('gshadow', 'spi:!::inky,inky', 'spi:!::ghost')
         self.refused_without_mutation()
 
+    def test_hardware_groups_require_nonroot_system_gids_before_any_write(self):
+        original = (self.root / 'etc/group').read_text()
+        for name, current in (('spi', 997), ('i2c', 998), ('gpio', 996)):
+            with self.subTest(group=name):
+                self.write('group', original.replace(f'{name}:x:{current}:', f'{name}:x:65530:'))
+                self.refused_without_mutation()
+        self.write('group', original)
+
     def test_malformed_duplicate_and_nis_records_are_refused(self):
         original = (self.root / 'etc/passwd').read_text()
         for bad in (original + original, original + '+::::::\n', original.replace('1000:1000', '01000:1000'),

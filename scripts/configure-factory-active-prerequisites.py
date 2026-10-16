@@ -158,6 +158,9 @@ def _accounts(raw, helper_uid, provisioning_gid, *, configured=False):
                   if row[2] == '1000' or 'inky' in _members(row[3], set(users))}
     expected = {'inky', 'spi', 'i2c', 'gpio'} | ({'inky-provisioning'} if configured else set())
     require(membership == expected, 'unexpected_app_group_privileges')
+    # The runtime's check_identity() admits only named system-group IDs.
+    require(all(1 <= _number(groups[name][2]) <= 999 for name in ('spi', 'i2c', 'gpio')),
+            'hardware_group_ids_refused')
     if configured:
         require(users.get('inky-network') == ['inky-network', 'x', str(helper_uid),
                     str(provisioning_gid), '', '/nonexistent', '/usr/sbin/nologin']
