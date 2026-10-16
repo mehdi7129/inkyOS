@@ -459,6 +459,7 @@ def verify_absent(rootfs, path, records):
                     before = os.stat(component, dir_fd=current, follow_symlinks=False)
                     child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
                     try:
+                        inventory_module._check_stable(before, os.fstat(child))
                         directory(child, records.get(key))
                     except BaseException:
                         os.close(child); raise
