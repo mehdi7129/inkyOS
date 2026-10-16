@@ -58,16 +58,23 @@ python3 -I -B -S scripts/configure-factory-active-profile.py install-runtime \
 
 La première phase exige machine-id uninitialized, état WLAN fermé exact,
 absence de profils réseau et de toute ancienne permission/admission/autorité.
+Seul `/etc/machine-id` admet les deux modes officiels `0444` ou `0644`, sans
+chmod, remplacement ou modification de ses octets/inode. Les autres lectures
+conservent leur mode unique exact, notamment `NetworkManager.state` en `0600`.
+Le parent `/var/lib/inkyos` est créé en `0700` s'il est absent ; s'il existe,
+il doit déjà être privé `0700` et reste inchangé. Aucun dossier existant n'est
+automatiquement corrigé pour passer la garde.
 Un ancien journal setup, même vide, est refusé. Les créations sont exclusives ;
 un échec garde les éléments déjà écrits et exige un nouveau workspace. Aucune
 réparation, restauration, adoption ou relance automatique n'est effectuée.
 
 ## Validation ciblée
 
-11 fixtures passent sur Mac : refus avant écriture d'un ancien boot/profil
+16 fixtures passent sur Mac : refus avant écriture d'un ancien boot/profil
 Wi-Fi/état runtime, pins, symlink sortant, préservation des inodes à la relance,
 échec partiel conservé et refus d'installer le plan quand le vrai planner
-refuse. Ces cas ne démontrent pas un boot ou l'assemblage de la recette complète.
+refuse, machine-id officiel readonly préservé et modes hors contrat refusés.
+Ces cas ne démontrent pas un boot ou l'assemblage de la recette complète.
 
 ```sh
 python3 -m unittest discover -s tests -p test_factory_active_profile.py -v

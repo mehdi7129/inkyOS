@@ -94,6 +94,50 @@ class ProfileTests(unittest.TestCase):
             self.stage()
         self.assertEqual(self.snapshot(), before)
 
+    def test_official_readonly_machine_id_preserves_mode_inode_and_bytes(self):
+        path = self.root / 'etc/machine-id'; path.chmod(0o444)
+        before = path.lstat(), path.read_bytes()
+        self.assertTrue(self.stage()['passed'])
+        after = path.lstat(), path.read_bytes()
+        self.assertEqual(after[0].st_ino, before[0].st_ino)
+        self.assertEqual(after[0].st_mode, before[0].st_mode)
+        self.assertEqual(stat.S_IMODE(after[0].st_mode), 0o444)
+        self.assertEqual(after[1], before[1])
+
+    def test_machine_id_modes_outside_explicit_official_pair_refuse_without_write(self):
+        path = self.root / 'etc/machine-id'
+        for mode in (0o400, 0o440, 0o600, 0o640, 0o664, 0o666, 0o755):
+            path.chmod(mode); before = self.snapshot()
+            with self.subTest(mode=oct(mode)), self.assertRaises(ValueError):
+                self.stage()
+            self.assertEqual(self.snapshot(), before)
+
+    def test_machine_id_mode_exception_does_not_relax_networkmanager_state(self):
+        self.write('etc/machine-id', b'uninitialized\n', 0o444)
+        path = self.root / 'var/lib/NetworkManager/NetworkManager.state'; path.chmod(0o644)
+        before = self.snapshot()
+        with self.assertRaisesRegex(ValueError, 'input_mode_invalid'):
+            self.stage()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_mode_pair_is_explicit_and_available_only_for_machine_id(self):
+        with profile.offline(self.root) as env:
+            for path, modes in (('var/lib/NetworkManager/NetworkManager.state', (0o444, 0o644)),
+                                ('etc/machine-id', (0o444, 0o600))):
+                with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'input_mode_policy_invalid'):
+                    env.read(path, mode=modes)
+
+    def test_existing_state_parent_must_already_be_private_and_is_not_chmodded(self):
+        path = self.root / 'var/lib/inkyos'; path.mkdir(mode=0o755)
+        before = self.snapshot()
+        with self.assertRaisesRegex(ValueError, 'state_parent_not_private'):
+            self.stage()
+        self.assertEqual(self.snapshot(), before)
+        path.chmod(0o700); inode = path.stat().st_ino
+        self.assertTrue(self.stage()['passed'])
+        self.assertEqual(path.stat().st_ino, inode)
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o700)
+
     def test_pin_mismatch_does_not_write(self):
         before = self.snapshot()
         with self.assertRaises(ValueError):

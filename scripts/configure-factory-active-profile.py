@@ -118,11 +118,14 @@ class Offline:
         return fd is None or guards._missing(fd, name)
 
     def read(self, path, *, mode=0o644, limit=16384):
+        require(type(mode) is int or path == 'etc/machine-id'
+                and type(mode) is tuple and mode == (0o444, 0o644), 'input_mode_policy_invalid')
+        allowed = mode if type(mode) is tuple else (mode,)
         fd = self.directory(str(PurePosixPath(path).parent))
         require(fd is not None, 'input_missing')
         name = PurePosixPath(path).name
         raw = guards._read_file(self.rootfs, fd, name, limit)
-        require(stat.S_IMODE(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode) == mode,
+        require(stat.S_IMODE(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode) in allowed,
                 'input_mode_invalid')
         return raw
 
@@ -165,7 +168,8 @@ def stage(rootfs, *, trigger_sha256):
     raw = guards.planner.exporter.ordinary(source, 16384)
     require(runtime.sha(raw) == trigger_sha256, 'trigger_pin_mismatch')
     with offline(rootfs) as env:
-        require(env.read('etc/machine-id') == b'uninitialized\n', 'unbooted_image_required')
+        require(env.read('etc/machine-id', mode=(0o444, 0o644)) == b'uninitialized\n',
+                'unbooted_image_required')
         nm = env.read('var/lib/NetworkManager/NetworkManager.state', mode=0o600)
         require(nm == b'[main]\nWirelessEnabled=false\n', 'wifi_not_closed')
         require(all(env.absent(path) for path in (*BOOT_ABSENT, MARKER, PERMISSION,
