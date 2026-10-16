@@ -165,8 +165,13 @@ def collect(root, policy, owner):
             require(result.get(str(parent), {}).get('type') == 'directory', 'unclosed_parent')
     require(len(result) <= 100000, 'support_inventory_limit')
     required = {runtime.HELPER, *runtime.HOOKS, *runtime.SUPERVISOR_FILES, *runtime.WRITER_FILES}
+    required |= set(getattr(runtime, 'SETUP_FILES', {})) | set(getattr(runtime, 'NATIVE_COMMANDS', ()))
     required |= {runtime.MODULE_DIR + '/' + name for name in runtime.MODULES}
     require(required <= set(result), 'missing_runtime_support_paths')
+    for path, mode in (runtime.SUPERVISOR_FILES | runtime.WRITER_FILES |
+                       getattr(runtime, 'SETUP_FILES', {})).items():
+        require(path in paths and result[path]['type'] == 'file' and result[path]['mode'] == mode,
+                'runtime_support_mode_or_path_mismatch')
     require(runtime.SUPPORT not in result and runtime.MANIFEST not in result,
             'self_referential_support')
     require(not any(path.startswith('usr/local/lib/inkyos/test-access-')
@@ -462,6 +467,7 @@ def plan(rootfs, *, policy, policy_sha256, provenance, provenance_sha256,
                                         and re.search(r'\.so(?:\.|$)', PurePosixPath(path).name)):
             roots.add(path)
     roots.add('usr/bin/python3.13')
+    roots.update(getattr(runtime, 'NATIVE_COMMANDS', ()))
     roots.add(normalize(policy_value['loader']['interpreter']))
     inspector = _inspect if _inspect is not None else Readelf(readelf, readelf_sha256)
     closed_trees = set(policy_value['trees']) | {runtime.APP, exporter.DESTINATION}

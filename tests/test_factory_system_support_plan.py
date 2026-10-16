@@ -229,9 +229,12 @@ class PlanTests(unittest.TestCase):
         for path in runtime.SUPPORT_TREES:
             self.mkdir(path)
         required = {runtime.HELPER, *runtime.HOOKS, *runtime.SUPERVISOR_FILES, *runtime.WRITER_FILES}
+        required |= set(getattr(runtime, 'SETUP_FILES', {})) | set(getattr(runtime, 'NATIVE_COMMANDS', ()))
         required |= {runtime.MODULE_DIR + '/' + name for name in runtime.MODULES}
+        modes = runtime.SUPERVISOR_FILES | runtime.WRITER_FILES | getattr(runtime, 'SETUP_FILES', {})
         for path in required:
-            self.write(path, b'raise AssertionError("TARGET_MUST_NOT_RUN")\n', 0o555)
+            raw = elf(path.encode()) if path in getattr(runtime, 'NATIVE_COMMANDS', ()) else b'raise AssertionError("TARGET_MUST_NOT_RUN")\n'
+            self.write(path, raw, int(modes.get(path, '0555'), 8))
         self.write('usr/bin/python3.13', elf(b'python'), 0o755)
         self.write('usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1', elf(b'loader'), 0o755)
         self.link('lib', 'usr/lib')
@@ -378,6 +381,16 @@ class PlanTests(unittest.TestCase):
             return observation()
         with self.assertRaisesRegex(planner.Refused, 'input_changed'):
             self.plan(_inspect=inspect)
+
+    @unittest.skipUnless(hasattr(runtime, 'NATIVE_COMMANDS'), 'final system setup contract only')
+    def test_setup_contract_native_commands_are_mandatory_roots(self):
+        result = self.plan()
+        self.assertLessEqual(runtime.NATIVE_COMMANDS, set(result['elf_observations']['roots']))
+        value = copy.deepcopy(self.policy)
+        value['paths'].remove(sorted(runtime.NATIVE_COMMANDS)[0])
+        path, digest = self.input('bad-policy.json', value)
+        with self.assertRaisesRegex(planner.Refused, 'missing_runtime_support_paths'):
+            self.plan(policy=path, policy_sha256=digest)
 
 
 if __name__ == '__main__':
