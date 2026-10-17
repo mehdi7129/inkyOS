@@ -34,6 +34,7 @@ PASSWORD_LOCK = '.pwd.lock'
 LOCKS = ('passwd.lock', 'group.lock', 'shadow.lock', 'gshadow.lock')
 BACKUPS = tuple(name + '-' for name in (*DATABASES, 'subuid', 'subgid'))
 POLKIT_NAME = '49-inky-network.rules'
+POLKIT_DIRECTORY = 'usr/share/polkit-1/rules.d'
 # Exact heredoc from Studio 87c0820808a9824885c6009bf6b68354fb0dbbe9,
 # scripts/install-bluetooth.sh (SHA-256 e0f301c97830860bcc1778579d7f4181370fb4cef8d64aeac4c226ab8aeafb69).
 POLKIT_SHA256 = '894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3'
@@ -199,6 +200,7 @@ class Environment:
     def __init__(self, rootfs):
         self.directories = []
         self.policy_directory = None
+        self.local_policy_directory = None
         self.password_lock = None
         self.password_lock_info = None
         self.rootfs = safety._canonical_path(rootfs)
@@ -304,7 +306,7 @@ def _preflight(environment, helper_uid, provisioning_gid):
             'reserved_system_ids_required')
     raw, metadata = _load(environment)
     _accounts(raw, helper_uid, provisioning_gid)
-    _policy_preflight(environment, raw)
+    _policy_preflight(environment)
     require(all(safety._missing(environment.etc.fd, name)
                 for name in (*LOCKS, *BACKUPS, *TEMPORARY.values()))
             and all(safety._missing(environment.lib.fd, name) for name in PARENTS),
@@ -313,38 +315,45 @@ def _preflight(environment, helper_uid, provisioning_gid):
     return raw, metadata
 
 
-def _policy_preflight(environment, raw):
+def _policy_parent(environment, parts, *, vendor):
+    root_uid, root_gid = _owner_ids(environment.rootfs)
+    parent = environment.root.fd if vendor else environment.etc.fd
+    for name in parts:
+        before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        mode = stat.S_IMODE(before.st_mode)
+        # The vendor path is entirely root:root0755. The existing local
+        # rules.d is opened read-only solely to refuse a conflicting name;
+        # Debian's root:polkitd0750 is preserved and never becomes support input.
+        local_rules = not vendor and name == 'rules.d'
+        require(stat.S_ISDIR(before.st_mode) and before.st_uid == root_uid
+                and (mode in {0o750, 0o755} if local_rules
+                     else before.st_gid == root_gid and mode == 0o755),
+                'unsafe_network_policy_parent')
+        fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+        try:
+            require(_signature(os.fstat(fd)) == _signature(before)
+                    and _xattrs(environment.rootfs, fd) == safety.EMPTY_XATTRS,
+                    'unsafe_network_policy_parent')
+            held = safety._FdDirectory(environment.rootfs, fd, parent, name)
+            environment.directories.append(held)
+        except BaseException:
+            os.close(fd)
+            raise
+        parent = fd
+    return held
+
+
+def _policy_preflight(environment):
     require(hashlib.sha256(POLKIT_RAW).hexdigest() == POLKIT_SHA256,
             'network_policy_source_changed')
     if environment.policy_directory is None:
-        root_uid, root_gid = _owner_ids(environment.rootfs)
-        groups = _records(raw['group'], 4)
-        require('polkitd' in groups, 'polkit_group_missing')
-        polkit_gid = _number(groups['polkitd'][2])
-        require(1 <= polkit_gid <= 999, 'polkit_group_refused')
-        parent = environment.etc.fd
-        # Preserve Debian's existing root:polkitd0750 rules.d; never normalize it.
-        for name, policies in (('polkit-1', {(root_gid, 0o755)}),
-                               ('rules.d', {(root_gid, 0o755),
-                                            (polkit_gid, 0o750), (polkit_gid, 0o755)})):
-            before = os.stat(name, dir_fd=parent, follow_symlinks=False)
-            require(stat.S_ISDIR(before.st_mode) and before.st_uid == root_uid
-                    and (before.st_gid, stat.S_IMODE(before.st_mode)) in policies,
-                    'unsafe_network_policy_parent')
-            fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
-            try:
-                require(_signature(os.fstat(fd)) == _signature(before)
-                        and _xattrs(environment.rootfs, fd) == safety.EMPTY_XATTRS,
-                        'unsafe_network_policy_parent')
-                held = safety._FdDirectory(environment.rootfs, fd, parent, name)
-                environment.directories.append(held)
-            except BaseException:
-                os.close(fd)
-                raise
-            parent = fd
-        environment.policy_directory = held
+        environment.policy_directory = _policy_parent(
+            environment, POLKIT_DIRECTORY.split('/'), vendor=True)
+        environment.local_policy_directory = _policy_parent(
+            environment, ('polkit-1', 'rules.d'), vendor=False)
     environment.check()
-    require(safety._missing(environment.policy_directory.fd, POLKIT_NAME),
+    require(safety._missing(environment.policy_directory.fd, POLKIT_NAME)
+            and safety._missing(environment.local_policy_directory.fd, POLKIT_NAME),
             'network_policy_already_exists')
 
 

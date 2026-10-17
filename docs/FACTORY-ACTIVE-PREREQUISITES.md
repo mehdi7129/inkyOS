@@ -62,12 +62,18 @@ creating any file or directory:
 - The two final persistent parents `var/lib/inky-studio` and
   `var/lib/inky-network` must be absent, including dangling links. Existing empty
   directories are refused, never adopted, chmodded, chowned or repaired.
-- `etc/polkit-1` must already be root:root0755. Its existing `rules.d` must be
-  root:root0755 or root:polkitd0750/0755, with a named system `polkitd` GID, no links or
-  xattrs. Debian's root:polkitd0750 directory is preserved. The final
+- The vendor parents `usr`, `usr/share`, `usr/share/polkit-1` and
+  `usr/share/polkit-1/rules.d` must already be root:root0755, without links or
+  xattrs. Their metadata are preserved. The final vendor
   `49-inky-network.rules` must be absent, including dangling links; even an
   identical existing rule is refused before any account or parent write.
-  root:root0750 is refused because the daemon could not read the directory.
+- The homonymous `etc/polkit-1/rules.d/49-inky-network.rules` must also be absent
+  before any mutation. This local path is opened only for that read-only check:
+  `etc/polkit-1` is root:root0755 and its `rules.d` is root-owned0750/0755,
+  without links or xattrs. Its read-only group may be non-root. In particular
+  Debian's existing root:polkitd0750 directory is preserved, receives no file,
+  and never becomes part of the runtime support inventory. Other existing local
+  policy filenames are preserved.
 - Per-database account locks, known backup files and this command's reserved
   staging files must be absent. The official base's existing `.pwd.lock` has the
   narrowly checked exception below. No pi/app/helper subordinate-ID grants may
@@ -121,7 +127,7 @@ created exclusively and fsynced with these final policies:
 | --- | --- | --- |
 | `var/lib/inky-studio` | `inky:inky` (1000:1000) | 0700 |
 | `var/lib/inky-network` | `inky-network:inky-provisioning` (reserved IDs) | 0700 |
-| `etc/polkit-1/rules.d/49-inky-network.rules` | root:root | 0644 |
+| `usr/share/polkit-1/rules.d/49-inky-network.rules` | root:root | 0644 |
 
 The policy is the exact 496-byte heredoc from Studio commit
 `87c0820808a9824885c6009bf6b68354fb0dbbe9`, `scripts/install-bluetooth.sh`
@@ -139,6 +145,17 @@ complete bytes, metadata and xattrs are reread. `--check-only` creates no rule.
 The receipt reports its exact hash and whether installation occurred. The final
 support/runtime inventory must pin the installed policy and its parent paths;
 this configurator does not change a support review or manifest itself.
+
+For the compiled support policy, add only these three explicit paths:
+`usr/share/polkit-1`, `usr/share/polkit-1/rules.d` and its
+`49-inky-network.rules`. `usr` and `usr/share` are existing structural paths.
+Do not add the local `etc/polkit-1` subtree: its root:polkitd0750 directory
+conflicts with the unchanged runtime's root:root-only record/parent guards and
+cannot be traversed by the app. The vendor location uses the already observed
+root:root0755 directories; no runtime schema, owner exception or parent
+chmod/chown is introduced. Stage5's local-policy support selection was
+invalidated before prepare. A fresh stage6/image and a new vendor-path A/B test
+are required; the previous image4 local-policy A/B does not qualify this change.
 
 The command rereads all four resulting databases, repeats the account policy and
 checks each empty directory's actual inode, ownership, mode and xattrs. The JSON
@@ -175,7 +192,7 @@ continuation and the native packaging/boot graph described in
 ## Focused validation
 
 `python3.13 -m unittest discover -s tests -p test_factory_active_prerequisites.py`
-contains 31 focused cases: exact preparation, read-only checking, refused IDs and
+contains 34 focused cases: exact preparation, read-only checking, refused IDs and
 collisions, malformed/inconsistent accounts, privileges and credentials, external
 NSS, existing state, link/hardlink/mode guards, host refusal, interrupted staging
 and non-disclosing CLI output. The existing `.pwd.lock` cases additionally cover
@@ -183,9 +200,10 @@ unchanged successful preparation, absent/existing read-only checks, invalid
 size/modes/kinds/hardlinks/xattrs, contention held by a separate process, a probe
 showing the lock remains held before and after readback, and release on return.
 The policy cases additionally cover exact pinned bytes and four-action scope,
-preserved directory metadata, existing/link/directory targets, unsafe or missing
-parents/group, payload drift and failed readback. The macOS run covers 31 cases
-(29 pass, two native Linux skips).
+preserved vendor/local directory metadata, vendor and local-name collisions
+before any write, unsafe or missing vendor parents, independence from a
+`polkitd` group grant, payload drift and failed readback. The macOS run covers
+34 cases (32 pass, two native Linux skips).
 The added hardware-group range regression is run independently: each named
 hardware group assigned GID65530 must refuse before any account/parent write.
 The Linux-root cases additionally inspect actual xattrs and actual final numeric
@@ -194,12 +212,13 @@ root:shadow0640 database preservation. Synthetic fixture
 owner/platform seams never apply to `/` and are not exposed by the CLI. A native
 builder run is still required before claiming those two cases pass there.
 Separate affected composition groups pass on Mac: `test_factory_active_image.py`
-(27 cases) and `test_factory_active_profile.py` (16 cases).
+(27 cases) and `test_factory_active_profile.py` (19 cases).
 
 Before qualifying runtime permissions, a separate bounded native check must
 query only `org.freedesktop.NetworkManager.GetPermissions` over the real system
 bus under UID980 and the helper's exact groups, with the installed pinned rule.
 Record the four actual values and the rule hash. Do not scan, activate a
 profile, attach a VM network interface to NM, or treat a fake adapter as that
-proof. The native ownership/xattr cases and the real permission check have not
-been run by this source-only Mac validation.
+proof. The native ownership/xattr cases and the real vendor-path permission
+check on a newly prepared image have not been run by this source-only Mac
+validation.

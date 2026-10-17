@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "scope": "source-only-offline-factory-network-policy",
-  "base_os_commit": "d876a4aafc1853c43636c7349d5b65c0ab8073b5",
+  "scope": "source-only-offline-factory-vendor-network-policy",
+  "base_os_commit": "bb6e66b3dc7a0c92130902cd1bf69c11e25f0763",
   "studio_commit": "87c0820808a9824885c6009bf6b68354fb0dbbe9",
   "provenance": {
     "studio_source": "scripts/install-bluetooth.sh",
@@ -9,11 +9,11 @@
     "rule_sha256": "894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3",
     "rule_size_bytes": 496,
     "exact_git_source_heredoc_comparison": "pass",
-    "configurator_sha256": "3b39484c290b16374cdcb1ca237361da469867ebd30d2305c0ae26376ce6315e",
-    "tests_sha256": "cf1ad85b77c5b47a670850c941cf03e4e7342ab60631b2fd3d156d8a85bc52f8"
+    "configurator_sha256": "8a0ba21a6f04a2052f184d3eed3f87ce27ccee5cf1d420a98de1fff7f12683f1",
+    "tests_sha256": "9cf16f3ce84f9a33d7340804dab31ad73e52de7c9c0762c858d793942ad8d460"
   },
   "installed_policy": {
-    "path": "etc/polkit-1/rules.d/49-inky-network.rules",
+    "path": "usr/share/polkit-1/rules.d/49-inky-network.rules",
     "uid": 0,
     "gid": 0,
     "mode": "0644",
@@ -26,9 +26,10 @@
       "org.freedesktop.NetworkManager.checkpoint-rollback"
     ],
     "other_subjects_and_actions": "NOT_HANDLED",
-    "existing_targets": "refuse-before-account-writes",
-    "parent_metadata": "preserve-root-root-0755-or-root-polkitd-0750-or-0755",
-    "check_only_mutates": false
+    "existing_targets": "refuse-existing-vendor-destination-and-etc-homonym-before-all-writes",
+    "parent_metadata": "preserve-existing-vendor-root-root-0755",
+    "check_only_mutates": false,
+    "local_etc_parent": "read-only collision check; existing root:9870750 preserved; never part of runtime support"
   },
   "validation": {
     "platform": "macOS",
@@ -37,8 +38,8 @@
     "groups": [
       {
         "pattern": "test_factory_active_prerequisites.py",
-        "ran": 31,
-        "passed": 29,
+        "ran": 34,
+        "passed": 32,
         "skipped": 2,
         "failed": 0
       },
@@ -51,15 +52,15 @@
       },
       {
         "pattern": "test_factory_active_profile.py",
-        "ran": 16,
-        "passed": 16,
+        "ran": 19,
+        "passed": 19,
         "skipped": 0,
         "failed": 0
       }
     ],
     "native_skips": [
       "Linux xattrs",
-      "Linux root ownership and Debian directory-group metadata"
+      "Linux root ownership, strict vendor root:root0755 and preserved local Debian root:9870750"
     ],
     "ruff_diff": {
       "comparison": "diagnostic code/message multiset against base for the two Python files",
@@ -72,8 +73,9 @@
   },
   "remaining_native_validation": [
     "Run the two skipped metadata cases in the dedicated Linux builder.",
-    "Pin the real installed rule and its parents in the new support/runtime inventory.",
-    "Query only real NM GetPermissions under UID980 and the helper's exact groups; capture the four yes results and policy hash without scan/profile/radio effects or a VM interface managed by NM."
+    "Build a new stage6 from stage4 with the new source commit. Stage5 local-policy support is invalidated before prepare.",
+    "Pin only usr/share/polkit-1, usr/share/polkit-1/rules.d and the installed vendor rule as new explicit support paths; never add the local ETC root:9870750 subtree.",
+    "Query real NM GetPermissions A/B on the newly prepared image with this vendor rule: UID980 four yes, UID1000 four auth, no scan/profile/radio effects. Historical image4 local-rule A/B does not qualify vendor-path loading."
   ],
   "limits": {
     "missing_rule_in_active88_source_and_prepared_inventory": "established",
@@ -82,10 +84,31 @@
     "image_built": false,
     "vm_or_pi_or_sd_used": false,
     "flashed_or_deployed": false,
-    "backend_or_ios_changed": false
+    "backend_or_ios_changed": false,
+    "runtime_schema_or_guard_changed": false,
+    "existing_policy_parents_chmod_or_chown_performed": false
   },
   "independent_review": {
     "reviewer": "active_prerequisites",
-    "result": "one P2 corrected: reject unreadable root:root0750 rules.d before mutation; other scoped checks ACK"
+    "result": "ACK: no concrete P1/P2 in vendor destination, exact payload, metadata, both collision checks before writes, or parent preservation.",
+    "reviewed_configurator_sha256": "8a0ba21a6f04a2052f184d3eed3f87ce27ccee5cf1d420a98de1fff7f12683f1",
+    "overlapping_focused_policy_subset": "8 PASS; not added to the primary test counts",
+    "product_edits_or_vm_sd_image": false
+  },
+  "compilation": {
+    "required_new_support_paths": [
+      "usr/share/polkit-1",
+      "usr/share/polkit-1/rules.d",
+      "usr/share/polkit-1/rules.d/49-inky-network.rules"
+    ],
+    "existing_structural_paths": [
+      "usr",
+      "usr/share"
+    ],
+    "excluded_local_support_subtree": "etc/polkit-1",
+    "reason": "Existing local root:9870750 conflicts with unchanged root:root-only runtime records and app traversal; vendor parents are root:root0755.",
+    "prepared4_vendor_parent_metadata": "root-confirmed inventory: root:root0755, empty xattrs; preserved by configurator",
+    "historical_local_rule_ab_report_sha256": "5737ad287d8444ee2ae2f6e45167118decd0f59a856f19d28924ad67b342a99d",
+    "historical_ab_qualifies_vendor_candidate": false
   }
 }

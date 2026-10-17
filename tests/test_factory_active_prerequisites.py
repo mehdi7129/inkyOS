@@ -47,7 +47,8 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         self.base = Path(temporary.name)
         self.base.chmod(0o700)
         self.root = self.base / 'root'
-        for path in ('', 'etc', 'var', 'var/lib', 'etc/polkit-1', 'etc/polkit-1/rules.d'):
+        for path in ('', 'etc', 'var', 'var/lib', 'etc/polkit-1', 'etc/polkit-1/rules.d',
+                     'usr', 'usr/share', 'usr/share/polkit-1', 'usr/share/polkit-1/rules.d'):
             directory = self.root / path
             directory.mkdir(exist_ok=True)
             directory.chmod(0o755)
@@ -164,8 +165,12 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), before)
 
     def test_exact_pinned_policy_has_only_existing_helper_permissions(self):
-        parent = self.root / 'etc/polkit-1/rules.d'
-        parent_before = parent.stat()
+        parent = self.root / prepare.POLKIT_DIRECTORY
+        directories = [self.root / path for path in
+                       ('usr', 'usr/share', 'usr/share/polkit-1', prepare.POLKIT_DIRECTORY,
+                        'etc/polkit-1', 'etc/polkit-1/rules.d')]
+        before = {path: (path.stat().st_dev, path.stat().st_ino, path.stat().st_uid,
+                         path.stat().st_gid, path.stat().st_mode) for path in directories}
         self.run_prepare(helper_uid=980, provisioning_gid=980)
         path = parent / prepare.POLKIT_NAME
         self.assertEqual(path.read_bytes(), prepare.POLKIT_RAW)
@@ -173,8 +178,10 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
                          '894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3')
         self.assertEqual((path.stat().st_uid, path.stat().st_gid, stat.S_IMODE(path.stat().st_mode)),
                          (os.geteuid(), os.getegid(), 0o644))
-        self.assertEqual((parent.stat().st_uid, parent.stat().st_gid, parent.stat().st_mode),
-                         (parent_before.st_uid, parent_before.st_gid, parent_before.st_mode))
+        self.assertEqual({path: (path.stat().st_dev, path.stat().st_ino, path.stat().st_uid,
+                                path.stat().st_gid, path.stat().st_mode)
+                          for path in directories}, before)
+        self.assertEqual(list((self.root / 'etc/polkit-1/rules.d').iterdir()), [])
         text = path.read_text()
         self.assertIn('if (subject.user !== "inky-network") return polkit.Result.NOT_HANDLED;', text)
         self.assertEqual([line.strip().strip(',').strip('"') for line in text.splitlines()
@@ -186,45 +193,108 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         self.assertEqual(text.count('polkit.Result.YES'), 1)
         self.assertEqual(list(parent.iterdir()), [path])
 
+    def test_existing_unrelated_local_rule_is_preserved_without_local_install(self):
+        path = self.root / 'etc/polkit-1/rules.d/50-existing.rules'
+        path.write_bytes(b'// inert preexisting local rule\n')
+        path.chmod(0o644)
+        info = path.stat()
+        before = (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+                  path.read_bytes())
+        self.run_prepare()
+        info = path.stat()
+        self.assertEqual((info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+                          path.read_bytes()), before)
+        self.assertEqual(list(path.parent.iterdir()), [path])
+
     def test_existing_policy_is_never_adopted_or_overwritten(self):
-        path = self.root / 'etc/polkit-1/rules.d' / prepare.POLKIT_NAME
-        for content in (prepare.POLKIT_RAW, b'polkit.addRule(function() { return polkit.Result.YES; });\n'):
-            path.write_bytes(content)
-            path.chmod(0o644)
+        for directory in (prepare.POLKIT_DIRECTORY, 'etc/polkit-1/rules.d'):
+            path = self.root / directory / prepare.POLKIT_NAME
+            for content in (prepare.POLKIT_RAW,
+                            b'polkit.addRule(function() { return polkit.Result.YES; });\n'):
+                with self.subTest(directory=directory, content=content):
+                    path.write_bytes(content)
+                    path.chmod(0o644)
+                    self.refused_without_mutation()
+                    self.refused_without_mutation(check_only=True)
+                    path.unlink()
+            path.symlink_to(self.base / 'missing-policy')
             self.refused_without_mutation()
             self.refused_without_mutation(check_only=True)
             path.unlink()
-        path.symlink_to(self.base / 'missing-policy')
-        self.refused_without_mutation()
-        path.unlink()
-        path.mkdir()
-        self.refused_without_mutation()
+            path.mkdir()
+            self.refused_without_mutation()
+            self.refused_without_mutation(check_only=True)
+            path.rmdir()
+
+    def test_policy_collisions_refuse_before_account_parent_or_policy_writes(self):
+        for directory in (prepare.POLKIT_DIRECTORY, 'etc/polkit-1/rules.d'):
+            path = self.root / directory / prepare.POLKIT_NAME
+            path.write_bytes(prepare.POLKIT_RAW)
+            path.chmod(0o644)
+            with self.subTest(directory=directory), \
+                    patch.object(prepare, '_write_file', side_effect=AssertionError('account write')), \
+                    patch.object(prepare, '_create_parent', side_effect=AssertionError('parent write')), \
+                    patch.object(prepare.safety, '_write_file', side_effect=AssertionError('policy write')):
+                self.refused_without_mutation()
+                self.refused_without_mutation(check_only=True)
+            path.unlink()
 
     def test_missing_linked_unreadable_or_writable_policy_parents_refuse_before_accounts(self):
-        parent = self.root / 'etc/polkit-1/rules.d'
-        parent.rmdir()
-        self.refused_without_mutation()
-        external = self.base / 'external-rules'
-        external.mkdir()
-        parent.symlink_to(external)
-        self.refused_without_mutation()
-        self.assertEqual(list(external.iterdir()), [])
-        parent.unlink()
-        parent.mkdir(mode=0o755)
-        for mode in (0o750, 0o770, 0o777, 0o1750):
-            parent.chmod(mode)
-            self.refused_without_mutation()
+        for index, relative in enumerate(('usr', 'usr/share', 'usr/share/polkit-1',
+                                          prepare.POLKIT_DIRECTORY)):
+            with self.subTest(parent=relative):
+                parent = self.root / relative
+                saved = self.base / f'vendor-parent-{index}'
+                parent.rename(saved)
+                self.refused_without_mutation()
+                external = self.base / f'external-rules-{index}'
+                external.mkdir()
+                parent.symlink_to(external)
+                self.refused_without_mutation()
+                self.assertEqual(list(external.iterdir()), [])
+                parent.unlink()
+                saved.rename(parent)
+                for mode in (0o700, 0o750, 0o770, 0o777, 0o1755):
+                    parent.chmod(mode)
+                    self.refused_without_mutation()
+                parent.chmod(0o755)
 
-    def test_missing_or_non_system_polkit_group_refuses_without_mutation(self):
+    def test_local_policy_parents_are_required_safe_and_never_normalized(self):
+        for index, relative in enumerate(('etc/polkit-1', 'etc/polkit-1/rules.d')):
+            with self.subTest(parent=relative):
+                parent = self.root / relative
+                saved = self.base / f'local-parent-{index}'
+                parent.rename(saved)
+                self.refused_without_mutation()
+                external = self.base / f'external-local-{index}'
+                external.mkdir()
+                parent.symlink_to(external)
+                self.refused_without_mutation()
+                self.assertEqual(list(external.iterdir()), [])
+                parent.unlink()
+                saved.rename(parent)
+                for mode in (0o770, 0o777, 0o1750):
+                    parent.chmod(mode)
+                    self.refused_without_mutation()
+                parent.chmod(0o755)
+
+    def test_vendor_policy_is_independent_of_polkit_group(self):
         for replacement in ('', 'polkitd:x:65530:\n'):
             original = (self.root / 'etc/group').read_text()
             self.write('group', original.replace('polkitd:x:987:\n', replacement))
             if not replacement:
                 self.change('gshadow', 'polkitd:!::\n', '')
-            self.refused_without_mutation()
+            before = self.snapshot()
+            self.assertTrue(self.run_prepare(check_only=True)['passed'])
+            self.assertEqual(self.snapshot(), before)
             self.write('group', original)
             if not replacement:
                 self.write('gshadow', (self.root / 'etc/gshadow').read_text() + 'polkitd:!::\n', 0o600)
+        self.change('group', 'polkitd:x:987:\n', '')
+        self.change('gshadow', 'polkitd:!::\n', '')
+        self.assertTrue(self.run_prepare()['passed'])
+        self.assertEqual((self.root / prepare.POLKIT_DIRECTORY / prepare.POLKIT_NAME).read_bytes(),
+                         prepare.POLKIT_RAW)
 
     def test_policy_payload_drift_refuses_before_all_mutations(self):
         with patch.object(prepare, 'POLKIT_RAW', prepare.POLKIT_RAW + b'// drift\n'):
@@ -510,7 +580,9 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         self.write(prepare.PASSWORD_LOCK, '', 0o600)
         for path in (self.root / 'etc/passwd', self.root / 'var/lib',
                      self.root / 'etc' / prepare.PASSWORD_LOCK,
-                     self.root / 'etc/polkit-1/rules.d'):
+                     self.root / 'etc/polkit-1', self.root / 'etc/polkit-1/rules.d',
+                     self.root / 'usr', self.root / 'usr/share',
+                     self.root / 'usr/share/polkit-1', self.root / prepare.POLKIT_DIRECTORY):
             os.setxattr(path, 'user.fixture', b'inert')
             try:
                 self.refused_without_mutation()
@@ -530,11 +602,18 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
             os.chown(path, 0, 42)
             path.chmod(0o640)
         policy_parent = self.root / 'etc/polkit-1/rules.d'
-        for ids in ((1, 987), (0, 42)):
-            os.chown(policy_parent, *ids)
-            self.refused_without_mutation()
+        os.chown(policy_parent, 1, 987)
+        self.refused_without_mutation()
         os.chown(policy_parent, 0, 987)
         policy_parent.chmod(0o750)
+        for relative in ('etc/polkit-1', 'usr', 'usr/share', 'usr/share/polkit-1',
+                         prepare.POLKIT_DIRECTORY):
+            parent = self.root / relative
+            for ids in ((1, 0), (0, 987)):
+                with self.subTest(parent=relative, ids=ids):
+                    os.chown(parent, *ids)
+                    self.refused_without_mutation()
+            os.chown(parent, 0, 0)
         with patch.object(prepare, '_parent_ids',
                           lambda rootfs, app, helper, group: {
                               'inky-studio': (1000, 1000), 'inky-network': (helper, group)}):
@@ -547,7 +626,11 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
             self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 42, 0o640))
         info = (self.root / 'etc/polkit-1/rules.d').stat()
         self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 987, 0o750))
-        info = (self.root / 'etc/polkit-1/rules.d' / prepare.POLKIT_NAME).stat()
+        self.assertFalse((policy_parent / prepare.POLKIT_NAME).exists())
+        for relative in ('usr', 'usr/share', 'usr/share/polkit-1', prepare.POLKIT_DIRECTORY):
+            info = (self.root / relative).stat()
+            self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 0, 0o755))
+        info = (self.root / prepare.POLKIT_DIRECTORY / prepare.POLKIT_NAME).stat()
         self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 0, 0o644))
 
 
