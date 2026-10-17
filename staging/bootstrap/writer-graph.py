@@ -30,10 +30,12 @@ MANAGER = '/org/freedesktop/systemd1'
 DESTINATION = 'org.freedesktop.systemd1'
 MANAGER_INTERFACE = DESTINATION + '.Manager'
 SO_PEERPIDFD = 77  # Linux 6.12 UAPI; availability is required, never emulated.
-CHECK_SECONDS = 2.0
-INITIAL_SECONDS = 20.0
-SOURCE_SECONDS = 90.0
-WATCH_SECONDS = 1.0
+# Leave Pi Zero 2 time for the full 18k-record scan and owned PID1 queries;
+# space periodic scans so the monitor does not continuously consume CPU.
+CHECK_SECONDS = 10.0
+INITIAL_SECONDS = 60.0
+SOURCE_SECONDS = 180.0
+WATCH_SECONDS = 10.0
 CLEANUP_SECONDS = 2.0
 OUTPUT_LIMIT = 262144
 DATA = Path('/var/lib/inky-studio')
@@ -636,12 +638,136 @@ def installed_runtime():
     return module
 
 
+MAX_RECORDS = 20000
+MAX_PARENT_FDS = 15  # Additional to Tree.fd; one temporary regular-file FD.
+
+
+def _source_stamp(info):
+    # Same nine fields as runtime.stamp; atime is intentionally excluded.
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+@dataclasses.dataclass(frozen=True)
+class SourceWalkPlan:
+    """Private immutable plan derived from runtime.inventories' validated map.
+
+    Directory membership comes only from the pinned map, never disk listings.
+    A future map needing >15 parent FDs is refused before traversal.
+    """
+    nodes: types.MappingProxyType
+    children: types.MappingProxyType
+
+    def __init__(self, records):
+        require(type(records) is dict and 0 < len(records) <= MAX_RECORDS, 'source_inventory_limit')
+        nodes, children = {}, {}
+        for path, record in records.items():
+            require(type(path) is str and (path == '.' or
+                    '\\' not in path and '\x00' not in path and
+                    all(part not in {'', '.', '..'} for part in path.split('/'))), 'source_path')
+            kind = record['type']
+            require(kind in {'directory', 'file', 'symlink'}, 'source_metadata')
+            nodes[path] = (kind, int(record['mode'], 8), record.get('size_bytes'), record.get('target'))
+            if kind == 'directory':
+                require(path == '.' or len(path.split('/')) <= MAX_PARENT_FDS, 'source_depth_limit')
+                children[path] = []
+        require(nodes.get('.', (None,))[0] == 'directory', 'source_root_missing')
+        for path in nodes:
+            if path == '.':
+                continue
+            parent, _, leaf = path.rpartition('/')
+            parent = parent or '.'
+            require(parent in children, 'source_parent_not_directory')
+            children[parent].append((leaf, path))
+        object.__setattr__(self, 'nodes', types.MappingProxyType(nodes))
+        object.__setattr__(self, 'children', types.MappingProxyType(
+            {path: tuple(sorted(items)) for path, items in children.items()}))
+
+
+def walk_metadata(tree, plan, *, tick, expected=None):
+    """Capture metadata+stamp in one pass, or compare EVERY existing stamp.
+
+    `tick()` is mandatory and must enforce the caller's absolute deadline.
+    `expected` is the original InstalledSources._metadata mapping. Capture
+    validates the same mode/type/nlink/size/target against pinned records.
+    Both modes retain xattr checks, UID/GID, stable opened inodes and no-follow
+    parent→child bindings. Each directory binding and stamp is checked again
+    after its descendants. No descriptor survives the call, except borrowed
+    Tree.fd, which this function never closes.
+    """
+    require(type(plan) is SourceWalkPlan and callable(tick), 'source_plan')
+    require(expected is None or type(expected) is dict and len(expected) == len(plan.nodes), 'source_baseline')
+    result = {} if expected is None else None
+    visited = 0
+
+    def metadata(info, path, target):
+        kind = ('symlink' if stat.S_ISLNK(info.st_mode) else 'file' if stat.S_ISREG(info.st_mode)
+                else 'directory' if stat.S_ISDIR(info.st_mode) else None)
+        require((info.st_uid, info.st_gid) == (tree.uid, tree.gid), 'source_metadata')
+        observed = (_source_stamp(info), target)
+        if expected is None:
+            pinned_kind, mode, size, pinned_target = plan.nodes[path]
+            require(kind == pinned_kind and stat.S_IMODE(info.st_mode) == mode, 'source_metadata')
+            if kind == 'file':
+                require(info.st_nlink == 1 and info.st_size == size, 'source_metadata')
+            elif kind == 'symlink':
+                require(info.st_nlink == 1 and target == pinned_target, 'source_metadata')
+        else:
+            require(expected.get(path) == observed, 'source_changed')
+        return observed
+
+    def visit(parent, leaf, path, depth):
+        nonlocal visited
+        tick()
+        before = os.stat(leaf, dir_fd=parent, follow_symlinks=False)
+        kind = plan.nodes[path][0]
+        # Refuse a substituted kind before open: no FIFO/device or new directory
+        # can be visited merely because the baseline expected an ordinary file.
+        require((kind == 'directory' and stat.S_ISDIR(before.st_mode))
+                or (kind == 'file' and stat.S_ISREG(before.st_mode))
+                or (kind == 'symlink' and stat.S_ISLNK(before.st_mode)), 'source_metadata')
+        target = None
+        if kind == 'symlink':
+            require(not os.listxattr('/proc/self/fd/%d/%s' % (parent, leaf), follow_symlinks=False),
+                    'source_xattrs')
+            target = os.readlink(leaf, dir_fd=parent)
+            observed = metadata(before, path, target)
+        else:
+            flags = os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW
+            if kind == 'directory':
+                flags |= os.O_DIRECTORY
+                require(depth <= MAX_PARENT_FDS, 'source_depth_limit')
+            fd = parent if path == '.' else os.open(leaf, flags, dir_fd=parent)
+            try:
+                require(_source_stamp(os.fstat(fd)) == _source_stamp(before) and not os.listxattr(fd), 'source_metadata')
+                observed = metadata(before, path, None)
+                if kind == 'directory':
+                    for child, child_path in plan.children[path]:
+                        visit(fd, child, child_path, depth + 1)
+                    tick()
+                    require(not os.listxattr(fd), 'source_xattrs')
+                require(_source_stamp(os.fstat(fd)) == _source_stamp(before), 'source_changed')
+            finally:
+                if path != '.':
+                    os.close(fd)
+        require(_source_stamp(os.stat(leaf, dir_fd=parent, follow_symlinks=False)) == _source_stamp(before), 'source_changed')
+        if result is not None:
+            result[path] = observed
+        visited += 1
+        tick()
+
+    visit(tree.fd, '.', '.', 0)
+    require(visited == len(plan.nodes), 'source_inventory_incomplete')
+    return result
+
+
 class InstalledSources:
     def __init__(self, runtime, contract, role='main'):
         self.role = role
         self.runtime, self.contract = runtime, contract
         self._context, self._identity, self._metadata = None, None, {}
         self._lease = None
+        self._plan = None
 
     def prepare(self, lease):
         self._lease = lease
@@ -676,12 +802,10 @@ class InstalledSources:
             self._state_metadata = {path: self._stamp(tree, path) for path in (
                 runtime.MANIFEST, runtime.CONTEXT_DIR, runtime.CONTEXT,
                 'run/inkyos-admission/attempted', 'run/inkyos-admission/Ready')}
-            # Record closure paths and their parents, without contents/listings on checks.
-            require(len(records) <= 20000, 'source_inventory_limit')
-            for path in sorted(records):
-                remaining(deadline)
-                self._record_metadata(tree, path, records[path])
-                self._metadata[path] = self._stamp(tree, path)
+            # Immutable pinned membership; one no-follow DFS fuses metadata and
+            # baseline stamps. Every later check visits every pinned record.
+            self._plan = SourceWalkPlan(records)
+            self._metadata = walk_metadata(tree, self._plan, tick=lambda: remaining(deadline))
             # Hash between baseline capture and its fresh comparison. Otherwise a
             # concurrent change after admission could become our accepted baseline.
             for path in sorted(selected):
@@ -771,9 +895,7 @@ class InstalledSources:
             for path, expected in self._state_metadata.items():
                 remaining(deadline)
                 require(self._stamp(tree, path) == expected, 'state_binding_changed')
-            for path, expected in self._metadata.items():
-                remaining(deadline)
-                require(self._stamp(tree, path) == expected, 'source_changed')
+            walk_metadata(tree, self._plan, tick=lambda: remaining(deadline), expected=self._metadata)
         remaining(deadline)
         return None
 

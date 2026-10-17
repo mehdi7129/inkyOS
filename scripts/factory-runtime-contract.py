@@ -39,7 +39,7 @@ UNIT_TEMPLATES = {
     'inkyos-system-setup.service': 'a931337d6ef281cbe691b7b3a3b7adb621e2f89c702b242a5d17b77f507cd53c',
     'inky-studio.service': '422be607cac20a649117a8e64a74ede159799f94c70b9e5f55ccb00db2484779',
     'inky-network.service': 'e242b4b28f40aab4b52572e93677b5aadde09b525b991ff69178ed3ecddfe517',
-    'inkyos-initialization.service': '049661642ac18b8efd8c81ef82fefa4cfba2b450b2a4dee8ba1bf573b7bd47c7',
+    'inkyos-initialization.service': 'b7677cb7356f5b916387e788dc2e02f37f34257d24c17d88049620c4f9c091f2',
     'inkyos-admission-prepare.service': '8bda5a8691453353345c44bb90e6be1ffd687d888dc823af6746239316baf90e',
     'inkyos-factory-supervisor.service': '26b7cb8a1daf3858ce2f90afc0bb245d1ec6e8efd810c5772c2b13ee36b5c837',
 }

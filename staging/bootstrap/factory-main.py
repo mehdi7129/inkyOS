@@ -21,6 +21,12 @@ MANIFEST = '/etc/inkyos/factory-runtime-v1.json'
 DATA = Path('/var/lib/inky-studio')
 APP_PYTHON = '/usr/lib/inky-studio/server/.venv/bin/python'
 REFUSAL_EXIT = 78
+DIAGNOSTIC_REASONS = frozenset({
+    'observation_timeout', 'invalid_candidate', 'wrong_identity',
+    'source_metadata', 'source_xattrs', 'source_changed', 'state_binding_changed',
+    'writer_dead', 'writer_changed', 'writer_mapping_changed',
+    'source_depth_limit', 'source_inventory_limit',
+})
 
 
 class Refused(ValueError):
@@ -184,8 +190,12 @@ def main(argv=None):
     try:
         require(arguments == [])
         asyncio.run(run_phase_a())
-    except Exception:
-        print('factory_main_refused', file=sys.stderr)
+    except Exception as error:
+        reason = getattr(error, 'reason', None)
+        diagnostic = ('factory_main_refused:' + reason
+                      if type(reason) is str and reason in DIAGNOSTIC_REASONS
+                      else 'factory_main_refused')
+        print(diagnostic, file=sys.stderr)
         return REFUSAL_EXIT
     return REFUSAL_EXIT
 

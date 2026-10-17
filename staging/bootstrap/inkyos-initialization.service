@@ -7,7 +7,7 @@ After=local-fs.target inkyos-admission-prepare.service inkyos-factory-supervisor
 [Service]
 Type=notify
 NotifyAccess=main
-TimeoutStartSec=10s
+TimeoutStartSec=90s
 User=root
 Group=inky-provisioning
 SupplementaryGroups=root

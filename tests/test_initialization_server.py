@@ -595,7 +595,7 @@ class StartupReadinessTests(unittest.TestCase):
 class StagingTests(unittest.TestCase):
     def test_unit_is_uninstalled_without_state_creation_or_capabilities(self):
         raw = (ROOT / 'staging/bootstrap/inkyos-initialization.service').read_text()
-        for line in ('Type=notify', 'NotifyAccess=main', 'TimeoutStartSec=10s',
+        for line in ('Type=notify', 'NotifyAccess=main', 'TimeoutStartSec=90s',
                      'User=root', 'Group=inky-provisioning', 'SupplementaryGroups=root',
                      'CapabilityBoundingSet=', 'KillMode=mixed', 'TimeoutStopSec=infinity',
                      'SendSIGKILL=no', 'Restart=no',

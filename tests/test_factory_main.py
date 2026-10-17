@@ -409,6 +409,22 @@ class FactoryMainEntryTests(unittest.TestCase):
         self.assertEqual(result, 78)
         self.assertEqual(output.getvalue(), 'factory_main_refused\n')
 
+    def test_cli_logs_only_fixed_nonprivate_refusal_code(self):
+        for reason in ('observation_timeout', 'source_changed', '/INERT_PRIVATE_PATH',
+                       'INERT_PRIVATE_SECRET', [], None):
+            error = ValueError('INERT_PRIVATE_EXCEPTION_MESSAGE')
+            error.reason = reason
+            output = io.StringIO()
+            def refused(coroutine):
+                coroutine.close()
+                raise error
+            with patch.object(main.asyncio, 'run', side_effect=refused), redirect_stderr(output):
+                self.assertEqual(main.main([]), 78)
+            expected = ('factory_main_refused:' + reason
+                        if type(reason) is str and reason in main.DIAGNOSTIC_REASONS
+                        else 'factory_main_refused')
+            self.assertEqual(output.getvalue(), expected + '\n')
+
     def test_signal_registration_failure_removes_only_owned_handlers(self):
         calls = []
         class Loop:
