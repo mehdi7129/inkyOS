@@ -469,8 +469,10 @@ def records_schema(records):
             and type(records.get('.')) is dict and records['.'].get('type') == 'directory')
     for path, record in records.items():
         name(path, root=True); record_schema(record)
-        for parent in PurePosixPath(path).parents:
-            require(str(parent) in records and records[str(parent)]['type'] == 'directory')
+        if path != '.':
+            # Every parent is checked in this same closed map, transitively.
+            parent = path.rpartition('/')[0] or '.'
+            require(parent in records and records[parent]['type'] == 'directory')
 
 
 def actual_record(tree, path):
@@ -618,7 +620,8 @@ def inventories(contract):
             require(path not in records or records[path] == record)
             records[path] = record
     records_schema(records)
-    for path in records: resolve(path, records)
+    for path, record in records.items():
+        if record['type'] == 'symlink': resolve(path, records)
     for path in ('usr/bin/python3', 'usr/bin/python3.13', 'etc/ld.so.cache', 'etc/ld.so.conf',
                  HELPER, *HOOKS, *SUPERVISOR_FILES, *WRITER_FILES, *SETUP_FILES, *NATIVE_COMMANDS):
         require(path in records, 'invalid_candidate')

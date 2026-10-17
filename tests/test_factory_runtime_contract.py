@@ -10,7 +10,7 @@ import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import stat
 import sys
 import tempfile
@@ -729,6 +729,109 @@ class CandidateTests(ContractFixture):
                 os.chown(path, uid, gid)
                 self.assert_refused(lambda: runtime.verify_candidate(contract), 'invalid_metadata')
                 os.chown(path, 0, 0)
+
+
+class InventoryClosureTests(ContractFixture):
+    @staticmethod
+    def legacy_schema(records):
+        """Pre-optimization schema, retained as a transitive-closure oracle."""
+        runtime.require(type(records) is dict and 0 < len(records) <= 100000
+                        and type(records.get('.')) is dict
+                        and records['.'].get('type') == 'directory')
+        for path, record in records.items():
+            runtime.name(path, root=True)
+            runtime.record_schema(record)
+            for parent in PurePosixPath(path).parents:
+                runtime.require(str(parent) in records
+                                and records[str(parent)]['type'] == 'directory')
+
+    def outcome(self, records, *, legacy):
+        before = copy.deepcopy(records)
+        try:
+            (self.legacy_schema if legacy else runtime.records_schema)(records)
+            for path, record in records.items():
+                if legacy or record['type'] == 'symlink':
+                    runtime.resolve(path, records)
+        except (ValueError, TypeError, KeyError):
+            result = ('refused', None)
+        else:
+            result = ('accepted', records)
+        self.assertEqual(records, before)
+        return result
+
+    def test_closed_map_matches_legacy_acceptance_and_return_in_both_orders(self):
+        directory = {'type': 'directory', 'uid': 0, 'gid': 0, 'mode': '0755',
+                     'xattrs': copy.deepcopy(runtime.EMPTY_XATTRS)}
+        file = {**directory, 'type': 'file', 'mode': '0644', 'size_bytes': 1,
+                'sha256': 'a' * 64}
+
+        def link(target):
+            return {**directory, 'type': 'symlink', 'mode': '0777', 'target': target}
+
+        base = {'.': directory, 'a': directory, 'a/b': directory, 'a/b/file': file}
+        cases = [('root-only', {'.': directory}, True), ('closed', base, True),
+                 ('top-file', {'.': directory, 'file': file}, True)]
+        for missing in ('.', 'a', 'a/b'):
+            cases.append(('missing-' + missing,
+                          {path: record for path, record in base.items() if path != missing}, False))
+        for ancestor in ('a', 'a/b'):
+            for record in (file, link('/a/b')):
+                cases.append(('non-directory-' + ancestor, {**base, ancestor: record}, False))
+        for path in ('', '/', './a', 'a/', 'a//b', 'a/./b', 'a/../b', '/a', 'a\\b'):
+            cases.append(('noncanonical-' + path, {**base, path: file}, False))
+        for target, accepted in (('/a/b/file', True), ('a/b/file', True),
+                                 ('a/b/../b/file', True), ('/', True),
+                                 ('missing', False), ('alias', False),
+                                 ('../outside', False), ('a/b/file/child', False)):
+            cases.append(('alias-' + target, {**base, 'alias': link(target)}, accepted))
+        cases.append(('two-link-cycle', {**base, 'alias': link('other'),
+                                        'other': link('alias')}, False))
+        for field, value in (('uid', True), ('gid', 1), ('mode', '0666'),
+                             ('size_bytes', True), ('sha256', 'not-a-hash'),
+                             ('xattrs', {'status': 'uninspected', 'entries': {}})):
+            cases.append(('metadata-' + field,
+                          {**base, 'a/b/file': {**file, field: value}}, False))
+        for label, records, accepted in cases:
+            for reverse in (False, True):
+                with self.subTest(case=label, reverse=reverse):
+                    records = dict(reversed(list(records.items()))) if reverse else records
+                    old = self.outcome(records, legacy=True)
+                    new = self.outcome(records, legacy=False)
+                    self.assertEqual(new, old)
+                    self.assertEqual(new[0], 'accepted' if accepted else 'refused')
+
+    def test_inventories_refuses_unused_dangling_and_cyclic_links_without_writes(self):
+        self.full_candidate()
+        path = 'usr/lib/unreferenced'
+        directory = self.support['paths']['usr/lib']
+        for target in ('missing', 'unreferenced', '../../../outside',
+                       '../bin/python3.13/child'):
+            with self.subTest(target=target):
+                self.support['paths'][path] = {
+                    **directory, 'type': 'symlink', 'mode': '0777', 'target': target}
+                self.publish_candidate()
+                self.assert_refused(lambda: runtime.inventories(self.contract()),
+                                    'invalid_candidate')
+
+    def test_inventories_retains_valid_absolute_relative_and_root_links(self):
+        self.full_candidate()
+        path = 'usr/lib/unreferenced'
+        directory = self.support['paths']['usr/lib']
+        for target, resolved in (('/usr/bin/python3.13', 'usr/bin/python3.13'),
+                                 ('../bin/python3.13', 'usr/bin/python3.13'),
+                                 ('../..', '.')):
+            with self.subTest(target=target):
+                self.support['paths'][path] = {
+                    **directory, 'type': 'symlink', 'mode': '0777', 'target': target}
+                self.publish_candidate()
+                before = self.snapshot()
+                app, exporter, support, records = runtime.inventories(self.contract())
+                self.assertEqual((app, exporter, support),
+                                 (self.bundle, self.exporter, self.support))
+                self.assertEqual(runtime.resolve(path, records), resolved)
+                self.assertEqual(self.outcome(records, legacy=False),
+                                 self.outcome(records, legacy=True))
+                self.assertEqual(self.snapshot(), before)
 
 
 if __name__ == '__main__':
