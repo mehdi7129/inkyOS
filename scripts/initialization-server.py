@@ -35,7 +35,9 @@ APP_UID = 1000
 GROUP = 'inky-provisioning'
 REQUEST_LIMIT = 1024
 RESPONSE_LIMIT = 2048
-DEADLINE_SECONDS = 3.0
+# The connected client may spend 10 seconds attesting this server before its
+# first request: allow that, 3 seconds for exchange, and 2 seconds of margin.
+DEADLINE_SECONDS = 15.0
 REPLY_RESERVE = 0.05
 NOTIFY_TIMEOUT_SECONDS = 1.0
 ERRORS = {'invalid_request', 'forbidden', 'unavailable', 'intent_conflict',

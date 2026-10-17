@@ -184,6 +184,33 @@ class SocketTests(unittest.TestCase):
         self.assertEqual(other, server.error(ID, 'intent_conflict'))
         self.assertEqual(self.exchange(wire(request()))['result'], {**first['result'], 'status': 'consumed'})
 
+    def test_default_deadline_allows_peer_attestation_before_first_request(self):
+        self.create()
+        output = self.path.parent / 'delayed-inspect-result.json'
+        client, connection = socket.socketpair()
+        pid = os.fork()
+        if pid == 0:
+            connection.close()
+            try:
+                # The real client attests the connected server before sending.
+                # Cross the old three-second server budget without mocking time.
+                time.sleep(3.1)
+                client.sendall(wire(request()))
+                output.write_text(json.dumps(receive(client)))
+                os._exit(0)
+            except BaseException:
+                os._exit(1)
+        client.close()
+        try:
+            server.handle_connection(connection, self.worker, _peer_uid=lambda _: 1000)
+        finally:
+            _, status = os.waitpid(pid, 0)
+        self.assertEqual(status, 0, 'delayed client could not exchange its first request')
+        self.assertEqual(json.loads(output.read_text()),
+                         {'v': 1, 'id': ID, 'ok': True, 'result': {'status': 'authorized'}})
+        self.assertEqual(server.DEADLINE_SECONDS, 15.0)
+        self.assertEqual(receipt.inspect(self.path, **self.owner), {'status': 'authorized'})
+
     def test_root_and_network_helper_refused_before_consumption(self):
         self.create()
         for uid in (0, 997, 1001):
