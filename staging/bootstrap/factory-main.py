@@ -69,6 +69,24 @@ def public_diagnostic(error):
     return 'factory_main_refused'
 
 
+def public_graph_diagnostic(proof):
+    # Read only native instance data, including when a fixture shadows __dict__.
+    # Never invoke a reason/__dict__ property or format a graph object's text.
+    try:
+        kind = type(proof)
+        descriptor = type.__getattribute__(kind, '__dict__').get('__dict__')
+        if type(descriptor) is not types.GetSetDescriptorType:
+            return None
+        attributes = descriptor.__get__(proof, kind)
+        if type(attributes) is dict:
+            reason = attributes.get('reason')
+            if type(reason) is str and reason in DIAGNOSTIC_REASONS:
+                return 'factory_main_graph_refused:' + reason
+    except Exception:
+        pass
+    return None
+
+
 def require(value):
     if not value: raise Refused('factory_main_refused')
 
@@ -209,6 +227,16 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
                     admission_check=proof.check,
                     initialization_peer_guard=proof.initialization_guard)
         raise Refused('phase_a_returned')
+    except BaseException:
+        # Studio may replace a graph refusal with its own fixed runtime code.
+        # Observe the public graph reason before close changes graph state.
+        try:
+            diagnostic = public_graph_diagnostic(proof)
+            if diagnostic is not None:
+                print(diagnostic, file=sys.stderr, flush=True)
+        except Exception:
+            pass  # Diagnostic output must not replace the original exception.
+        raise
     finally:
         # This also handles an uncertain __enter__ failure: that object may own SH.
         # An unknown cleanup never becomes process exit/quiescence. Only cleanup

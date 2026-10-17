@@ -510,6 +510,70 @@ class FactoryMainEntryTests(unittest.TestCase):
                 error.code, error.exit_status = code, 0
                 self.assertEqual(self.entry_output(error), 'factory_main_refused:' + code + '\n')
 
+    def test_backend_wrapper_preserves_graph_reason_before_cleanup_and_exit78(self):
+        events, output = [], io.StringIO()
+        proof = SyntheticProof(events)
+        error = RuntimeError('INERT_PRIVATE_BACKEND_MESSAGE')
+        error.code = 'factory_runtime_refused'
+        graph_line = 'factory_main_graph_refused:observation_timeout'
+        async def serve(*args, **kwargs):
+            events.append('serve')
+            proof.reason = 'observation_timeout'
+            raise error
+        def before_close():
+            self.assertTrue(proof.held)
+            self.assertEqual(output.getvalue().splitlines()[-1], graph_line)
+            proof.reason = 'graph_invalid'
+        proof.close_hook = before_close
+        original = main.run_phase_a
+        with tempfile.TemporaryDirectory(prefix='inkyos-main-masked-refusal-') as directory:
+            async def candidate():
+                try:
+                    await original(_root=Path(directory).resolve(), _proof=proof,
+                                   _components=lambda: (serve, lambda: None, lambda: None, None, None),
+                                   _signals=lambda *_: lambda: events.append('remove_signals'))
+                except BaseException as observed:
+                    self.assertIs(observed, error)
+                    raise
+            with patch.object(main, 'run_phase_a', candidate), redirect_stderr(output):
+                self.assertEqual(main.main([]), 78)
+        self.assertEqual(output.getvalue().splitlines()[-2:], [
+            graph_line, 'factory_main_refused:factory_runtime_refused'])
+        self.assertEqual(events[-2:], ['close', 'remove_signals'])
+        self.assertEqual((proof.enters, proof.closes), (1, 1))
+        self.assertFalse(proof.held)
+
+    def test_graph_diagnostics_ignore_private_values_text_and_properties(self):
+        accessed = []
+        class StringSubclass(str):
+            def __hash__(self):
+                accessed.append('hash')
+                raise AssertionError('string subclass must not enter whitelist lookup')
+        for value in ('INERT_PRIVATE_SECRET', '/INERT_PRIVATE_PATH', None, [],
+                      StringSubclass('observation_timeout')):
+            proof = SyntheticProof([])
+            proof.reason = value
+            self.assertIsNone(main.public_graph_diagnostic(proof))
+        class PrivateProof:
+            def __str__(self):
+                accessed.append('str')
+                raise AssertionError('graph text must not be formatted')
+            def __repr__(self):
+                accessed.append('repr')
+                raise AssertionError('graph repr must not be formatted')
+            @property
+            def reason(self):
+                accessed.append('reason')
+                raise AssertionError('graph reason property must not be invoked')
+        class PrivateDictionary(PrivateProof):
+            @property
+            def __dict__(self):
+                accessed.append('__dict__')
+                raise AssertionError('graph dictionary property must not be invoked')
+        for proof in (PrivateProof(), PrivateDictionary()):
+            self.assertIsNone(main.public_graph_diagnostic(proof))
+        self.assertEqual(accessed, [])
+
     def test_private_unknown_unicode_and_nonexact_string_types_remain_generic(self):
         class StringSubclass(str):
             def __hash__(self):
