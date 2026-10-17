@@ -5,16 +5,17 @@ inspects real xattrs. Darwin substitutes only that Linux metadata observation.
 The production CLI has no fixture flags and refuses the host root independently.
 """
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
 import os
-from pathlib import Path
 import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 
@@ -46,7 +47,7 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         self.base = Path(temporary.name)
         self.base.chmod(0o700)
         self.root = self.base / 'root'
-        for path in ('', 'etc', 'var', 'var/lib'):
+        for path in ('', 'etc', 'var', 'var/lib', 'etc/polkit-1', 'etc/polkit-1/rules.d'):
             directory = self.root / path
             directory.mkdir(exist_ok=True)
             directory.chmod(0o755)
@@ -54,11 +55,11 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
                    'nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n'
                    'inky:x:1000:1000::/home/inky:/usr/sbin/nologin\n')
         self.write('group', 'root:x:0:\nshadow:x:42:\nnogroup:x:65534:\ninky:x:1000:\n'
-                   'spi:x:997:inky\ni2c:x:998:inky\ngpio:x:996:inky\n')
+                   'spi:x:997:inky\ni2c:x:998:inky\ngpio:x:996:inky\npolkitd:x:987:\n')
         self.write('shadow', 'root:*:0:0:99999:7:::\n'
                    'nobody:*:0:0:99999:7:::\ninky:!:20000:0:99999:7:::\n', 0o600)
         self.write('gshadow', 'root:*::\nshadow:*::\nnogroup:*::\ninky:!::\n'
-                   'spi:!::inky\ni2c:!::inky\ngpio:!::inky\n', 0o600)
+                   'spi:!::inky\ni2c:!::inky\ngpio:!::inky\npolkitd:!::\n', 0o600)
         self.write('nsswitch.conf', 'passwd: files systemd\ngroup: files systemd\n'
                    'shadow: files systemd\ngshadow: files systemd\nhosts: files mdns4_minimal dns\n')
         self.write('machine-id', 'uninitialized\n')
@@ -134,6 +135,8 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
             receipt = self.run_prepare()
         self.assertTrue(receipt['passed'])
         self.assertTrue(receipt['accounts_and_parents_prepared'])
+        self.assertTrue(receipt['network_policy_prepared'])
+        self.assertEqual(receipt['network_policy_sha256'], prepare.POLKIT_SHA256)
         self.assertEqual(receipt['operation'], 'configure')
         for flag in ('image_code_executed', 'factory_authority_created', 'services_enabled',
                      'runtime_qualified', 'hardware_qualified', 'wifi_credentials_written'):
@@ -157,7 +160,85 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         receipt = self.run_prepare(check_only=True)
         self.assertEqual(receipt['operation'], 'check')
         self.assertFalse(receipt['accounts_and_parents_prepared'])
+        self.assertFalse(receipt['network_policy_prepared'])
         self.assertEqual(self.snapshot(), before)
+
+    def test_exact_pinned_policy_has_only_existing_helper_permissions(self):
+        parent = self.root / 'etc/polkit-1/rules.d'
+        parent_before = parent.stat()
+        self.run_prepare(helper_uid=980, provisioning_gid=980)
+        path = parent / prepare.POLKIT_NAME
+        self.assertEqual(path.read_bytes(), prepare.POLKIT_RAW)
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),
+                         '894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3')
+        self.assertEqual((path.stat().st_uid, path.stat().st_gid, stat.S_IMODE(path.stat().st_mode)),
+                         (os.geteuid(), os.getegid(), 0o644))
+        self.assertEqual((parent.stat().st_uid, parent.stat().st_gid, parent.stat().st_mode),
+                         (parent_before.st_uid, parent_before.st_gid, parent_before.st_mode))
+        text = path.read_text()
+        self.assertIn('if (subject.user !== "inky-network") return polkit.Result.NOT_HANDLED;', text)
+        self.assertEqual([line.strip().strip(',').strip('"') for line in text.splitlines()
+                          if '"org.freedesktop.NetworkManager.' in line], [
+            'org.freedesktop.NetworkManager.wifi.scan',
+            'org.freedesktop.NetworkManager.network-control',
+            'org.freedesktop.NetworkManager.settings.modify.system',
+            'org.freedesktop.NetworkManager.checkpoint-rollback'])
+        self.assertEqual(text.count('polkit.Result.YES'), 1)
+        self.assertEqual(list(parent.iterdir()), [path])
+
+    def test_existing_policy_is_never_adopted_or_overwritten(self):
+        path = self.root / 'etc/polkit-1/rules.d' / prepare.POLKIT_NAME
+        for content in (prepare.POLKIT_RAW, b'polkit.addRule(function() { return polkit.Result.YES; });\n'):
+            path.write_bytes(content)
+            path.chmod(0o644)
+            self.refused_without_mutation()
+            self.refused_without_mutation(check_only=True)
+            path.unlink()
+        path.symlink_to(self.base / 'missing-policy')
+        self.refused_without_mutation()
+        path.unlink()
+        path.mkdir()
+        self.refused_without_mutation()
+
+    def test_missing_linked_unreadable_or_writable_policy_parents_refuse_before_accounts(self):
+        parent = self.root / 'etc/polkit-1/rules.d'
+        parent.rmdir()
+        self.refused_without_mutation()
+        external = self.base / 'external-rules'
+        external.mkdir()
+        parent.symlink_to(external)
+        self.refused_without_mutation()
+        self.assertEqual(list(external.iterdir()), [])
+        parent.unlink()
+        parent.mkdir(mode=0o755)
+        for mode in (0o750, 0o770, 0o777, 0o1750):
+            parent.chmod(mode)
+            self.refused_without_mutation()
+
+    def test_missing_or_non_system_polkit_group_refuses_without_mutation(self):
+        for replacement in ('', 'polkitd:x:65530:\n'):
+            original = (self.root / 'etc/group').read_text()
+            self.write('group', original.replace('polkitd:x:987:\n', replacement))
+            if not replacement:
+                self.change('gshadow', 'polkitd:!::\n', '')
+            self.refused_without_mutation()
+            self.write('group', original)
+            if not replacement:
+                self.write('gshadow', (self.root / 'etc/gshadow').read_text() + 'polkitd:!::\n', 0o600)
+
+    def test_policy_payload_drift_refuses_before_all_mutations(self):
+        with patch.object(prepare, 'POLKIT_RAW', prepare.POLKIT_RAW + b'// drift\n'):
+            self.refused_without_mutation()
+
+    def test_policy_readback_drift_is_refused_without_claiming_success(self):
+        original = prepare.safety._write_file
+
+        def corrupt(rootfs, parent, name, raw, mode):
+            original(rootfs, parent, name, raw + b'// drift\n', mode)
+
+        with patch.object(prepare.safety, '_write_file', corrupt), self.assertRaises(prepare.Refused):
+            self.run_prepare()
+        self.refused_without_mutation()
 
     def test_reserved_ids_are_required_exact_system_integers(self):
         for field in ('helper_uid', 'provisioning_gid'):
@@ -428,7 +509,8 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
     def test_native_account_and_parent_xattrs_are_refused(self):
         self.write(prepare.PASSWORD_LOCK, '', 0o600)
         for path in (self.root / 'etc/passwd', self.root / 'var/lib',
-                     self.root / 'etc' / prepare.PASSWORD_LOCK):
+                     self.root / 'etc' / prepare.PASSWORD_LOCK,
+                     self.root / 'etc/polkit-1/rules.d'):
             os.setxattr(path, 'user.fixture', b'inert')
             try:
                 self.refused_without_mutation()
@@ -447,6 +529,12 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
             path = self.root / 'etc' / name
             os.chown(path, 0, 42)
             path.chmod(0o640)
+        policy_parent = self.root / 'etc/polkit-1/rules.d'
+        for ids in ((1, 987), (0, 42)):
+            os.chown(policy_parent, *ids)
+            self.refused_without_mutation()
+        os.chown(policy_parent, 0, 987)
+        policy_parent.chmod(0o750)
         with patch.object(prepare, '_parent_ids',
                           lambda rootfs, app, helper, group: {
                               'inky-studio': (1000, 1000), 'inky-network': (helper, group)}):
@@ -457,6 +545,10 @@ class FactoryActivePrerequisitesTests(unittest.TestCase):
         for name in ('shadow', 'gshadow'):
             info = (self.root / 'etc' / name).stat()
             self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 42, 0o640))
+        info = (self.root / 'etc/polkit-1/rules.d').stat()
+        self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 987, 0o750))
+        info = (self.root / 'etc/polkit-1/rules.d' / prepare.POLKIT_NAME).stat()
+        self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 0, 0o644))
 
 
 if __name__ == '__main__':

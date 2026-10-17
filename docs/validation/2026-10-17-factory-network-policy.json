@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "scope": "source-only-offline-factory-network-policy",
+  "base_os_commit": "d876a4aafc1853c43636c7349d5b65c0ab8073b5",
+  "studio_commit": "87c0820808a9824885c6009bf6b68354fb0dbbe9",
+  "provenance": {
+    "studio_source": "scripts/install-bluetooth.sh",
+    "studio_source_sha256": "e0f301c97830860bcc1778579d7f4181370fb4cef8d64aeac4c226ab8aeafb69",
+    "rule_sha256": "894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3",
+    "rule_size_bytes": 496,
+    "exact_git_source_heredoc_comparison": "pass",
+    "configurator_sha256": "3b39484c290b16374cdcb1ca237361da469867ebd30d2305c0ae26376ce6315e",
+    "tests_sha256": "cf1ad85b77c5b47a670850c941cf03e4e7342ab60631b2fd3d156d8a85bc52f8"
+  },
+  "installed_policy": {
+    "path": "etc/polkit-1/rules.d/49-inky-network.rules",
+    "uid": 0,
+    "gid": 0,
+    "mode": "0644",
+    "subject": "inky-network",
+    "active_builder_helper_uid": 980,
+    "actions": [
+      "org.freedesktop.NetworkManager.wifi.scan",
+      "org.freedesktop.NetworkManager.network-control",
+      "org.freedesktop.NetworkManager.settings.modify.system",
+      "org.freedesktop.NetworkManager.checkpoint-rollback"
+    ],
+    "other_subjects_and_actions": "NOT_HANDLED",
+    "existing_targets": "refuse-before-account-writes",
+    "parent_metadata": "preserve-root-root-0755-or-root-polkitd-0750-or-0755",
+    "check_only_mutates": false
+  },
+  "validation": {
+    "platform": "macOS",
+    "python": "/Users/mehdiguiard/Library/Caches/inky-display-250-validation-venv/bin/python",
+    "test_command_template": "python -B -m unittest discover -s tests -p PATTERN",
+    "groups": [
+      {
+        "pattern": "test_factory_active_prerequisites.py",
+        "ran": 31,
+        "passed": 29,
+        "skipped": 2,
+        "failed": 0
+      },
+      {
+        "pattern": "test_factory_active_image.py",
+        "ran": 27,
+        "passed": 27,
+        "skipped": 0,
+        "failed": 0
+      },
+      {
+        "pattern": "test_factory_active_profile.py",
+        "ran": 16,
+        "passed": 16,
+        "skipped": 0,
+        "failed": 0
+      }
+    ],
+    "native_skips": [
+      "Linux xattrs",
+      "Linux root ownership and Debian directory-group metadata"
+    ],
+    "ruff_diff": {
+      "comparison": "diagnostic code/message multiset against base for the two Python files",
+      "baseline_diagnostics": 6,
+      "current_diagnostics": 6,
+      "new_diagnostics": 0,
+      "full_files_clean": false
+    },
+    "git_diff_check": "pass"
+  },
+  "remaining_native_validation": [
+    "Run the two skipped metadata cases in the dedicated Linux builder.",
+    "Pin the real installed rule and its parents in the new support/runtime inventory.",
+    "Query only real NM GetPermissions under UID980 and the helper's exact groups; capture the four yes results and policy hash without scan/profile/radio effects or a VM interface managed by NM."
+  ],
+  "limits": {
+    "missing_rule_in_active88_source_and_prepared_inventory": "established",
+    "physical_boot_cause": "unobserved",
+    "runtime_permissions_qualified": false,
+    "image_built": false,
+    "vm_or_pi_or_sd_used": false,
+    "flashed_or_deployed": false,
+    "backend_or_ios_changed": false
+  },
+  "independent_review": {
+    "reviewer": "active_prerequisites",
+    "result": "one P2 corrected: reject unreadable root:root0750 rules.d before mutation; other scoped checks ACK"
+  }
+}

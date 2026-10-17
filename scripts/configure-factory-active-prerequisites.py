@@ -8,13 +8,14 @@ support, rollback, repair, adoption or retry after partial publication.
 """
 import argparse
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
 import re
 import stat
 import sys
+from pathlib import Path
 
 
 _spec = importlib.util.spec_from_file_location(
@@ -32,6 +33,22 @@ TEMPORARY = {name: '.inkyos-active-' + name + '.new' for name in DATABASES}
 PASSWORD_LOCK = '.pwd.lock'
 LOCKS = ('passwd.lock', 'group.lock', 'shadow.lock', 'gshadow.lock')
 BACKUPS = tuple(name + '-' for name in (*DATABASES, 'subuid', 'subgid'))
+POLKIT_NAME = '49-inky-network.rules'
+# Exact heredoc from Studio 87c0820808a9824885c6009bf6b68354fb0dbbe9,
+# scripts/install-bluetooth.sh (SHA-256 e0f301c97830860bcc1778579d7f4181370fb4cef8d64aeac4c226ab8aeafb69).
+POLKIT_SHA256 = '894de12a283581ddbc0f50e5d86edf207ad936f9c456fb43f002ae67001643d3'
+POLKIT_RAW = b'''polkit.addRule(function(action, subject) {
+    if (subject.user !== "inky-network") return polkit.Result.NOT_HANDLED;
+    var permitted = [
+        "org.freedesktop.NetworkManager.wifi.scan",
+        "org.freedesktop.NetworkManager.network-control",
+        "org.freedesktop.NetworkManager.settings.modify.system",
+        "org.freedesktop.NetworkManager.checkpoint-rollback"
+    ];
+    if (permitted.indexOf(action.id) !== -1) return polkit.Result.YES;
+    return polkit.Result.NOT_HANDLED;
+});
+'''
 
 
 def _production_environment(rootfs):
@@ -181,6 +198,7 @@ def _accounts(raw, helper_uid, provisioning_gid, *, configured=False):
 class Environment:
     def __init__(self, rootfs):
         self.directories = []
+        self.policy_directory = None
         self.password_lock = None
         self.password_lock_info = None
         self.rootfs = safety._canonical_path(rootfs)
@@ -286,12 +304,48 @@ def _preflight(environment, helper_uid, provisioning_gid):
             'reserved_system_ids_required')
     raw, metadata = _load(environment)
     _accounts(raw, helper_uid, provisioning_gid)
+    _policy_preflight(environment, raw)
     require(all(safety._missing(environment.etc.fd, name)
                 for name in (*LOCKS, *BACKUPS, *TEMPORARY.values()))
             and all(safety._missing(environment.lib.fd, name) for name in PARENTS),
             'existing_prerequisite_state')
     environment.check()
     return raw, metadata
+
+
+def _policy_preflight(environment, raw):
+    require(hashlib.sha256(POLKIT_RAW).hexdigest() == POLKIT_SHA256,
+            'network_policy_source_changed')
+    if environment.policy_directory is None:
+        root_uid, root_gid = _owner_ids(environment.rootfs)
+        groups = _records(raw['group'], 4)
+        require('polkitd' in groups, 'polkit_group_missing')
+        polkit_gid = _number(groups['polkitd'][2])
+        require(1 <= polkit_gid <= 999, 'polkit_group_refused')
+        parent = environment.etc.fd
+        # Preserve Debian's existing root:polkitd0750 rules.d; never normalize it.
+        for name, policies in (('polkit-1', {(root_gid, 0o755)}),
+                               ('rules.d', {(root_gid, 0o755),
+                                            (polkit_gid, 0o750), (polkit_gid, 0o755)})):
+            before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            require(stat.S_ISDIR(before.st_mode) and before.st_uid == root_uid
+                    and (before.st_gid, stat.S_IMODE(before.st_mode)) in policies,
+                    'unsafe_network_policy_parent')
+            fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+            try:
+                require(_signature(os.fstat(fd)) == _signature(before)
+                        and _xattrs(environment.rootfs, fd) == safety.EMPTY_XATTRS,
+                        'unsafe_network_policy_parent')
+                held = safety._FdDirectory(environment.rootfs, fd, parent, name)
+                environment.directories.append(held)
+            except BaseException:
+                os.close(fd)
+                raise
+            parent = fd
+        environment.policy_directory = held
+    environment.check()
+    require(safety._missing(environment.policy_directory.fd, POLKIT_NAME),
+            'network_policy_already_exists')
 
 
 def _write_file(environment, name, raw, metadata):
@@ -351,6 +405,9 @@ def _verify(environment, expected, helper_uid, provisioning_gid, parent_ids):
                     'persistent_parent_mismatch')
         finally:
             os.close(fd)
+    policy, _ = _read(environment.rootfs, environment.policy_directory.fd,
+                     POLKIT_NAME, {0o644}, {_owner_ids(environment.rootfs)[1]}, 4096)
+    require(policy == POLKIT_RAW, 'network_policy_readback_mismatch')
     environment.check()
 
 
@@ -386,11 +443,15 @@ def configure(rootfs, helper_uid, provisioning_gid, *, check_only=False):
                 os.fsync(environment.etc.fd)
             for name, ids in parent_ids.items():
                 _create_parent(environment, name, *ids)
+            safety._write_file(environment.rootfs, environment.policy_directory.fd,
+                               POLKIT_NAME, POLKIT_RAW, '0644')
             _verify(environment, expected, helper_uid, provisioning_gid, parent_ids)
         return {'schema_version': 1, 'scope': 'offline-factory-active-prerequisites',
                 'operation': 'check' if check_only else 'configure', 'passed': True,
                 'helper_uid': helper_uid, 'provisioning_gid': provisioning_gid,
                 'accounts_and_parents_prepared': not check_only,
+                'network_policy_prepared': not check_only,
+                'network_policy_sha256': POLKIT_SHA256,
                 'image_code_executed': False, 'factory_authority_created': False,
                 'services_enabled': False, 'runtime_qualified': False,
                 'hardware_qualified': False, 'wifi_credentials_written': False}
