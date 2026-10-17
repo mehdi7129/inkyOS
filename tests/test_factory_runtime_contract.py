@@ -731,6 +731,61 @@ class CandidateTests(ContractFixture):
                 os.chown(path, 0, 0)
 
 
+class NameValidationTests(unittest.TestCase):
+    @staticmethod
+    def legacy_name(path, root=False):
+        """The exact character predicate and path guards before the regex change."""
+        runtime.require(type(path) is str and len(path) <= 4096 and
+                        (root and path == '.' or path and not path.startswith('/')
+                         and all(part not in ('', '.', '..') for part in path.split('/')))
+                        and not any(ord(char) < 32 or ord(char) == 127 or char == '\\'
+                                    for char in path))
+        return path
+
+    @staticmethod
+    def outcome(function, path, root=False):
+        try:
+            return ('accepted', function(path, root=root))
+        except runtime.Refused as error:
+            return ('refused', error.reason)
+
+    def test_every_unicode_codepoint_preserves_acceptance_and_return(self):
+        # Include lone surrogates/noncharacters: the existing contract permits
+        # them, as well as non-ASCII whitespace, when the path is canonical.
+        for value in range(sys.maxunicode + 1):
+            path = 'a' + chr(value) + 'z'
+            old = self.outcome(self.legacy_name, path)
+            new = self.outcome(runtime.name, path)
+            if new != old:
+                self.fail(f'Unicode U+{value:04X}: {old!r} != {new!r}')
+
+    def test_path_type_root_canonical_and_length_edges_match_legacy(self):
+        class StringSubclass(str):
+            pass
+
+        cases = [None, False, 0, [], {}, b'file', Path('file'), StringSubclass('file'),
+                 '', '.', '..', '/', '/file', './file', '../file', 'file/',
+                 'a//b', 'a/./b', 'a/../b', 'file/.', 'file/..', 'a\\b',
+                 'a/.../b', '.hidden/file', 'a / b', 'cadre/été/照片',
+                 '\x80\x85\xa0\u200b\u2028\u2029\ud800\udfff\U0010ffff',
+                 'a' * 4095, 'a' * 4096, 'a' * 4097,
+                 'é' * 4096, 'é' * 4097]
+        for path in cases:
+            for root in (False, True):
+                with self.subTest(path=repr(path)[:80], root=root):
+                    self.assertEqual(self.outcome(runtime.name, path, root),
+                                     self.outcome(self.legacy_name, path, root))
+
+    def test_forbidden_characters_at_all_positions_and_length_boundary(self):
+        for character in [*(chr(value) for value in range(32)), '\x7f', '\\']:
+            for path in (character + 'a', 'a' + character + 'b', 'a' + character,
+                         'a' * 4095 + character):
+                with self.subTest(path=repr(path)[:80]):
+                    self.assertEqual(self.outcome(runtime.name, path),
+                                     self.outcome(self.legacy_name, path))
+                    self.assertEqual(self.outcome(runtime.name, path)[0], 'refused')
+
+
 class InventoryClosureTests(ContractFixture):
     @staticmethod
     def legacy_schema(records):

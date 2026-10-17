@@ -92,6 +92,7 @@ TEST_ABSENT = {
 EMPTY_XATTRS = {'status': 'inspected', 'entries': {}}
 HASH = re.compile(r'[0-9a-f]{64}\Z')
 UUID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\Z')
+FORBIDDEN_NAME_CHAR = re.compile(r'[\x00-\x1f\x7f\\]')
 
 
 class Refused(ValueError):
@@ -144,7 +145,7 @@ def name(path, root=False):
     require(type(path) is str and len(path) <= 4096 and
             (root and path == '.' or path and not path.startswith('/')
              and all(part not in ('', '.', '..') for part in path.split('/')))
-            and not any(ord(char) < 32 or ord(char) == 127 or char == '\\' for char in path))
+            and FORBIDDEN_NAME_CHAR.search(path) is None)
     return path
 
 
