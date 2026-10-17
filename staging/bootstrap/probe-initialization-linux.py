@@ -29,9 +29,9 @@ import time
 import uuid
 
 PINS = {
-    'scripts/initialization-server.py': '946d8bc1823852839058389f59e90b3ae34810b7508aca069c43e40ed6084057',
+    'scripts/initialization-server.py': '37744f32d78c5d96b950c7d0e027ec3550c234c83b68fea5888c574f2d111ae7',
     'scripts/initialization-receipt.py': '42d2e4ac0b38a3788d41dc4dd85a8df965a5c30fc88dbbfcbd6ed213c3e47de6',
-    'staging/bootstrap/inkyos-initialization.service': '8119065639719473be2a22fd65cfa2a84924603cd293c578e3993e48cb1629de',
+    'staging/bootstrap/inkyos-initialization.service': 'b7677cb7356f5b916387e788dc2e02f37f34257d24c17d88049620c4f9c091f2',
 }
 BUILDER = Path('/var/lib/inkyos-build')
 # Numeric existing unprivileged group: systemd still resolves Group through NSS.
