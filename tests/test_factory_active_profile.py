@@ -1,4 +1,5 @@
 """Fresh-card controls only, with held synthetic roots and no service execution."""
+import configparser
 import importlib.util
 import os
 from pathlib import Path
@@ -84,9 +85,69 @@ class ProfileTests(unittest.TestCase):
         for name, target in profile.LINKS.items():
             self.assertEqual(os.readlink(self.root / name), target)
         self.assertEqual((self.root / profile.DROPIN).read_bytes(), profile.DROPIN_RAW)
+        journal_config = self.root / profile.JOURNAL_DROPIN
+        self.assertEqual(journal_config.read_bytes(), profile.JOURNAL_DROPIN_RAW)
+        self.assertEqual(stat.S_IMODE(journal_config.stat().st_mode), 0o644)
+        self.assertEqual(stat.S_IMODE(journal_config.parent.stat().st_mode), 0o755)
+        self.assertEqual((journal_config.stat().st_uid, journal_config.stat().st_gid), self.owner(self.root))
         self.assertFalse((self.root / profile.runtime.MANIFEST).exists())
         self.assertFalse((self.root / 'var/lib/inky-studio').exists())
         self.assertFalse((self.root / 'var/lib/inkyos/initialization').exists())
+
+    def test_factory_journal_overrides_vendor_volatile_and_keeps_shared_system_budget(self):
+        self.write('etc/systemd/journald.conf', b'[Journal]\nStorage=auto\nSplitMode=uid\n')
+        vendor = 'usr/lib/systemd/journald.conf.d/'
+        volatile = b'[Journal]\nStorage=volatile\n'
+        self.assertEqual(profile.runtime.sha(volatile),
+                         'c0c9a711f7554fdd02650409b098fc0636b8f3f574f03d927c6df84f5ec82a7f')
+        self.write(vendor + '40-rpi-volatile-storage.conf', volatile)
+        # Even a conflicting setting in the later vendor basename stays earlier
+        # than our explicit zz fragment. No vendor fragment is removed/rewritten.
+        self.write(vendor + 'syslog.conf', b'[Journal]\nForwardToSyslog=yes\nStorage=volatile\n')
+        same_basename = vendor + Path(profile.JOURNAL_DROPIN).name
+        self.write(same_basename, volatile)
+        before_vendor = {p.name: p.read_bytes() for p in (self.root / vendor).iterdir()}
+        self.stage()
+        # systemd reads the main file first, then selected drop-in basenames in
+        # lexical order. /etc wins over /usr/lib for an identical basename.
+        selected = {}
+        for directory in (vendor, 'etc/systemd/journald.conf.d'):
+            for path in (self.root / directory).glob('*.conf'):
+                selected[path.name] = path
+        effective = configparser.ConfigParser(strict=False)
+        effective.optionxform = str
+        effective.read([self.root / 'etc/systemd/journald.conf',
+                        *(selected[name] for name in sorted(selected))])
+        self.assertEqual(dict(effective['Journal']), {
+            'Storage': 'persistent', 'SplitMode': 'none', 'ForwardToSyslog': 'yes',
+            'SystemMaxUse': '32M', 'SystemMaxFileSize': '8M'})
+        self.assertEqual({p.name: p.read_bytes() for p in (self.root / vendor).iterdir()}, before_vendor)
+        self.assertFalse((self.root / 'var/log/journal').exists())  # No runtime logging during build.
+
+    def test_preexisting_factory_journal_fragment_refuses_before_any_write(self):
+        self.write(profile.JOURNAL_DROPIN, profile.JOURNAL_DROPIN_RAW)
+        before = self.snapshot()
+        with self.assertRaisesRegex(ValueError, 'profile_or_runtime_state_exists'):
+            self.stage()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_missing_or_changed_journal_fragment_blocks_runtime_plan(self):
+        self.stage()
+        config = self.root / profile.JOURNAL_DROPIN
+        value = {'bundle_manifest_sha256': 'a' * 64, 'exporter_manifest_sha256': 'b' * 64,
+                 'support_manifest_sha256': 'c' * 64, 'helper_uid': 980, 'provisioning_gid': 980}
+        raw = profile.runtime.canonical(value)
+        plan = self.base / 'runtime-plan.json'; plan.write_bytes(raw)
+        for changed in (b'[Journal]\nStorage=volatile\n', None):
+            if changed is None:
+                config.unlink()
+            else:
+                config.write_bytes(changed)
+            before = self.snapshot()
+            with patch.object(profile.planner, 'plan') as planner, self.assertRaises((ValueError, OSError)):
+                profile.install_runtime(self.root, plan_file=plan, plan_sha256=profile.runtime.sha(raw))
+            planner.assert_not_called()
+            self.assertEqual(self.snapshot(), before)
 
     def test_repeat_refuses_and_preserves_permission_inode(self):
         self.stage(); before = self.snapshot()

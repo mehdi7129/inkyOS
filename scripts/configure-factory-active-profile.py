@@ -35,10 +35,13 @@ TRIGGER = 'usr/lib/systemd/system/inkyos-factory-start.service'
 MARKER = 'etc/inky-studio/factory-v1.json'
 PERMISSION = 'var/lib/inkyos/factory-permission'
 DROPIN = 'etc/systemd/system/NetworkManager.service.d/20-inkyos-wlan-close.conf'
+JOURNAL_DROPIN = 'etc/systemd/journald.conf.d/zz-inkyos-factory-persistent.conf'
 MARKER_RAW = runtime.canonical({'version': 1, 'app_uid': 1000,
                               'data_dir': '/var/lib/inky-studio'})
 PERMISSION_RAW = runtime.canonical({'version': 1, 'operation': 'create-initialization-authority'})
 DROPIN_RAW = b'[Unit]\nRequires=inkyos-wlan-close.service\nAfter=inkyos-wlan-close.service\n'
+JOURNAL_DROPIN_RAW = (b'[Journal]\nStorage=persistent\nSplitMode=none\n'
+                      b'SystemMaxUse=32M\nSystemMaxFileSize=8M\n')
 LINKS = {
     'etc/systemd/system/systemd-rfkill.service': '/dev/null',
     'etc/systemd/system/systemd-rfkill.socket': '/dev/null',
@@ -173,7 +176,7 @@ def stage(rootfs, *, trigger_sha256):
         nm = env.read('var/lib/NetworkManager/NetworkManager.state', mode=0o600)
         require(nm == b'[main]\nWirelessEnabled=false\n', 'wifi_not_closed')
         require(all(env.absent(path) for path in (*BOOT_ABSENT, MARKER, PERMISSION,
-                                                 DROPIN, TRIGGER, *LINKS)),
+                                                 DROPIN, JOURNAL_DROPIN, TRIGGER, *LINKS)),
                 'profile_or_runtime_state_exists')
         for path in ('etc/NetworkManager/system-connections',
                      'var/lib/NetworkManager/system-connections'):
@@ -192,6 +195,7 @@ def stage(rootfs, *, trigger_sha256):
         env.write(MARKER, MARKER_RAW, '0644')
         env.write(TRIGGER, raw, '0644')
         env.write(DROPIN, DROPIN_RAW, '0644')
+        env.write(JOURNAL_DROPIN, JOURNAL_DROPIN_RAW, '0644')
         for path, target in LINKS.items():
             env.link(path, target)
         require(source.read_bytes() == raw, 'trigger_source_changed')
@@ -213,6 +217,7 @@ def install_runtime(rootfs, *, plan_file, plan_sha256):
     require(type(value) is dict, 'invalid_plan')
     with offline(rootfs) as env:
         require(env.read(MARKER) == MARKER_RAW
+                and env.read(JOURNAL_DROPIN) == JOURNAL_DROPIN_RAW
                 and env.read(PERMISSION + '/lock', mode=0o600) == b''
                 and env.read(PERMISSION + '/pending.json', mode=0o600) == PERMISSION_RAW,
                 'static_profile_missing')
