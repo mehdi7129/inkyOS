@@ -165,6 +165,8 @@ class LauncherTests(ContractFixture):
     def test_fixed_argv_closed_environment_and_live_lease_for_every_role(self):
         hostile = {'PATH': '/hostile', 'PYTHONPATH': '/untrusted', 'LD_PRELOAD': '/bad.so',
                    'HOME': '/private-home', 'SECRET_PASSWORD': 'never inherit me',
+                   'INKY_STUDIO_DISPLAY_MODE': 'mock',
+                   'INKY_STUDIO_DISPLAY_PROFILE': 'untrusted-panel',
                    'INKYOS_WRITER_LEASE_FD': '99999', 'INKYOS_WRITER_ROLE': 'ipc',
                    'INKYOS_WRITER_CONTEXT_SHA256': '0' * 64,
                    'NOTIFY_SOCKET': '/run/inert-notify'}
@@ -182,13 +184,30 @@ class LauncherTests(ContractFixture):
                     expected.update(INKY_STUDIO_FACTORY_REQUIRED='1',
                                     INKY_STUDIO_DATA_DIR='/var/lib/inky-studio')
                 if role == 'main':
-                    expected.update(INKY_STUDIO_DISPLAY_MODE='hardware', INKY_STUDIO_BLUETOOTH='1')
+                    expected.update(INKY_STUDIO_DISPLAY_MODE='hardware',
+                                    INKY_STUDIO_DISPLAY_PROFILE='ac073-800x480',
+                                    INKY_STUDIO_BLUETOOTH='1')
                 if role in {'ipc','helper','setup'}:
                     expected['NOTIFY_SOCKET'] = '/run/inert-notify'
                 self.assertEqual(environ, expected)
                 with self.assertRaises(OSError) as caught:
                     os.fstat(int(environ['INKYOS_WRITER_LEASE_FD']))
                 self.assertEqual(caught.exception.errno, errno.EBADF)
+
+    def test_display_profile_is_fixed_for_main_and_absent_for_other_roles(self):
+        for supplied in ('', 'ac073-800x480', 'another-panel'):
+            for role in ARGV:
+                with self.subTest(supplied=supplied, role=role):
+                    environ = launcher.environment(role, 7, 'a' * 64, {
+                        'INKY_STUDIO_DISPLAY_PROFILE': supplied,
+                        'INKY_STUDIO_DISPLAY_MODE': 'mock',
+                    })
+                    if role == 'main':
+                        self.assertEqual(environ['INKY_STUDIO_DISPLAY_PROFILE'], 'ac073-800x480')
+                        self.assertEqual(environ['INKY_STUDIO_DISPLAY_MODE'], 'hardware')
+                    else:
+                        self.assertNotIn('INKY_STUDIO_DISPLAY_PROFILE', environ)
+                        self.assertNotIn('INKY_STUDIO_DISPLAY_MODE', environ)
 
     def test_notify_socket_is_ipc_only_and_validated(self):
         for value in ('/run/notify', '@abstract-notify'):
@@ -308,6 +327,8 @@ class LauncherTests(ContractFixture):
         lock = (self.root / 'run/inkyos-admission/lock').stat()
         self.assertEqual(result[2:4], (lock.st_dev, lock.st_ino))
         self.assertEqual(result[4]['INKYOS_WRITER_ROLE'], 'main')
+        self.assertEqual(result[4]['INKY_STUDIO_DISPLAY_MODE'], 'hardware')
+        self.assertEqual(result[4]['INKY_STUDIO_DISPLAY_PROFILE'], 'ac073-800x480')
         self.assertNotIn('SECRET_PASSWORD', result[4])
         with self.assertRaises(self.admission.Refused) as caught:
             with self.admission.factory(self.root, **self.owner):

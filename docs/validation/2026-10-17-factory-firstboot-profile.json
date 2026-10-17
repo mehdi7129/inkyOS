@@ -1,0 +1,80 @@
+{
+  "assertions": [
+    "Actual launcher launch(main) captures a verified lease and the reconstructed hardware profile environment.",
+    "SHA-pinned backend display/busy/confirmation/errors initialize and require_available accept raw EEPROM color4 tuple with the main profile.",
+    "Same raw color4 tuple without profile is refused.",
+    "Mismatched dimensions/variant/color/noninteger/driver module, non-2.5.0 driver, mock or unknown mode/profile remain refused.",
+    "No driver show/set_image, GPIO/SPI imports, external backend writes or physical refresh occur."
+  ],
+  "backend_commit": "87c0820808a9824885c6009bf6b68354fb0dbbe9",
+  "backend_modules_sha256": {
+    "busy": "028f7110cf932f01b3739fbf29b1307c36a0834cdaa6597e9ee431e2ea8a4052",
+    "confirmation": "fb7f5ffee28cc19f52b4a68c686d4aaf72ea0b327245e1f722f32601b8161efa",
+    "display": "89b457e690e84992861d905a5dee982fcf06865ed9729140669e97409cd9a510",
+    "errors": "744120923d7190927ec61854fb4de560a3432d203dedfd2a461b599d0f5316fc"
+  },
+  "backend_or_ios_changed": false,
+  "branch": "fix/factory-firstboot-profile-20261017",
+  "git_diff_check": "passed",
+  "hardware_scope": {
+    "color4_requires_explicit_profile": true,
+    "dimensions": [
+      800,
+      480
+    ],
+    "driver": "Inky 2.5.0 unchanged",
+    "family": "AC073TC1A",
+    "other_hardware_qualified": false,
+    "tuple_and_palette_unchanged": true,
+    "variant": 20
+  },
+  "image_package_or_flash_created": false,
+  "independent_review": {
+    "agent": "/root/fresh_boot_static_triage",
+    "backend_bridge_skipped": 0,
+    "backend_bridge_tests_run": 5,
+    "blocking_findings": [],
+    "hardware_qualified": false,
+    "launcher_skipped": 1,
+    "launcher_tests_run": 14,
+    "reviewer_replayed_tests": true,
+    "scope": "read-only source/env-isolation/real-backend-guard bridge"
+  },
+  "limitations": [
+    "The deterministic missing-profile integration blocker is fixed; the physical first-boot stopping point still requires SD diagnostic evidence.",
+    "Fake hardware proves only initialization and preserved guards, not driver 2.5 physical display behavior, BUSY or QR refresh.",
+    "No flash is authorized by this source-only report; root awaits SD diagnostics."
+  ],
+  "optional_bridge": "Without INKYOS_FACTORY_DISPLAY_BACKEND_ROOT all five backend bridge tests explicitly skip; a supplied wrong/mutated backend fails.",
+  "other_checkouts_modified": false,
+  "physical_boot_failure_confirmed_by_this_work": false,
+  "product_change": "Only reconstructed main environment gains constant INKY_STUDIO_DISPLAY_PROFILE=ac073-800x480; inherited values are ignored and helper/setup/ipc receive no display profile.",
+  "ruff": {
+    "bridge": "passed",
+    "launcher_changed_lines_diagnostics": 0,
+    "launcher_inherited_diagnostics": 11
+  },
+  "schema_version": 1,
+  "scope": "source-only-main-ac073-profile-integration",
+  "source_files_sha256": {
+    "scripts/writer-launcher.py": "999df4c213f6d3b3e91e7afe38d8f39d8f333d8c3cce074c25d4773d89eb3423"
+  },
+  "source_parent_commit": "88a889ddb8f8cad796c403967d5fce95d8b5c93f",
+  "tests": [
+    {
+      "command": "INKYOS_FACTORY_DISPLAY_BACKEND_ROOT=/Users/mehdiguiard/Library/Caches/inky-studio-factory-system-setup-20261016 /Users/mehdiguiard/Library/Caches/inky-display-250-validation-venv/bin/python -B -m pytest -q tests/test_writer_launcher.py tests/test_factory_display_profile_bridge.py",
+      "passed": 18,
+      "skip_reason": "native Linux root UID/GID launcher assertion only",
+      "skipped": 1,
+      "subtests_passed": 45
+    },
+    {
+      "command": "/Users/mehdiguiard/Library/Caches/inky-display-250-validation-venv/bin/python -B -m unittest discover -s tests -p test_factory_runtime_contract.py",
+      "passed": true,
+      "run": 37,
+      "skip_reason": "native Linux root-only fixture",
+      "skipped": 1
+    }
+  ],
+  "vm_pi_sd_or_network_contact": false
+}

@@ -14,6 +14,16 @@ builder sur un memfd contenant les octets cibles ; jamais `ldd` ou le loader.
 
 ## Périmètre et source freeze
 
+Ce pack cible explicitement l'écran AC073TC1A **800×480**, avec le profil
+`ac073-800x480` reconstruit comme constante par le launcher du rôle **main**.
+Il n'est transmis ni par l'environnement hérité ni par une directive d'unité,
+et n'est pas fourni aux rôles helper/setup/ipc. Le backend Studio `87c082` garde
+ses contrôles matériels inchangés : dimensions, variante EEPROM 20, couleur brute
+4 ou 5 et driver Inky 2.5.0 ; aucun tuple ni palette n'est réécrit. Les autres
+écrans exigent un lot matériel explicite. Ce raccord de configuration ne prouve
+aucun refresh physique, premier boot ou affichage du QR ; le diagnostic SD du
+premier essai reste nécessaire avant tout nouveau flash.
+
 La production exige Linux ARM64, UID/GID root, le marqueur exact
 `/var/lib/inkyos-build/owner` contenant `inkyos-builder-v1\n`, et un workspace
 neuf root:root `0700` nommé
