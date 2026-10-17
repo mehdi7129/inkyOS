@@ -21,16 +21,52 @@ MANIFEST = '/etc/inkyos/factory-runtime-v1.json'
 DATA = Path('/var/lib/inky-studio')
 APP_PYTHON = '/usr/lib/inky-studio/server/.venv/bin/python'
 REFUSAL_EXIT = 78
+# Public literal refusals from OS 5087d19 graph/runtime and Studio 87c082 runtime.
 DIAGNOSTIC_REASONS = frozenset({
-    'observation_timeout', 'invalid_candidate', 'wrong_identity',
-    'source_metadata', 'source_xattrs', 'source_changed', 'state_binding_changed',
-    'writer_dead', 'writer_changed', 'writer_mapping_changed',
-    'source_depth_limit', 'source_inventory_limit',
+    'admission_changed', 'boot_changed', 'candidate_changed', 'command_closure_missing',
+    'context_changed', 'context_exists', 'context_inventory_limit', 'contract_unavailable',
+    'graph_invalid', 'graph_refused', 'graph_reused', 'identity_changed',
+    'inactive_launch_contract', 'invalid_candidate', 'invalid_context', 'invalid_contract',
+    'invalid_metadata', 'invalid_module', 'invalid_override', 'invalid_run', 'manager_reply_shape',
+    'missing_invocation', 'missing_mainpid', 'module_changed', 'module_metadata',
+    'monitor_not_drained', 'monitor_state', 'not_installed', 'not_mainpid',
+    'observation_not_drained', 'observation_not_quiescent', 'observation_not_reaped',
+    'observation_timeout', 'peer_closed', 'peer_credentials_shape', 'peer_mapping_changed',
+    'peer_not_drained', 'peer_not_mainpid', 'peer_pidfd_shape', 'peer_wrong_identity',
+    'pid_view_changed', 'pid_view_unconfirmed', 'pidfd_unavailable', 'pin_mismatch',
+    'property_shape', 'query_failed', 'reply_shape', 'reply_too_large',
+    'resource_close_unconfirmed', 'run_mount_changed', 'runtime_pin_mismatch', 'runtime_pin_shape',
+    'setup_privileges', 'source_baseline', 'source_changed', 'source_check_result',
+    'source_depth_limit', 'source_inventory_incomplete', 'source_inventory_limit',
+    'source_metadata', 'source_parent_not_directory', 'source_path', 'source_plan',
+    'source_prepare_result', 'source_root_missing', 'source_xattrs', 'state_binding_changed',
+    'stop_propagation', 'studio_candidate_mismatch', 'support_pin_missing', 'unit_configuration',
+    'unit_dependencies', 'unit_execstart', 'unit_job_shape', 'unit_not_running', 'unit_policy',
+    'unsupported_query', 'unsupported_role', 'unsupported_unit', 'writer_admission_refused',
+    'writer_changed', 'writer_dead', 'writer_mapping_changed', 'wrong_identity',
+})
+DIAGNOSTIC_CODES = frozenset({
+    'factory_runtime_refused', 'factory_runtime_uncertain', 'factory_runtime_pending',
 })
 
 
 class Refused(ValueError):
     pass
+
+
+def public_diagnostic(error):
+    # Pinned exceptions store these public fields as instance data. Never invoke
+    # reason/code properties or format exception text, args or unknown fields.
+    try:
+        attributes = BaseException.__getattribute__(error, '__dict__')
+    except Exception:
+        return 'factory_main_refused'
+    if type(attributes) is dict:
+        for field, allowed in (('reason', DIAGNOSTIC_REASONS), ('code', DIAGNOSTIC_CODES)):
+            value = attributes.get(field)
+            if type(value) is str and value in allowed:
+                return 'factory_main_refused:' + value
+    return 'factory_main_refused'
 
 
 def require(value):
@@ -151,14 +187,19 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
         remove = signals(loop, shutdown)
         require(callable(remove))
         if stop_requested.is_set(): raise Refused('shutdown_requested')
+        print('factory_main_phase:graph_binding', file=sys.stderr, flush=True)
         if proof is None: proof = installed_proof()
         proof.__enter__()
         if stop_requested.is_set(): raise Refused('shutdown_requested')
+        print('factory_main_phase:graph_bound', file=sys.stderr, flush=True)
         proof.start_monitor(loop, stop_requested)
+        print('factory_main_phase:components_loading', file=sys.stderr, flush=True)
         serve, display, bootstrap, setup_client, network_client = components()
+        print('factory_main_phase:components_loaded', file=sys.stderr, flush=True)
         require(callable(serve) and callable(display) and callable(bootstrap))
         require(proof.check() is None)
         # Studio owns its additional fresh SH and every submitted operation/drain.
+        print('factory_main_phase:phase_a_enter', file=sys.stderr, flush=True)
         await serve(DATA, stop_requested=stop_requested,
                     display_factory=lambda: display(mode='hardware'),
                     runtime_factory=lambda result, controller, verify_epoch:
@@ -191,11 +232,7 @@ def main(argv=None):
         require(arguments == [])
         asyncio.run(run_phase_a())
     except Exception as error:
-        reason = getattr(error, 'reason', None)
-        diagnostic = ('factory_main_refused:' + reason
-                      if type(reason) is str and reason in DIAGNOSTIC_REASONS
-                      else 'factory_main_refused')
-        print(diagnostic, file=sys.stderr)
+        print(public_diagnostic(error), file=sys.stderr)
         return REFUSAL_EXIT
     return REFUSAL_EXIT
 

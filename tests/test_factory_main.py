@@ -4,6 +4,7 @@ Explicit components, lease proof and signal fixtures live under a canonical
 temporary root. No installed source, app, bus, service, socket or radio is used.
 The existing Phase A runner's own drains have their separate Studio tests.
 """
+import ast
 import asyncio
 from contextlib import contextmanager, redirect_stderr
 import importlib.util
@@ -111,6 +112,10 @@ class FactoryMainFixture(unittest.IsolatedAsyncioTestCase):
         self.display_instances = []
         self.bootstrap_instances = []
         self.serve_body = None
+        self.diagnostics = io.StringIO()
+        capture = redirect_stderr(self.diagnostics)
+        capture.__enter__()
+        self.addCleanup(capture.__exit__, None, None, None)
 
     def signals(self, loop, shutdown):
         self.assertFalse(self.proof.held)
@@ -195,6 +200,37 @@ class FactoryMainTests(FactoryMainFixture):
         self.assertFalse(self.proof.held)
         self.assertFalse(self.handlers_active)
         self.assertIsNone(self.serve_call)
+        self.assertEqual(self.diagnostics.getvalue(), 'factory_main_phase:graph_binding\n')
+
+    async def test_static_breadcrumbs_bound_real_composition_steps_without_hardware(self):
+        phases = ['graph_binding', 'graph_bound', 'components_loading',
+                  'components_loaded', 'phase_a_enter']
+        def observed():
+            return self.diagnostics.getvalue().splitlines()
+        def expected(count):
+            return ['factory_main_phase:' + phase for phase in phases[:count]]
+        def entering():
+            self.assert_handlers_at_enter()
+            self.assertEqual(observed(), expected(1))
+        self.proof.enter_hook = entering
+        def components():
+            self.assertEqual(observed(), expected(3))
+            return self.components()
+        original_check = self.proof.check
+        def check():
+            self.assertEqual(observed(), expected(4))
+            return original_check()
+        self.proof.check = check
+        async def serve(directory, kwargs):
+            self.assertTrue(self.proof.held)
+            self.assertEqual(observed(), expected(5))
+            raise PhaseAPending('INERT_PRIVATE_PENDING_TEXT')
+        self.serve_body = serve
+        with self.assertRaises(PhaseAPending):
+            await self.run_candidate(_components=components)
+        self.assertEqual(observed(), expected(5))
+        self.assertEqual(self.events[-2:], ['close', 'remove_signals'])
+        self.assertFalse(self.proof.held or self.handlers_active)
 
     async def test_uncertain_enter_failure_retries_only_owned_cleanup(self):
         self.proof.enter_error = CleanupUnknown('INERT_BINDING_UNCERTAIN')
@@ -309,6 +345,9 @@ class FactoryMainTests(FactoryMainFixture):
         self.assertNotIn('serve', self.events)
         self.assertEqual(self.events[-2:], ['close', 'remove_signals'])
         self.assertFalse(self.proof.held)
+        self.assertEqual(self.diagnostics.getvalue().splitlines(), [
+            'factory_main_phase:graph_binding', 'factory_main_phase:graph_bound',
+            'factory_main_phase:components_loading'])
 
     async def test_shutdown_invalidates_admission_and_sets_studio_stop_event(self):
         async def shutdown_and_drain(directory, kwargs):
@@ -396,6 +435,15 @@ class FactoryMainTests(FactoryMainFixture):
 
 
 class FactoryMainEntryTests(unittest.TestCase):
+    def entry_output(self, error):
+        output = io.StringIO()
+        def refused(coroutine):
+            coroutine.close()
+            raise error
+        with patch.object(main.asyncio, 'run', side_effect=refused), redirect_stderr(output):
+            self.assertEqual(main.main([]), 78)
+        return output.getvalue()
+
     def test_uninstalled_entry_refuses_before_any_fixed_source_read(self):
         with patch.object(main, 'read_fixed', side_effect=AssertionError('installed file read')):
             with self.assertRaises(main.Refused):
@@ -424,6 +472,80 @@ class FactoryMainEntryTests(unittest.TestCase):
                         if type(reason) is str and reason in main.DIAGNOSTIC_REASONS
                         else 'factory_main_refused')
             self.assertEqual(output.getvalue(), expected + '\n')
+
+    def test_all_literal_graph_runtime_refusals_have_exact_public_diagnostics(self):
+        reasons = set()
+        for path in ('staging/bootstrap/writer-graph.py', 'scripts/factory-runtime-contract.py'):
+            for node in ast.walk(ast.parse((ROOT / path).read_bytes())):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                    position = (1 if node.func.id == 'require' else 0
+                                if node.func.id in {'Refused', 'ObservationUnknown', 'boundary'} else None)
+                    if position is not None and len(node.args) > position:
+                        value = node.args[position]
+                        if isinstance(value, ast.Constant) and type(value.value) is str:
+                            reasons.add(value.value)
+                if isinstance(node, ast.FunctionDef):
+                    arguments = node.args.posonlyargs + node.args.args
+                    for argument, value in zip(arguments[len(arguments) - len(node.args.defaults):],
+                                               node.args.defaults):
+                        if argument.arg == 'reason' and isinstance(value, ast.Constant) and type(value.value) is str:
+                            reasons.add(value.value)
+        self.assertEqual(main.DIAGNOSTIC_REASONS, reasons)
+        self.assertTrue({'unit_not_running', 'unit_configuration', 'support_pin_missing',
+                         'writer_admission_refused', 'contract_unavailable'} <= reasons)
+        for reason in sorted(reasons):
+            with self.subTest(reason=reason):
+                error = ValueError('INERT_PRIVATE_MESSAGE')
+                error.reason = reason
+                self.assertEqual(self.entry_output(error), 'factory_main_refused:' + reason + '\n')
+
+    def test_backend87_factory_runtime_codes_are_distinct_and_keep_exit78(self):
+        # Exact public FactoryRuntimeError._CODES contract at Studio 87c082.
+        codes = {'factory_runtime_refused', 'factory_runtime_uncertain', 'factory_runtime_pending'}
+        self.assertEqual(main.DIAGNOSTIC_CODES, codes)
+        for code in sorted(codes):
+            with self.subTest(code=code):
+                error = RuntimeError('INERT_PRIVATE_BACKEND_MESSAGE')
+                error.reason = '/INERT_PRIVATE_REASON'
+                error.code, error.exit_status = code, 0
+                self.assertEqual(self.entry_output(error), 'factory_main_refused:' + code + '\n')
+
+    def test_private_unknown_unicode_and_nonexact_string_types_remain_generic(self):
+        class StringSubclass(str):
+            def __hash__(self):
+                raise AssertionError('string subclass must never enter whitelist lookup')
+        values = ('/INERT_PRIVATE_PATH', 'INERT_PRIVATE_SECRET', 'clé🔑',
+                  'source_changed\nINERT_PRIVATE_TEXT', 'sourcе_changed',
+                  'factory_runtime_pending ', None, [], {}, 78, True,
+                  b'source_changed', StringSubclass('source_changed'))
+        for value in values:
+            with self.subTest(kind=type(value).__name__):
+                error = ValueError('INERT_PRIVATE_EXCEPTION_MESSAGE')
+                error.reason = error.code = value
+                self.assertEqual(self.entry_output(error), 'factory_main_refused\n')
+
+    def test_exception_text_unknown_attributes_and_properties_are_never_read(self):
+        class PrivateError(Exception):
+            def __str__(self):
+                raise AssertionError('exception text must not be formatted')
+            def __repr__(self):
+                raise AssertionError('exception repr must not be formatted')
+            @property
+            def reason(self):
+                raise AssertionError('reason property must not be invoked')
+            @property
+            def code(self):
+                raise AssertionError('code property must not be invoked')
+            @property
+            def secret(self):
+                raise AssertionError('unknown attribute must not be read')
+        self.assertEqual(self.entry_output(PrivateError('INERT_PRIVATE_ARGS')), 'factory_main_refused\n')
+
+    def test_known_code_in_wrong_public_field_is_not_authorized(self):
+        for field, value in (('code', 'source_changed'), ('reason', 'factory_runtime_pending')):
+            error = ValueError('INERT_PRIVATE_EXCEPTION_MESSAGE')
+            setattr(error, field, value)
+            self.assertEqual(self.entry_output(error), 'factory_main_refused\n')
 
     def test_signal_registration_failure_removes_only_owned_handlers(self):
         calls = []
