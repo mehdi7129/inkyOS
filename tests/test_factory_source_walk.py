@@ -166,6 +166,53 @@ class SourceWalkLinuxTests(unittest.TestCase):
         with self.tree() as tree, self.track(tree), self.assertRaises(graph.Refused):
             graph.walk_metadata(tree, self.plan, tick=lambda: None)
 
+    def test_recheck_reads_fresh_xattrs_after_the_baseline_was_captured(self):
+        with self.tree() as tree:
+            baseline = graph.walk_metadata(tree, self.plan, tick=lambda: None)
+            os.setxattr(self.root / 'a/data', 'user.inkyos.changed-after-capture', b'INERT')
+            with self.track(tree), self.assertRaisesRegex(graph.Refused, '^source_metadata$'):
+                graph.walk_metadata(tree, self.plan, tick=lambda: None, expected=baseline)
+
+    def test_replacing_a_leaf_after_name_stat_refuses_its_fresh_opened_inode(self):
+        with self.tree() as tree:
+            baseline = graph.walk_metadata(tree, self.plan, tick=lambda: None)
+            replacement = self.root / 'a/data'
+            changed = False
+            def opened(path, flags, **kwargs):
+                nonlocal changed
+                if path == 'data' and not changed:
+                    changed = True
+                    raw = replacement.read_bytes()
+                    replacement.rename(self.root / 'a/original')
+                    replacement.write_bytes(raw)
+                    replacement.chmod(0o644)
+                return self.real_open(path, flags, **kwargs)
+            with patch.object(os, 'open', side_effect=opened), \
+                    self.assertRaisesRegex(graph.Refused, '^source_metadata$'):
+                graph.walk_metadata(tree, self.plan, tick=lambda: None, expected=baseline)
+            self.assertTrue(changed)
+
+    def test_successful_rechecks_do_not_refresh_the_original_baseline(self):
+        with self.tree() as tree:
+            baseline = graph.walk_metadata(tree, self.plan, tick=lambda: None)
+            original = dict(baseline)
+            with self.track(tree):
+                graph.walk_metadata(tree, self.plan, tick=lambda: None, expected=baseline)
+            (self.root / 'plain').chmod(0o600)
+            with self.track(tree), self.assertRaisesRegex(graph.Refused, '^source_changed$'):
+                graph.walk_metadata(tree, self.plan, tick=lambda: None, expected=baseline)
+            self.assertEqual(baseline, original)
+
+    def test_new_child_under_a_pinned_parent_refuses_the_original_closed_map(self):
+        with self.tree() as tree:
+            baseline = graph.walk_metadata(tree, self.plan, tick=lambda: None)
+            # A directory stamp binds membership even though the walk never
+            # lists the disk or visits a child outside the immutable plan.
+            time.sleep(0.02)
+            (self.root / 'a/unplanned').write_bytes(b'INERT additional child')
+            with self.track(tree), self.assertRaisesRegex(graph.Refused, '^source_changed$'):
+                graph.walk_metadata(tree, self.plan, tick=lambda: None, expected=baseline)
+
     def test_parent_rename_during_callback_refuses_fresh_name_binding(self):
         with self.tree() as tree:
             baseline = graph.walk_metadata(tree, self.plan, tick=lambda: None)

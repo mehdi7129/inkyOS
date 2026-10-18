@@ -790,11 +790,9 @@ def walk_metadata(tree, plan, *, tick, expected=None):
     result = {} if expected is None else None
     visited = 0
 
-    def metadata(info, path, target):
-        kind = ('symlink' if stat.S_ISLNK(info.st_mode) else 'file' if stat.S_ISREG(info.st_mode)
-                else 'directory' if stat.S_ISDIR(info.st_mode) else None)
+    def metadata(info, info_stamp, kind, path, target):
         require((info.st_uid, info.st_gid) == (tree.uid, tree.gid), 'source_metadata')
-        observed = (_source_stamp(info), target)
+        observed = (info_stamp, target)
         if expected is None:
             pinned_kind, mode, size, pinned_target = plan.nodes[path]
             require(kind == pinned_kind and stat.S_IMODE(info.st_mode) == mode, 'source_metadata')
@@ -816,12 +814,15 @@ def walk_metadata(tree, plan, *, tick, expected=None):
         require((kind == 'directory' and stat.S_ISDIR(before.st_mode))
                 or (kind == 'file' and stat.S_ISREG(before.st_mode))
                 or (kind == 'symlink' and stat.S_ISLNK(before.st_mode)), 'source_metadata')
+        # `before` is one immutable stat result, not a fresh observation. Reuse
+        # its stamp/type while retaining every later fd/name/xattr observation.
+        before_stamp = _source_stamp(before)
         target = None
         if kind == 'symlink':
             require(not os.listxattr('/proc/self/fd/%d/%s' % (parent, leaf), follow_symlinks=False),
                     'source_xattrs')
             target = os.readlink(leaf, dir_fd=parent)
-            observed = metadata(before, path, target)
+            observed = metadata(before, before_stamp, kind, path, target)
         else:
             flags = os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW
             if kind == 'directory':
@@ -829,18 +830,18 @@ def walk_metadata(tree, plan, *, tick, expected=None):
                 require(depth <= MAX_PARENT_FDS, 'source_depth_limit')
             fd = parent if path == '.' else os.open(leaf, flags, dir_fd=parent)
             try:
-                require(_source_stamp(os.fstat(fd)) == _source_stamp(before) and not os.listxattr(fd), 'source_metadata')
-                observed = metadata(before, path, None)
+                require(_source_stamp(os.fstat(fd)) == before_stamp and not os.listxattr(fd), 'source_metadata')
+                observed = metadata(before, before_stamp, kind, path, None)
                 if kind == 'directory':
                     for child, child_path in plan.children[path]:
                         visit(fd, child, child_path, depth + 1)
                     tick()
                     require(not os.listxattr(fd), 'source_xattrs')
-                require(_source_stamp(os.fstat(fd)) == _source_stamp(before), 'source_changed')
+                require(_source_stamp(os.fstat(fd)) == before_stamp, 'source_changed')
             finally:
                 if path != '.':
                     os.close(fd)
-        require(_source_stamp(os.stat(leaf, dir_fd=parent, follow_symlinks=False)) == _source_stamp(before), 'source_changed')
+        require(_source_stamp(os.stat(leaf, dir_fd=parent, follow_symlinks=False)) == before_stamp, 'source_changed')
         if result is not None:
             result[path] = observed
         visited += 1
