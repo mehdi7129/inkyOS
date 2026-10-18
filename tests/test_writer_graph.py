@@ -33,6 +33,7 @@ def observations(role, pid, invocation):
              if role == 'main' else {'inkyos-initialization.service', 'NetworkManager.service'}
              if role in {'helper','setup'} else {'inkyos-admission-prepare.service',
                                       'inkyos-factory-supervisor.service'})
+    wants |= {'-.mount', 'tmp.mount'}
     unit = {
         'Id': name, 'Names': [name], 'LoadState': 'loaded', 'ActiveState': 'active',
         'SubState': 'running', 'FragmentPath': '/usr/lib/systemd/system/' + name,
@@ -58,6 +59,77 @@ def observations(role, pid, invocation):
     if role == 'setup':
         service.update(CapabilityBoundingSet=(1<<25)|(1<<12),AmbientCapabilities=(1<<25)|(1<<12),ProtectClock=False)
     return [unit, service]
+
+
+# Actual GetAll dependencies from the inert systemd 257.13-1~deb13u1 bench.
+# Capture SHA256: 9271cfc3fe0cd1df3363c3c82bdd08a11f08a624e62b7816edc4f57dc5dba830.
+# Only inactive InvocationID was projected to 16 zero bytes by that fixture;
+# dependency lists below are real, unchanged observations, not PID1 mocks.
+NATIVE_UNIT_DEPENDENCIES = {
+    'helper': {
+        'After': ['tmp.mount', 'systemd-tmpfiles-setup.service', 'system.slice',
+                  'systemd-journald.socket', '-.mount', 'local-fs.target',
+                  'inkyos-initialization.service', 'NetworkManager.service',
+                  'sysinit.target', 'basic.target'],
+        'Wants': ['NetworkManager.service', '-.mount', 'tmp.mount',
+                  'inkyos-initialization.service'],
+    },
+    'ipc': {
+        'After': ['-.mount', 'system.slice', 'tmp.mount', 'local-fs.target',
+                  'systemd-journald.socket', 'inkyos-admission-prepare.service',
+                  'basic.target', 'sysinit.target', 'inkyos-factory-supervisor.service',
+                  'systemd-tmpfiles-setup.service'],
+        'Wants': ['inkyos-admission-prepare.service', 'inkyos-factory-supervisor.service',
+                  'tmp.mount', '-.mount'],
+    },
+    'main': {
+        'After': ['bluetooth.service', 'sysinit.target', 'basic.target', 'local-fs.target',
+                  'systemd-tmpfiles-setup.service', 'inkyos-system-setup.service', '-.mount',
+                  'inkyos-initialization.service', 'inky-network.service', 'system.slice',
+                  'tmp.mount', 'systemd-journald.socket'],
+        'Wants': ['inky-network.service', 'bluetooth.service', '-.mount',
+                  'inkyos-system-setup.service', 'inkyos-initialization.service', 'tmp.mount'],
+    },
+    'setup': {
+        'After': ['basic.target', '-.mount', 'system.slice', 'inkyos-initialization.service',
+                  'sysinit.target', 'local-fs.target', 'NetworkManager.service',
+                  'systemd-journald.socket', 'systemd-tmpfiles-setup.service', 'tmp.mount'],
+        'Wants': ['-.mount', 'inkyos-initialization.service', 'NetworkManager.service',
+                  'tmp.mount'],
+    },
+}
+
+
+class WriterGraphNativeConfigurationTests(unittest.TestCase):
+    def test_actual_private_tmp_mount_dependencies_reach_inactive_guard(self):
+        for role, dependencies in NATIVE_UNIT_DEPENDENCIES.items():
+            with self.subTest(role=role):
+                rows = observations(role, 0, bytes(16))
+                rows[0].update(ActiveState='inactive', SubState='dead',
+                               **copy.deepcopy(dependencies))
+                with self.assertRaises(graph.Refused) as caught:
+                    graph.binding(role, rows)
+                self.assertEqual(caught.exception.reason, 'unit_not_running')
+
+    def test_all_roles_require_exact_wants_and_ordering_including_both_mounts(self):
+        for role in graph.UNITS:
+            original = observations(role, 10, b'x' * 16)
+            for key in ('Wants', 'After'):
+                for dependency in original[0]['Wants']:
+                    with self.subTest(role=role, property=key, missing=dependency):
+                        rows = copy.deepcopy(original)
+                        rows[0][key].remove(dependency)
+                        with self.assertRaises(graph.Refused) as caught:
+                            graph.binding(role, rows)
+                        self.assertEqual(caught.exception.reason, 'unit_dependencies')
+            for extra in ('unrelated.service', 'unrelated.mount', 'var-tmp.mount'):
+                with self.subTest(role=role, extra=extra):
+                    rows = copy.deepcopy(original)
+                    rows[0]['Wants'].append(extra)
+                    rows[0]['After'].append(extra)
+                    with self.assertRaises(graph.Refused) as caught:
+                        graph.binding(role, rows)
+                    self.assertEqual(caught.exception.reason, 'unit_dependencies')
 
 
 class Lease:

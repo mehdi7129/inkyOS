@@ -336,6 +336,9 @@ def binding(role, values):
                       if role == 'helper' else {'inkyos-initialization.service', 'NetworkManager.service'}
                       if role == 'setup' else {'inkyos-admission-prepare.service',
                                               'inkyos-factory-supervisor.service'})
+    # systemd 257.13 PrivateTmp=yes adds Wants for /tmp and /var/tmp mounts.
+    # On the pinned base these are tmp.mount and the root-backed /var/tmp.
+    expected_wants |= {'-.mount', 'tmp.mount'}
     require(set(unit['Wants']) == expected_wants and expected_wants <= set(unit['After']),
             'unit_dependencies')
     argv = ['/usr/bin/python3.13', '-I', '-B', '-S', '/usr/lib/inkyos/writer-launcher.py', role]
