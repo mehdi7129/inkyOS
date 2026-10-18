@@ -30,9 +30,10 @@ MANAGER = '/org/freedesktop/systemd1'
 DESTINATION = 'org.freedesktop.systemd1'
 MANAGER_INTERFACE = DESTINATION + '.Manager'
 SO_PEERPIDFD = 77  # Linux 6.12 UAPI; availability is required, never emulated.
-# Leave Pi Zero 2 time for the full 18k-record scan and owned PID1 queries;
-# space periodic scans so the monitor does not continuously consume CPU.
-CHECK_SECONDS = 10.0
+# One absolute budget includes waiting behind another full graph observation.
+# Initialization IPC reserves 20 seconds: graph 15, exchange 3, margin 2.
+# Space periodic scans so the monitor does not continuously consume CPU.
+CHECK_SECONDS = 15.0
 INITIAL_SECONDS = 60.0
 SOURCE_SECONDS = 180.0
 WATCH_SECONDS = 10.0
@@ -505,10 +506,16 @@ class Graph:
         entered = False
         try:
             deadline = time.monotonic() + CHECK_SECONDS
-            self._check(deadline)
+            require(self.state == 'ACTIVE', 'graph_invalid')
             acquired = self._query.acquire(timeout=remaining(deadline))
             require(acquired, 'observation_timeout')
             try:
+                # Keep verification and peer attestation under one query owner;
+                # a monitor must not insert another full check between them.
+                require(self.state == 'ACTIVE', 'graph_invalid')
+                self._verify(deadline)
+                require(self.state == 'ACTIVE', 'graph_invalid')
+                remaining(deadline)
                 require(self.state == 'ACTIVE', 'graph_invalid')
                 fd = self._backend.peer(connection)
                 expected = self._bindings[role]

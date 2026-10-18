@@ -14,6 +14,7 @@ import signal
 import sys
 import tempfile
 import threading
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -540,6 +541,125 @@ class WriterGraphTests(GraphFixture):
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], graph.Refused)
         self.assertEqual(self.proof.state, 'INVALID')
+
+    def test_peer_verification_cannot_hand_query_to_monitor_before_attestation(self):
+        self.active()
+        released, observing, authenticated = threading.Event(), threading.Event(), threading.Event()
+        errors = []
+        owner = threading.get_ident()
+        lock = threading.Lock()
+        class HandoffLock:
+            def acquire(_, *, timeout): return lock.acquire(timeout=timeout)
+            def locked(_): return lock.locked()
+            def release(_):
+                lock.release()
+                if threading.get_ident() == owner and not released.is_set():
+                    released.set()
+                    if not observing.wait(1):
+                        raise AssertionError('monitor did not observe the first released query')
+        self.proof._query = HandoffLock()
+        monitor_saw_authenticated_peer = []
+        def source_check():
+            if threading.get_ident() != owner:
+                monitor_saw_authenticated_peer.append(authenticated.is_set())
+                observing.set()
+        self.sources.check_hook = source_check
+        original_peer = self.backend.peer
+        def peer(connection):
+            fd = original_peer(connection)
+            authenticated.set()
+            return fd
+        self.backend.peer = peer
+        def monitor():
+            try:
+                if not released.wait(1):
+                    raise AssertionError('query never released')
+                self.proof.check()
+            except BaseException as error:
+                errors.append(error)
+        before = self.sources.checks
+        worker = threading.Thread(target=monitor)
+        worker.start()
+        try:
+            with self.proof.initialization_guard(Connection(self.backend.pids['ipc'])):
+                self.assertTrue(authenticated.is_set())
+        finally:
+            worker.join(2)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        self.assertEqual(monitor_saw_authenticated_peer, [True, True])
+        self.assertEqual(self.sources.checks - before, 5)
+        self.assertEqual(self.proof.state, 'ACTIVE')
+
+    def modeled_contention(self, first, seconds):
+        # Scale time by 0.1: each valid source scan models 2.25 seconds, so
+        # _verify models 4.5 seconds and the peer guard alone models 6.75.
+        scale = .1
+        lease, sources, backend = Lease(), Sources(), Backend()
+        proof = graph.Graph(lease, sources, backend, _root=self.root)
+        proof.__enter__()
+        original_check, started = sources.check, threading.Event()
+        errors = []
+        worker_name = 'first-' + first
+        def slow_check(deadline):
+            result = original_check(deadline)
+            if threading.current_thread().name == worker_name:
+                started.set()
+            end = time.monotonic() + 2.25 * scale
+            while True:
+                remaining_scan = end - time.monotonic()
+                if remaining_scan <= 0:
+                    break
+                time.sleep(min(.01 * scale, remaining_scan))
+                graph.remaining(deadline)
+            return result
+        sources.check = slow_check
+        def peer():
+            with proof.initialization_guard(Connection(backend.pids['ipc'])):
+                pass
+        def observe():
+            try:
+                (proof.check if first == 'monitor' else peer)()
+            except BaseException as error:
+                errors.append(error)
+        checks = sources.checks
+        reason = None
+        with patch.object(graph, 'CHECK_SECONDS', seconds * scale):
+            worker = threading.Thread(target=observe, name=worker_name)
+            worker.start()
+            try:
+                self.assertTrue(started.wait(1))
+                time.sleep(.01 * scale)
+                began = time.monotonic()
+                try:
+                    (peer if first == 'monitor' else proof.check)()
+                except graph.Refused as error:
+                    reason = error.reason
+                elapsed = (time.monotonic() - began) / scale
+            finally:
+                worker.join(2)
+                proof.close()
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        self.assertFalse(lease.held)
+        self.assertEqual(set(backend.handles), set(backend.closed))
+        self.assertEqual(sources.checks - checks, 5)
+        return reason, elapsed
+
+    def test_peer_waiting_behind_monitor_needs_the_full_absolute_budget(self):
+        self.assertEqual(graph.CHECK_SECONDS, 15.0)
+        for seconds, expected in ((10, 'observation_timeout'), (15, None)):
+            with self.subTest(seconds=seconds):
+                reason, elapsed = self.modeled_contention('monitor', seconds)
+                self.assertEqual(reason, expected)
+                self.assertLess(elapsed, 20)
+
+    def test_monitor_waiting_behind_peer_uses_the_same_absolute_budget(self):
+        for seconds, expected in ((10, 'observation_timeout'), (15, None)):
+            with self.subTest(seconds=seconds):
+                reason, elapsed = self.modeled_contention('peer', seconds)
+                self.assertEqual(reason, expected)
+                self.assertLess(elapsed, 20)
 
     def test_invalidation_from_source_thread_wins_over_a_successful_query(self):
         self.active()
