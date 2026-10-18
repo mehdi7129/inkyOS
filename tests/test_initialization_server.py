@@ -193,8 +193,8 @@ class SocketTests(unittest.TestCase):
             connection.close()
             try:
                 # The real client attests the connected server before sending.
-                # Cross the old three-second server budget without mocking time.
-                time.sleep(3.1)
+                # Cross the old fifteen-second server budget without mocking time.
+                time.sleep(15.1)
                 client.sendall(wire(request()))
                 output.write_text(json.dumps(receive(client)))
                 os._exit(0)
@@ -208,7 +208,7 @@ class SocketTests(unittest.TestCase):
         self.assertEqual(status, 0, 'delayed client could not exchange its first request')
         self.assertEqual(json.loads(output.read_text()),
                          {'v': 1, 'id': ID, 'ok': True, 'result': {'status': 'authorized'}})
-        self.assertEqual(server.DEADLINE_SECONDS, 15.0)
+        self.assertEqual(server.DEADLINE_SECONDS, 20.0)
         self.assertEqual(receipt.inspect(self.path, **self.owner), {'status': 'authorized'})
 
     def test_root_and_network_helper_refused_before_consumption(self):
