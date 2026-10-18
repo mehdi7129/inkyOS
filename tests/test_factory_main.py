@@ -516,13 +516,16 @@ class FactoryMainEntryTests(unittest.TestCase):
         error = RuntimeError('INERT_PRIVATE_BACKEND_MESSAGE')
         error.code = 'factory_runtime_refused'
         graph_line = 'factory_main_graph_refused:observation_timeout'
+        observation = (2, 4, 1, 100000, 100000, 116000, 0, 16000, 16000, 15000)
+        timing_line = 'factory_main_observation_timeout:[2,4,1,100000,100000,116000,0,16000,16000,15000]'
         async def serve(*args, **kwargs):
             events.append('serve')
             proof.reason = 'observation_timeout'
+            proof._timeout_observation = observation
             raise error
         def before_close():
             self.assertTrue(proof.held)
-            self.assertEqual(output.getvalue().splitlines()[-1], graph_line)
+            self.assertEqual(output.getvalue().splitlines()[-2:], [graph_line, timing_line])
             proof.reason = 'graph_invalid'
         proof.close_hook = before_close
         original = main.run_phase_a
@@ -537,11 +540,59 @@ class FactoryMainEntryTests(unittest.TestCase):
                     raise
             with patch.object(main, 'run_phase_a', candidate), redirect_stderr(output):
                 self.assertEqual(main.main([]), 78)
-        self.assertEqual(output.getvalue().splitlines()[-2:], [
-            graph_line, 'factory_main_refused:factory_runtime_refused'])
+        self.assertEqual(output.getvalue().splitlines()[-3:], [
+            graph_line, timing_line, 'factory_main_refused:factory_runtime_refused'])
         self.assertEqual(events[-2:], ['close', 'remove_signals'])
         self.assertEqual((proof.enters, proof.closes), (1, 1))
         self.assertFalse(proof.held)
+
+    def test_timeout_diagnostic_accepts_only_closed_bounded_numeric_records(self):
+        proof = SyntheticProof([])
+        proof.reason = 'observation_timeout'
+        valid = (1, 1, 0, 100000, 0, 115000, 15000, 0, 15000, 15000)
+        proof._timeout_observation = valid
+        self.assertEqual(main.public_timeout_diagnostic(proof),
+                         'factory_main_observation_timeout:[1,1,0,100000,0,115000,15000,0,15000,15000]')
+        invalid = [None, list(valid), '/INERT_PRIVATE_VALUE', valid[:-1],
+                   (4, *valid[1:]), (1, 6, *valid[2:]), (1, 1, 1, *valid[3:]),
+                   (True, *valid[1:]), (1.0, *valid[1:]),
+                   (*valid[:3], 2**53, *valid[4:]), (*valid[:-1], 0),
+                   (*valid[:6], -1, *valid[7:]), (*valid[:8], 14998, 15000)]
+        for value in invalid:
+            proof._timeout_observation = value
+            self.assertIsNone(main.public_timeout_diagnostic(proof))
+        proof._timeout_observation = valid
+        proof.reason = 'source_changed'
+        self.assertIsNone(main.public_timeout_diagnostic(proof))
+
+    def test_timeout_diagnostic_does_not_access_private_properties_or_numeric_hooks(self):
+        accessed = []
+        class PrivateProof:
+            @property
+            def reason(self):
+                accessed.append('reason')
+                raise AssertionError('reason property accessed')
+            @property
+            def _timeout_observation(self):
+                accessed.append('observation')
+                raise AssertionError('observation property accessed')
+            @property
+            def __dict__(self):
+                accessed.append('dictionary')
+                raise AssertionError('dictionary property accessed')
+        class PrivateNumber(int):
+            def __str__(self):
+                accessed.append('str')
+                raise AssertionError('number formatted')
+            def __eq__(self, _):
+                accessed.append('eq')
+                raise AssertionError('number compared')
+        self.assertIsNone(main.public_timeout_diagnostic(PrivateProof()))
+        proof = SyntheticProof([])
+        proof.reason = 'observation_timeout'
+        proof._timeout_observation = (PrivateNumber(1), 1, 0, 100000, 0, 115000, 15000, 0, 15000, 15000)
+        self.assertIsNone(main.public_timeout_diagnostic(proof))
+        self.assertEqual(accessed, [])
 
     def test_graph_diagnostics_ignore_private_values_text_and_properties(self):
         accessed = []

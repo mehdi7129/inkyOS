@@ -80,6 +80,15 @@ def remaining(deadline):
     return value
 
 
+def observation_stage(observation, phase, step=0):
+    # Best effort only: diagnostics must never replace an owned failure/drain.
+    try:
+        if observation is not None:
+            observation[1], observation[2] = phase, step
+    except BaseException:
+        pass
+
+
 def unit_path(name):
     require(name in {*UNITS.values(), 'init.scope'}, 'unsupported_unit')
     return MANAGER + '/unit/' + ''.join(char if char.isalnum() else '_%02x' % ord(char)
@@ -404,6 +413,59 @@ class Graph:
         self._monitor, self._monitor_stop = None, threading.Event()
         self._loop, self._stop_requested = None, None
         self._close_unknown = False
+        self._timeout_observation = None
+
+    def _observation(self, deadline, origin):
+        try:
+            return [origin, 1, 0, deadline - CHECK_SECONDS, None, CHECK_SECONDS]
+        except BaseException:
+            return None
+
+    def _observation_acquired(self, observation):
+        try:
+            observation[4] = time.monotonic()
+            return observation
+        except BaseException:
+            return None
+
+    def _observe_timeout(self, error, observation):
+        # Only fixed codes and bounded integer milliseconds. No I/O or exception
+        # formatting. Keep the first timeout even if a later caller also expires.
+        # Origins: 1 check, 2 monitor, 3 peer. Phases: 1 query wait, 2 verify end,
+        # 3 peer identity, 4 owned sources, 5 manager query. Source steps 1/2/3
+        # are first/second/peer scans; manager steps 1..9 are PID1 then four
+        # snapshot/resolve pairs, 10 is the connected peer's manager resolution.
+        try:
+            if type(error) is not Refused:
+                return
+            reason = BaseException.__getattribute__(error, '__dict__').get('reason')
+            if type(reason) is not str or reason != 'observation_timeout':
+                return
+            if type(observation) is not list or len(observation) != 6:
+                return
+            origin, phase, step, requested, acquired, budget = observation
+            failed = time.monotonic()
+            values = (requested, failed, budget) + (() if acquired is None else (acquired,))
+            if not all(type(value) in (int, float) and 0 <= value <= (2**53 - 1) / 1000
+                       for value in values):
+                return
+            if not (0 < budget <= 180 and requested <= failed and failed - requested >= budget):
+                return
+            if acquired is None:
+                if phase != 1: return
+                wait, hold, acquired_ms = failed - requested, 0, 0
+            else:
+                if not requested <= acquired <= failed: return
+                wait, hold, acquired_ms = acquired - requested, failed - acquired, int(acquired * 1000)
+            record = (origin, phase, step, int(requested * 1000), acquired_ms,
+                      int(failed * 1000), min(int(wait * 1000), 2**31 - 1),
+                      min(int(hold * 1000), 2**31 - 1),
+                      min(int((failed - requested) * 1000), 2**31 - 1), int(budget * 1000))
+            with self._lock:
+                if self._timeout_observation is None:
+                    self._timeout_observation = record
+        except BaseException:
+            pass
 
     @property
     def state(self):
@@ -419,7 +481,8 @@ class Graph:
             try: loop.call_soon_threadsafe(stop.set)
             except RuntimeError: pass  # State remains INVALID if its owner loop is gone.
 
-    def _owned_check(self, deadline):
+    def _owned_check(self, deadline, observation=None, step=0):
+        observation_stage(observation, 4, step)
         self._lease.check()
         require(self._sources.check(deadline) is None, 'source_check_result')
         self._lease.check()
@@ -466,30 +529,37 @@ class Graph:
                 self._state = 'ACTIVE'
             return
 
-    def _verify(self, deadline):
-        self._owned_check(deadline)
+    def _verify(self, deadline, observation=None):
+        self._owned_check(deadline, observation, 1)
         require(all(self._backend.live(fd) for fd in self._anchors.values()), 'writer_dead')
+        observation_stage(observation, 5, 1)
         require(self._backend.resolve(self._anchors['manager'], deadline) == self._manager,
                 'pid_view_changed')
-        for role, previous in self._bindings.items():
+        for index, (role, previous) in enumerate(self._bindings.items()):
+            observation_stage(observation, 5, 2 + 2 * index)
             current, pending = binding(role, self._backend.snapshot(role, deadline))
             require(not pending and current == previous, 'writer_changed')
+            observation_stage(observation, 5, 3 + 2 * index)
             require(self._backend.resolve(self._anchors[role], deadline)
                     == (previous.path, previous.name, previous.invocation), 'writer_mapping_changed')
-        self._owned_check(deadline)
+        self._owned_check(deadline, observation, 2)
+        observation_stage(observation, 2)
         require(all(self._backend.live(fd) for fd in self._anchors.values()), 'writer_dead')
 
     def _check(self, deadline):
         acquired = False
+        observation = self._observation(deadline, 2 if threading.current_thread() is self._monitor else 1)
         try:
             require(self.state == 'ACTIVE', 'graph_invalid')
             acquired = self._query.acquire(timeout=remaining(deadline))
             require(acquired, 'observation_timeout')
+            observation = self._observation_acquired(observation)
             require(self.state == 'ACTIVE', 'graph_invalid')
-            self._verify(deadline)
+            self._verify(deadline, observation)
             require(self.state == 'ACTIVE', 'graph_invalid')
             remaining(deadline)
         except BaseException as error:
+            self._observe_timeout(error, observation)
             self.invalidate(getattr(error, 'reason', 'observation_failed'))
             raise
         finally:
@@ -504,34 +574,44 @@ class Graph:
         require(role in UNITS, 'unsupported_role')
         fd = None
         entered = False
+        observation = None
         try:
             deadline = time.monotonic() + CHECK_SECONDS
+            observation = self._observation(deadline, 3)
             require(self.state == 'ACTIVE', 'graph_invalid')
             acquired = self._query.acquire(timeout=remaining(deadline))
             require(acquired, 'observation_timeout')
+            observation = self._observation_acquired(observation)
             try:
                 # Keep verification and peer attestation under one query owner;
                 # a monitor must not insert another full check between them.
                 require(self.state == 'ACTIVE', 'graph_invalid')
-                self._verify(deadline)
+                self._verify(deadline, observation)
                 require(self.state == 'ACTIVE', 'graph_invalid')
                 remaining(deadline)
                 require(self.state == 'ACTIVE', 'graph_invalid')
+                observation_stage(observation, 3)
                 fd = self._backend.peer(connection)
                 expected = self._bindings[role]
                 require(self._backend.same_pid(fd, self._anchors[role]), 'peer_not_mainpid')
+                observation_stage(observation, 5, 10)
                 require(self._backend.resolve(fd, deadline)
                         == (expected.path, expected.name, expected.invocation), 'peer_mapping_changed')
-                self._owned_check(deadline)
+                self._owned_check(deadline, observation, 3)
+                observation_stage(observation, 3)
                 require(self.state == 'ACTIVE' and self._backend.live(fd)
                         and all(self._backend.live(anchor) for anchor in self._anchors.values()),
                         'graph_invalid')
                 with self._lock:
                     self._peer_count += 1
                     entered = True
+            except BaseException as error:
+                self._observe_timeout(error, observation)
+                raise
             finally: self._query.release()
             yield None
         except BaseException as error:
+            self._observe_timeout(error, observation)
             self.invalidate(getattr(error, 'reason', 'peer_failed'))
             raise
         finally:

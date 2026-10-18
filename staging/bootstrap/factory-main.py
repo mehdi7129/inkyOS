@@ -87,6 +87,43 @@ def public_graph_diagnostic(proof):
     return None
 
 
+def public_timeout_diagnostic(proof):
+    # Fixed tuple schema shared with writer-graph: origin, phase, step,
+    # request/acquire/failure monotonic ms, wait/hold/total ms, budget ms.
+    # Do not invoke properties, formatting hooks or arbitrary numeric objects.
+    try:
+        descriptor = type.__getattribute__(type(proof), '__dict__').get('__dict__')
+        if type(descriptor) is not types.GetSetDescriptorType:
+            return None
+        attributes = descriptor.__get__(proof, type(proof))
+        if type(attributes) is not dict or type(attributes.get('reason')) is not str:
+            return None
+        if attributes['reason'] != 'observation_timeout':
+            return None
+        value = attributes.get('_timeout_observation')
+        if type(value) is not tuple or len(value) != 10:
+            return None
+        if not all(type(item) is int and 0 <= item <= 2**53 - 1 for item in value):
+            return None
+        origin, phase, step, requested, acquired, failed, wait, hold, total, budget = value
+        if origin not in {1, 2, 3} or phase not in {1, 2, 3, 4, 5}:
+            return None
+        if step not in ({0} if phase in {1, 2, 3} else {1, 2, 3} if phase == 4 else set(range(1, 11))):
+            return None
+        if not (requested <= failed and 0 < budget <= 180000
+                and max(wait, hold, total) <= 2**31 - 1 and total >= budget - 1
+                and abs(total - (failed - requested)) <= 1 and abs(total - wait - hold) <= 1):
+            return None
+        if phase == 1:
+            if acquired != 0 or hold != 0 or wait != total: return None
+        elif not (requested <= acquired <= failed and abs(wait - acquired + requested) <= 1
+                  and abs(hold - failed + acquired) <= 1):
+            return None
+        return 'factory_main_observation_timeout:' + json.dumps(value, separators=(',', ':'))
+    except BaseException:
+        return None
+
+
 def require(value):
     if not value: raise Refused('factory_main_refused')
 
@@ -236,6 +273,12 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
                 print(diagnostic, file=sys.stderr, flush=True)
         except Exception:
             pass  # Diagnostic output must not replace the original exception.
+        try:
+            diagnostic = public_timeout_diagnostic(proof)
+            if diagnostic is not None:
+                print(diagnostic, file=sys.stderr, flush=True)
+        except BaseException:
+            pass  # Optional measurements never change refusal or owned cleanup.
         raise
     finally:
         # This also handles an uncertain __enter__ failure: that object may own SH.

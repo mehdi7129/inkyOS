@@ -542,6 +542,130 @@ class WriterGraphTests(GraphFixture):
         self.assertIsInstance(errors[0], graph.Refused)
         self.assertEqual(self.proof.state, 'INVALID')
 
+    def test_timeout_records_wait_and_monitor_origin_without_releasing_another_owner(self):
+        for monitored in (False, True):
+            with self.subTest(monitored=monitored):
+                lease, sources, backend = Lease(), Sources(), Backend()
+                proof = graph.Graph(lease, sources, backend, _root=self.root)
+                with proof:
+                    clock = SimpleNamespace(value=100.0)
+                    class BusyQuery:
+                        def acquire(_, *, timeout):
+                            clock.value += timeout
+                            return False
+                        def release(_):
+                            raise AssertionError('unacquired query released')
+                    previous = proof._query
+                    proof._query = BusyQuery()
+                    proof._monitor = threading.current_thread() if monitored else None
+                    try:
+                        with patch.object(graph, 'time', SimpleNamespace(monotonic=lambda: clock.value)):
+                            self.refused(proof.check, 'observation_timeout')
+                        self.assertEqual(proof._timeout_observation, (
+                            2 if monitored else 1, 1, 0, 100000, 0, 115000,
+                            15000, 0, 15000, 15000))
+                        self.assertTrue(lease.held)
+                    finally:
+                        proof._query, proof._monitor = previous, None
+                self.assertEqual(set(backend.handles), set(backend.closed))
+
+    def test_timeout_latches_source_stage_wait_hold_and_first_failure_only(self):
+        self.active()
+        clock = SimpleNamespace(value=100.0)
+        query = self.proof._query
+        class DelayedQuery:
+            def acquire(_, *, timeout):
+                acquired = query.acquire(timeout=timeout)
+                clock.value += 10
+                return acquired
+            def release(_): query.release()
+            def locked(_): return query.locked()
+        self.proof._query = DelayedQuery()
+        self.sources.check_hook = lambda: setattr(clock, 'value', 116.0)
+        with patch.object(graph, 'time', SimpleNamespace(monotonic=lambda: clock.value)):
+            self.refused(self.proof.check, 'observation_timeout')
+            first = self.proof._timeout_observation
+            self.assertEqual(first, (1, 4, 1, 100000, 110000, 116000, 10000, 6000, 16000, 15000))
+            clock.value = 150.0
+            self.proof._observe_timeout(graph.Refused('observation_timeout'), [2, 1, 0, 130.0, None, 15.0])
+        self.assertIs(self.proof._timeout_observation, first)
+        self.assertEqual(self.proof.reason, 'observation_timeout')
+        self.assertFalse(query.locked())
+        self.assertTrue(self.lease.held)
+
+    def test_timeout_distinguishes_manager_query_from_final_verify_check(self):
+        self.active()
+        clock = SimpleNamespace(value=100.0)
+        def expired_snapshot(role):
+            clock.value = 116.0
+            graph.remaining(115.0)
+        self.backend.snapshot_hook = expired_snapshot
+        with patch.object(graph, 'time', SimpleNamespace(monotonic=lambda: clock.value)):
+            self.refused(self.proof.check, 'observation_timeout')
+        self.assertEqual(self.proof._timeout_observation[:3], (1, 5, 2))
+        self.assertFalse(self.proof._query.locked())
+
+    def test_timeout_at_verify_end_is_not_reported_as_a_source_or_manager_query(self):
+        self.active()
+        clock = SimpleNamespace(value=100.0)
+        original = self.proof._verify
+        def verify(deadline, observation=None):
+            original(deadline, observation)
+            clock.value = 116.0
+        with patch.object(self.proof, '_verify', verify), \
+                patch.object(graph, 'time', SimpleNamespace(monotonic=lambda: clock.value)):
+            self.refused(self.proof.check, 'observation_timeout')
+        self.assertEqual(self.proof._timeout_observation[:3], (1, 2, 0))
+
+    def test_peer_timeout_distinguishes_connected_peer_manager_resolution(self):
+        self.active()
+        clock = SimpleNamespace(value=100.0)
+        previous_handle, resolve = self.backend.next_handle, self.backend.resolve
+        def peer_resolution(fd, deadline):
+            if fd > previous_handle:
+                clock.value = 116.0
+            return resolve(fd, deadline)
+        self.backend.resolve = peer_resolution
+        with patch.object(graph, 'time', SimpleNamespace(monotonic=lambda: clock.value)):
+            with self.assertRaises(graph.Refused) as caught:
+                with self.proof.initialization_guard(Connection(self.backend.pids['ipc'])):
+                    self.fail('expired peer admitted')
+        self.assertEqual(caught.exception.reason, 'observation_timeout')
+        self.assertEqual(self.proof._timeout_observation, (
+            3, 5, 10, 100000, 100000, 116000, 0, 16000, 16000, 15000))
+        self.assertIn(self.backend.next_handle, self.backend.closed)
+        self.assertEqual(self.proof._peer_count, 0)
+        self.assertFalse(self.proof._query.locked())
+
+    def test_nonpublic_failure_and_unobservable_clock_do_not_change_refusal_or_cleanup(self):
+        self.active()
+        private = RuntimeError('INERT_PRIVATE_EXCEPTION')
+        self.sources.failure = private
+        with self.assertRaises(RuntimeError) as caught:
+            self.proof.check()
+        self.assertIs(caught.exception, private)
+        self.assertIsNone(self.proof._timeout_observation)
+        self.assertEqual(self.proof.reason, 'observation_failed')
+        self.assertFalse(self.proof._query.locked())
+        self.assertTrue(self.lease.held)
+
+    def test_diagnostic_clock_failure_preserves_the_original_timeout(self):
+        self.active()
+        original = graph.Refused('observation_timeout')
+        self.sources.failure = original
+        calls = []
+        def clock():
+            calls.append(None)
+            if len(calls) == 3:
+                raise RuntimeError('INERT_UNOBSERVABLE_DIAGNOSTIC_CLOCK')
+            return 100.0
+        with patch.object(graph, 'time', SimpleNamespace(monotonic=clock)):
+            caught = self.refused(self.proof.check, 'observation_timeout')
+        self.assertIs(caught, original)
+        self.assertIsNone(self.proof._timeout_observation)
+        self.assertFalse(self.proof._query.locked())
+        self.assertTrue(self.lease.held)
+
     def test_peer_verification_cannot_hand_query_to_monitor_before_attestation(self):
         self.active()
         released, observing, authenticated = threading.Event(), threading.Event(), threading.Event()
