@@ -41,7 +41,7 @@ CLEANUP_SECONDS = 2.0
 OUTPUT_LIMIT = 262144
 DATA = Path('/var/lib/inky-studio')
 APP_ARGV = ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', MAIN)
-STUDIO_COMMIT = '69b3e64fb6b3348ce8eae5b202c9b50273a1d067'
+STUDIO_COMMIT = 'ba616f6e3732dbc6a3270e4639798e85b46d3295'
 UNITS = {'main': 'inky-studio.service', 'helper': 'inky-network.service',
          'ipc': 'inkyos-initialization.service', 'setup': 'inkyos-system-setup.service'}
 UNIT_TYPES = {'Id': 's', 'Names': 'as', 'LoadState': 's', 'ActiveState': 's',
