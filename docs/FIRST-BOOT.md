@@ -122,6 +122,16 @@ pays demandé, persisté et observé. Ne pas exécuter toute la fonction raspi-c
 comme transaction : elle active la radio avant notre vérification. Aucun
 `rfkill unblock all` ; BLE doit rester disponible indépendamment du Wi-Fi.
 
+Le drop-in `bluetooth.service.d/10-inkyos-firstboot.conf` conserve son ordre
+après `inkyos-firstboot.service` et exécute
+`ExecStartPre=/usr/sbin/rfkill unblock bluetooth` avant BlueZ. Le socle démarre
+avec `rfkill.default_state=0` et le profil usine masque la restauration
+`systemd-rfkill` : `AutoEnable=true` seul ne lève pas ce blocage radio.
+L'opération répétable cible uniquement Bluetooth ; elle ne débloque ni WLAN ni
+`all`, et ne modifie pas l'état persistant NetworkManager. Les fixtures
+statiques vérifient le drop-in et la fermeture WLAN usine ; elles ne qualifient
+pas le démarrage BLE sur le matériel.
+
 Le [kernel 6.18](https://github.com/torvalds/linux/blob/v6.18/net/wireless/reg.c)
 traite le domaine comme un hint réglementaire. Le
 [driver brcmfmac](https://github.com/torvalds/linux/blob/v6.18/drivers/net/wireless/broadcom/brcm80211/brcmfmac/cfg80211.c)

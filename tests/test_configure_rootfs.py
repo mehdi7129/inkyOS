@@ -122,6 +122,37 @@ class ConfigureRootfsTests(unittest.TestCase):
         self.assertFalse((self.root / "etc/systemd/system/rpi-resize.service").is_symlink())
         self.assertFalse((self.root / "etc/systemd/system/systemd-growfs-root.service").is_symlink())
 
+    def test_only_bluetooth_unblocks_its_radio_after_firstboot(self):
+        self.configure()
+        ordering = "[Unit]\nRequires=inkyos-firstboot.service\nAfter=inkyos-firstboot.service\n"
+        for unit in configure_rootfs.NETWORK_UNITS:
+            with self.subTest(unit=unit):
+                dropin = self.root / "etc/systemd/system" / (unit + ".d/10-inkyos-firstboot.conf")
+                expected = ordering
+                if unit == "bluetooth.service":
+                    expected += "\n[Service]\nExecStartPre=/usr/sbin/rfkill unblock bluetooth\n"
+                self.assertEqual(dropin.read_text(), expected)
+                self.assertEqual(dropin.stat().st_mode & 0o777, 0o644)
+
+    def test_factory_rewrites_bluetooth_dropin_without_duplicating_or_opening_wlan(self):
+        dropin = "etc/systemd/system/bluetooth.service.d/10-inkyos-firstboot.conf"
+        expected = ("[Unit]\nRequires=inkyos-firstboot.service\nAfter=inkyos-firstboot.service\n"
+                    "\n[Service]\nExecStartPre=/usr/sbin/rfkill unblock bluetooth\n")
+        self.write(self.root, dropin, expected)
+        radio_state = self.write(self.root, "var/lib/systemd/rfkill/fixture-wlan", "1\n")
+        factory = {"schema_version": 1, "kind": "factory-passive-profile",
+                   "studio_commit": "a" * 40, "input_manifest_sha256": "b" * 64,
+                   "bundle_manifest_sha256": "c" * 64, "startup": "masked",
+                   "runtime_qualified": False, "hardware_qualified": False}
+        configure_rootfs.configure(self.root, self.boot, self.recipe, factory=factory)
+        self.assertEqual((self.root / dropin).read_text(), expected)
+        self.assertEqual((self.root / dropin).read_text().count("ExecStartPre="), 1)
+        self.assertEqual((self.root / "var/lib/NetworkManager/NetworkManager.state").read_text(),
+                         "[main]\nWirelessEnabled=false\n")
+        self.assertEqual(radio_state.read_text(), "1\n")
+        self.assertEqual((self.root / "etc/machine-id").read_text(), "uninitialized\n")
+        self.assertEqual((self.boot / "cmdline.txt").read_text(), self.cmdline)
+
     def test_preseeded_machine_id_is_rejected_before_overlay_install(self):
         identifier = "102030405060708090a0b0c0d0e0f001\n"
         self.write(self.root, "etc/machine-id", identifier)

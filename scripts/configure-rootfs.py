@@ -106,8 +106,11 @@ def configure(root, boot, recipe, *, factory=None):
     for unit in MASKED_UNITS:
         root.link('etc/systemd/system/' + unit, '/dev/null')
     for unit in NETWORK_UNITS:
+        dropin = '[Unit]\nRequires=inkyos-firstboot.service\nAfter=inkyos-firstboot.service\n'
+        if unit == 'bluetooth.service':
+            dropin += '\n[Service]\nExecStartPre=/usr/sbin/rfkill unblock bluetooth\n'
         root.write('etc/systemd/system/' + unit + '.d/10-inkyos-firstboot.conf',
-                   '[Unit]\nRequires=inkyos-firstboot.service\nAfter=inkyos-firstboot.service\n')
+                   dropin)
     root.write('etc/cloud/cloud-init.disabled', '')
     for name in ('user-data', 'network-config', 'meta-data'):
         boot.remove(name)
