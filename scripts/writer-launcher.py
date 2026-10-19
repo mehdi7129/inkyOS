@@ -91,9 +91,9 @@ def environment(role, fd, context_digest, inherited):
     if role in {'main', 'helper'}:
         value.update(INKY_STUDIO_FACTORY_REQUIRED='1', INKY_STUDIO_DATA_DIR='/var/lib/inky-studio')
     if role == 'main':
-        # This factory pack targets the explicit AC073 800x480 bench profile.
+        # This factory pack permits the pinned AC073 driver's full timed wait.
         value.update(INKY_STUDIO_DISPLAY_MODE='hardware', INKY_STUDIO_BLUETOOTH='1',
-                     INKY_STUDIO_DISPLAY_PROFILE='ac073-800x480')
+                     INKY_STUDIO_DISPLAY_PROFILE='ac073-800x480-timed-wait')
     if role in {'ipc','setup','helper'} and 'NOTIFY_SOCKET' in inherited:
         notify = inherited['NOTIFY_SOCKET']
         require(type(notify) is str and len(notify) > 1 and notify[0] in {'/', '@'}

@@ -21,12 +21,12 @@ from unittest.mock import Mock, patch
 from test_factory_runtime_contract import ContractFixture, load_module, runtime
 
 BACKEND_ENV = 'INKYOS_FACTORY_DISPLAY_BACKEND_ROOT'
-BACKEND_COMMIT = 'ba616f6e3732dbc6a3270e4639798e85b46d3295'
+BACKEND_COMMIT = '302ff5d3fb85b220b90af5f2e7eb1e00343fb4c4'
 SOURCE_PINS = {
     'errors': '744120923d7190927ec61854fb4de560a3432d203dedfd2a461b599d0f5316fc',
     'confirmation': 'fb7f5ffee28cc19f52b4a68c686d4aaf72ea0b327245e1f722f32601b8161efa',
-    'busy': '028f7110cf932f01b3739fbf29b1307c36a0834cdaa6597e9ee431e2ea8a4052',
-    'display': '89b457e690e84992861d905a5dee982fcf06865ed9729140669e97409cd9a510',
+    'busy': '136259a7dc137fe4daf242cee98a6bb776f87fb49eefc7bdd1a50390790077e7',
+    'display': 'de0fbacd6fcc4cc21424e25352e06b77ea65cbfbdb72a3cc4eb9cb94e13532a8',
 }
 launcher = load_module('writer_launcher_display_bridge_test', 'scripts/writer-launcher.py')
 
@@ -150,7 +150,7 @@ class FactoryDisplayProfileBridgeTests(ContractFixture):
             display.initialize()
             display.require_available()
             self.assertEqual(display.status()['mode'], 'hardware')
-            self.assertEqual(display.status()['profile'], 'ac073-800x480')
+            self.assertEqual(display.status()['profile'], 'ac073-800x480-timed-wait')
             self.assertEqual(display.status()['state'], 'ready')
             self.assertEqual(display.status()['driver']['color_raw'], 4)
             self.assertEqual(display.status()['busy_monitor'], 'ac073_2.5.0')

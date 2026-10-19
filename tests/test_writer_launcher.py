@@ -185,7 +185,7 @@ class LauncherTests(ContractFixture):
                                     INKY_STUDIO_DATA_DIR='/var/lib/inky-studio')
                 if role == 'main':
                     expected.update(INKY_STUDIO_DISPLAY_MODE='hardware',
-                                    INKY_STUDIO_DISPLAY_PROFILE='ac073-800x480',
+                                    INKY_STUDIO_DISPLAY_PROFILE='ac073-800x480-timed-wait',
                                     INKY_STUDIO_BLUETOOTH='1')
                 if role in {'ipc','helper','setup'}:
                     expected['NOTIFY_SOCKET'] = '/run/inert-notify'
@@ -195,7 +195,7 @@ class LauncherTests(ContractFixture):
                 self.assertEqual(caught.exception.errno, errno.EBADF)
 
     def test_display_profile_is_fixed_for_main_and_absent_for_other_roles(self):
-        for supplied in ('', 'ac073-800x480', 'another-panel'):
+        for supplied in ('', 'ac073-800x480', 'ac073-800x480-timed-wait', 'another-panel'):
             for role in ARGV:
                 with self.subTest(supplied=supplied, role=role):
                     environ = launcher.environment(role, 7, 'a' * 64, {
@@ -203,7 +203,7 @@ class LauncherTests(ContractFixture):
                         'INKY_STUDIO_DISPLAY_MODE': 'mock',
                     })
                     if role == 'main':
-                        self.assertEqual(environ['INKY_STUDIO_DISPLAY_PROFILE'], 'ac073-800x480')
+                        self.assertEqual(environ['INKY_STUDIO_DISPLAY_PROFILE'], 'ac073-800x480-timed-wait')
                         self.assertEqual(environ['INKY_STUDIO_DISPLAY_MODE'], 'hardware')
                     else:
                         self.assertNotIn('INKY_STUDIO_DISPLAY_PROFILE', environ)
@@ -328,7 +328,7 @@ class LauncherTests(ContractFixture):
         self.assertEqual(result[2:4], (lock.st_dev, lock.st_ino))
         self.assertEqual(result[4]['INKYOS_WRITER_ROLE'], 'main')
         self.assertEqual(result[4]['INKY_STUDIO_DISPLAY_MODE'], 'hardware')
-        self.assertEqual(result[4]['INKY_STUDIO_DISPLAY_PROFILE'], 'ac073-800x480')
+        self.assertEqual(result[4]['INKY_STUDIO_DISPLAY_PROFILE'], 'ac073-800x480-timed-wait')
         self.assertNotIn('SECRET_PASSWORD', result[4])
         with self.assertRaises(self.admission.Refused) as caught:
             with self.admission.factory(self.root, **self.owner):

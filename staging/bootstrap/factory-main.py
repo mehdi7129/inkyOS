@@ -6,6 +6,7 @@ Its closed offline installation is separate from image/runtime qualification.
 import asyncio
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -216,6 +217,27 @@ def install_signals(loop, shutdown):
     return lambda: [loop.remove_signal_handler(number) for number in installed]
 
 
+def install_bootstrap_diagnostics():
+    # Only this pinned module emits the bounded QR/BLE milestones. Do not enable
+    # INFO globally: other application loggers may carry private runtime data.
+    logger = logging.getLogger('inky_web.provisioning.bootstrap_runtime')
+    previous = (logger.level, logger.propagate)
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(logging.Formatter('%(message)s'))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+    def remove():
+        logger.removeHandler(handler)
+        logger.setLevel(previous[0])
+        logger.propagate = previous[1]
+        handler.close()
+
+    return remove
+
+
 async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=None):
     if _root is None:
         require(_proof is None and _components is None and _signals is None)
@@ -228,6 +250,7 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
     stop_requested = asyncio.Event()
     loop = asyncio.get_running_loop()
     remove = None
+    remove_diagnostics = None
     cancelled = False
 
     def shutdown():
@@ -248,6 +271,7 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
         if stop_requested.is_set(): raise Refused('shutdown_requested')
         print('factory_main_phase:graph_bound', file=sys.stderr, flush=True)
         proof.start_monitor(loop, stop_requested)
+        remove_diagnostics = install_bootstrap_diagnostics()
         print('factory_main_phase:components_loading', file=sys.stderr, flush=True)
         serve, display, bootstrap, setup_client, network_client = components()
         print('factory_main_phase:components_loaded', file=sys.stderr, flush=True)
@@ -293,7 +317,10 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
             except BaseException:
                 try: await asyncio.sleep(0.05)
                 except asyncio.CancelledError: cancelled = True
-        if remove is not None: remove()
+        try:
+            if remove is not None: remove()
+        finally:
+            if remove_diagnostics is not None: remove_diagnostics()
         if cancelled: raise asyncio.CancelledError
 
 

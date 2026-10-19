@@ -9,6 +9,7 @@ import asyncio
 from contextlib import contextmanager, redirect_stderr
 import importlib.util
 import io
+import logging
 from pathlib import Path
 import signal
 import sys
@@ -169,6 +170,26 @@ class FactoryMainFixture(unittest.IsolatedAsyncioTestCase):
 
 
 class FactoryMainTests(FactoryMainFixture):
+    async def test_bootstrap_milestones_are_visible_without_global_info_logging(self):
+        logger = logging.getLogger('inky_web.provisioning.bootstrap_runtime')
+        before = (logger.level, logger.propagate, list(logger.handlers))
+        root_level = logging.getLogger().level
+
+        async def exercise(directory, kwargs):
+            logger.info('Factory bootstrap %s', 'qr_ready')
+            logger.info('Factory bootstrap %s', 'ble_advertised')
+            logger.debug('INERT_PRIVATE_DEBUG')
+            self.assertEqual(logging.getLogger().level, root_level)
+            raise PhaseAPending('INERT_PHASE_A_PENDING')
+
+        self.serve_body = exercise
+        with self.assertRaises(PhaseAPending):
+            await self.run_candidate()
+        self.assertIn('Factory bootstrap qr_ready\n', self.diagnostics.getvalue())
+        self.assertIn('Factory bootstrap ble_advertised\n', self.diagnostics.getvalue())
+        self.assertNotIn('INERT_PRIVATE_DEBUG', self.diagnostics.getvalue())
+        self.assertEqual((logger.level, logger.propagate, list(logger.handlers)), before)
+
     async def test_fixed_composition_runs_only_inside_owned_graph(self):
         result, verify_epoch = object(), lambda: 'INERT_EPOCH'
         async def exercise(directory, kwargs):
