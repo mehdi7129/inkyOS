@@ -2,7 +2,7 @@
 
 Set INKYOS_FACTORY_DISPLAY_BACKEND_ROOT to a backend checkout at BACKEND_COMMIT.
 Missing opt-in is an explicit skip; an invalid supplied checkout fails. Only the
-four pinned display modules execute. Image imports, auto() and data_dir() are
+five pinned display modules execute. Image imports, auto() and data_dir() are
 inert seams; tuple/version/profile guards, BUSY selection and barrier reads are
 the real backend code. This proves selection, never physical display output.
 """
@@ -21,12 +21,13 @@ from unittest.mock import Mock, patch
 from test_factory_runtime_contract import ContractFixture, load_module, runtime
 
 BACKEND_ENV = 'INKYOS_FACTORY_DISPLAY_BACKEND_ROOT'
-BACKEND_COMMIT = '302ff5d3fb85b220b90af5f2e7eb1e00343fb4c4'
+BACKEND_COMMIT = 'b8a89eac354aeb4a4b91d497d6324176540c892d'
 SOURCE_PINS = {
     'errors': '744120923d7190927ec61854fb4de560a3432d203dedfd2a461b599d0f5316fc',
     'confirmation': 'fb7f5ffee28cc19f52b4a68c686d4aaf72ea0b327245e1f722f32601b8161efa',
     'busy': '136259a7dc137fe4daf242cee98a6bb776f87fb49eefc7bdd1a50390790077e7',
-    'display': 'de0fbacd6fcc4cc21424e25352e06b77ea65cbfbdb72a3cc4eb9cb94e13532a8',
+    'spi': '90c04f231190639678c0dcbfb28243f5e5468f20e098dc78e46cc9ee07220310',
+    'display': '920da66779f6e322c4b582c4ec2a24d37d019c91bfe674bb3bb23fa02a43630a',
 }
 launcher = load_module('writer_launcher_display_bridge_test', 'scripts/writer-launcher.py')
 

@@ -48,7 +48,7 @@ _COST_LIMIT = 2**31 - 1
 _COST_FIELDS = 16
 DATA = Path('/var/lib/inky-studio')
 APP_ARGV = ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', MAIN)
-STUDIO_COMMIT = '302ff5d3fb85b220b90af5f2e7eb1e00343fb4c4'
+STUDIO_COMMIT = 'b8a89eac354aeb4a4b91d497d6324176540c892d'
 UNITS = {'main': 'inky-studio.service', 'helper': 'inky-network.service',
          'ipc': 'inkyos-initialization.service', 'setup': 'inkyos-system-setup.service'}
 UNIT_TYPES = {'Id': 's', 'Names': 'as', 'LoadState': 's', 'ActiveState': 's',
