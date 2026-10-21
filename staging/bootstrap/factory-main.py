@@ -37,7 +37,7 @@ DIAGNOSTIC_REASONS = frozenset({
     'pid_view_changed', 'pid_view_unconfirmed', 'pidfd_unavailable', 'pin_mismatch',
     'property_shape', 'query_failed', 'reply_shape', 'reply_too_large',
     'resource_close_unconfirmed', 'run_mount_changed', 'runtime_pin_mismatch', 'runtime_pin_shape',
-    'setup_privileges', 'source_baseline', 'source_changed', 'source_check_result',
+    'setup_privileges', 'source_ancestors', 'source_baseline', 'source_changed', 'source_check_result',
     'source_depth_limit', 'source_inventory_incomplete', 'source_inventory_limit',
     'source_metadata', 'source_parent_not_directory', 'source_path', 'source_plan',
     'source_prepare_result', 'source_root_missing', 'source_xattrs', 'state_binding_changed',
@@ -123,6 +123,35 @@ def public_timeout_diagnostic(proof):
         return 'factory_main_observation_timeout:' + json.dumps(value, separators=(',', ':'))
     except BaseException:
         return None
+
+
+def public_cost_diagnostic(proof, milestone):
+    # Six fixed groups (prepare/source/PID1/check/monitor/peer) and one clock
+    # error count. Numeric snapshots only: no paths, identifiers or properties.
+    try:
+        if type(milestone) is not str or milestone not in {'qr_ready', 'ble_advertised', 'refused'}:
+            return None
+        descriptor = type.__getattribute__(type(proof), '__dict__').get('__dict__')
+        if type(descriptor) is not types.GetSetDescriptorType:
+            return None
+        attributes = descriptor.__get__(proof, type(proof))
+        value = attributes.get('_cost_observation') if type(attributes) is dict else None
+        if type(value) is not tuple or len(value) != 16:
+            return None
+        if not all(type(item) is int and 0 <= item <= 2**31 - 1 for item in value):
+            return None
+        return 'factory_main_graph_cost:' + milestone + ':' + json.dumps(value, separators=(',', ':'))
+    except BaseException:
+        return None
+
+
+def emit_cost_diagnostic(proof, milestone, stream):
+    try:
+        diagnostic = public_cost_diagnostic(proof, milestone)
+        if diagnostic is not None:
+            print(diagnostic, file=stream, flush=True)
+    except BaseException:
+        pass  # Optional diagnostics cannot change refusal, cancellation or drain.
 
 
 def require(value):
@@ -217,12 +246,33 @@ def install_signals(loop, shutdown):
     return lambda: [loop.remove_signal_handler(number) for number in installed]
 
 
-def install_bootstrap_diagnostics():
+def install_bootstrap_diagnostics(proof=None):
     # Only this pinned module emits the bounded QR/BLE milestones. Do not enable
     # INFO globally: other application loggers may carry private runtime data.
     logger = logging.getLogger('inky_web.provisioning.bootstrap_runtime')
     previous = (logger.level, logger.propagate)
-    handler = logging.StreamHandler(sys.stderr)
+    class BootstrapHandler(logging.StreamHandler):
+        def __init__(self, stream):
+            super().__init__(stream)
+            self.emitted = set()
+
+        def emit(self, record):
+            super().emit(record)
+            try:
+                # Inspect only the pinned literal format and exact native args;
+                # never call getMessage merely to recognize a diagnostic event.
+                if (type(record.msg) is str and record.msg == 'Factory bootstrap %s'
+                        and type(record.args) is tuple and len(record.args) == 1
+                        and type(record.args[0]) is str
+                        and record.args[0] in {'qr_ready', 'ble_advertised'}):
+                    milestone = record.args[0]
+                    if milestone not in self.emitted:
+                        self.emitted.add(milestone)
+                        emit_cost_diagnostic(proof, milestone, self.stream)
+            except BaseException:
+                pass
+
+    handler = BootstrapHandler(sys.stderr)
     handler.setLevel(logging.INFO)
     handler.setFormatter(logging.Formatter('%(message)s'))
     logger.addHandler(handler)
@@ -271,7 +321,7 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
         if stop_requested.is_set(): raise Refused('shutdown_requested')
         print('factory_main_phase:graph_bound', file=sys.stderr, flush=True)
         proof.start_monitor(loop, stop_requested)
-        remove_diagnostics = install_bootstrap_diagnostics()
+        remove_diagnostics = install_bootstrap_diagnostics(proof)
         print('factory_main_phase:components_loading', file=sys.stderr, flush=True)
         serve, display, bootstrap, setup_client, network_client = components()
         print('factory_main_phase:components_loaded', file=sys.stderr, flush=True)
@@ -291,6 +341,7 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
     except BaseException:
         # Studio may replace a graph refusal with its own fixed runtime code.
         # Observe the public graph reason before close changes graph state.
+        emit_cost_diagnostic(proof, 'refused', sys.stderr)
         try:
             diagnostic = public_graph_diagnostic(proof)
             if diagnostic is not None:

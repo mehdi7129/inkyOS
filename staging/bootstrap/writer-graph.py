@@ -39,6 +39,13 @@ SOURCE_SECONDS = 180.0
 WATCH_SECONDS = 10.0
 CLEANUP_SECONDS = 2.0
 OUTPUT_LIMIT = 262144
+# Diagnostics use the same native clock through a separate test seam; their
+# extra reads must not consume an admission clock fixture's scripted budget.
+_COST_CLOCK = time.monotonic
+_COST_LIMIT = 2**31 - 1
+# prepare(calls,ms), source(calls,ms), PID1 verification blocks(calls,ms),
+# check/monitor/peer(calls,wait_ms,hold_ms), invalid clock samples.
+_COST_FIELDS = 16
 DATA = Path('/var/lib/inky-studio')
 APP_ARGV = ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', MAIN)
 STUDIO_COMMIT = '302ff5d3fb85b220b90af5f2e7eb1e00343fb4c4'
@@ -414,6 +421,62 @@ class Graph:
         self._loop, self._stop_requested = None, None
         self._close_unknown = False
         self._timeout_observation = None
+        self._cost_observation = (0,) * _COST_FIELDS
+
+    def _cost_add(self, updates):
+        try:
+            with self._lock:
+                values = list(self._cost_observation)
+                for index, amount in updates:
+                    values[index] = min(values[index] + amount, _COST_LIMIT)
+                self._cost_observation = tuple(values)
+        except BaseException:
+            pass
+
+    @staticmethod
+    def _cost_now():
+        try:
+            value = _COST_CLOCK()
+            if type(value) in (int, float) and 0 <= value <= (2**53 - 1) / 1000:
+                return value
+        except BaseException:
+            pass
+        return None
+
+    def _cost_start(self, index):
+        self._cost_add(((index, 1),))
+        return self._cost_now()
+
+    def _cost_finish(self, index, started):
+        try:
+            ended = self._cost_now()
+            if started is None or ended is None or ended < started:
+                self._cost_add(((15, 1),))
+            else:
+                self._cost_add(((index + 1, min(int((ended - started) * 1000), _COST_LIMIT)),))
+        except BaseException:
+            pass
+
+    @contextlib.contextmanager
+    def _cost_scope(self, index):
+        started = self._cost_start(index)
+        try:
+            yield
+        finally:
+            self._cost_finish(index, started)
+
+    def _cost_query_finish(self, index, started, acquired_at, acquired):
+        try:
+            ended = self._cost_now()
+            if (started is None or ended is None or ended < started
+                    or acquired and (acquired_at is None or not started <= acquired_at <= ended)):
+                self._cost_add(((15, 1),))
+                return
+            split = acquired_at if acquired else ended
+            self._cost_add(((index + 1, min(int((split - started) * 1000), _COST_LIMIT)),
+                            (index + 2, min(int((ended - split) * 1000), _COST_LIMIT))))
+        except BaseException:
+            pass
 
     def _observation(self, deadline, origin):
         try:
@@ -484,7 +547,8 @@ class Graph:
     def _owned_check(self, deadline, observation=None, step=0):
         observation_stage(observation, 4, step)
         self._lease.check()
-        require(self._sources.check(deadline) is None, 'source_check_result')
+        with self._cost_scope(2):
+            require(self._sources.check(deadline) is None, 'source_check_result')
         self._lease.check()
         remaining(deadline)
 
@@ -492,7 +556,8 @@ class Graph:
         require(self._lease is None and self.state == 'BINDING', 'graph_reused')
         self._lease = self._lease_context.__enter__()
         try:
-            require(self._sources.prepare(self._lease) is None, 'source_prepare_result')
+            with self._cost_scope(0):
+                require(self._sources.prepare(self._lease) is None, 'source_prepare_result')
             self._bind(time.monotonic() + INITIAL_SECONDS)
             return self
         except BaseException:
@@ -531,6 +596,13 @@ class Graph:
 
     def _verify(self, deadline, observation=None):
         self._owned_check(deadline, observation, 1)
+        with self._cost_scope(4):
+            self._verify_manager(deadline, observation)
+        self._owned_check(deadline, observation, 2)
+        observation_stage(observation, 2)
+        require(all(self._backend.live(fd) for fd in self._anchors.values()), 'writer_dead')
+
+    def _verify_manager(self, deadline, observation):
         require(all(self._backend.live(fd) for fd in self._anchors.values()), 'writer_dead')
         observation_stage(observation, 5, 1)
         require(self._backend.resolve(self._anchors['manager'], deadline) == self._manager,
@@ -542,17 +614,17 @@ class Graph:
             observation_stage(observation, 5, 3 + 2 * index)
             require(self._backend.resolve(self._anchors[role], deadline)
                     == (previous.path, previous.name, previous.invocation), 'writer_mapping_changed')
-        self._owned_check(deadline, observation, 2)
-        observation_stage(observation, 2)
-        require(all(self._backend.live(fd) for fd in self._anchors.values()), 'writer_dead')
 
     def _check(self, deadline):
         acquired = False
+        cost_index = 9 if threading.current_thread() is self._monitor else 6
+        cost_started, cost_acquired = self._cost_start(cost_index), None
         observation = self._observation(deadline, 2 if threading.current_thread() is self._monitor else 1)
         try:
             require(self.state == 'ACTIVE', 'graph_invalid')
             acquired = self._query.acquire(timeout=remaining(deadline))
             require(acquired, 'observation_timeout')
+            cost_acquired = self._cost_now()
             observation = self._observation_acquired(observation)
             require(self.state == 'ACTIVE', 'graph_invalid')
             self._verify(deadline, observation)
@@ -563,6 +635,7 @@ class Graph:
             self.invalidate(getattr(error, 'reason', 'observation_failed'))
             raise
         finally:
+            self._cost_query_finish(cost_index, cost_started, cost_acquired, acquired)
             if acquired: self._query.release()
         return None
 
@@ -575,12 +648,15 @@ class Graph:
         fd = None
         entered = False
         observation = None
+        acquired = False
+        cost_started, cost_acquired, cost_finished = self._cost_start(12), None, False
         try:
             deadline = time.monotonic() + CHECK_SECONDS
             observation = self._observation(deadline, 3)
             require(self.state == 'ACTIVE', 'graph_invalid')
             acquired = self._query.acquire(timeout=remaining(deadline))
             require(acquired, 'observation_timeout')
+            cost_acquired = self._cost_now()
             observation = self._observation_acquired(observation)
             try:
                 # Keep verification and peer attestation under one query owner;
@@ -608,13 +684,18 @@ class Graph:
             except BaseException as error:
                 self._observe_timeout(error, observation)
                 raise
-            finally: self._query.release()
+            finally:
+                self._cost_query_finish(12, cost_started, cost_acquired, acquired)
+                cost_finished = True
+                self._query.release()
             yield None
         except BaseException as error:
             self._observe_timeout(error, observation)
             self.invalidate(getattr(error, 'reason', 'peer_failed'))
             raise
         finally:
+            if not cost_finished:
+                self._cost_query_finish(12, cost_started, cost_acquired, acquired)
             # Never query connection here: Studio has already closed/drained it.
             if fd is not None: self._backend.close_pid(fd)
             if entered:
