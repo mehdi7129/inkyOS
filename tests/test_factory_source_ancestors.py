@@ -12,9 +12,10 @@ from pathlib import Path
 import stat
 import sys
 import tempfile
+import time
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,8 +41,13 @@ class SourceAncestorTests(unittest.TestCase):
             self.addCleanup(seam.stop)
         temporary = tempfile.TemporaryDirectory(prefix='source-ancestor-inert.')
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name).resolve()
-        self.root.chmod(0o755)
+        self.base = Path(temporary.name).resolve()
+        self.root = self.base / 'root'
+        self.root.mkdir(mode=0o755)
+        # Outside the pinned root so probing a filesystem tick cannot become
+        # the reason a source scan refuses the unrelated target under test.
+        self.clock_probe = self.base / 'metadata-clock-probe'
+        self.clock_probe.write_bytes(b'INERT filesystem timestamp probe\n')
         for name in ('etc/inky-studio', 'run/systemd', 'var/lib/owned', 'app', 'exporter',
                      'usr/lib/inkyos'):
             (self.root / name).mkdir(mode=0o755, parents=True)
@@ -86,6 +92,23 @@ class SourceAncestorTests(unittest.TestCase):
 
     def check(self, tree, baseline, *, tick=lambda: None):
         return graph.walk_metadata(tree, self.plan, expected=baseline, tick=tick)
+
+    def wait_for_metadata_tick(self, target, baseline_ctime):
+        """Prove a later same-filesystem timestamp before one target mutation.
+
+        Linux may stamp several operations in one coarse clock tick. Never
+        retry the target mutation or the walker to manufacture a refusal.
+        """
+        self.assertEqual(self.clock_probe.stat().st_dev, target.stat().st_dev)
+        deadline = time.monotonic() + 2.0
+        while True:
+            os.utime(self.clock_probe, None)
+            observed = self.clock_probe.stat().st_ctime_ns
+            if observed > baseline_ctime:
+                return observed
+            if time.monotonic() >= deadline:
+                self.fail('fixture metadata clock did not advance past baseline within 2 seconds')
+            time.sleep(0.005)
 
     def test_legacy_strict_plan_reproduces_unowned_child_false_positive(self):
         strict = graph.SourceWalkPlan(self.records)
@@ -173,11 +196,16 @@ class SourceAncestorTests(unittest.TestCase):
             for parent in ('app', 'exporter', 'var/lib/owned', 'usr/lib/inkyos', 'etc/inky-studio'):
                 with self.subTest(parent=parent):
                     path = self.root / parent / 'UNPLANNED'
+                    before = path.parent.stat()
+                    self.wait_for_metadata_tick(path.parent, before.st_ctime_ns)
                     path.write_bytes(b'not in closed inventory')
+                    self.assertNotEqual(path.parent.stat().st_ctime_ns, before.st_ctime_ns)
                     with self.assertRaisesRegex(graph.Refused, '^source_changed$'):
                         self.check(tree, baseline)
                     path.unlink()
-                    # Removing it cannot restore the original strict ctime.
+                    # Once a later ctime was actually observed, removal does
+                    # not restore the original metadata-only baseline.
+                    self.assertNotEqual(path.parent.stat().st_ctime_ns, before.st_ctime_ns)
                     with self.assertRaisesRegex(graph.Refused, '^source_changed$'):
                         self.check(tree, baseline)
                     baseline = self.capture(tree)
@@ -187,11 +215,23 @@ class SourceAncestorTests(unittest.TestCase):
         with self.tree() as tree:
             baseline = self.capture(tree)
             before = path.stat()
+            self.wait_for_metadata_tick(path, before.st_ctime_ns)
             path.write_bytes(b'X' * before.st_size)
             os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
             self.assertNotEqual(path.stat().st_ctime_ns, before.st_ctime_ns)
             with self.assertRaisesRegex(graph.Refused, '^source_changed$'):
                 self.check(tree, baseline)
+
+    def test_metadata_tick_precondition_has_a_bounded_failure_without_clock_progress(self):
+        target = self.root / 'etc/pinned'
+        before = target.stat()
+        self.clock_probe = SimpleNamespace(stat=lambda: SimpleNamespace(
+            st_dev=before.st_dev, st_ctime_ns=before.st_ctime_ns))
+        clock = SimpleNamespace(monotonic=Mock(side_effect=(10.0, 12.0)), sleep=Mock())
+        with patch.object(os, 'utime', return_value=None), patch.object(sys.modules[__name__], 'time', clock):
+            with self.assertRaisesRegex(AssertionError, 'metadata clock did not advance'):
+                self.wait_for_metadata_tick(target, before.st_ctime_ns)
+        clock.sleep.assert_not_called()
 
     def test_open_ancestor_mode_drift_still_refuses(self):
         with self.tree() as tree:
