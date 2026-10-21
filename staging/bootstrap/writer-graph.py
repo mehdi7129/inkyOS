@@ -730,12 +730,20 @@ def installed_runtime():
 
 MAX_RECORDS = 20000
 MAX_PARENT_FDS = 15  # Additional to Tree.fd; one temporary regular-file FD.
+# These filesystem/system ancestors carry unrelated runtime children. This is
+# deliberately not every directory in support.paths: product/config directory
+# stamps and all declared closed trees keep their original strict observation.
+MUTABLE_SOURCE_ANCESTORS = frozenset({'.', 'etc', 'run', 'run/systemd', 'var', 'var/lib'})
 
 
 def _source_stamp(info):
     # Same nine fields as runtime.stamp; atime is intentionally excluded.
     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
             info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _source_ancestor_identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -747,8 +755,9 @@ class SourceWalkPlan:
     """
     nodes: types.MappingProxyType
     children: types.MappingProxyType
+    ancestors: frozenset
 
-    def __init__(self, records):
+    def __init__(self, records, *, ancestors=()):
         require(type(records) is dict and 0 < len(records) <= MAX_RECORDS, 'source_inventory_limit')
         nodes, children = {}, {}
         for path, record in records.items():
@@ -769,9 +778,25 @@ class SourceWalkPlan:
             parent = parent or '.'
             require(parent in children, 'source_parent_not_directory')
             children[parent].append((leaf, path))
+        require(type(ancestors) in (tuple, set, frozenset)
+                and all(type(path) is str and path in children for path in ancestors),
+                'source_ancestors')
         object.__setattr__(self, 'nodes', types.MappingProxyType(nodes))
         object.__setattr__(self, 'children', types.MappingProxyType(
             {path: tuple(sorted(items)) for path, items in children.items()}))
+        object.__setattr__(self, 'ancestors', frozenset(ancestors))
+
+    @classmethod
+    def installed(cls, runtime, support, records):
+        # The finite allowlist applies only to validated support.paths directory
+        # ancestors. App/exporter and support tree contents always stay strict,
+        # including any overlap with support.paths or the finite allowlist.
+        closed = (*support['trees'], runtime.APP, runtime.EXPORTER)
+        ancestors = {path for path, record in support['paths'].items()
+                     if path in MUTABLE_SOURCE_ANCESTORS and record['type'] == 'directory'
+                     and not any(prefix == '.' or path == prefix or path.startswith(prefix + '/')
+                                 for prefix in closed)}
+        return cls(records, ancestors=ancestors)
 
 
 def walk_metadata(tree, plan, *, tick, expected=None):
@@ -783,7 +808,9 @@ def walk_metadata(tree, plan, *, tick, expected=None):
     Both modes retain xattr checks, UID/GID, stable opened inodes and no-follow
     parent→child bindings. Each directory binding and stamp is checked again
     after its descendants. No descriptor survives the call, except borrowed
-    Tree.fd, which this function never closes.
+    Tree.fd, which this function never closes. Only explicitly planned traversal
+    ancestors exclude their unrelated-child timestamp/size/link-count changes;
+    pinned closed-tree directories and files keep their strict original stamp.
     """
     require(type(plan) is SourceWalkPlan and callable(tick), 'source_plan')
     require(expected is None or type(expected) is dict and len(expected) == len(plan.nodes), 'source_baseline')
@@ -816,7 +843,11 @@ def walk_metadata(tree, plan, *, tick, expected=None):
                 or (kind == 'symlink' and stat.S_ISLNK(before.st_mode)), 'source_metadata')
         # `before` is one immutable stat result, not a fresh observation. Reuse
         # its stamp/type while retaining every later fd/name/xattr observation.
-        before_stamp = _source_stamp(before)
+        # Select once per record, keeping every later fd/name observation.
+        # Only the six allowed system entries ignore unrelated-child effects;
+        # owned trees and every other record retain the full strict stamp.
+        stamp = _source_ancestor_identity if path in plan.ancestors else _source_stamp
+        before_stamp = stamp(before)
         target = None
         if kind == 'symlink':
             require(not os.listxattr('/proc/self/fd/%d/%s' % (parent, leaf), follow_symlinks=False),
@@ -830,18 +861,18 @@ def walk_metadata(tree, plan, *, tick, expected=None):
                 require(depth <= MAX_PARENT_FDS, 'source_depth_limit')
             fd = parent if path == '.' else os.open(leaf, flags, dir_fd=parent)
             try:
-                require(_source_stamp(os.fstat(fd)) == before_stamp and not os.listxattr(fd), 'source_metadata')
+                require(stamp(os.fstat(fd)) == before_stamp and not os.listxattr(fd), 'source_metadata')
                 observed = metadata(before, before_stamp, kind, path, None)
                 if kind == 'directory':
                     for child, child_path in plan.children[path]:
                         visit(fd, child, child_path, depth + 1)
                     tick()
                     require(not os.listxattr(fd), 'source_xattrs')
-                require(_source_stamp(os.fstat(fd)) == before_stamp, 'source_changed')
+                require(stamp(os.fstat(fd)) == before_stamp, 'source_changed')
             finally:
                 if path != '.':
                     os.close(fd)
-        require(_source_stamp(os.stat(leaf, dir_fd=parent, follow_symlinks=False)) == before_stamp, 'source_changed')
+        require(stamp(os.stat(leaf, dir_fd=parent, follow_symlinks=False)) == before_stamp, 'source_changed')
         if result is not None:
             result[path] = observed
         visited += 1
@@ -895,7 +926,7 @@ class InstalledSources:
                 'run/inkyos-admission/attempted', 'run/inkyos-admission/Ready')}
             # Immutable pinned membership; one no-follow DFS fuses metadata and
             # baseline stamps. Every later check visits every pinned record.
-            self._plan = SourceWalkPlan(records)
+            self._plan = SourceWalkPlan.installed(runtime, support, records)
             self._metadata = walk_metadata(tree, self._plan, tick=lambda: remaining(deadline))
             # Hash between baseline capture and its fresh comparison. Otherwise a
             # concurrent change after admission could become our accepted baseline.
