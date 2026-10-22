@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch
 from test_factory_runtime_contract import ContractFixture, load_module, runtime
 
 BACKEND_ENV = 'INKYOS_FACTORY_DISPLAY_BACKEND_ROOT'
-BACKEND_COMMIT = '7148bdbaa53362085e8278c340edfd4c037f8e53'
+BACKEND_COMMIT = '64ce0faef071591bd390593907e0fb2dc95fe680'
 SOURCE_PINS = {
     'errors': '744120923d7190927ec61854fb4de560a3432d203dedfd2a461b599d0f5316fc',
     'confirmation': 'fb7f5ffee28cc19f52b4a68c686d4aaf72ea0b327245e1f722f32601b8161efa',

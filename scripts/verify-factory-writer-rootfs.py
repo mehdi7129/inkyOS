@@ -15,7 +15,7 @@ _spec.loader.exec_module(guards)
 Refused, require = guards.Refused, guards.require
 canonical, sha = guards.planner.canonical, guards.planner.exporter.sha
 
-STUDIO_COMMIT = '7148bdbaa53362085e8278c340edfd4c037f8e53'
+STUDIO_COMMIT = '64ce0faef071591bd390593907e0fb2dc95fe680'
 BUNDLE = 'usr/lib/inky-studio'
 HELPER_SOURCE = 'scripts/inky-network-helper.py'
 HELPER = 'usr/local/lib/inky-studio/network-helper.py'
