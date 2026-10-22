@@ -56,18 +56,22 @@ class TemplatePolicyTests(unittest.TestCase):
             if unit in {'inkyos-initialization.service','inky-network.service','inkyos-system-setup.service'}:
                 self.assertEqual(service['Type'], 'notify')
                 self.assertEqual(service['NotifyAccess'], 'main')
-                self.assertEqual(service['TimeoutStartSec'], '10s' if unit=='inkyos-initialization.service' else '90s')
+                self.assertEqual(service['TimeoutStartSec'], '90s')
             else:
                 self.assertEqual(service['Type'], 'exec')
                 self.assertNotIn('NotifyAccess', service)
 
-    def test_order_uses_no_stop_propagation(self):
+    def test_setup_ap_lifetime_is_bound_to_main_without_reverse_ordering(self):
         for unit in runtime.UNIT_TEMPLATES:
             with self.subTest(unit=unit):
                 stanza = config(unit)['Unit']
                 for key in ('Requires', 'Requisite', 'BindsTo', 'PartOf', 'Conflicts',
                             'PropagatesStopTo', 'StopPropagatedFrom'):
-                    self.assertNotIn(key, stanza)
+                    if unit == 'inkyos-system-setup.service' and key == 'BindsTo':
+                        self.assertEqual(stanza[key], 'inky-studio.service')
+                        self.assertNotIn('inky-studio.service', stanza['After'].split())
+                    else:
+                        self.assertNotIn(key, stanza)
         expected = {
             'inky-studio.service': {'inkyos-initialization.service', 'inky-network.service'},
             'inky-network.service': {'inkyos-initialization.service', 'NetworkManager.service'},

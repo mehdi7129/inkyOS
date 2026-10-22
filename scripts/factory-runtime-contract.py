@@ -36,7 +36,7 @@ SUPERVISOR_FILES = {MODULE_DIR + '/factory-supervisor.py': '0555', WRITER_PARENT
 # The two existing supervisor units participate in the same closed file graph.
 UNIT_TEMPLATES = {
     'inkyos-wlan-close.service': '6f77433c904738d0aec29177130fb4d6b46a4f1eef335d01d850599ea59ffff0',
-    'inkyos-system-setup.service': 'a931337d6ef281cbe691b7b3a3b7adb621e2f89c702b242a5d17b77f507cd53c',
+    'inkyos-system-setup.service': '41d9ac40f9b354e0a878e5d13eba23449cffdb520a5d3363da3e49c98eb64b7e',
     'inky-studio.service': '422be607cac20a649117a8e64a74ede159799f94c70b9e5f55ccb00db2484779',
     'inky-network.service': 'e242b4b28f40aab4b52572e93677b5aadde09b525b991ff69178ed3ecddfe517',
     'inkyos-initialization.service': 'b7677cb7356f5b916387e788dc2e02f37f34257d24c17d88049620c4f9c091f2',
@@ -46,9 +46,12 @@ UNIT_TEMPLATES = {
 UNIT_VENDOR_DIR = 'usr/lib/systemd/system'
 SETUP_FILES = {MODULE_DIR + '/' + name: '0555' for name in (
     'factory-main.py','writer-graph.py','time-policy.py','system-setup.py',
-    'system-setup-native.py','system-setup-gate.py')}
+    'system-setup-native.py','system-setup-gate.py',
+    'system-setup-ap.py','system-setup-ap-native.py')}
 SETUP_FILES[MODULE_DIR + '/system-setup-contract.json'] = '0444'
-NATIVE_COMMANDS = {'usr/bin/busctl', 'usr/sbin/iw', 'usr/bin/nmcli', 'usr/bin/systemctl'}
+SETUP_FILES[MODULE_DIR + '/softap-region.json'] = '0444'
+NATIVE_COMMANDS = {'usr/bin/busctl', 'usr/sbin/iw', 'usr/bin/nmcli', 'usr/bin/systemctl',
+                   'usr/sbin/dnsmasq', 'usr/sbin/nft'}
 WRITER_FILES = {UNIT_VENDOR_DIR + '/' + unit: '0644' for unit in UNIT_TEMPLATES}
 # systemd v257.13 path-lookup.c: normal system-manager lookup roots. This is a
 # file policy, not an observation of PID1's compiled paths or UNIT_PATH override.

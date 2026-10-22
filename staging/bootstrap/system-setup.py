@@ -27,12 +27,15 @@ import uuid
 SELF = "/usr/lib/inkyos/system-setup.py"
 CONTRACT = "/usr/lib/inkyos/system-setup-contract.json"
 NATIVE = "/usr/lib/inkyos/system-setup-native.py"
+AP = "/usr/lib/inkyos/system-setup-ap.py"
+AP_NATIVE = "/usr/lib/inkyos/system-setup-ap-native.py"
+AP_POLICY = "/usr/lib/inkyos/softap-region.json"
 GRAPH = "/usr/lib/inkyos/writer-graph.py"
 POLICY = "/usr/lib/inkyos/time-policy.py"
 STATE = "/var/lib/inkyos/system-setup"
 SOCKET = "/run/inkyos-system-setup/control.sock"
 POLICY_SHA = "68bde4a4ff166b4b2f945bc8dbf8664750cee4f43e3315d8b3e624075a5c7148"
-CONTRACT_SHA = "9ee767fbdb75250546ca950c4d1fff58c8e1d0b6b9029742b61efea9bd2a7b52"
+CONTRACT_SHA = "e76001c8593f85eeacbf0e45b904301bc0afae129ba02ec3a5ee848b686dbddd"
 LIMIT = 1024 * 1024
 
 
@@ -528,11 +531,38 @@ class Session:
                 "session_closed",
             )
 
+    def read_check(self):
+        """Continuity during bounded readbacks, never admission for an effect.
+
+        Full Graph.check still runs at operation boundaries and immediately
+        before/after each native effect. Read-only D-Bus/polling steps only need
+        the live connection/stopping flag and the already owned graph state.
+        Graph's lock makes the ACTIVE observation atomic with invalidation.
+        """
+        require(self.stopping is None or not self.stopping.is_set(), "session_closed")
+        with self.proof._lock:
+            require(self.proof.state == "ACTIVE", "session_closed")
+        readable, _, _ = select.select([self.connection], [], [], 0)
+        if readable:
+            require(
+                self.connection.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT) != b"",
+                "session_closed",
+            )
+        require(self.stopping is None or not self.stopping.is_set(), "session_closed")
+        with self.proof._lock:
+            require(self.proof.state == "ACTIVE", "session_closed")
+
 
 class Setup:
-    def __init__(self, journal, native, policy, schema, *, _root=None):
+    def __init__(
+        self, journal, native, policy, schema, *, ap_controller=None, _root=None
+    ):
         if _root is None:
-            require(Path(__file__) == Path(SELF) and type(native).__name__ == "Native")
+            require(
+                Path(__file__) == Path(SELF)
+                and type(native).__name__ == "Native"
+                and ap_controller is not None
+            )
         else:
             root = Path(_root)
             require(
@@ -546,6 +576,8 @@ class Setup:
             policy,
             schema,
         )
+        self.ap = ap_controller
+        self.ap_radio_prepared = False
         self.effects = threading.Lock()
         self.live_country = self.live_radio = self.live_clock = None
 
@@ -556,6 +588,156 @@ class Setup:
         self.native.consumed(value)
         existing = self.journal.data["workflow"]
         require(existing is None or existing == value, "conflict")
+
+    def _ap_check(self, session, *, deadline=None):
+        def budget():
+            if deadline is not None:
+                require(self.native.boottime() < deadline, "effect_uncertain")
+
+        def check():
+            session.check()
+            self.journal.check()
+            budget()
+
+        def read_check():
+            # Fixtures/other callbacks without the narrow seam stay strict.
+            reader = getattr(session, "read_check", None)
+            if not callable(reader):
+                return check()
+            reader()
+            self.journal.check()
+            budget()
+
+        check.read_check = read_check
+        return check
+
+    def ap_request(self, session, op, args):
+        """Secrets cross only an already attested per-peer main_guard connection.
+
+        Start/status are transport recovery only and require the real consumed
+        workflow plus current observed main context even after adoption. They
+        grant no ownership, publication or factory claim authority. Stop after
+        adoption requires a current matching owner/claim/epoch binding.
+        """
+        require(self.ap is not None, "unavailable")
+        value = args["workflow"]
+        require(self.effects.acquire(blocking=False), "conflict")
+        try:
+            check = self._ap_check(session)
+            check()
+            with self.journal.lock:
+                self.checked_workflow(value)
+                if op == "setup.ap.stop" and self.journal.data["challenges"]:
+                    # Start/status expose a transport only: the admitted main
+                    # still authenticates the existing owner over that channel.
+                    # Explicit stop after adoption remains current-owner bound.
+                    first = self.journal.data["challenges"][0]["binding"]
+                    require(
+                        session.binding is not None
+                        and workflow(session.binding) == value
+                        and all(
+                            session.binding[key] == first[key]
+                            for key in ("owner_id", "claim_request_id")
+                        )
+                        and session.binding["credential_epoch"]
+                        == self.journal.data["challenges"][-1]["binding"]["credential_epoch"],
+                        "forbidden",
+                    )
+            check()
+            context = self.context(session)
+            initial = op == "setup.ap.start" and not self.ap_radio_prepared
+            if initial:
+                # Validate sticky BOOTTIME/entropy and reserve the one AP
+                # identity before any native clock/country/radio effect.
+                self.ap.reserve(value, context, check)
+                # Only a fresh consumed factory workflow may cross the boot
+                # WLAN gate. The region is pinned FR prototype policy, not a
+                # default supplied by the phone. Only an independently
+                # root-approved, currently inactive station profile is allowed.
+                gate = self.native.gate(context)
+                self.schema.named(gate, "Gate")
+                self.native.inventory(session.proof)
+                check()
+                self.ap.adapter.preflight(check)
+                check()
+                try:
+                    country = self.native.country("FR", check)
+                    self.schema.named(country, "Country")
+                    check()
+                    self.native.inventory(session.proof)
+                    check()
+                    radio = self.native.enable_wlan(country, check)
+                    self.schema.named(radio, "Radio")
+                    check()
+                    result = self.ap.start(value, context, check)
+                    self.schema.named(result, "APState")
+                    check()
+                    self.ap_radio_prepared = True
+                    return result
+                except BaseException:
+                    self._close_initial_ap(value, context, session.proof)
+                    raise
+            result = getattr(self.ap, op.rsplit(".", 1)[-1])(
+                value, context, check
+            )
+            self.schema.named(result, "APState")
+            check()
+            return result
+        finally:
+            self.effects.release()
+
+    def _close_initial_ap(self, value, context, proof):
+        # Retain the lease until targeted AP cleanup and positive observation.
+        # Enabling WLAN can auto-connect an approved saved station before the
+        # AP activation. Preserve that proven LAN instead of cutting it down.
+        while True:
+            try:
+                if self.ap.has_started:
+                    self.ap.stop(value, context, self.journal.check)
+                try:
+                    self.ap.adapter.preflight(self.journal.check)
+                except Exception:
+                    observation = self.native.network_latest(proof)
+                    self.schema.named(observation, "NetworkObservation")
+                    self.native.check_network(observation, ready=True)
+                    return
+                self.native.close_wlan()
+                return
+            except Exception:
+                # Unknown activity or cleanup stays owned and is never turned
+                # into an authorization to disconnect somebody else's link.
+                time.sleep(0.05)
+
+    def expire_ap(self):
+        # The process-wide writer_guard remains owned. Expiry admits no new
+        # effect: only targeted cleanup of an already owned AP is allowed.
+        if self.ap is not None and self.effects.acquire(blocking=False):
+            try:
+                self.ap.expire_owned(self.journal.check)
+            finally:
+                self.effects.release()
+
+    def close_ap(self):
+        # A failed/blocked close must retain the writer lease until readback.
+        if self.ap is not None:
+            with self.effects:
+                while True:
+                    try:
+                        self.ap.close(self.journal.check)
+                        break
+                    except Exception:
+                        time.sleep(0.05)
+
+    def _ap_evidence(self, session, check):
+        require(self.ap is not None, "unavailable")
+        evidence = self.ap.apply_evidence(
+            workflow(session.binding), self.context(session), session.proof, check
+        )
+        require(type(evidence) is dict and set(evidence) == {"gate", "country", "radio"})
+        for key, name in (("gate", "Gate"), ("country", "Country"), ("radio", "Radio")):
+            self.schema.named(evidence[key], name)
+        require(evidence["country"]["requested_country"] == "FR", "country_unconfirmed")
+        return evidence
 
     def live(self, session):
         context = self.context(session)
@@ -636,6 +818,8 @@ class Setup:
         session.check()
         self.journal.check()
         op, args = request["op"], request["args"]
+        if op in {"setup.ap.start", "setup.ap.status", "setup.ap.stop"}:
+            return self.ap_request(session, op, args)
         if op == "setup.open":
             require(session.binding is None, "conflict")
             self.checked_workflow(workflow(args["binding"]))
@@ -709,7 +893,12 @@ class Setup:
                         and previous["state"] in {"uncertain", "effects_completed"},
                         "conflict",
                     )
-                    self.native.close_wlan()
+                    if self.ap is not None and self.ap.has_started:
+                        # Recovery of AP setup preserves only a currently
+                        # verified owned AP; it never reopens RF implicitly.
+                        self._ap_evidence(session, self._ap_check(session))
+                    else:
+                        self.native.close_wlan()
                     self.live_country = self.live_radio = self.live_clock = None
                 else:
                     require(args["supersedes_operation_id"] is None, "conflict")
@@ -746,6 +935,8 @@ class Setup:
                 return copy.deepcopy(previous)
         require(self.effects.acquire(blocking=False), "conflict")
         admitted = False
+        ap_mode = self.ap is not None and self.ap.has_started
+        ap_context = ap_workflow = None
         try:
             with self.journal.lock:
                 challenge = self.journal.challenge(args["operation_id"])
@@ -766,7 +957,16 @@ class Setup:
                 )
                 require(len(self.journal.data["operations"]) < 64, "ledger_full")
                 session.check()
-                gate = self.native.gate(self.context(session))
+                if ap_mode:
+                    # Capture the original cleanup binding while admission is
+                    # live; cleanup must not need a now disconnected peer.
+                    ap_context = self.context(session)
+                    ap_workflow = workflow(session.binding)
+                    require(args["country"] == "FR", "country_unconfirmed")
+                    evidence = self._ap_evidence(session, self._ap_check(session))
+                    gate = evidence["gate"]
+                else:
+                    gate = self.native.gate(self.context(session))
                 operation = {
                     "operation_id": args["operation_id"],
                     "state": "pending",
@@ -784,16 +984,26 @@ class Setup:
                 session.check()
                 require(self.native.boottime() < deadline, "effect_uncertain")
 
+            if ap_mode:
+                check = self._ap_check(session, deadline=deadline)
             check()
             clock = self.native.clock(args["utc_seconds"], self.policy)
             check()
-            self.native.inventory(session.proof)
-            check()
-            country = self.native.country(args["country"], check)
-            check()
-            self.native.inventory(session.proof)
-            check()
-            radio = self.native.enable_wlan(country, check)
+            if ap_mode:
+                # FR was explicitly prepared by the pinned prototype policy
+                # before advertising the AP. Reattest the exact owned AP and
+                # radio instead of toggling WLAN beneath the phone connection.
+                evidence = self._ap_evidence(session, check)
+                require(evidence["gate"] == gate, "effect_uncertain")
+                country, radio = evidence["country"], evidence["radio"]
+            else:
+                self.native.inventory(session.proof)
+                check()
+                country = self.native.country(args["country"], check)
+                check()
+                self.native.inventory(session.proof)
+                check()
+                radio = self.native.enable_wlan(country, check)
             check()
             receipt = sealed(
                 {
@@ -825,7 +1035,14 @@ class Setup:
                 # Cleanup remains owned. A failed/blocked cleanup cannot release SH.
                 while True:
                     try:
-                        self.native.close_wlan()
+                        if ap_mode:
+                            # Close only the owned AP. Never globally disable a
+                            # station transaction that may have taken over.
+                            self.ap.stop(
+                                ap_workflow, ap_context, self.journal.check,
+                            )
+                        else:
+                            self.native.close_wlan()
                         break
                     except Exception:
                         time.sleep(0.05)
@@ -1158,6 +1375,7 @@ def serve(journal, setup, schema, graph_module, stopping):
 
     try:
         while not stopping.is_set():
+            setup.expire_ap()
             try:
                 connection, _ = listener.accept()
             except socket.timeout:
@@ -1275,18 +1493,28 @@ def main():
     )
     policy = load_pinned(sources, POLICY, expected=POLICY_SHA)
     native_module = load_pinned(sources, NATIVE)
+    ap_module = load_pinned(sources, AP)
+    ap_native_module = load_pinned(sources, AP_NATIVE)
+    ap_policy = load_pinned(sources, AP_POLICY, json_data=True)
     stopping = threading.Event()
     for number in (signal.SIGTERM, signal.SIGINT):
         signal.signal(number, lambda *_: stopping.set())
     # Fresh admission held even before main exists; graph binding is per incoming peer.
     with runtime.writer_guard("setup"):
         journal = Journal(STATE, schema)
+        setup = None
         try:
             native = native_module.Native(runtime, contract)
-            setup = Setup(journal, native, policy, schema)
+            ap_native = ap_native_module.NativeAP(native)
+            ap_controller = ap_module.Controller(
+                ap_native, ap_policy, boottime_ns=native.boottime
+            )
+            setup = Setup(journal, native, policy, schema, ap_controller=ap_controller)
             verify_socket_parent(runtime, contract)
             serve(journal, setup, schema, graph_module, stopping)
         finally:
+            if setup is not None:
+                setup.close_ap()
             journal.close()
 
 

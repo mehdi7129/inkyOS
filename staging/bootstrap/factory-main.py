@@ -230,8 +230,10 @@ def load_components():
     from inky_web.provisioning.factory_continuation import FactoryContinuationRuntime
     from inky_web.provisioning.system_setup_ipc import SystemSetupClient
     from inky_web.provisioning.network import NetworkClient
+    from inky_web.provisioning.softap import SoftAPController
     from inky_web.inky.display import DisplayController
-    return serve_factory_phase_a, DisplayController, FactoryContinuationRuntime, SystemSetupClient, NetworkClient
+    return (serve_factory_phase_a, DisplayController, FactoryContinuationRuntime,
+            SystemSetupClient, NetworkClient, SoftAPController)
 
 
 def install_signals(loop, shutdown):
@@ -323,18 +325,23 @@ async def run_phase_a(*, _root=None, _proof=None, _components=None, _signals=Non
         proof.start_monitor(loop, stop_requested)
         remove_diagnostics = install_bootstrap_diagnostics(proof)
         print('factory_main_phase:components_loading', file=sys.stderr, flush=True)
-        serve, display, bootstrap, setup_client, network_client = components()
+        serve, display, bootstrap, setup_client, network_client, softap_controller = components()
         print('factory_main_phase:components_loaded', file=sys.stderr, flush=True)
         require(callable(serve) and callable(display) and callable(bootstrap))
         require(proof.check() is None)
+        def runtime_factory(result, controller, verify_epoch):
+            # This image explicitly selects SoftAP. Both the runtime and AP
+            # controller use the same attested setup client and workflow.
+            system_setup = setup_client(peer_guard=proof.setup_guard)
+            return bootstrap(result, verify_epoch, controller, DATA / "provisioning",
+                             system_setup=system_setup,
+                             network=network_client(peer_guard=proof.network_guard),
+                             softap=softap_controller(system_setup))
         # Studio owns its additional fresh SH and every submitted operation/drain.
         print('factory_main_phase:phase_a_enter', file=sys.stderr, flush=True)
         await serve(DATA, stop_requested=stop_requested,
                     display_factory=lambda: display(mode='hardware'),
-                    runtime_factory=lambda result, controller, verify_epoch:
-                        bootstrap(result, verify_epoch, controller, DATA / "provisioning",
-                                  system_setup=setup_client(peer_guard=proof.setup_guard),
-                                  network=network_client(peer_guard=proof.network_guard)),
+                    runtime_factory=runtime_factory,
                     admission_check=proof.check,
                     initialization_peer_guard=proof.initialization_guard)
         raise Refused('phase_a_returned')

@@ -612,7 +612,12 @@ class Native:
         require(not self.wireless() and soft, "cleanup_unconfirmed")
         return index
 
-    def gate(self, context):
+    def gate_receipt(self, context):
+        """Historical same-boot close receipt; does not assert the live radio is closed.
+
+        Only the explicitly owned AP branch may use this without gate()'s
+        current RF checks. The AP adapter supplies independent live readbacks.
+        """
         path = "run/inkyos-wlan-gate/closed.json"
         with self.contract.tree() as tree:
             raw = tree.read(path, 0o644, 4096)
@@ -629,6 +634,10 @@ class Native:
                 {key: item for key, item in value.items() if key != "record_sha256"}
             )
         )
+        return value
+
+    def gate(self, context):
+        value = self.gate_receipt(context)
         _, soft, _ = self.rfkill()
         require(soft and not self.wireless())
         return value
@@ -743,14 +752,32 @@ class Native:
         self.gate(context)
         return True
 
-    def inventory(self, proof):
+    def inventory(self, proof, *, ap_uuid=None):
+        # ap_uuid is supplied only after NativeAP verifies its exact volatile
+        # owned profile, active connection and current device/country evidence.
+        if ap_uuid is not None:
+            require(
+                type(ap_uuid) is str
+                and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", ap_uuid),
+                "network_unconfirmed",
+            )
         try:
             observation = self.network_latest(proof)
-            self.check_network(observation, ready=False)
+            if ap_uuid is None:
+                self.check_network(observation, ready=False)
+            else:
+                # Only this inventory call follows NativeAP's exact current
+                # AP attestation. AP activity does not mean station readiness.
+                self._check_network(
+                    observation, ready=False, verified_ap_uuid=ap_uuid
+                )
             allowed = {observation["profile_uuid"]}
         except ObservationError as error:
             require(error.reason == "not_found", "network_unconfirmed")
             allowed = set()
+        if ap_uuid is not None:
+            require(ap_uuid not in allowed, "network_unconfirmed")
+            allowed.add(ap_uuid)
         raw = self.command.run(
             (
                 "/usr/bin/nmcli",
@@ -864,7 +891,24 @@ class Native:
         return self.helper({"op": "inspect_latest_committed"}, proof)
 
     def check_network(self, observation, *, ready):
+        # Public station observations remain strict, including readonly status.
+        return self._check_network(observation, ready=ready)
+
+    def _check_network(self, observation, *, ready, verified_ap_uuid=None):
         # Independent current NM evidence. A helper-owned JSON file is insufficient.
+        # The private AP exception is only used by inventory after NativeAP has
+        # attested that exact owned live AP. It can never authorize LAN readiness.
+        if verified_ap_uuid is not None:
+            require(
+                ready is False
+                and type(verified_ap_uuid) is str
+                and re.fullmatch(
+                    r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}",
+                    verified_ap_uuid,
+                )
+                and verified_ap_uuid != observation["profile_uuid"],
+                "network_unconfirmed",
+            )
         require(
             observation["boot_id"]
             == Path("/proc/sys/kernel/random/boot_id").read_text().strip()
@@ -937,7 +981,10 @@ class Native:
         if ready:
             require(active == identifier and ipv4, "network_unconfirmed")
         else:
-            require(active in {None, identifier}, "network_unconfirmed")
+            allowed = {None, identifier}
+            if verified_ap_uuid is not None:
+                allowed.add(verified_ap_uuid)
+            require(active in allowed, "network_unconfirmed")
 
     def origin(self):
         try:

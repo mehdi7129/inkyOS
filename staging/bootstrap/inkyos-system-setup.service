@@ -2,6 +2,7 @@
 [Unit]
 Description=InkyOS admitted clock and WLAN setup
 Wants=inkyos-initialization.service NetworkManager.service
+BindsTo=inky-studio.service
 After=local-fs.target inkyos-initialization.service NetworkManager.service
 
 [Service]

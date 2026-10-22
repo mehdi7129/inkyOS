@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "country": "FR",
+  "interface": "wlan0",
+  "channel": 6,
+  "host": "192.168.4.1",
+  "prefix": 24,
+  "port": 9443,
+  "ttl_seconds": 1800,
+  "ssid_prefix": "Inky-"
+}

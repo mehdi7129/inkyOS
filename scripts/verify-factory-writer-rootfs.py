@@ -15,7 +15,7 @@ _spec.loader.exec_module(guards)
 Refused, require = guards.Refused, guards.require
 canonical, sha = guards.planner.canonical, guards.planner.exporter.sha
 
-STUDIO_COMMIT = 'b8a89eac354aeb4a4b91d497d6324176540c892d'
+STUDIO_COMMIT = '7148bdbaa53362085e8278c340edfd4c037f8e53'
 BUNDLE = 'usr/lib/inky-studio'
 HELPER_SOURCE = 'scripts/inky-network-helper.py'
 HELPER = 'usr/local/lib/inky-studio/network-helper.py'
@@ -24,8 +24,10 @@ HELPER = 'usr/local/lib/inky-studio/network-helper.py'
 SOURCE_MAP = {
     **{'staging/bootstrap/' + name: ('usr/lib/inkyos/' + name, '0555') for name in
        ('factory-main.py', 'writer-graph.py', 'writer-admission.py', 'writer-parents.py', 'time-policy.py',
-        'system-setup.py', 'system-setup-native.py', 'system-setup-gate.py')},
+        'system-setup.py', 'system-setup-native.py', 'system-setup-gate.py',
+        'system-setup-ap.py', 'system-setup-ap-native.py')},
     'staging/bootstrap/system-setup-contract.json': ('usr/lib/inkyos/system-setup-contract.json','0444'),
+    'staging/bootstrap/softap-region.json': ('usr/lib/inkyos/softap-region.json', '0444'),
     **{'scripts/' + name: ('usr/lib/inkyos/' + name, '0555') for name in
        ('factory-runtime-contract.py', 'factory-supervisor.py', 'writer-launcher.py')},
     **{'scripts/' + name: ('usr/local/lib/inkyos/' + name, '0555') for name in

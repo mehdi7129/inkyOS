@@ -48,7 +48,7 @@ _COST_LIMIT = 2**31 - 1
 _COST_FIELDS = 16
 DATA = Path('/var/lib/inky-studio')
 APP_ARGV = ('/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B', MAIN)
-STUDIO_COMMIT = 'b8a89eac354aeb4a4b91d497d6324176540c892d'
+STUDIO_COMMIT = '7148bdbaa53362085e8278c340edfd4c037f8e53'
 UNITS = {'main': 'inky-studio.service', 'helper': 'inky-network.service',
          'ipc': 'inkyos-initialization.service', 'setup': 'inkyos-system-setup.service'}
 UNIT_TYPES = {'Id': 's', 'Names': 'as', 'LoadState': 's', 'ActiveState': 's',
@@ -347,7 +347,11 @@ def binding(role, values):
             and unit['DropInPaths'] == [] and not unit['Transient']
             and not unit['NeedDaemonReload'], 'unit_configuration')
     for key in ('PartOf', 'BindsTo', 'PropagatesStopTo', 'StopPropagatedFrom'):
-        require(unit[key] == [], 'stop_propagation')
+        # Setup owns the volatile AP beyond any individual phone connection.
+        # Its unit drains and closes that AP when Main exits. Main is already
+        # ordered After=Setup; do not add the reverse ordering dependency.
+        expected = ['inky-studio.service'] if role == 'setup' and key == 'BindsTo' else []
+        require(unit[key] == expected, 'stop_propagation')
     expected_wants = ({'inkyos-initialization.service', 'inky-network.service', 'bluetooth.service', 'inkyos-system-setup.service'}
                       if role == 'main' else {'inkyos-initialization.service', 'NetworkManager.service'}
                       if role == 'helper' else {'inkyos-initialization.service', 'NetworkManager.service'}

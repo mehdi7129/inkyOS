@@ -139,7 +139,7 @@ class WriterFilesTests(unittest.TestCase):
         expected = {verification.SOURCE_MAP[name][0]: (raw, verification.SOURCE_MAP[name][1])
                     for name, raw in self.payload.items()}
         expected[verification.HELPER] = self.helper, '0555'
-        self.assertEqual(len(expected), 24)
+        self.assertEqual(len(expected), 27)
         self.assertEqual(set(result['records']), set(expected))
         for name, (raw, mode) in expected.items():
             path = self.rootfs / name
@@ -166,7 +166,15 @@ class WriterFilesTests(unittest.TestCase):
         self.assertEqual(verification.UNIT_ABSENT, runtime.UNIT_ABSENT)
         self.assertEqual(verification.TEST_ABSENT, runtime.TEST_ABSENT)
         self.assertEqual(verification.UNITS, set(runtime.UNIT_TEMPLATES))
-        self.assertEqual(len(verification.SOURCE_MAP), 23)
+        self.assertEqual(len(verification.SOURCE_MAP), 26)
+        for name, mode in (('system-setup-ap.py', '0555'),
+                           ('system-setup-ap-native.py', '0555'),
+                           ('softap-region.json', '0444')):
+            self.assertEqual(verification.SOURCE_MAP['staging/bootstrap/' + name],
+                             ('usr/lib/inkyos/' + name, mode))
+            self.assertEqual(runtime.SETUP_FILES['usr/lib/inkyos/' + name], mode)
+        self.assertIn('usr/sbin/dnsmasq', runtime.NATIVE_COMMANDS)
+        self.assertIn('usr/sbin/nft', runtime.NATIVE_COMMANDS)
 
     def test_existing_trusted_parent_permissions_are_preserved(self):
         directory = self.rootfs / 'usr/local/lib'

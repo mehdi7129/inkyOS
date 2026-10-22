@@ -40,7 +40,8 @@ def observations(role, pid, invocation):
         'SubState': 'running', 'FragmentPath': '/usr/lib/systemd/system/' + name,
         'DropInPaths': [], 'Transient': False, 'NeedDaemonReload': False,
         'InvocationID': list(invocation), 'Job': [0, '/'], 'Wants': sorted(wants),
-        'After': sorted(wants), 'PartOf': [], 'BindsTo': [], 'PropagatesStopTo': [],
+        'After': sorted(wants), 'PartOf': [],
+        'BindsTo': ['inky-studio.service'] if role == 'setup' else [], 'PropagatesStopTo': [],
         'StopPropagatedFrom': [],
     }
     argv = ['/usr/bin/python3.13', '-I', '-B', '-S',
@@ -102,6 +103,23 @@ NATIVE_UNIT_DEPENDENCIES = {
 
 
 class WriterGraphNativeConfigurationTests(unittest.TestCase):
+    def test_only_setup_is_bound_to_main_lifetime_without_reverse_ordering(self):
+        rows = observations('setup', 10, b'x' * 16)
+        self.assertEqual(rows[0]['BindsTo'], ['inky-studio.service'])
+        self.assertNotIn('inky-studio.service', rows[0]['After'])
+        for value in ([], ['unrelated.service'], ['inky-studio.service', 'unrelated.service']):
+            changed = copy.deepcopy(rows)
+            changed[0]['BindsTo'] = value
+            with self.assertRaises(graph.Refused) as caught:
+                graph.binding('setup', changed)
+            self.assertEqual(caught.exception.reason, 'stop_propagation')
+        for role in ('main', 'helper', 'ipc'):
+            changed = observations(role, 10, b'x' * 16)
+            changed[0]['BindsTo'] = ['inky-studio.service']
+            with self.assertRaises(graph.Refused) as caught:
+                graph.binding(role, changed)
+            self.assertEqual(caught.exception.reason, 'stop_propagation')
+
     def test_actual_private_tmp_mount_dependencies_reach_inactive_guard(self):
         for role, dependencies in NATIVE_UNIT_DEPENDENCIES.items():
             with self.subTest(role=role):
@@ -1061,7 +1079,7 @@ class InstalledSourceRefusalTests(unittest.TestCase):
 
     def test_real_launcher_bytes_pass_ast_binding_to_factory_wrapper(self):
         raw = (ROOT / 'scripts/writer-launcher.py').read_bytes()
-        self.assertEqual(graph.STUDIO_COMMIT, 'b8a89eac354aeb4a4b91d497d6324176540c892d')
+        self.assertEqual(graph.STUDIO_COMMIT, '7148bdbaa53362085e8278c340edfd4c037f8e53')
         self.assertEqual(graph.APP_ARGV, (
             '/usr/lib/inky-studio/server/.venv/bin/python', '-I', '-B',
             '/usr/lib/inkyos/factory-main.py'))

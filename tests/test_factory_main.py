@@ -145,11 +145,13 @@ class FactoryMainFixture(unittest.IsolatedAsyncioTestCase):
                 self.mode = mode
                 owner.display_instances.append(self)
         class Bootstrap:
-            def __init__(self, result, verify_epoch, controller, directory, *, system_setup, network):
+            def __init__(self, result, verify_epoch, controller, directory, *, system_setup, network, softap):
                 owner.assertTrue(callable(system_setup.peer_guard))
                 owner.assertTrue(callable(network.peer_guard))
                 owner.assertTrue(owner.proof.held)
+                owner.assertIs(softap.system_setup, system_setup)
                 self.arguments = (result, verify_epoch, controller, directory)
+                self.system_setup, self.network, self.softap = system_setup, network, softap
                 owner.bootstrap_instances.append(self)
         async def serve(directory, **kwargs):
             self.assertTrue(self.proof.held)
@@ -160,7 +162,11 @@ class FactoryMainFixture(unittest.IsolatedAsyncioTestCase):
             raise PhaseAPending('INERT_PHASE_A_PENDING')
         class Client:
             def __init__(self, *, peer_guard): self.peer_guard = peer_guard
-        return serve, Display, Bootstrap, Client, Client
+        class SoftAP:
+            def __init__(self, system_setup):
+                owner.assertTrue(owner.proof.held)
+                self.system_setup = system_setup
+        return serve, Display, Bootstrap, Client, Client, SoftAP
 
     async def run_candidate(self, **overrides):
         values = {'_root': self.root, '_proof': self.proof,
@@ -201,6 +207,9 @@ class FactoryMainTests(FactoryMainFixture):
             self.assertEqual(controller.mode, 'hardware')
             runtime = kwargs['runtime_factory'](result, controller, verify_epoch)
             self.assertEqual(runtime.arguments, (result, verify_epoch, controller, directory / "provisioning"))
+            self.assertIs(runtime.softap.system_setup, runtime.system_setup)
+            self.assertEqual(runtime.system_setup.peer_guard, self.proof.setup_guard)
+            self.assertEqual(runtime.network.peer_guard, self.proof.network_guard)
             with kwargs['initialization_peer_guard'](object()) as value:
                 self.assertIsNone(value)
             self.assertFalse(kwargs['stop_requested'].is_set())
@@ -554,7 +563,7 @@ class FactoryMainEntryTests(unittest.TestCase):
             async def candidate():
                 try:
                     await original(_root=Path(directory).resolve(), _proof=proof,
-                                   _components=lambda: (serve, lambda: None, lambda: None, None, None),
+                                   _components=lambda: (serve, lambda: None, lambda: None, None, None, None),
                                    _signals=lambda *_: lambda: events.append('remove_signals'))
                 except BaseException as observed:
                     self.assertIs(observed, error)
