@@ -1,0 +1,6 @@
+.build/
+dist/
+Resources/InkyOS.img.xz
+Resources/InkyOS.json
+*.app/
+__pycache__/

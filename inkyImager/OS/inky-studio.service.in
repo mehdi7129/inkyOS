@@ -1,0 +1,34 @@
+# This is a build template, not an installed service. The image builder must
+# bind the reviewed Studio LAN entrypoint before enabling this unit.
+[Unit]
+Description=Inky Studio on the Wi-Fi prepared by inkyImager
+Requires=inkyos-imager-firstboot.service
+After=inkyos-imager-firstboot.service NetworkManager.service avahi-daemon.service
+Wants=NetworkManager.service avahi-daemon.service
+
+[Service]
+Type=simple
+User=inky
+Group=inky
+SupplementaryGroups=spi i2c gpio
+WorkingDirectory=/var/lib/inky-studio
+StateDirectory=inky-studio
+StateDirectoryMode=0700
+RuntimeDirectory=inky-studio
+RuntimeDirectoryMode=0700
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/inky-studio/imager.env
+ExecStart=@BACKEND_EXEC_START@
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/inky-studio
+
+[Install]
+WantedBy=multi-user.target

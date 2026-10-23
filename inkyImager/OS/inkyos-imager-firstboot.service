@@ -1,0 +1,18 @@
+[Unit]
+Description=Import inkyImager Wi-Fi configuration before NetworkManager
+Requires=inkyos-firstboot.service
+After=local-fs.target inkyos-firstboot.service
+Before=NetworkManager.service
+RequiresMountsFor=/boot/firmware /etc/NetworkManager/system-connections /var/lib/inkyos
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I -B -S /usr/local/lib/inkyos/imager-firstboot.py
+RemainAfterExit=yes
+TimeoutStartSec=45
+
+[Install]
+WantedBy=multi-user.target
