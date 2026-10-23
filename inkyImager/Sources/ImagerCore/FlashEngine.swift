@@ -85,13 +85,15 @@ private final class ProgressWriter: @unchecked Sendable {
 }
 
 public enum FlashEngine {
-    /// Root-only writer. No filesystem injection or Wi-Fi credentials are accepted here.
+    /// User-session writer. Only Apple's authopen opens the selected raw device;
+    /// this process retains the app's user identity and removable-volume consent.
+    /// No filesystem injection or Wi-Fi credentials are accepted here.
     public static func run(requestURL: URL, ejectOnly: Bool = false) throws {
-        guard geteuid() == 0, getuid() == 0 else {
-            throw ImagerError("macOS doit autoriser l’écriture de la carte.")
+        guard getuid() >= 500, geteuid() == getuid() else {
+            throw ImagerError("L’installation doit être lancée depuis votre session inkyImager.")
         }
         var requestStat = stat()
-        guard lstat(requestURL.path, &requestStat) == 0, requestStat.st_uid >= 500,
+        guard lstat(requestURL.path, &requestStat) == 0, requestStat.st_uid == getuid(),
               requestStat.st_mode & S_IFMT == S_IFREG else {
             throw ImagerError("La requête privée n’est pas valide.")
         }
@@ -152,18 +154,8 @@ public enum FlashEngine {
         try requireUnchanged(image, before); try seekStart(image)
         try DiskService.requireSame(request.target)
         _ = try SystemCommand.run("/usr/sbin/diskutil", ["unmountDisk", "/dev/" + request.target.id])
-        try DiskService.requireSame(request.target)
-        let rawPath = "/dev/r" + request.target.id
-        let card = Darwin.open(rawPath, O_RDWR | O_NOFOLLOW | O_NONBLOCK | O_EXLOCK)
-        guard card >= 0 else { throw ImagerError("La carte est utilisée par macOS. Laissez-la branchée.") }
+        let card = try AuthorizedDisk.open(target: request.target)
         do {
-            let value = try fileInfo(card)
-            var pathInfo = stat()
-            guard lstat(rawPath, &pathInfo) == 0, value.st_mode & S_IFMT == S_IFCHR,
-                  pathInfo.st_mode & S_IFMT == S_IFCHR, value.st_rdev == pathInfo.st_rdev else {
-                throw ImagerError("Le support ouvert n’est pas la carte sélectionnée.")
-            }
-            try DiskService.requireSame(request.target)
             try requireUnchanged(image, before)
             try writer.publish(FlashProgress(phase: .writing, fraction: 0, message: "Écriture d’InkyOS…"), force: true)
             let copied = try digestStream(image, count: request.imageBytes, progress: { done, total in

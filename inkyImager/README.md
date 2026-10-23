@@ -14,6 +14,17 @@ de configuration de sa partition de démarrage. Le Mac ne transmet aucun secret
 dans les arguments de commande ou les journaux. L’app ne nécessite ni Python,
 ni Homebrew, ni VM chez son utilisateur.
 
+L’accès à la carte passe par `authopen`, l’outil système macOS qui remet un
+descripteur autorisé au programme resté dans la session utilisateur. L’app ne
+lance pas son moteur en root avec AppleScript. L’identité de la carte est
+revérifiée avant et après l’autorisation, puis les données écrites sont relues.
+Les erreurs de commande conservent leur code et leur diagnostic ; un petit reçu
+privé sans paramètres Wi-Fi est conservé dans
+`~/Library/Caches/fr.mehdiguiard.inkyimager/Diagnostics/` après un échec.
+
+Ce mécanisme suit la [recommandation Apple](https://developer.apple.com/library/archive/documentation/Security/Conceptual/SecureCodingGuide/Articles/AccessControl.html)
+et le principe d’ouverture utilisé par [Raspberry Pi Imager](https://github.com/raspberrypi/rpi-imager/blob/23e528b9b0fdbf53fc59fef246cb025e7bc4647f/src/mac/macfile.cpp).
+
 Le premier profil est prévu pour la France et le Pi Zero 2 W. Le parcours iPhone
 utilise un accès PHOTO protégé par l’iPhone. Le partage de nouveaux QR depuis
 cet accès n’est pas encore disponible dans ce profil.

@@ -55,7 +55,7 @@ final class ImagerModel: ObservableObject {
                 devices = found
                 if !found.contains(where: { $0.id == selectedDeviceID }) { selectedDeviceID = nil }
                 if found.count == 1 && selectedDeviceID == nil { selectedDeviceID = found[0].id }
-            } catch { errorMessage = error.localizedDescription }
+            } catch { saveFailure(error); errorMessage = error.localizedDescription }
         }
     }
 
@@ -96,6 +96,7 @@ final class ImagerModel: ObservableObject {
                 try await runHelper(requestURL: requestURL, ejectOnly: false)
                 finishOperation()
             } catch {
+                saveFailure(error)
                 phase = .failed; errorMessage = friendly(error); isBusy = false
                 cleanup()
             }
@@ -107,7 +108,7 @@ final class ImagerModel: ObservableObject {
         isBusy = true; errorMessage = nil; phase = .ejecting
         Task {
             do { try await runHelper(requestURL: request, ejectOnly: true); finishOperation() }
-            catch { isBusy = false; phase = .failed; errorMessage = friendly(error) }
+            catch { saveFailure(error); isBusy = false; phase = .failed; errorMessage = friendly(error) }
         }
     }
 
@@ -132,10 +133,10 @@ final class ImagerModel: ObservableObject {
         // The helper needs the verified receipt for an eject-only retry.
         let previousProgress = ejectOnly ? (try? Data(contentsOf: progressURL)) : nil
         statusMessage = "Autorisez l’écriture de la carte dans la fenêtre macOS."
-        let command = shellQuote(helper.path) + " --request " + shellQuote(requestURL.path) + (ejectOnly ? " --eject" : "")
-        let script = "do shell script " + appleScriptLiteral(command) +
-            " with administrator privileges with prompt \"inkyImager doit accéder à la carte SD sélectionnée.\""
-        let task = Task.detached { try ImagePreparation.execute("/usr/bin/osascript", ["-e", script]) }
+        // Keep the logged-in user's audit session and GUI responsibility. Only
+        // Apple's authopen obtains privileged access to the selected raw device.
+        let arguments = ["--request", requestURL.path] + (ejectOnly ? ["--eject"] : [])
+        let task = Task.detached { try SystemCommand.run(helper.path, arguments, timeout: 7200) }
         let watcher = Task { @MainActor in
             while !Task.isCancelled {
                 if let data = try? Data(contentsOf: progressURL), data != previousProgress,
@@ -154,13 +155,19 @@ final class ImagerModel: ObservableObject {
             }
         }
         defer { watcher.cancel() }
-        _ = try await task.value
-        guard let data = try? Data(contentsOf: progressURL),
-              let event = try? JSONDecoder().decode(FlashProgress.self, from: data), event.readbackVerified else {
-            throw PreparationError.message("La fin de l’installation n’a pas pu être confirmée.")
+        var commandError: Error?
+        do { _ = try await task.value } catch { commandError = error }
+        // Read the final receipt even when the command failed. It is more precise
+        // than AppleScript's wrapper error and must survive the watcher cancellation.
+        if let data = try? Data(contentsOf: progressURL),
+           let event = try? JSONDecoder().decode(FlashProgress.self, from: data) {
+            ejectPending = event.ejectOnlyFailure
+            statusMessage = event.message
+            if event.readbackVerified && (commandError == nil || event.ejectOnlyFailure) { return }
+            if event.phase == .failed { throw PreparationError.message(event.message) }
         }
-        ejectPending = event.ejectOnlyFailure
-        statusMessage = event.message
+        if let commandError { throw commandError }
+        throw PreparationError.message("La fin de l’installation n’a pas pu être confirmée.")
     }
 
     private func makeWorkspace() throws -> URL {
@@ -195,12 +202,29 @@ final class ImagerModel: ObservableObject {
         try data.write(to: url, options: .withoutOverwriting)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
+
+    private func saveFailure(_ error: Error) {
+        // Keep a small, private diagnostic after deleting the Wi-Fi-bearing image.
+        // No SSID, password, command arguments or request contents are recorded.
+        let root = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Caches/fr.mehdiguiard.inkyimager/Diagnostics")
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true,
+                                                    attributes: [.posixPermissions: 0o700])
+            var report: [String: Any] = ["schemaVersion": 1, "date": ISO8601DateFormatter().string(from: Date()),
+                "phase": phase.rawValue, "error": error.localizedDescription]
+            if let workspace,
+               let data = try? Data(contentsOf: workspace.appendingPathComponent("progress.json")), data.count <= 65536,
+               let event = try? JSONDecoder().decode(FlashProgress.self, from: data),
+               let object = try? JSONSerialization.jsonObject(with: JSONEncoder().encode(event)) {
+                report["helperProgress"] = object
+            }
+            let file = root.appendingPathComponent(UUID().uuidString + ".json")
+            try writePrivate(JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]), to: file)
+        } catch { /* A failed diagnostic must not hide the original operation error. */ }
+    }
     private func friendly(_ error: Error) -> String {
         let message = error.localizedDescription
         return message.contains("(-128)") ? "Installation annulée." : message
-    }
-    private func shellQuote(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
-    private func appleScriptLiteral(_ value: String) -> String {
-        "\"" + value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 }

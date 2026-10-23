@@ -2,6 +2,22 @@ import Foundation
 import IOKit
 import Darwin
 
+public struct SystemCommandFailure: LocalizedError, Sendable {
+    public let executable: String
+    public let exitStatus: Int32
+    public let standardError: String
+    public let timedOut: Bool
+
+    public var errorDescription: String? {
+        let summary = timedOut
+            ? "macOS n’a pas terminé \(executable) à temps (code \(exitStatus)). La carte doit rester branchée."
+            : "macOS n’a pas pu terminer \(executable) (code \(exitStatus))."
+        guard !standardError.isEmpty else { return summary }
+        let diagnostic = String(standardError.prefix(2048))
+        return summary + "\n" + diagnostic + (standardError.count > 2048 ? "\n[diagnostic tronqué]" : "")
+    }
+}
+
 public enum SystemCommand {
     /// Fixed executables and argument arrays; no shell and no inherited environment.
     public static func run(_ executable: String, _ arguments: [String], timeout: TimeInterval = 30) throws -> Data {
@@ -26,16 +42,34 @@ public enum SystemCommand {
         try process.run()
         let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning && Date() < deadline { Thread.sleep(forTimeInterval: 0.02) }
-        if process.isRunning {
+        let timedOut = process.isRunning
+        if timedOut {
             process.terminate()
             Thread.sleep(forTimeInterval: 0.1)
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
             process.waitUntilExit()
-            throw ImagerError("macOS n’a pas terminé l’opération. La carte doit rester branchée.")
         }
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            throw ImagerError("macOS n’a pas pu terminer \(URL(fileURLWithPath: executable).lastPathComponent).")
+        if timedOut || process.terminationStatus != 0 {
+            // Both streams use unlinked regular files, so a verbose child cannot
+            // deadlock on a full pipe. Retain only a bounded diagnostic, never
+            // the arguments or environment used to launch the command.
+            var diagnostic = Data(), buffer = [UInt8](repeating: 0, count: 8193)
+            if lseek(stderr, 0, SEEK_SET) == 0 {
+                while diagnostic.count < buffer.count {
+                    let remaining = buffer.count - diagnostic.count
+                    let count = Darwin.read(stderr, &buffer, remaining)
+                    if count < 0 && errno == EINTR { continue }
+                    if count <= 0 { break }
+                    diagnostic.append(contentsOf: buffer.prefix(count))
+                }
+            }
+            let truncated = diagnostic.count > 8192
+            let message = String(decoding: diagnostic.prefix(8192), as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            throw SystemCommandFailure(executable: URL(fileURLWithPath: executable).lastPathComponent,
+                exitStatus: process.terminationStatus,
+                standardError: message + (truncated ? "\n[diagnostic tronqué]" : ""), timedOut: timedOut)
         }
         guard lseek(stdout, 0, SEEK_SET) == 0 else { throw ImagerError("Réponse système illisible.") }
         var result = Data(), buffer = [UInt8](repeating: 0, count: 65536)
@@ -56,10 +90,17 @@ public enum DiskService {
         let raw = try SystemCommand.run("/usr/sbin/diskutil", ["list", "-plist", "physical"])
         let list = try PropertyListSerialization.propertyList(from: raw, format: nil) as? [String: Any]
         let rows = list?["AllDisksAndPartitions"] as? [[String: Any]] ?? []
-        return rows.compactMap { row in
-            guard let name = row["DeviceIdentifier"] as? String else { return nil }
-            return try? identify(name)
-        }.sorted { $0.id.localizedStandardCompare($1.id) == .orderedAscending }
+        var cards: [SDCard] = []
+        for row in rows {
+            guard let name = row["DeviceIdentifier"] as? String else { continue }
+            do { cards.append(try identify(name)) }
+            catch let failure as SystemCommandFailure {
+                // A denied or unanswered removable-volume prompt is different
+                // from a fixed/system disk being intentionally filtered out.
+                throw failure
+            } catch { continue }
+        }
+        return cards.sorted { $0.id.localizedStandardCompare($1.id) == .orderedAscending }
     }
 
     public static func identify(_ name: String) throws -> SDCard {

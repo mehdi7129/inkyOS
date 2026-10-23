@@ -13,8 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def digest(path):
+    value = hashlib.sha256()
     with path.open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        for block in iter(lambda: stream.read(8 * 1024 * 1024), b''):
+            value.update(block)
+    return value.hexdigest()
 
 
 def main():
@@ -59,8 +62,8 @@ def main():
     subprocess.run(['/usr/bin/iconutil', '-c', 'icns', str(iconset), '-o', str(resources / 'AppIcon.icns')], check=True)
     info = {'CFBundleName': 'inkyImager', 'CFBundleDisplayName': 'inkyImager',
             'CFBundleIdentifier': 'fr.mehdiguiard.inkyimager', 'CFBundleExecutable': 'inkyImager',
-            'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.1.0',
-            'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0',
+            'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.1.1',
+            'CFBundleVersion': '2', 'LSMinimumSystemVersion': '14.0',
             'CFBundleIconFile': 'AppIcon',
             'NSHighResolutionCapable': True,
             'NSRemovableVolumesUsageDescription': 'inkyImager prépare uniquement la carte SD que vous sélectionnez.',
