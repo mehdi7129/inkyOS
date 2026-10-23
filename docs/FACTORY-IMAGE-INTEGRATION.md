@@ -6,6 +6,15 @@ passent sur la source `111aea3`, avec le bundle Studio inactif `a071f19`.
 Ce profil n'a été ni flashé ni démarré sur un Pi. Le profil TEST et son couple
 backend `c31b13a` / iOS build 9 restent distincts.
 
+Le profil distinct [factory-assembly](FACTORY-ASSEMBLY.md) a maintenant produit
+une [image privée inactive à `9d8f149`](validation/2026-10-12-factory-assembly-image.json).
+Il copie puis relit le bundle Studio `eb11790` de 2 399 entrées et les 17 fichiers
+writer/helper sur la base OS ARM64 épinglée, avec les quatre APIs existantes.
+L’export de 14 rapports est vérifié. Aucun interpréteur applicatif ni service
+n’est lancé ; support, graph installé, boot, runtime et matériel restent non
+qualifiés. Les [68 tests ciblés et 1 897 tests globaux macOS](validation/2026-10-12-factory-assembly-source.json)
+passent, avec 16 skips globaux et la syntaxe de 23 scripts Bash vérifiée.
+
 Le [rapport d'assemblage offline](validation/2026-10-12-factory-passive-image.json)
 conserve le premier échec et sa résolution. Le premier build refusait la sentinelle
 `machine-id` amont `0444` ; la lecture privée en RO a confirmé ses 14 bytes
@@ -101,11 +110,14 @@ Les [outils de copie et relecture des fichiers factory](FACTORY-WRITER-INSTALLAT
 préparent séparément 16 modules/unités OS et le helper exact du nouveau bundle.
 Leurs [23 tests inertes](validation/2026-10-12-factory-writer-file-tests.json)
 et la suite globale de 1 875 tests macOS passent, avec 16 skips dans la suite globale.
-Ils restent hors du build-profile : aucune activation, conversion du profil passif,
-mutation NSS ou création d'autorité n'est effectuée par ce lot.
+Le lot historique de 23 tests reste lié à son commit. Ces outils sont maintenant
+composés par le profil `factory-assembly`, avec des entrées R35 épinglées et un
+export distinct de 14 rapports. Cette voie inactive ne convertit pas l’image
+passive et n’effectue ni mutation NSS, création d’autorité ou activation.
 Le [raccord source R35](validation/2026-10-12-factory-graph-r35-source.json)
 épingle maintenant Studio `eb11790` et cible `factory-main.py` depuis le launcher.
-Les nouveaux hashes doivent encore être assemblés dans les manifests revus.
+Le raccord source R35 et ses nouveaux hashes sont liés au nouvel assemblage
+réel ; la fixture OS `38adb68` conserve ses preuves séparées.
 
 Une [fixture Linux ARM64 distincte](validation/2026-10-12-studio-eb117-native-files.json)
 a copié puis relu le bundle réel et les 17 fichiers OS/helper avec les APIs
@@ -155,10 +167,13 @@ Le matérialiseur Studio conserve `factory-studio.<token>/root`. Aucun autre
 préfixe factory ou chemin `/var/tmp` n'est admis par ces installers. Ce raccord
 permet de viser le même rootfs ; il ne déplace pas les venv ni leurs chemins finaux.
 
-`build-prototype.sh` et `build-image-linux.sh` raccordent seulement le profil
-`factory-passive` décrit plus haut. L'exporter, son support complet, l'admission
-et les services actifs ne font pas partie de cette option. Le seul raccord de
-workspace ne constitue pas leur installation ou leur enablement.
+`build-prototype.sh` et `build-image-linux.sh` raccordent les profils séparés
+`factory-passive` et `factory-assembly`. Le second branche avant les commandes
+cibles et exige ses propres reçus de copie/relecture et son inventaire final.
+L’exporter, le support complet, l’admission et les services actifs restent hors
+de ces assemblages inactifs. Les flags de gate statique et de smoke premier boot
+restent faux pour `factory-assembly` ; le message générique du build ne les
+qualifie pas.
 
 Le configurateur applicatif TEST crée actuellement un dossier `0755` et
 `photos/`. Le configurateur factory séparé préserve ces exigences TEST

@@ -1,0 +1,76 @@
+{
+  "base_image_sha256": "49fafba626ec00e0f9800349b9edae6caf8cfc223f673b875b72ac2797ed9576",
+  "date": "2026-10-12",
+  "export": {
+    "integrity_sha256": "6572191bb7f7fa5fb8abd59f707374e04f91ed96cd2bd132f14c14519e496c1c",
+    "manifest_sha256": "f41e1460afd259fb6290c77ede31737e60c965d787fbb97839d01571e3c3bab3",
+    "reports_count": 14,
+    "reports_sha256": {
+      "boot-preserved.sha256": "b12aab4a36475463e25e91d647dade9650439df8142722fd4156bf723be74d3a",
+      "builder.json": "12b36aab46437c38704eaad588f34e34fd0e84507924ee8347e7dcf0759a60e2",
+      "factory-assembly.json": "4872be9c3f08cc5957f8996157b4813acafd5902baa7925066fd6bb3e4713306",
+      "factory-bundle-manifest.json": "5a3b537a6332cf33b9e522078a45c4d13f739b6103c25fd92a27fe00dbf494f8",
+      "factory-studio-inputs.json": "98bcade6f2535bc3477ea0654b26fb5fb9b17448598c51057f66a0ea4fa992ae",
+      "factory-studio-installation.json": "5a182b1a97749c579c1f04ae6337c95f35bb1ce765c56fb7f7e560a4d0612d9e",
+      "factory-studio-verification.json": "3808f223c5b1b377d4cb141a08bccc070085831c52d519e6b757aa7b3b878e01",
+      "factory-writer-inputs.json": "e008cf129ef426ee7067effb4282b586a10f4d8e9c820d2dc083648d2a8a9a73",
+      "factory-writer-installation.json": "29e6997fe6aece95867ad735f9e904112c59b2d9518aba333212edfa13f8dba2",
+      "factory-writer-verification.json": "81d0ee2dcc8c8427abde2f7c58ae4659d47744e1df9f98573575adf5367cbca8",
+      "filesystem-manifest.json": "7eaa1ee093294dab774fca4e8b1cf51ae6f35f1b396cca0ecddf867278962d95",
+      "fsck-ext4.txt": "650ab8576ebdb98e1c664de7a18a451479946451e7725ec3107589e664cedb2b",
+      "fsck-fat.txt": "2b5957ca31eb3276a278cd0bdd7caaa41356abbb466d59d5cbe3dbc644075920",
+      "image-inspection.json": "4a3eacb14b26ac52cbc42109777bc37134262f600ef8d0e9b151f4d314fb26c7"
+    }
+  },
+  "file_consistency": {
+    "assembly_files_consistent_pass": true,
+    "authenticity_verified": false,
+    "boot_preserved_records": 10,
+    "bundle_records": 2399,
+    "filesystem_manifest_schema": 2,
+    "firstboot_smoke_consistent_pass": false,
+    "image_hash_verified_by_production_export_and_verifier": true,
+    "recipe_generated_profile_pins": 1,
+    "recipe_tracked_pins": 47,
+    "static_gate_consistent_pass": false,
+    "writer_records_including_helper": 17
+  },
+  "image": {
+    "filename": "inkyos-factory-assembly.img",
+    "sha256": "254615ae5ed550ad9abe0d43d0074605b3036d3c2d1ead666a1f4dd27887d4a9",
+    "size_bytes": 3061841920
+  },
+  "kind": "factory-assembly",
+  "limits": [
+    "Private inactive materialization and readback on a real pinned OS base only; no target application interpreter or service is launched.",
+    "Local export consistency uses an unsigned manifest. Review does not regenerate the filesystem inventory, mount or reread the image bytes.",
+    "The generic build stdout is not a static-gate result; this profile has no static-gate or firstboot-smoke report.",
+    "This is not a configured base OS, active installed graph, runtime, first boot, physical workflow or redistributable release qualification.",
+    "The historical passive image and OS38 empty fixture keep their separate sources and evidence.",
+    "Inactive means no startup is scheduled by this recipe; explicit root execution remains possible."
+  ],
+  "production_cli_exit_code": 0,
+  "production_invocations": 1,
+  "qualification": {
+    "abi": false,
+    "boot": false,
+    "hardware": false,
+    "image": false,
+    "installed_graph": false,
+    "release": false,
+    "runtime": false,
+    "support": false
+  },
+  "read_only_result_review": {
+    "independent": "PASS",
+    "independent_receipt_sha256": "821aa1a582f763b097322c85eccb774e7c79fa8e4593e3c2eeba2314149d73ac",
+    "root": "PASS",
+    "root_receipt_sha256": "80487e2917010dd85cff52b4da5bd42c9469e51dde67c6d0d771c40cc572b788"
+  },
+  "schema_version": 1,
+  "scope": "private-inactive-real-os-image-file-assembly",
+  "source_commit": "9d8f1490702691082dc03e9b0048d84d3eb4f8e6",
+  "startup": "inactive",
+  "status": "PASS",
+  "studio_commit": "eb117903cb647a14e9722d7387a41058ea8807b3"
+}
