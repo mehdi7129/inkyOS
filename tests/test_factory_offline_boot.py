@@ -29,7 +29,7 @@ class OfflineBootReaderTests(ContractFixture):
         super().setUp()
         self.run_fd = os.open(self.root / 'run', os.O_RDONLY | os.O_DIRECTORY)
         self.addCleanup(os.close, self.run_fd)
-        self.sources = graph.InstalledSources.__new__(graph.InstalledSources)
+        self.sources = graph.InstalledSources(runtime, self.contract())
         self.sources._lease = SimpleNamespace(run=self.run_fd)
 
     def graph_mountinfo(self, **kwargs):
@@ -88,10 +88,19 @@ class OfflineBootReaderTests(ContractFixture):
         self.sources._identity = ()
         self.sources._numeric_identity = lambda: ()  # No kernel UID claim.
         self.sources._tokens = (('attempted', admission.ATTEMPTED), ('Ready', admission.READY))
-        self.sources._metadata, self.sources._state_metadata = {}, {}
         parent = os.open(self.root / 'run/inkyos-admission', os.O_RDONLY | os.O_DIRECTORY)
         self.addCleanup(os.close, parent)
         self.sources._lease.parent = parent
+        # Capture a real finite source baseline for this synthetic tree. The
+        # fresh check must exercise the DFS rather than bypassing metadata.
+        self.sources._plan = graph.SourceWalkPlan(self.inventory('.'))
+        deadline = time.monotonic() + 5
+        with contract.tree() as tree:
+            self.sources._state_metadata = {path: self.sources._stamp(tree, path) for path in (
+                runtime.MANIFEST, runtime.CONTEXT_DIR, runtime.CONTEXT,
+                'run/inkyos-admission/attempted', 'run/inkyos-admission/Ready')}
+            self.sources._metadata = graph.walk_metadata(
+                tree, self.sources._plan, tick=lambda: graph.remaining(deadline))
         text = self.graph_mountinfo(options='ro,nosuid,nodev')
         self.sources._run = self.observe(text)
 
@@ -113,4 +122,10 @@ class OfflineBootReaderTests(ContractFixture):
                         self.sources.check(time.monotonic() + 5)
                     self.assertEqual(caught.exception.reason, 'run_mount_changed')
                     text = original
+
+            source = self.root / runtime.MODULE_DIR / 'writer-admission.py'
+            source.chmod(0o544)
+            with self.assertRaises(graph.Refused) as caught:
+                self.sources.check(time.monotonic() + 5)
+            self.assertEqual(caught.exception.reason, 'source_changed')
 
