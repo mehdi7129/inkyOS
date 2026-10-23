@@ -28,3 +28,12 @@ private/
 # Python tooling
 __pycache__/
 .venv/
+
+# Local session handoffs and unpublished design work
+/RELAIS-*.md
+/design/
+# Native app development outputs
+.build/
+.swiftpm/
+*.app/
+*.dSYM/

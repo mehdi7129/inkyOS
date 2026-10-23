@@ -124,11 +124,11 @@ Le lot Studio final `716104b130d34d1973001e78f15e25989d4c2e76` est reçu et ses
 
 L’outil natif `inkyMaintenance` fournit `list`, `acquire`, `write-root` et
 `eject`. Ses 14 tests passent. L’éditeur
-[`prepare-backend-update.py`](../maintenance/prepare-backend-update.py) passe
+[`prepare-backend-update.py`](https://github.com/mehdi7129/inkyImager/blob/main/maintenance/prepare-backend-update.py) passe
 12 tests, dont de vraies copies ext4 et la comparaison des valeurs complètes
 d’attributs étendus ; une revue indépendante a vérifié le correctif des valeurs
 longues que `debugfs ea_list` masque. Les tests n’utilisent pas la SD réelle.
-Le [guide de l’éditeur](../maintenance/README.md) décrit les preuves et le
+Le [guide de l’éditeur](https://github.com/mehdi7129/inkyImager/blob/main/maintenance/README.md) décrit les preuves et le
 contrat avec le writer.
 
 Un coffre APFS chiffré AES-256 séparé est préparé sur le Western Digital,
@@ -141,6 +141,6 @@ métadonnées de récupération sont conservées dans Application Support.
 Restent l’insertion de la carte, sa sauvegarde intégrale, la préparation du
 candidat depuis cette sauvegarde puis la revue de ses preuves avant écriture.
 Le lanceur de lecture est produit pour la carte effectivement détectée par
-[`prepare-read-session.py`](../maintenance/prepare-read-session.py). Il ne
+[`prepare-read-session.py`](https://github.com/mehdi7129/inkyImager/blob/main/maintenance/prepare-read-session.py). Il ne
 prépare et ne lance aucune mise à jour. Aucun résultat sur fixtures ne doit
 être présenté comme une acquisition ou une écriture déjà effectuée sur la SD.
