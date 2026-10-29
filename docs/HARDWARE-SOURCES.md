@@ -10,6 +10,17 @@ ci-dessous sont celles des fabricants ou des mainteneurs officiels ; les constat
 du projet sont identifiés séparément. La recherche documentaire n'effectue aucun
 accès matériel ; les observations physiques citées proviennent des rapports de banc.
 
+## Actualisation du profil livré — 29 octobre 2026
+
+Le profil normal LAN préparé par inkyImager utilise maintenant Python 3.13.5,
+**inky 2.5.0** et le profil explicite `ac073-800x480-timed-wait`. Le service PHOTO
+716104 a été installé sur le cadre de Mehdi le 25/10 ; le partage entre iPhone
+et plusieurs jours de stabilité ont été confirmés par l'utilisateur. Les
+versions2.3.0 et les observations SSH/EEPROM ci-dessous restent des preuves
+historiques datées, pas une mesure LIVE du cadre le 29/10. Le SKU exact de dalle
+reste incertain ; ne pas transformer ce retour en qualification de toute la
+gamme Spectra 6 ou des autres formats.
+
 ## 1. Ce que le projet a effectivement constaté
 
 | Élément | Preuve disponible dans le dépôt | Portée |

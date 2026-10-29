@@ -25,26 +25,31 @@ configuration est retiré de la partition de démarrage. Ce profil utilise
 le réseau local préparé par le Mac. Les prototypes Bluetooth et SoftAP restent
 archivés dans les sources et la documentation.
 
-## État au 23 octobre 2026
+## État au 29 octobre 2026
 
 | Élément | État et portée |
 |---|---|
-| inkyImager 0.1.1 | Flash, relecture et éjection de la SD réussis sur le Mac de test. |
-| Premier démarrage | Pi démarré et QR visible sur l’écran physique, confirmés par l’utilisateur. |
-| Inky Studio 1.0.0 (16) | Connexion, photo et reconnexion confirmées par l’utilisateur sur le cadre de test. |
-| Inky Studio 1.0.0 (17) | Disponible sur TestFlight interne ; comprend l’interface de partage PHOTO. |
-| Partage QR iPhone → iPhone | Backend candidat `716104b`, tests logiciels réussis ; installation sur le Pi et essai physique encore en attente. |
-| Maintenance conservant les données | Outils natifs et éditeur ext4 vérifiés sur fixtures, avec revue indépendante. Sauvegarde de la SD actuelle requise avant toute écriture. |
+| Cadre existant | Flash par inkyImager 0.1.1, démarrage, connexion et photos confirmés par Mehdi. |
+| Service de partage | `716104b130d34d1973001e78f15e25989d4c2e76` installé le 25/10, partition relue et éjectée, identité/TLS/Wi-Fi/photos conservés. |
+| Inky Studio 1.0.0 (19) | Disponible dans le groupe TestFlight interne, avec correction de reprise après Face ID. |
+| Partage QR iPhone → iPhone | Fonctionnement du premier coup confirmé par Mehdi le 25/10, puis retour de stabilité sur plusieurs jours le 29/10. |
+| Nouvelle installation | Image générique avec le service 716104 construite et contrôlée offline ; candidate Mac 0.1.2 (3) préparée localement. |
+| Distribution publique | Sources publiques. Téléchargement final Developer ID/notarisé et publication restent des étapes séparées. |
 
-La référence fonctionnelle du service testé est `b75bf1e`. Le candidat de
-partage reste distinct du service actuellement installé. Les résultats sur
-fixtures, la livraison TestFlight et les retours utilisateur constituent des
-preuves de niveaux différents.
+La configuration existante est validée par l'utilisateur ; les contrôles de
+relecture, les tests logiciels et les retours d'usage gardent leur portée
+respective. La nouvelle image générique n'a pas encore été observée au premier
+démarrage sur une nouvelle SD. Elle ne contient aucun Wi-Fi, identité, accès
+ou photo personnel et ne provient pas d'une copie de la carte de Mehdi.
+
+Le profil actuel utilise **Python 3.13.5/aarch64, inky 2.5.0** et le profil
+**`ac073-800x480-timed-wait`**. Les anciennes notes de septembre/octobre qui
+citent inky 2.3.0 concernent des instantanés historiques distincts.
 
 Le parcours essayé utilise un **Raspberry Pi Zero 2 W**, une microSD de 16 Go
 et le profil d’écran **800 × 480** du prototype. Les autres références d’écran,
-les installations à grande échelle et une distribution publique prête à
-l’emploi restent à qualifier. Voir la [compatibilité des écrans](docs/DISPLAY-COMPATIBILITY.md).
+les installations à grande échelle et le téléchargement public final
+restent à valider et livrer. Voir la [compatibilité des écrans](docs/DISPLAY-COMPATIBILITY.md).
 
 ## Sources et assemblage
 

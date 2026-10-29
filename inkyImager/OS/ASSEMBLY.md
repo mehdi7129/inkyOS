@@ -135,4 +135,7 @@ composition partielle : ses fichiers et journaux doivent d’abord être inspect
 validation, permissions, reprise après chaque publication durable, échec radio,
 changement de capsule, refus des liens, refus d’anciens markers factory et rendu
 normal des unités. Aucun réseau réel, VM, SD, backend ou écran n’a été utilisé
-par ces tests. Le démarrage du Pi et l’envoi d’une photo restent à qualifier.
+par ces tests. Le démarrage et les photos ont ensuite été confirmés sur le cadre existant,
+puis le partage après maintenance 716104 le 25/10 et plusieurs jours sans bug
+le 29/10. Ces retours ne constituent pas un démarrage observé de la nouvelle
+image générique716104 construite pour une installation vierge.

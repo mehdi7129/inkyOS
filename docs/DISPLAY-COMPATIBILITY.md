@@ -3,7 +3,16 @@
 Périmètre retenu le **3 octobre 2026** : une même recette InkyOS pour les trois
 formats **Spectra 6** et les anciens **Impression sept couleurs**. La détection
 et le rendu appartiennent à Inky Studio ; l’image intègre son payload épinglé.
-**Aucun modèle n’est encore qualifié de bout en bout avec InkyOS et l’app iOS.**
+
+**Actualisation du 29 octobre :** le cadre de Mehdi (Pi Zero 2 W, PCB Inky
+Impression 7,3 pouces/800×480, profil explicite AC073) est validé par ses essais
+d'usage, dont le partage QR entre iPhone, et plusieurs jours sans bug signalé.
+Le profil normal LAN livré utilise inky 2.5.0. Cela ne qualifie ni tous les SKU,
+ni les autres tailles, ni une nouvelle image générique encore non démarrée sur
+une nouvelle carte. La référence exacte de dalle/SKU reste non confirmée.
+
+La matrice et les observations datées ci-dessous conservent la recherche du
+3 octobre ; leurs pins2.3.0/2.4.0 ne désignent pas le profil livré le23/25.
 
 ## Matrice cible
 
@@ -52,7 +61,7 @@ libellé dans les tables examinées. Cette absence ne démontre ni corruption
 ni équivalence avec le code 5. L’erreur `eeprom_unreviewed` reste valable ;
 aucune réécriture EEPROM, activation ou qualification n’en découle.
 
-## Écart avec les sources InkyOS actuelles
+## État historique des sources InkyOS au 3 octobre
 
 - Le payload candidat utilise encore **`inky==2.3.0`**. Le diagnostic accepte
   quatre tuples exacts : les variantes 20, 21, 22 et 25 avec dimensions et
