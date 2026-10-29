@@ -4,6 +4,20 @@ Le système Raspberry Pi des cadres photo e-paper **Inky Studio**. Il prépare
 Linux, le Wi-Fi, les pilotes de l’écran et le service local qui reçoit les
 photos depuis l’iPhone.
 
+[![Offline tooling tests](https://github.com/mehdi7129/inkyOS/actions/workflows/tests.yml/badge.svg)](https://github.com/mehdi7129/inkyOS/actions/workflows/tests.yml)
+
+## Télécharger et installer
+
+**[InkyOS 2026.10.29-rc1](https://github.com/mehdi7129/inkyOS/releases/tag/2026.10.29-rc1)** est la première image générique publiée, avec le partage QR intégré.
+Pour l’installation, utiliser **[inkyImager 0.1.2](https://github.com/mehdi7129/inkyImager/releases/tag/v0.1.2)** sur Mac Apple Silicon : l’image est déjà embarquée et le Wi-Fi se renseigne dans l’app.
+
+Cette image est une **release candidate**. Les contrôles logiciels passent ;
+son premier démarrage sur une nouvelle SD reste à observer. Le cadre de référence
+fonctionne depuis plusieurs jours, sur une installation antérieure mise à jour.
+Les deux validations ne doivent pas être confondues.
+
+Consulter le [changelog](CHANGELOG.md) et la [fiche de release](docs/RELEASE-2026.10.29-rc1.md).
+
 ## Les trois projets
 
 | Projet | Rôle |
@@ -33,8 +47,8 @@ archivés dans les sources et la documentation.
 | Service de partage | `716104b130d34d1973001e78f15e25989d4c2e76` installé le 25/10, partition relue et éjectée, identité/TLS/Wi-Fi/photos conservés. |
 | Inky Studio 1.0.0 (19) | Disponible dans le groupe TestFlight interne, avec correction de reprise après Face ID. |
 | Partage QR iPhone → iPhone | Fonctionnement du premier coup confirmé par Mehdi le 25/10, puis retour de stabilité sur plusieurs jours le 29/10. |
-| Nouvelle installation | Image générique avec le service 716104 construite et contrôlée offline ; candidate Mac 0.1.2 (3) préparée localement. |
-| Distribution publique | Sources publiques. Téléchargement final Developer ID/notarisé et publication restent des étapes séparées. |
+| Nouvelle installation | Image générique 2026.10.29-rc1 avec le service 716104 construite et contrôlée offline. |
+| Distribution publique | Image générique publiée en prerelease ; inkyImager 0.1.2 signé Developer ID, notarisé et agrafé. |
 
 La configuration existante est validée par l'utilisateur ; les contrôles de
 relecture, les tests logiciels et les retours d'usage gardent leur portée
@@ -47,9 +61,8 @@ Le profil actuel utilise **Python 3.13.5/aarch64, inky 2.5.0** et le profil
 citent inky 2.3.0 concernent des instantanés historiques distincts.
 
 Le parcours essayé utilise un **Raspberry Pi Zero 2 W**, une microSD de 16 Go
-et le profil d’écran **800 × 480** du prototype. Les autres références d’écran,
-les installations à grande échelle et le téléchargement public final
-restent à valider et livrer. Voir la [compatibilité des écrans](docs/DISPLAY-COMPATIBILITY.md).
+et le profil d’écran **800 × 480** du prototype. Les autres références d’écran
+et les installations à grande échelle restent à valider. Voir la [compatibilité des écrans](docs/DISPLAY-COMPATIBILITY.md).
 
 ## Sources et assemblage
 
