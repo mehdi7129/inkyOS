@@ -8,8 +8,10 @@ photos depuis l’iPhone.
 
 ## Télécharger et installer
 
+**[InkyOS 2026.11.20-rc2](https://github.com/mehdi7129/inkyOS/releases/tag/2026.11.20-rc2)** sélectionne le pilote à partir de l’EEPROM des écrans Pimoroni. Elle est incluse dans **[inkyImager 0.1.4](https://github.com/mehdi7129/inkyImager/releases/tag/v0.1.4)**. Les essais de ce cycle utilisent des fixtures et une VM Linux ARM64. Voir la [matrice et les limites](docs/DISPLAY-COMPATIBILITY.md).
+
 **[InkyOS 2026.10.29-rc1](https://github.com/mehdi7129/inkyOS/releases/tag/2026.10.29-rc1)** est la première image générique publiée, avec le partage QR intégré.
-Pour l’installation, utiliser **[inkyImager 0.1.2](https://github.com/mehdi7129/inkyImager/releases/tag/v0.1.2)** sur Mac Apple Silicon : l’image est déjà embarquée et le Wi-Fi se renseigne dans l’app.
+Elle est embarquée dans inkyImager 0.1.2 et 0.1.3.
 
 Cette image est une **release candidate**. Les contrôles logiciels passent ;
 son premier démarrage sur une nouvelle SD reste à observer. Le cadre de référence
@@ -56,7 +58,7 @@ respective. La nouvelle image générique n'a pas encore été observée au prem
 démarrage sur une nouvelle SD. Elle ne contient aucun Wi-Fi, identité, accès
 ou photo personnel et ne provient pas d'une copie de la carte de Mehdi.
 
-Le profil actuel utilise **Python 3.13.5/aarch64, inky 2.5.0** et le profil
+L’image d’octobre utilise **Python 3.13.5/aarch64, inky 2.5.0** et le profil
 **`ac073-800x480-timed-wait`**. Les anciennes notes de septembre/octobre qui
 citent inky 2.3.0 concernent des instantanés historiques distincts.
 

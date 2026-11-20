@@ -107,7 +107,7 @@ sans nouvelle dépendance réseau pendant l’assemblage.
   "backend_exec_start": "/usr/lib/inky-studio/server/.venv/bin/python3 -I -B -m inky_web.imager_lan",
   "backend_environment": {
     "INKY_STUDIO_DISPLAY_MODE": "hardware",
-    "INKY_STUDIO_DISPLAY_PROFILE": "ac073-800x480-timed-wait",
+    "INKY_STUDIO_DISPLAY_PROFILE": "pimoroni-auto",
     "INKY_STUDIO_DATA_DIR": "/var/lib/inky-studio"
   }
 }

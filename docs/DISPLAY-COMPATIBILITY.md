@@ -1,5 +1,28 @@
 # Compatibilité des écrans
 
+## Image 2026.11.20-rc2
+
+Le profil `pimoroni-auto` utilise la bibliothèque Pimoroni `inky` 2.6.0.
+Il sélectionne le pilote à partir de la variante EEPROM. La résolution seule
+ne suffit pas, par exemple pour départager les Impression et Spectra 7,3″.
+
+| Famille Raspberry Pi | Formats couverts par les tests logiciels |
+|---|---|
+| Impression sept couleurs | 4″ 640 × 400, 5,7″ 600 × 448, 7,3″ 800 × 480 |
+| Impression Spectra 6 | 4″ 600 × 400, 7,3″ 800 × 480, 13,3″ 1600 × 1200. Révisions AC et non AC sur 7,3″ et 13,3″. |
+| wHAT | 400 × 300, avec écran d’accueil compact |
+| pHAT | 212 × 104 et 250 × 122, avec QR agrandi au maximum à la résolution native |
+
+Les tests logiciels ne qualifient pas la lecture optique du QR sur un écran
+réel. Sur pHAT, approcher l’iPhone et faire la mise au point sur le QR.
+Le DMG ne propose pas encore de sélection manuelle pour les anciennes cartes
+sans EEPROM exploitable. Une EEPROM inconnue ne déclenche pas de balayage
+de pilotes.
+Les **Inky Frame à Pico intégré** utilisent leur propre firmware UF2.
+L’image et l’installateur Raspberry Pi OS ne couvrent pas cette plateforme.
+
+Les notes ci-dessous décrivent la recherche historique et le cadre de référence.
+
 Périmètre retenu le **3 octobre 2026** : une même recette InkyOS pour les trois
 formats **Spectra 6** et les anciens **Impression sept couleurs**. La détection
 et le rendu appartiennent à Inky Studio ; l’image intègre son payload épinglé.

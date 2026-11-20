@@ -22,7 +22,10 @@ EnvironmentFile=/etc/inky-studio/imager.env
 ExecStart=@BACKEND_EXEC_START@
 Restart=on-failure
 RestartSec=3
-TimeoutStopSec=30
+# A display failure needs inspection before retrying a panel operation.
+RestartPreventExitStatus=79
+# Allow the 13.3-inch panel's 65-second refresh plus setup and power-off.
+TimeoutStopSec=120
 UMask=0077
 NoNewPrivileges=yes
 PrivateTmp=yes

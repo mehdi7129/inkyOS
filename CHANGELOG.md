@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.20-rc2 — 2026-11-20
+
+- Image LAN avec détection des écrans Pimoroni au démarrage. Le profil AC073 reste réservé au matériel reconnu.
+- Pilote Pimoroni `inky` 2.6.0, incluant la correction du signal BUSY du Spectra 6 13,3″.
+- Délai d’arrêt du service relevé pour laisser finir un rafraîchissement en cours.
+- QR PHOTO adapté aux petits panneaux, avec le même format pour l’iPhone.
+
+Les essais de cette version ont lieu sans écran, Raspberry Pi ni SD physique.
+
 ## 2026.10.29-rc1 — 2026-10-29
 
 Première image générique publiée pour le parcours inkyImager → Wi-Fi local → QR iPhone.

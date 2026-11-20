@@ -205,7 +205,11 @@ class ProfileTests(unittest.TestCase):
     def configure(self, **changes):
         values = {"rootfs": self.root, "bootfs": self.boot, "recipe": self.recipe, "source": SOURCE,
                   "backend_exec_start": "/usr/lib/inky-studio/server/.venv/bin/python3 -I -B -m inky_web.imager_lan",
-                  "backend_environment": {"INKY_STUDIO_DATA_DIR": "/var/lib/inky-studio"}}
+                  "backend_environment": {
+                      "INKY_STUDIO_DATA_DIR": "/var/lib/inky-studio",
+                      "INKY_STUDIO_DISPLAY_MODE": "hardware",
+                      "INKY_STUDIO_DISPLAY_PROFILE": "pimoroni-auto",
+                  }}
         values.update(changes)
         return profile.configure(**values)
 
@@ -215,6 +219,11 @@ class ProfileTests(unittest.TestCase):
         self.assertNotIn("@BACKEND_", raw)
         self.assertIn("inky_web.imager_lan", raw)
         self.assertIn("Requires=inkyos-imager-firstboot.service", raw)
+        self.assertIn("TimeoutStopSec=120", raw)
+        self.assertIn("RestartPreventExitStatus=79", raw)
+        environment = (self.root / "etc/inky-studio/imager.env").read_text()
+        self.assertIn('INKY_STUDIO_DISPLAY_PROFILE="pimoroni-auto"\n', environment)
+        self.assertNotIn("ac073-800x480", environment)
         for name in ("systemd-rfkill.service", "systemd-rfkill.socket", "bluetooth.service"):
             self.assertEqual(os.readlink(self.root / "etc/systemd/system" / name), "/dev/null")
         for name in ("inky-studio.service", "inkyos-imager-firstboot.service"):
