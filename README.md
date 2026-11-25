@@ -108,3 +108,12 @@ détaille le builder et ses prérequis.
 Les images, sauvegardes SD, photos, profils Wi-Fi, clés et accès réels restent
 hors de Git. Les instructions de maintenance préservent la carte existante ;
 le bouton **Flasher** d’inkyImager installe une image neuve et efface son contenu.
+
+## Licence
+
+Les scripts, configurations et documents du projet InkyOS sont sous
+[licence MIT](LICENSE). Les composants tiers conservent leurs licences.
+Cela inclut [packaging](vendor/build-tooling/README.md) dans les outils de
+build et les paquets Raspberry Pi OS, Debian et pilotes dans l’image.
+Le code du service photo est maintenu dans
+[Inky Studio](https://github.com/mehdi7129/inky-studio).
