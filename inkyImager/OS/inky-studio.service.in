@@ -19,6 +19,7 @@ RuntimeDirectoryMode=0700
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/etc/inky-studio/imager.env
+EnvironmentFile=-/var/lib/inkyos/imager-language.env
 ExecStart=@BACKEND_EXEC_START@
 Restart=on-failure
 RestartSec=3

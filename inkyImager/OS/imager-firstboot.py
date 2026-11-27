@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-"""Import inkyImager's Wi-Fi data before NetworkManager, never appair a phone.
+"""Import inkyImager's Wi-Fi and display language before starting the frame.
 
 The public fixture seam is configure(root, owner_uid=..., radio=..., checkpoint=...).
 The runtime entrypoint accepts no paths and runs only as Linux root. Errors are
@@ -22,6 +22,8 @@ CAPSULE = "boot/firmware/inky-imager.json"
 PROFILE = "etc/NetworkManager/system-connections/inky-home.nmconnection"
 COUNTRY = "etc/modprobe.d/inky-imager-wifi-country.conf"
 STATE = "var/lib/inkyos/imager-network.json"
+LANGUAGE_ENV = "var/lib/inkyos/imager-language.env"
+LANGUAGES = frozenset(("ar", "de", "en", "es", "fr", "it", "ja", "ko", "pt", "zh-Hans", "zh-Hant"))
 COUNTRY_BYTES = b"options cfg80211 ieee80211_regdom=FR\n"
 PROFILE_UUID = "cdb16d16-dace-4383-bfd4-03082e69726c"
 MAX_CAPSULE = 4096
@@ -59,12 +61,20 @@ def strict_json(raw):
         raise ImportProblem("invalid_configuration") from exc
 
 
-def parse_wifi(raw):
+def parse_capsule(raw):
     require(type(raw) is bytes and 0 < len(raw) <= MAX_CAPSULE, "invalid_configuration")
     value = strict_json(raw)
-    require(type(value) is dict and set(value) == {"schema_version", "wifi"}
-            and type(value["schema_version"]) is int and value["schema_version"] == 1,
+    require(type(value) is dict and type(value.get("schema_version")) is int,
             "invalid_configuration")
+    version = value["schema_version"]
+    language = None
+    if version == 2:
+        require(set(value) == {"schema_version", "wifi", "language"}
+                and type(value["language"]) is str and value["language"] in LANGUAGES,
+                "invalid_configuration")
+        language = value["language"]
+    else:
+        require(version == 1 and set(value) == {"schema_version", "wifi"}, "invalid_configuration")
     wifi = value["wifi"]
     require(type(wifi) is dict and set(wifi) == {"ssid", "password", "country"},
             "invalid_configuration")
@@ -80,18 +90,21 @@ def parse_wifi(raw):
     require(wifi["country"] == "FR" and type(wifi["country"]) is str, "unsupported_country")
     psk = password.lower() if len(password) == 64 else hashlib.pbkdf2_hmac(
         "sha1", password.encode("ascii"), ssid, 4096, 32).hex()
-    return ssid, psk
+    return ssid, psk, language
 
 
-def network_profile(raw):
+def network_profile(ssid, psk):
     """Private NM bytes. Numeric SSID bytes + hex PSK avoid INI interpolation."""
-    ssid, psk = parse_wifi(raw)
     return ("[connection]\nid=inky-home\nuuid=" + PROFILE_UUID
             + "\ntype=wifi\ninterface-name=wlan0\nautoconnect=true\nautoconnect-priority=100\n"
             "\n[wifi]\nmode=infrastructure\nband=bg\nssid="
             + ";".join(str(byte) for byte in ssid)
             + ";\n\n[wifi-security]\nkey-mgmt=wpa-psk\nproto=rsn;\npsk=" + psk
             + "\npsk-flags=0\n\n[ipv4]\nmethod=auto\n\n[ipv6]\nmethod=auto\n").encode("ascii")
+
+
+def language_environment(language):
+    return ("INKY_STUDIO_WELCOME_LANGUAGE=" + language + "\n").encode("ascii")
 
 
 def signature(info):
@@ -255,12 +268,21 @@ def configure(root="/", *, owner_uid=0, radio=activate_radio, checkpoint=lambda 
         state_raw, _ = files.read(STATE, mode=0o600)
         profile, _ = files.read(PROFILE, limit=8192, mode=0o600)
         country, _ = files.read(COUNTRY, mode=0o644)
+        language_env, _ = files.read(LANGUAGE_ENV, mode=0o600)
         reused = state_raw is not None
         if reused:
             state = strict_json(state_raw)
-            require(type(state) is dict and set(state) == {"schema_version", "kind", "country",
-                    "capsule_sha256", "profile_sha256"} and type(state["schema_version"]) is int
-                    and state["schema_version"] == 1 and state["kind"] == "inky-imager-network"
+            require(type(state) is dict and type(state.get("schema_version")) is int,
+                    "configuration_conflict")
+            fields = {"schema_version", "kind", "country", "capsule_sha256", "profile_sha256"}
+            if state["schema_version"] == 2:
+                require(set(state) == fields | {"language"} and type(state["language"]) is str
+                        and state["language"] in LANGUAGES
+                        and language_env == language_environment(state["language"]), "configuration_conflict")
+            else:
+                require(state["schema_version"] == 1 and set(state) == fields
+                        and language_env is None, "configuration_conflict")
+            require(state["kind"] == "inky-imager-network"
                     and state["country"] == "FR"
                     and all(type(state[key]) is str and re.fullmatch(r"[0-9a-f]{64}", state[key])
                             for key in ("capsule_sha256", "profile_sha256"))
@@ -269,18 +291,28 @@ def configure(root="/", *, owner_uid=0, radio=activate_radio, checkpoint=lambda 
             require(raw is None or digest(raw) == state["capsule_sha256"], "configuration_conflict")
         else:
             require(raw is not None, "network_configuration_missing")
-            expected = network_profile(raw)
+            ssid, psk, language = parse_capsule(raw)
+            expected = network_profile(ssid, psk)
+            expected_language = language_environment(language) if language is not None else None
             require(profile is None or profile == expected, "configuration_conflict")
             require(country is None or country == COUNTRY_BYTES, "configuration_conflict")
+            require(language_env is None or language_env == expected_language, "configuration_conflict")
             if profile is None:
                 files.write_new(PROFILE, expected, 0o600)
             checkpoint("profile_committed")
             if country is None:
                 files.write_new(COUNTRY, COUNTRY_BYTES, 0o644)
             checkpoint("country_committed")
-            # This receipt contains only hashes, never SSID or password/PSK.
+            # systemd reads the private environment before dropping privileges.
+            if expected_language is not None:
+                if language_env is None:
+                    files.write_new(LANGUAGE_ENV, expected_language, 0o600)
+                checkpoint("language_committed")
+            # The receipt binds the Wi-Fi hashes and optional display language.
             state = {"schema_version": 1, "kind": "inky-imager-network", "country": "FR",
                      "capsule_sha256": digest(raw), "profile_sha256": digest(expected)}
+            if language is not None:
+                state.update(schema_version=2, language=language)
             files.write_new(STATE, canonical(state), 0o600)
             checkpoint("state_committed")
         # Reapply on every boot. systemd-rfkill restoration is masked by the

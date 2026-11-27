@@ -13,6 +13,7 @@ import re
 import stat
 
 
+PERSONALIZATION_SCHEMA_VERSION = 2
 FORBIDDEN = (
     "etc/inky-studio/factory-v1.json", "etc/inkyos/factory-runtime-v1.json",
     "run/inkyos-factory", "var/lib/inkyos-factory",
@@ -41,6 +42,7 @@ def render_environment(values):
     for key, value in sorted(values.items()):
         if (type(key) is not str or not re.fullmatch(r"INKY_STUDIO_[A-Z0-9_]+", key)
                 or "FACTORY" in key or "BLUETOOTH" in key or "SOFTAP" in key
+                or key == "INKY_STUDIO_WELCOME_LANGUAGE"
                 or type(value) is not str or not value or any(ord(c) < 32 or ord(c) > 126 for c in value)):
             raise ValueError("Invalid normal-LAN backend environment")
         lines.append(key + '="' + value.replace("\\", "\\\\").replace('"', '\\"') + '"')
@@ -64,10 +66,9 @@ def configure(rootfs, bootfs, recipe, source, *, backend_exec_start, backend_env
     network_state = tree.read("var/lib/NetworkManager/NetworkManager.state")
     if not network_state or "WirelessEnabled=true" not in network_state or "WirelessEnabled=false" in network_state:
         raise ValueError("configure-rootfs(factory=None) must run first")
-    # A distributed image must contain neither a Wi-Fi capsule nor a committed
-    # personal profile/state. The Mac app supplies the capsule to its private RAW.
+    # The Mac app supplies personalization to its private copy of the RAW.
     for path in ("etc/NetworkManager/system-connections/inky-home.nmconnection",
-                 "var/lib/inkyos/imager-network.json"):
+                 "var/lib/inkyos/imager-network.json", "var/lib/inkyos/imager-language.env"):
         if os.path.lexists(root / path):
             raise ValueError("Image already contains imager network state")
     copied = {
@@ -101,6 +102,7 @@ def configure(rootfs, bootfs, recipe, source, *, backend_exec_start, backend_env
         tree.link("etc/systemd/system/multi-user.target.wants/" + name,
                   "/etc/systemd/system/" + name)
     return {"kind": "imager-normal-lan-profile", "wifi_preconfigured": False,
+            "personalization_schema_version": PERSONALIZATION_SCHEMA_VERSION,
             "factory_runtime": False, "bluetooth": False, "services_enabled": True}
 
 

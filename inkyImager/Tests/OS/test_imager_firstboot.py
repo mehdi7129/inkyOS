@@ -38,9 +38,11 @@ class Fixture:
         path.chmod(mode)
         return path
 
-    def capsule(self, *, ssid="IEEE", password="password", country="FR"):
-        return self.put(boot.CAPSULE, json.dumps({"schema_version": 1, "wifi": {
-            "ssid": ssid, "password": password, "country": country}}, ensure_ascii=False).encode())
+    def capsule(self, *, ssid="IEEE", password="password", country="FR", language=None):
+        value = {"schema_version": 1, "wifi": {"ssid": ssid, "password": password, "country": country}}
+        if language is not None:
+            value.update(schema_version=2, language=language)
+        return self.put(boot.CAPSULE, json.dumps(value, ensure_ascii=False).encode())
 
     def radio(self):
         self.radio_calls += 1
@@ -76,6 +78,7 @@ class ImportTests(unittest.TestCase):
         state = json.loads((self.root / boot.STATE).read_text())
         self.assertEqual(state["profile_sha256"], hashlib.sha256(network).hexdigest())
         self.assertNotIn("IEEE", (self.root / boot.STATE).read_text())
+        self.assertFalse((self.root / boot.LANGUAGE_ENV).exists())
         self.assertEqual(self.fixture.radio_calls, 1)
 
     def test_unicode_ssid_whitespace_and_injection_characters_are_bytes_not_ini(self):
@@ -118,6 +121,59 @@ class ImportTests(unittest.TestCase):
                 self.assertEqual(fixture.run()["status"], "configured")
                 self.assertFalse(capsule.exists())
 
+    def test_all_ios_languages_survive_first_boot_and_reboot(self):
+        for language in ("ar", "de", "en", "es", "fr", "it", "ja", "ko", "pt", "zh-Hans", "zh-Hant"):
+            with self.subTest(language=language), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                fixture = Fixture(root)
+                capsule = fixture.capsule(language=language)
+                self.assertEqual(fixture.run()["country"], "FR")
+                self.assertFalse(capsule.exists())
+                state = json.loads((root / boot.STATE).read_bytes())
+                self.assertEqual((state["schema_version"], state["language"]), (2, language))
+                path = root / boot.LANGUAGE_ENV
+                self.assertEqual(path.read_text(), f"INKY_STUDIO_WELCOME_LANGUAGE={language}\n")
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+                inode = path.stat().st_ino
+                self.assertTrue(fixture.run()["reused"])
+                self.assertEqual(path.stat().st_ino, inode)
+
+    def test_language_commit_can_resume_and_cannot_be_overwritten(self):
+        capsule = self.fixture.capsule(language="ar")
+
+        def interrupt(stage):
+            if stage == "language_committed":
+                raise RuntimeError("fixture_power_loss")
+
+        with self.assertRaises(RuntimeError):
+            self.fixture.run(checkpoint=interrupt)
+        self.assertTrue(capsule.exists())
+        path = self.root / boot.LANGUAGE_ENV
+        inode = path.stat().st_ino
+        self.assertEqual(self.fixture.run()["status"], "configured")
+        self.assertEqual(path.stat().st_ino, inode)
+        path.write_text("INKY_STUDIO_WELCOME_LANGUAGE=fr\n")
+        with self.assertRaisesRegex(boot.ImportProblem, "configuration_conflict"):
+            self.fixture.run()
+        self.assertEqual(path.read_text(), "INKY_STUDIO_WELCOME_LANGUAGE=fr\n")
+
+    def test_language_schema_rejects_untrusted_values_before_persisting(self):
+        wifi = {"ssid": "IEEE", "password": "password", "country": "FR"}
+        v1 = {"schema_version": 1, "wifi": wifi}
+        v2 = {"schema_version": 2, "wifi": wifi}
+        for value in (
+            v2, dict(v2, language=2), dict(v2, language="zh-TW"),
+            dict(v1, language="ja"), dict(v2, language="fr\nOTHER=value"),
+            dict(v2, language="ar", unknown=True), dict(v2, schema_version=3, language="en"),
+        ):
+            with self.subTest(value=value):
+                capsule = self.fixture.put(boot.CAPSULE, json.dumps(value).encode())
+                with self.assertRaisesRegex(boot.ImportProblem, "invalid_configuration"):
+                    self.fixture.run()
+                self.assertTrue(capsule.exists())
+                for path in (boot.PROFILE, boot.STATE, boot.LANGUAGE_ENV):
+                    self.assertFalse((self.root / path).exists())
+
     def test_radio_failure_keeps_capsule_and_committed_profile_for_retry(self):
         capsule = self.fixture.capsule()
         def fail():
@@ -150,11 +206,11 @@ class ImportTests(unittest.TestCase):
             with self.subTest(wifi=wifi):
                 raw = json.dumps({"schema_version": 1, "wifi": wifi}).encode()
                 with self.assertRaises(boot.ImportProblem):
-                    boot.network_profile(raw)
+                    boot.parse_capsule(raw)
         for raw in (b'{"schema_version":true,"wifi":{}}',
                     b'{"schema_version":1,"schema_version":1,"wifi":{}}', b"x" * 4097):
             with self.assertRaises(boot.ImportProblem):
-                boot.network_profile(raw)
+                boot.parse_capsule(raw)
 
     def test_maximum_unicode_ssid_is_accepted_without_normalization(self):
         self.fixture.capsule(ssid="é" * 16)
@@ -219,6 +275,8 @@ class ProfileTests(unittest.TestCase):
         self.assertNotIn("@BACKEND_", raw)
         self.assertIn("inky_web.imager_lan", raw)
         self.assertIn("Requires=inkyos-imager-firstboot.service", raw)
+        self.assertIn("EnvironmentFile=-/var/lib/inkyos/imager-language.env", raw)
+        self.assertFalse((self.root / boot.LANGUAGE_ENV).exists())
         self.assertIn("TimeoutStopSec=120", raw)
         self.assertIn("RestartPreventExitStatus=79", raw)
         environment = (self.root / "etc/inky-studio/imager.env").read_text()
@@ -238,8 +296,16 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Factory/test"):
             self.configure()
 
+    def test_already_personalized_image_cannot_be_distributed(self):
+        language_env = self.root / boot.LANGUAGE_ENV
+        language_env.parent.mkdir(parents=True)
+        language_env.write_text("INKY_STUDIO_WELCOME_LANGUAGE=ja\n")
+        with self.assertRaisesRegex(ValueError, "already contains imager network state"):
+            self.configure()
+
     def test_environment_and_exec_cannot_inject_units_or_reenable_factory(self):
-        for env in ({"INKY_STUDIO_DATA_DIR": "x\nInjected=yes"}, {"INKY_STUDIO_FACTORY_REQUIRED": "1"}):
+        for env in ({"INKY_STUDIO_DATA_DIR": "x\nInjected=yes"}, {"INKY_STUDIO_FACTORY_REQUIRED": "1"},
+                    {"INKY_STUDIO_WELCOME_LANGUAGE": "ja"}):
             with self.subTest(env=env), self.assertRaises(ValueError):
                 profile.render_environment(env)
         for command in ("/bin/sh -c evil", "/usr/lib/inky-studio/server/.venv/bin/python3 -I -B -m inky_web.main\nExecStart=/bin/sh"):

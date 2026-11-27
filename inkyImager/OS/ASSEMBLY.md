@@ -9,8 +9,16 @@ factory n’est fabriqué pour contourner ses contrôles.
 Fichier FAT : `/boot/firmware/inky-imager.json`, UTF-8, 4 096 octets maximum :
 
 ```json
-{"schema_version":1,"wifi":{"ssid":"nom du Wi-Fi","password":"mot de passe","country":"FR"}}
+{"schema_version":2,"wifi":{"ssid":"nom du Wi-Fi","password":"mot de passe","country":"FR"},"language":"fr"}
 ```
+
+Le champ `language` reprend la langue sélectionnée automatiquement par l’app
+Mac selon les préférences de macOS. Les valeurs acceptées sont `ar`, `de`,
+`en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `zh-Hans` et `zh-Hant`.
+L’importeur accepte également les capsules historiques de version 1, qui
+contiennent uniquement `schema_version` et `wifi`. Le backend affiche alors
+l’accueil en français. Le manifeste de l’image destinée à l’app doit déclarer
+`personalizationSchemaVersion: 2` pour activer l’écriture du format 2.
 
 Le SSID conserve ses octets UTF-8, espaces compris : de 1 à 32 octets, sans NUL.
 La version initiale accepte la France, un Wi-Fi WPA2 sur 2,4 GHz et une
@@ -20,11 +28,13 @@ accepte les SSID sous forme de liste d’octets décimaux ; la
 [propriété WPA-PSK](https://networkmanager.pages.freedesktop.org/NetworkManager/NetworkManager/nm-settings-dbus.html)
 accepte une clé hexadécimale de 64 caractères.
 
-L’importeur écrit un profil autoconnect privé avec une PSK dérivée en hexadécimal,
-le pays réglementaire persistant, puis un petit reçu privé contenant seulement
-des hashes. Tous sont synchronisés avant suppression du JSON FAT. Une coupure
-après publication du profil ou du reçu est reprise sans réécriture du profil ni
-nouvelle identité. Le pays et l’activation WLAN sont réappliqués chaque boot.
+L’importeur écrit le profil Wi-Fi privé, le pays réglementaire et, pour une
+capsule v2, le fichier privé `/var/lib/inkyos/imager-language.env`. Le reçu
+enregistre les hashes et la langue. Ces fichiers sont synchronisés avant
+suppression du JSON FAT, ce qui permet de reprendre l’import après une coupure
+sans réécrire la configuration. À chaque démarrage, systemd transmet la langue
+à Inky Studio via `INKY_STUDIO_WELCOME_LANGUAGE` avant de lancer le service.
+Le pays réglementaire et l’activation WLAN sont également réappliqués.
 
 ## Assemblage Linux minimal réutilisable
 
@@ -73,7 +83,7 @@ nouvelle identité. Le pays et l’activation WLAN sont réappliqués chaque boo
    réel du backend : vérifier ensuite l’unité rendue et ses chemins d’écriture.
 7. Vérifier offline : paquet/application matérialisés, unités et dépendances
    systemd, hostname encore non initialisé, aucun profil Wi-Fi/capsule/secret
-   personnel embarqué, aucun marker `/etc/inky-studio/factory-v1.json`,
+   personnel ni langue préconfigurée, aucun marker `/etc/inky-studio/factory-v1.json`,
    `/etc/inkyos/factory-runtime-v1.json` ou `/run/inkyos-factory`, ni unité de
    fermeture WLAN. Vérifier aussi les imports du module LAN sous le Python
    ARM64 cible, les fsck, puis exporter XZ et relire intégralement.
@@ -131,7 +141,7 @@ composition partielle : ses fichiers et journaux doivent d’abord être inspect
 
 `python3 -I -B -m unittest discover -s inkyImager/Tests/OS -p 'test_*.py'`
 
-14 tests sur fixtures : vecteur WPA connu, UTF-8/espaces/caractères INI,
+18 tests sur fixtures : persistance des 11 langues, vecteur WPA connu, UTF-8/espaces/caractères INI,
 validation, permissions, reprise après chaque publication durable, échec radio,
 changement de capsule, refus des liens, refus d’anciens markers factory et rendu
 normal des unités. Aucun réseau réel, VM, SD, backend ou écran n’a été utilisé

@@ -165,11 +165,14 @@ def build(work, pin):
             bundle.verify_bundle(root, manifest, value["files"][backend["inputs"]]["sha256"],
                                  work / backend["sources"], work / backend["wheels"])
             profile = load(work / "imager-os/configure-imager-rootfs.py", "imager_profile")
-            profile.configure(root, work / "boot", work / "recipe", work / "imager-os",
-                              backend_exec_start=value["backend_exec_start"], backend_environment=value["backend_environment"])
+            profile_result = profile.configure(
+                root, work / "boot", work / "recipe", work / "imager-os",
+                backend_exec_start=value["backend_exec_start"], backend_environment=value["backend_environment"])
+            personalization_schema = profile_result["personalization_schema_version"]
             release = json.loads((root / "etc/inkyos-release.json").read_bytes())
             release.update(kind="imager-lan", application={"studio_commit": value["studio_commit"]},
-                           os_commit=value["os_commit"], image_inputs_sha256=pin)
+                           os_commit=value["os_commit"], image_inputs_sha256=pin,
+                           personalization_schema_version=personalization_schema)
             (root / "etc/inkyos-release.json").write_text(json.dumps(release, sort_keys=True, indent=2) + "\n")
         finally:
             os.umask(old_umask)
@@ -184,6 +187,7 @@ def build(work, pin):
     require(inputs(work, pin) == value, "inputs changed during composition")
     result = {"schema_version": 1, "kind": "inky-imager-image-candidate", "input_sha256": pin,
               "image": file_hash(work / "candidate.img"), "os_commit": value["os_commit"],
+              "personalization_schema_version": personalization_schema,
               "studio_commit": value["studio_commit"], "backend_code_executed": False,
               "wifi_preconfigured": False, "factory_runtime": False, "boot_qualified": False,
               "hardware_qualified": False, "preserved_boot_and_resize": True}
