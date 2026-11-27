@@ -6,6 +6,7 @@ from pathlib import Path
 import stat
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 SOURCE = Path(__file__).resolve().parents[2] / "OS"
@@ -72,7 +73,7 @@ class ImportTests(unittest.TestCase):
         self.assertNotIn(b"password", network)
         self.assertFalse(capsule.exists())
         self.assertEqual(self.fixture.events, ["profile_committed", "country_committed", "state_committed",
-                                               "radio_configured", "capsule_removed"])
+                                               "capsule_removed", "radio_configured"])
         for name in (boot.PROFILE, boot.STATE):
             self.assertEqual(stat.S_IMODE((self.root / name).stat().st_mode), 0o600)
         state = json.loads((self.root / boot.STATE).read_text())
@@ -107,7 +108,7 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(self.fixture.radio_calls, 2)
 
     def test_interruption_after_each_durable_commit_is_resumable(self):
-        for stage in ("profile_committed", "country_committed", "state_committed", "radio_configured"):
+        for stage in ("profile_committed", "country_committed", "state_committed", "capsule_removed", "radio_configured"):
             with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory).resolve()
                 fixture = Fixture(root)
@@ -117,7 +118,7 @@ class ImportTests(unittest.TestCase):
                         raise RuntimeError("fixture_power_loss")
                 with self.assertRaises(RuntimeError):
                     fixture.run(checkpoint=interrupt)
-                self.assertTrue(capsule.exists())
+                self.assertEqual(capsule.exists(), stage not in {"capsule_removed", "radio_configured"})
                 self.assertEqual(fixture.run()["status"], "configured")
                 self.assertFalse(capsule.exists())
 
@@ -174,16 +175,42 @@ class ImportTests(unittest.TestCase):
                 for path in (boot.PROFILE, boot.STATE, boot.LANGUAGE_ENV):
                     self.assertFalse((self.root / path).exists())
 
-    def test_radio_failure_keeps_capsule_and_committed_profile_for_retry(self):
-        capsule = self.fixture.capsule()
-        def fail():
-            raise boot.ImportProblem("radio_setup_failed")
-        with self.assertRaisesRegex(boot.ImportProblem, "radio_setup_failed"):
-            self.fixture.run(radio=fail)
+    def test_radio_failure_leaves_no_capsule_and_preserves_profile_for_retry(self):
+        for language in (None, "zh-Hant"):
+            for command in ("/usr/sbin/iw", "/usr/sbin/rfkill"):
+                with self.subTest(language=language, command=command), tempfile.TemporaryDirectory() as directory:
+                    fixture = Fixture(Path(directory).resolve())
+                    capsule = fixture.capsule(language=language)
+                    def invoke(argv, **kwargs):
+                        self.assertFalse(capsule.exists())
+                        self.assertEqual(kwargs["stdout"], boot.subprocess.DEVNULL)
+                        self.assertEqual(kwargs["stderr"], boot.subprocess.DEVNULL)
+                        self.assertNotIn("password", argv)
+                        if argv[0] == command:
+                            raise boot.subprocess.CalledProcessError(1, argv)
+                    with patch.object(boot.subprocess, "run", side_effect=invoke):
+                        with self.assertRaisesRegex(boot.ImportProblem, "^radio_setup_failed$"):
+                            fixture.run(radio=boot.activate_radio)
+                    self.assertFalse(capsule.exists())
+                    paths = [fixture.root / name for name in (boot.PROFILE, boot.STATE, boot.LANGUAGE_ENV)
+                             if (fixture.root / name).exists()]
+                    before = [(path.stat().st_ino, path.read_bytes()) for path in paths]
+                    self.assertTrue(fixture.run()["reused"])
+                    self.assertEqual(before, [(path.stat().st_ino, path.read_bytes()) for path in paths])
+                    for path in paths:
+                        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+                        self.assertNotIn(b"password", path.read_bytes())
+                    self.assertFalse(list(fixture.root.rglob(".imager-[0-9]*")))
+
+    def test_receipt_readback_failure_keeps_capsule_and_radio_untouched(self):
+        capsule = self.fixture.capsule(language="ar")
+        def corrupt(stage):
+            if stage == "state_committed":
+                (self.root / boot.STATE).write_text("{}")
+        with self.assertRaisesRegex(boot.ImportProblem, "configuration_conflict"):
+            self.fixture.run(checkpoint=corrupt)
         self.assertTrue(capsule.exists())
-        self.assertTrue((self.root / boot.STATE).exists())
-        self.assertTrue(self.fixture.run()["reused"])
-        self.assertFalse(capsule.exists())
+        self.assertEqual(self.fixture.radio_calls, 0)
 
     def test_missing_capsule_does_not_create_profile_or_marker(self):
         with self.assertRaisesRegex(boot.ImportProblem, "network_configuration_missing"):

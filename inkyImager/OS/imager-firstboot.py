@@ -224,7 +224,10 @@ class Files:
                     pass
             os.close(directory)
 
-    def remove_capsule(self, expected):
+    def remove_capsule(self, expected, expected_hash):
+        raw, observed = self.read(CAPSULE)
+        require(raw is not None and observed == expected and digest(raw) == expected_hash,
+                "configuration_changed")
         directory = self.directory("boot/firmware")
         try:
             current = os.stat("inky-imager.json", dir_fd=directory, follow_symlinks=False)
@@ -315,13 +318,18 @@ def configure(root="/", *, owner_uid=0, radio=activate_radio, checkpoint=lambda 
                 state.update(schema_version=2, language=language)
             files.write_new(STATE, canonical(state), 0o600)
             checkpoint("state_committed")
-        # Reapply on every boot. systemd-rfkill restoration is masked by the
-        # image profile, so no late saved soft-block can undo this command.
+            require(files.read(STATE, mode=0o600)[0] == canonical(state)
+                    and files.read(PROFILE, limit=8192, mode=0o600)[0] == expected
+                    and files.read(COUNTRY, mode=0o644)[0] == COUNTRY_BYTES
+                    and files.read(LANGUAGE_ENV, mode=0o600)[0] == expected_language,
+                    "configuration_conflict")
+        if raw is not None:
+            files.remove_capsule(capsule_stamp, state["capsule_sha256"])
+            checkpoint("capsule_removed")
+        # Reapply on every boot. The committed profile suffices even if the
+        # preceding boot failed before or during radio activation.
         radio()
         checkpoint("radio_configured")
-        if raw is not None:
-            files.remove_capsule(capsule_stamp)
-            checkpoint("capsule_removed")
         return {"status": "configured", "reused": reused, "country": "FR"}
     finally:
         if lock is not None:
