@@ -53,6 +53,9 @@ Le pays réglementaire et l’activation WLAN sont également réappliqués.
    account de `build-factory-active-linux.py::mutate_system` : `pi` devient
    `inky`, UID/GID1000 conservés, shell nologin, groupes spi/i2c/gpio.
    Ne pas appeler le reste de `mutate_system`.
+   Installer aussi le paquet Debian ARM64 verrouillé dans
+   `localization-packages.lock.json`. La base Lite ne contient pas FriBidi,
+   que Pillow charge pour composer le texte arabe de droite à gauche.
 4. Appeler
    `scripts/configure-rootfs.py::configure(root, boot, recipe, factory=None)`.
    Cela conserve le resize officiel, installe le hostname persistant unique,
@@ -126,8 +129,8 @@ sans nouvelle dépendance réseau pendant l’assemblage.
 L’exemple doit être complété par les hashes/tailles de **tous** les fichiers de
 `recipe/`, `backend/`, `imager-os/` et `packages/`. Les namespaces sont fermés.
 Les deux archives I²C doivent être présentes dans `recipe/packages/`, comme le
-demande leur installateur existant ; le paquet système `python3-dbus` est dans
-`packages/`. Le fichier `base.img` est une unique base vérifiée, éventuellement
+demande leur installateur existant. Les paquets `python3-dbus` et
+`libfribidi0` sont dans `packages/`. Le fichier `base.img` est une unique base vérifiée, éventuellement
 déplacée depuis un ancien workspace ; un `base-reuse.json` à la racine est
 autorisé sans duplication du RAW. Le builder crée une seule `candidate.img`.
 

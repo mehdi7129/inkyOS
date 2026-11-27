@@ -137,8 +137,9 @@ def build(work, pin):
         require(not os.path.lexists(policy), "unexpected policy-rc.d")
         policy.write_bytes(b"#!/bin/sh\nexit 101\n"); policy.chmod(0o755)
         packages = json.loads((work / "recipe/config/system-packages.lock.json").read_bytes())
+        localization_packages = json.loads((work / "imager-os/localization-packages.lock.json").read_bytes())
         scratch = root / "var/tmp/inkyos-packages"; scratch.mkdir(mode=0o700)
-        for package in packages["packages"]:
+        for package in packages["packages"] + localization_packages["packages"]:
             source = work / "packages" / package["filename"]
             require(file_hash(source) == {"sha256": package["sha256"], "size_bytes": package["size_bytes"]}, "package pin mismatch")
             destination = scratch / package["filename"]; shutil.copyfile(source, destination); destination.chmod(0o600)
@@ -170,6 +171,8 @@ def build(work, pin):
                 backend_exec_start=value["backend_exec_start"], backend_environment=value["backend_environment"])
             personalization_schema = profile_result["personalization_schema_version"]
             release = json.loads((root / "etc/inkyos-release.json").read_bytes())
+            release["packages"].extend({key: package[key] for key in ("name", "version", "architecture", "sha256")}
+                                       for package in localization_packages["packages"])
             release.update(kind="imager-lan", application={"studio_commit": value["studio_commit"]},
                            os_commit=value["os_commit"], image_inputs_sha256=pin,
                            personalization_schema_version=personalization_schema)
