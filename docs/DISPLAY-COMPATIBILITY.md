@@ -13,8 +13,13 @@ ne suffit pas, par exemple pour départager les Impression et Spectra 7,3″.
 | wHAT | 400 × 300, avec écran d’accueil compact |
 | pHAT | 212 × 104 et 250 × 122, avec QR agrandi au maximum à la résolution native |
 
-Les tests logiciels ne qualifient pas la lecture optique du QR sur un écran
-réel. Sur pHAT, approcher l’iPhone et faire la mise au point sur le QR.
+**Essai sur matériel avec la rc3.** Le mainteneur a confirmé le bon
+fonctionnement de ses deux Spectra, dont un grand format, et de son
+Inky Impression avec l’image embarquée dans inkyImager 0.1.5. Ce retour
+couvre les trois écrans utilisés. Leurs références et révisions exactes
+restent à préciser.
+
+Sur pHAT, approcher l’iPhone et faire la mise au point sur le QR.
 Le DMG ne propose pas encore de sélection manuelle pour les anciennes cartes
 sans EEPROM exploitable. Une EEPROM inconnue ne déclenche pas de balayage
 de pilotes.

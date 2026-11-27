@@ -7,7 +7,7 @@
 - Service PHOTO 0.5.0rc4. Le QR initial a une échéance fixe et l’updater du service reste désactivé dans le profil Imager.
 - Même profil `pimoroni-auto`, mêmes règles EEPROM et même pilote `inky` 2.6.0 que la rc2.
 
-Validation du profil Imager : 19 tests et contrôles de l’image dans une VM Linux ARM64. La validation sur carte et écran physiques reste à effectuer.
+Les 19 tests du profil Imager et les contrôles de l’image dans une VM Linux ARM64 ont réussi. Le mainteneur a confirmé le fonctionnement de cette image sur deux Spectra, dont un grand format, et un Inky Impression.
 
 ## 2026.11.20-rc2 — 2026-11-20
 

@@ -34,9 +34,9 @@ Impression, Spectra 6, pHAT, wHAT et les limites de la détection.
 
 Cette image est une **release candidate**. Les fichiers, unités systemd et
 dépendances ont été contrôlés en Linux ARM64. Les tests logiciels couvrent les
-pilotes, les variantes EEPROM et les rendus du QR. Le premier démarrage sur SD,
-la lecture optique à l’iPhone et le rafraîchissement sur écran réel restent à
-vérifier pour cette image.
+pilotes, les variantes EEPROM et les rendus du QR. Avec cette image intégrée
+à inkyImager 0.1.5, le mainteneur a confirmé le bon fonctionnement de ses deux
+écrans Spectra, dont un grand format, et de son Inky Impression.
 
 ## Développer
 
