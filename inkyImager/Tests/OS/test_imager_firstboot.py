@@ -303,6 +303,7 @@ class ProfileTests(unittest.TestCase):
         self.assertIn("inky_web.imager_lan", raw)
         self.assertIn("Requires=inkyos-imager-firstboot.service", raw)
         self.assertIn("EnvironmentFile=-/var/lib/inkyos/imager-language.env", raw)
+        self.assertIn("UnsetEnvironment=INKY_STUDIO_UPDATER_ENABLED\n", raw)
         self.assertFalse((self.root / boot.LANGUAGE_ENV).exists())
         self.assertIn("TimeoutStopSec=120", raw)
         self.assertIn("RestartPreventExitStatus=79", raw)

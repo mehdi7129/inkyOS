@@ -20,6 +20,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/etc/inky-studio/imager.env
 EnvironmentFile=-/var/lib/inkyos/imager-language.env
+UnsetEnvironment=INKY_STUDIO_UPDATER_ENABLED
 ExecStart=@BACKEND_EXEC_START@
 Restart=on-failure
 RestartSec=3
