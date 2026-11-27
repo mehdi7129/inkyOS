@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.27-rc3 — 2026-11-27
+
+- Enregistrement de la langue à partir des capsules v2, avec prise en charge des capsules v1 et rendu arabe via FriBidi.
+- Suppression de la capsule Wi-Fi après validation du profil et du reçu persistants, avant l’activation radio. Un démarrage suivant reprend l’activation sans réécrire le profil.
+- Service PHOTO 0.5.0rc4. Le QR initial a une échéance fixe et l’updater du service reste désactivé dans le profil Imager.
+- Même profil `pimoroni-auto`, mêmes règles EEPROM et même pilote `inky` 2.6.0 que la rc2.
+
+Validation du profil Imager : 19 tests et contrôles de l’image dans une VM Linux ARM64. La validation sur carte et écran physiques reste à effectuer.
+
 ## 2026.11.20-rc2 — 2026-11-20
 
 - Image LAN avec détection des écrans Pimoroni au démarrage. Le profil AC073 reste réservé au matériel reconnu.

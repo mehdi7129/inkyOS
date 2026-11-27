@@ -1,6 +1,6 @@
 # Compatibilité des écrans
 
-## Image 2026.11.20-rc2
+## Images 2026.11.27-rc3 et 2026.11.20-rc2
 
 Le profil `pimoroni-auto` utilise la bibliothèque Pimoroni `inky` 2.6.0.
 Il sélectionne le pilote à partir de la variante EEPROM. La résolution seule
